@@ -26,6 +26,6 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       # Habilitar este paso cuando exista al menos un .csproj en /tests
-      - name: Run tests
-        run: dotnet test --no-build --verbosity normal
-        if: ${{ false }} # borrar esta línea cuando haya tests
+      # - name: Run tests
+      #   run: dotnet test --no-build --verbosity normal
+      #   if: ${{ false }} # borrar esta línea cuando haya tests
