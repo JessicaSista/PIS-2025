@@ -11,7 +11,7 @@ namespace OmniMonitor.Server.Data
         }
 
         // 🔹 Tablas de la base de datos
-        public DbSet<SomeEntity> SomeTable { get; set; }
+        public DbSet<SomeEntity> SomeTable1 { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

@@ -67,3 +67,13 @@ jobs:
         with:
           app-name: web-smartplatform-dev
           package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish
+
+      #PARA CORRER MIGRACIONES QUE CAMBIAN LAS TABLAS AUTOMATICAMENTE
+      - name: Update database (EF Core migrations)
+        run: |
+          dotnet tool install --global dotnet-ef
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef database update \
+            --connection "${{ secrets.AZURE_SQL_CONN_DEV }}" \
+            --project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj \
+            --startup-project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj
