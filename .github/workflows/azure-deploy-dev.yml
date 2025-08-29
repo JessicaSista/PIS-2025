@@ -1,4 +1,4 @@
-name: CI/CD - Azure App Service Test (Develop)
+name: CI/CD - Azure App Service Test (auto-detect Server)
 
 on:
   push:
@@ -7,15 +7,20 @@ on:
     branches: [develop]
 
 jobs:
-  build-test-and-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repo
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Buscar la carpeta Server
+      - name: Show workspace and list top folders (debug)
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE"
+          echo "Listing recursively (top 3 levels)..."
+          find "$GITHUB_WORKSPACE" -maxdepth 3 -type d -print
+
       - id: find-server
         name: Find Server folder
         run: |
@@ -25,6 +30,7 @@ jobs:
             echo "ERROR: 'Server' folder not found in the repo workspace."
             exit 1
           fi
+          # compute relative path from GITHUB_WORKSPACE
           rel=${server_dir#"$GITHUB_WORKSPACE"/}
           echo "Found: $server_dir"
           echo "server_path=$rel" >> $GITHUB_OUTPUT
@@ -34,51 +40,30 @@ jobs:
           echo "SERVER_PATH='${{ steps.find-server.outputs.server_path }}'"
           ls -la "${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}"
 
-      # Setup .NET (solo una vez)
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.304"
 
-      # Restore dependencies
       - name: Restore dependencies
         run: dotnet restore
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
-      # Build
       - name: Build
         run: dotnet build --configuration Release --no-restore
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
-      # Run tests
-      #- name: Run tests
-      #  run: dotnet test --no-build --verbosity normal
-      #  working-directory: ${{ github.workspace }}/tests
-
-      # Publish
       - name: Publish
         run: dotnet publish --configuration Release --no-build --output ./publish
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
-      # Login Azure
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Deploy Web App
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: web-smartplatform-dev
           package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish
-
-      # EF Core Migrations
-      - name: Update database (EF Core migrations)
-        run: |
-          dotnet tool install --global dotnet-ef
-          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-          dotnet ef database update \
-            --connection "${{ secrets.AZURE_SQL_CONN_DEV }}" \
-            --project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj \
-            --startup-project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj
