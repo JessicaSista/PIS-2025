@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\pruebaDeploy\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj": {}
+    "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\PIS-2025\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj": {}
   },
   "projects": {
-    "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\pruebaDeploy\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj": {
+    "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\PIS-2025\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\pruebaDeploy\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj",
+        "projectUniqueName": "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\PIS-2025\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj",
         "projectName": "OmniMonitor.Shared",
-        "projectPath": "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\pruebaDeploy\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj",
+        "projectPath": "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\PIS-2025\\OmniMonitor\\Shared\\OmniMonitor.Shared.csproj",
         "packagesPath": "C:\\Users\\jessi\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\pruebaDeploy\\OmniMonitor\\Shared\\obj\\",
+        "outputPath": "C:\\Users\\jessi\\OneDrive\\Documentos\\GitHub\\PIS-2025\\OmniMonitor\\Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

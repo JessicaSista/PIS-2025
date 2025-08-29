@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "OmniMonitor.Client",
   "resources": {
-    "hash": "sha256-hoQgEGvWzqZE+5B0ZwOSMCZ+DW8sluGnSN46BxdlRbg=",
+    "hash": "sha256-ab+9Edwg49ALZArxw3u+9k+/lTm+aR520ugzvqnRVCQ=",
     "fingerprinting": {
       "Microsoft.AspNetCore.Authorization.tnyc7xpluy.wasm": "Microsoft.AspNetCore.Authorization.wasm",
       "Microsoft.AspNetCore.Components.t32damlu4o.wasm": "Microsoft.AspNetCore.Components.wasm",
@@ -204,10 +204,10 @@
       "icudt_CJK.tjcz0u77k5.dat": "icudt_CJK.dat",
       "icudt_EFIGS.tptq2av103.dat": "icudt_EFIGS.dat",
       "icudt_no_CJK.lfu7j35m59.dat": "icudt_no_CJK.dat",
-      "OmniMonitor.Shared.bgb2k3vxvb.wasm": "OmniMonitor.Shared.wasm",
-      "OmniMonitor.Shared.563i9bdadi.pdb": "OmniMonitor.Shared.pdb",
-      "OmniMonitor.Client.txe5r15ucj.wasm": "OmniMonitor.Client.wasm",
-      "OmniMonitor.Client.toq2u89erl.pdb": "OmniMonitor.Client.pdb"
+      "OmniMonitor.Shared.xs59kcgw3u.wasm": "OmniMonitor.Shared.wasm",
+      "OmniMonitor.Shared.4eeuvrt8ag.pdb": "OmniMonitor.Shared.pdb",
+      "OmniMonitor.Client.1nf7kg2jhi.wasm": "OmniMonitor.Client.wasm",
+      "OmniMonitor.Client.mkewqutobv.pdb": "OmniMonitor.Client.pdb"
     },
     "jsModuleNative": {
       "dotnet.native.50iqa8w3ys.js": "sha256-pQdXuxfVeqYHOwd5HUM2ERd7OnXirj9JTF37b6OdTAc="
@@ -420,12 +420,12 @@
       "WindowsBase.pe1q66fox7.wasm": "sha256-X+jubl681x6U1UjhhKVz+cjOvMv1wDBWIyyFenqJnPc=",
       "mscorlib.ypkr78tz1c.wasm": "sha256-Wkc7KpMw/bTWNoLCRv9T8olIOmCpEiJSeUZsUQEnwrA=",
       "netstandard.ifx8vojh9u.wasm": "sha256-PqpRCbO73PFsE8ik5zmAuG1kKax3c7bGhjOOeuiUcyY=",
-      "OmniMonitor.Shared.bgb2k3vxvb.wasm": "sha256-e1Ymf4NV6iBMNyfHiyZnx3/mKpBfawxvNOtYS6mKciM=",
-      "OmniMonitor.Client.txe5r15ucj.wasm": "sha256-4UmBeTDGdbR7k/ry772YwHf0Gt/uhtUwRZAfTfUlxbs="
+      "OmniMonitor.Shared.xs59kcgw3u.wasm": "sha256-ocl6I2QOJMVt66cDelShqiGfp+2cGz/zKncVr4sNTiE=",
+      "OmniMonitor.Client.1nf7kg2jhi.wasm": "sha256-7f5Fyof8GXR8VMt+CqOEWzEnS0b2p3s1SRwEMziBpos="
     },
     "pdb": {
-      "OmniMonitor.Shared.563i9bdadi.pdb": "sha256-cxoQ82rOINTeO5hDm9AkqUhZmzyjWPiGyzndZujnvic=",
-      "OmniMonitor.Client.toq2u89erl.pdb": "sha256-nQGWaNW3u7s1B1PyszaugjCEQHmMa/EXUJYiusQI85o="
+      "OmniMonitor.Shared.4eeuvrt8ag.pdb": "sha256-pMCfm9HPh5DAEbQsh752MGUX4QVuYuDcmmjy6aca/Mo=",
+      "OmniMonitor.Client.mkewqutobv.pdb": "sha256-xnNyV8mTtu8gX4Ws/W7SMEAc35Cx49PWGHtvWx8eLXo="
     }
   },
   "cacheBootResources": true,

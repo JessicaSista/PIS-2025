@@ -1,4 +1,4 @@
-name: CI/CD - Azure App Service Test (auto-detect Server)
+name: CI/CD - Azure App Service Test (Develop)
 
 on:
   push:
@@ -7,43 +7,33 @@ on:
     branches: [develop]
 
 jobs:
-  build-and-deploy:
+  build-test-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show workspace and list top folders (debug)
-        run: |
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          ls -la "$GITHUB_WORKSPACE"
-          echo "Listing recursively (top 3 levels)..."
-          find "$GITHUB_WORKSPACE" -maxdepth 3 -type d -print
-
-      - id: find-server
-        name: Find Server folder
-        run: |
-          echo "Searching for a directory named 'Server' inside $GITHUB_WORKSPACE..."
-          server_dir=$(find "$GITHUB_WORKSPACE" -type d -name Server -print -quit)
-          if [ -z "$server_dir" ]; then
-            echo "ERROR: 'Server' folder not found in the repo workspace."
-            exit 1
-          fi
-          # compute relative path from GITHUB_WORKSPACE
-          rel=${server_dir#"$GITHUB_WORKSPACE"/}
-          echo "Found: $server_dir"
-          echo "server_path=$rel" >> $GITHUB_OUTPUT
-
-      - name: Show found server path (debug)
-        run: |
-          echo "SERVER_PATH='${{ steps.find-server.outputs.server_path }}'"
-          ls -la "${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}"
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.304"
+
+      - id: find-server
+        name: Find Server folder
+        run: |
+          server_dir=$(find "$GITHUB_WORKSPACE" -type d -name Server -print -quit)
+          if [ -z "$server_dir" ]; then
+            echo "ERROR: 'Server' folder not found"
+            exit 1
+          fi
+          rel=${server_dir#"$GITHUB_WORKSPACE"/}
+          echo "server_path=$rel" >> $GITHUB_OUTPUT
+
+      - name: Show found server path
+        run: |
+          echo "SERVER_PATH='${{ steps.find-server.outputs.server_path }}'"
+          ls -la "${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}"
 
       - name: Restore dependencies
         run: dotnet restore
@@ -52,6 +42,11 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
+
+      - name: Run tests
+        run: dotnet test --no-build --verbosity normal
+        working-directory: ${{ github.workspace }}/tests
+        continue-on-error: false # Fail workflow si los tests fallan
 
       - name: Publish
         run: dotnet publish --configuration Release --no-build --output ./publish
@@ -67,3 +62,12 @@ jobs:
         with:
           app-name: web-smartplatform-dev
           package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish
+
+      - name: Update database (EF Core migrations)
+        run: |
+          dotnet tool install --global dotnet-ef
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet ef database update \
+            --connection "${{ secrets.AZURE_SQL_CONN_DEV }}" \
+            --project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj \
+            --startup-project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj
