@@ -1,0 +1,50 @@
+﻿@page "/marrunoPage-add"
+@using OmniMonitor.Shared
+@inject HttpClient Http
+@using MudBlazor
+@using OmniMonitor.Shared.Dtos
+
+<PageTitle>Agregar Negro</PageTitle>
+
+<MudText Typo="Typo.h3">Agregar Nuevo Negro</MudText>
+
+<MudForm @ref="form" Validated="OnValidSubmit">
+    <MudTextField @bind-Value="nuevoNegro.Nombre" Label="Nombre" Required="true" />
+    <MudTextField @bind-Value="nuevoNegro.Edad" Label="Edad" Required="true" Type="number" />
+    <MudTextField @bind-Value="nuevoNegro.BalasRecibidas" Label="Balas Recibidas" Required="true" Type="number" />
+    <MudTextField @bind-Value="nuevoNegro.NombreRapero" Label="Nombre Rapero" Required="true" />
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Enviar">Enviar</MudButton>
+</MudForm>
+
+@if (mensaje != null)
+{
+    <MudAlert Severity="Severity.Success">@mensaje</MudAlert>
+}
+
+@code {
+    private Negro nuevoNegro = new Negro();
+    private MudForm? form;
+    private string? mensaje;
+
+    private async Task Enviar()
+    {
+        if (form != null)
+        {
+            await form.Validate();
+            var response = await Http.PostAsJsonAsync("Marruno", nuevoNegro);
+
+            if (response.IsSuccessStatusCode)
+            {
+                mensaje = "Negro agregado exitosamente!";
+                // Limpiar formulario
+                nuevoNegro = new Negro();
+                form.ResetValidation();
+            }
+            else
+            {
+                mensaje = "Error al agregar el Negro.";
+            }
+        }
+    }
+}

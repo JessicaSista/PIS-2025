@@ -1,0 +1,49 @@
+﻿@page "/marrunoPage"
+@using OmniMonitor.Shared
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+
+<PageTitle>Marruno Negro</PageTitle>
+
+<MudText Typo="Typo.h3">PÁGINA DE MARRUNO EL NEGRO</MudText>
+<MudText Typo="Typo.body1">PROBANDO CON LOS PIBES</MudText>
+
+<MudTable Items="negros" Hover="true" Bordered="true" Striped="true">
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>Nombre</MudTh>
+        <MudTh>Edad</MudTh>
+        <MudTh>Balas Recibidas</MudTh>
+        <MudTh>Nombre Rapero</MudTh>
+        <MudTh>Acciones</MudTh> <!-- Columna de botones -->
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Id</MudTd>
+        <MudTd>@context.Nombre</MudTd>
+        <MudTd>@context.Edad</MudTd>
+        <MudTd>@context.BalasRecibidas</MudTd>
+        <MudTd>@context.NombreRapero</MudTd>
+        <MudTd>
+            <!-- Botón que navega a la página detalle -->
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/marrunoPage/{context.Id}")">
+                    Ver detalle
+                </MudButton>
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private Negro[]? negros;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            negros = await Http.GetFromJsonAsync<Negro[]>("Marruno");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar los negros: {ex.Message}");
+        }
+    }
+}

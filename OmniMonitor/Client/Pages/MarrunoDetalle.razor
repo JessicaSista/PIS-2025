@@ -1,0 +1,42 @@
+﻿@page "/marrunoPage/{Id:int}"
+@using OmniMonitor.Shared
+@inject HttpClient Http
+@using OmniMonitor.Shared.Dtos
+
+<PageTitle>Detalle Negro</PageTitle>
+
+@if (negro == null)
+{
+    <MudText>Cargando...</MudText>
+}
+else
+{
+    <MudCard Style="max-width:400px;">
+        <MudCardContent>
+            <MudText Typo="Typo.h5">@negro.Nombre (@negro.NombreRapero)</MudText>
+            <MudText>Edad: @negro.Edad</MudText>
+            <MudText>Balas Recibidas: @negro.BalasRecibidas</MudText>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/marrunoPage">Volver</MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Negro? negro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            negro = await Http.GetFromJsonAsync<Negro>($"Marruno/{Id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar el negro: {ex.Message}");
+        }
+    }
+}

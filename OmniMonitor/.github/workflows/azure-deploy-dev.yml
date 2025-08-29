@@ -1,0 +1,69 @@
+name: CI/CD - Azure App Service Test (auto-detect Server)
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show workspace and list top folders (debug)
+        run: |
+          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
+          ls -la "$GITHUB_WORKSPACE"
+          echo "Listing recursively (top 3 levels)..."
+          find "$GITHUB_WORKSPACE" -maxdepth 3 -type d -print
+
+      - id: find-server
+        name: Find Server folder
+        run: |
+          echo "Searching for a directory named 'Server' inside $GITHUB_WORKSPACE..."
+          server_dir=$(find "$GITHUB_WORKSPACE" -type d -name Server -print -quit)
+          if [ -z "$server_dir" ]; then
+            echo "ERROR: 'Server' folder not found in the repo workspace."
+            exit 1
+          fi
+          # compute relative path from GITHUB_WORKSPACE
+          rel=${server_dir#"$GITHUB_WORKSPACE"/}
+          echo "Found: $server_dir"
+          echo "server_path=$rel" >> $GITHUB_OUTPUT
+
+      - name: Show found server path (debug)
+        run: |
+          echo "SERVER_PATH='${{ steps.find-server.outputs.server_path }}'"
+          ls -la "${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.304"
+
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+        working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
+
+      - name: Publish
+        run: dotnet publish --configuration Release --no-build --output ./publish
+        working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: web-smartplatform-dev
+          package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish

@@ -1,0 +1,23 @@
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\bin\Debug\net9.0\OmniMonitor.Shared.deps.json
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\bin\Debug\net9.0\OmniMonitor.Shared.dll
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\bin\Debug\net9.0\OmniMonitor.Shared.pdb
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.AssemblyInfoInputs.cache
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.AssemblyInfo.cs
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.csproj.CoreCompileInputs.cache
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.dll
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\refint\OmniMonitor.Shared.dll
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.pdb
+C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Shared\obj\Debug\net9.0\ref\OmniMonitor.Shared.dll
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\bin\Debug\net9.0\OmniMonitor.Shared.deps.json
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\bin\Debug\net9.0\OmniMonitor.Shared.dll
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\bin\Debug\net9.0\OmniMonitor.Shared.pdb
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.AssemblyInfoInputs.cache
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.AssemblyInfo.cs
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.csproj.CoreCompileInputs.cache
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.sourcelink.json
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.dll
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\refint\OmniMonitor.Shared.dll
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\OmniMonitor.Shared.pdb
+C:\Users\jessi\OneDrive\Documentos\GitHub\pruebaDeploy\OmniMonitor\Shared\obj\Debug\net9.0\ref\OmniMonitor.Shared.dll

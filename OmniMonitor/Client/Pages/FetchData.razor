@@ -1,0 +1,45 @@
+﻿@page "/fetchdata"
+@using OmniMonitor.Shared;
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+
+<PageTitle>Weather forecast</PageTitle>
+<MudText Typo="Typo.h3">Weather forecast</MudText>
+<MudText Typo="Typo.body1">This component demonstrates fetching data from the server.</MudText>
+
+<MudTable T="WeatherForecast" Context="entry" ServerData="ServerData" Dense Hover Elevation="1">
+    <HeaderContent>
+        <MudTh>Date</MudTh>
+        <MudTh>Temp. (C)</MudTh>
+        <MudTh>Temp. (F)</MudTh>
+        <MudTh>Summary</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@entry.Date.ToShortDateString()</MudTd>
+        <MudTd>@entry.TemperatureC</MudTd>
+        <MudTd>@entry.TemperatureF</MudTd>
+        <MudTd>@entry.Summary</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager RowsPerPageString="Items per page" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private async Task<TableData<WeatherForecast>> ServerData(TableState tableState, CancellationToken cancellationToken)
+    {
+        try
+        {
+            TableData<WeatherForecast> tableData = new() { Items = [], TotalItems = 0 };
+            // IMPORTANTE: Paginado local en el client (considerar paginado en el server según el caso)
+            WeatherForecast[]? forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast", cancellationToken);
+            tableData.Items = forecasts?.Take(tableState.PageSize).Skip(tableState.Page) ?? [];
+            tableData.TotalItems = forecasts?.Count() ?? 0;
+            return tableData;
+        }
+        catch(Exception exception)
+        {
+            return new TableData<WeatherForecast> { Items = [], TotalItems = 0 };
+        }
+    }
+}
