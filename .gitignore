@@ -1,0 +1,43 @@
+# --- Build ---
+bin/
+obj/
+out/
+publish/
+artifacts/
+
+# --- VS/IDE ---
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Logs ---
+*.log
+logs/
+log/
+
+# --- NuGet ---
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# --- Azure ---
+# Archivos generados por deploy locales
+.scm/
+.scmignore
+
+# --- Others ---
+*.swp
+*.tmp
+*.bak
+*.backup
