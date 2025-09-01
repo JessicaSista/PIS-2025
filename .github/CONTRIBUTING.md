@@ -21,6 +21,8 @@ Commits claros, como por ejemplo:
 - `fix: corrige null en reporte` <!--el fix refiere a corregir un bug o algo>
 - `refactor: extraer lógica de validación a función separada` <!--el refactor refiere a cambios en el código que no corrigen bugs ni agregan features>
 - `test: agrega test para componente de login`
+- `perf: optimiza consulta de reportes`
+- `style: formatea código según estándar de proyecto`
 
 ## Tests
 

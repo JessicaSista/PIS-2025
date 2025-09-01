@@ -1,13 +1,13 @@
-name: CI/CD - Azure App Service Test (Develop)
+name: CI/CD - Azure App Service Prod (Main)
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
   pull_request:
-    branches: [develop]
+    branches: [main]
 
 jobs:
-  build-test-and-deploy:
+  build-and-deploy-prod:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,11 +30,6 @@ jobs:
           rel=${server_dir#"$GITHUB_WORKSPACE"/}
           echo "server_path=$rel" >> $GITHUB_OUTPUT
 
-      - name: Show found server path
-        run: |
-          echo "SERVER_PATH='${{ steps.find-server.outputs.server_path }}'"
-          ls -la "${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}"
-
       - name: Restore dependencies
         run: dotnet restore
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
@@ -44,9 +39,9 @@ jobs:
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
       #- name: Run tests
-      # run: dotnet test --no-build --verbosity normal
-      #working-directory: ${{ github.workspace }}/tests
-      # continue-on-error: false # si falla, se corta el workflow
+      #  run: dotnet test --no-build --verbosity normal
+      #  working-directory: ${{ github.workspace }}/tests
+      #  continue-on-error: false # si falla, se corta el workflow
 
       - name: Publish
         run: dotnet publish --configuration Release --no-build --output ./publish
@@ -55,12 +50,12 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
+          creds: ${{ secrets.AZURE_CREDENTIALS_MAIN }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: web-smartplatform-dev
+          app-name: web-smartplatform-prod
           package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish
 
       - name: Update database (EF Core migrations)
@@ -68,6 +63,6 @@ jobs:
           dotnet tool install --global dotnet-ef
           export PATH="$PATH:$HOME/.dotnet/tools"
           dotnet ef database update \
-            --connection "${{ secrets.AZURE_SQL_CONN_DEV }}" \
+            --connection "${{ secrets.AZURE_SQL_CONN_MAIN }}" \
             --project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj \
             --startup-project ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/OmniMonitor.Server.csproj
