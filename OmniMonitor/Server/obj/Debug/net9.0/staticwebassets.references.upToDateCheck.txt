@@ -1,3 +1,0 @@
-C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Client\obj\Debug\net9.0\staticwebassets.build.json
-C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Client\obj\Debug\net9.0\staticwebassets.build.json
-C:\Users\ivanr\OneDrive\Desktop\New folder\OmniMonitor\Client\obj\Debug\net9.0\staticwebassets.build.json
