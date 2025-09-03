@@ -1,0 +1,49 @@
+﻿@page "/items-add"
+@using OmniMonitor.Shared
+@inject HttpClient Http
+@using MudBlazor
+@using OmniMonitor.Shared.Dtos
+
+<PageTitle>Add Item</PageTitle>
+
+<MudText Typo="Typo.h3">Add New Item</MudText>
+
+<MudForm @ref="form" Validated="OnValidSubmit">
+    <MudTextField @bind-Value="newItem.Nombre" Label="Name" Required="true" />
+    <MudTextField @bind-Value="newItem.Edad" Label="Age" Required="true" Type="number" />
+    <MudTextField @bind-Value="newItem.Millones" Label="Score" Required="true" Type="number" />
+    <MudTextField @bind-Value="newItem.NombreRapero" Label="Alias" Required="true" />
+
+    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Submit">Submit</MudButton>
+</MudForm>
+
+@if (message != null)
+{
+    <MudAlert Severity="Severity.Success">@message</MudAlert>
+}
+
+@code {
+    private Rapero newItem = new Rapero();
+    private MudForm? form;
+    private string? message;
+
+    private async Task Submit()
+    {
+        if (form != null)
+        {
+            await form.Validate();
+            var response = await Http.PostAsJsonAsync("Marruno", newItem);
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Item added successfully!";
+                newItem = new Rapero();
+                form.ResetValidation();
+            }
+            else
+            {
+                message = "Error adding item.";
+            }
+        }
+    }
+}
