@@ -52,6 +52,19 @@ builder.Services.AddSwaggerGen(options =>
 
 WebApplication app = builder.Build();
 
+// Corre automáticamente las migraciones en local, se hace de esta manera para mantener la misma "lógica" que el ambiente remoto
+if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment())
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+
+    app.UseWebAssemblyDebugging();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+
 // Configure the HTTP request pipeline.
 if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment())
 {
