@@ -43,6 +43,10 @@ jobs:
       #  working-directory: ${{ github.workspace }}/tests
       #  continue-on-error: false # si falla, se corta el workflow
 
+      - name: Clean publish folder
+        run: rm -rf ./publish
+        working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
+
       - name: Publish
         run: dotnet publish --configuration Release --no-build --output ./publish
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
