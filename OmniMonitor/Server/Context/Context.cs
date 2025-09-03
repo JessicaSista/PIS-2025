@@ -44,7 +44,10 @@ namespace OmniMonitor.Server.Context
         /// </summary>
         protected void Seed(ModelBuilder builder)
         {
-            // Seeding logic goes here
+            builder.Entity<SensorClimax>().HasData(
+            new SensorClimax { Id = 1, Temperatura = 24, Humedad = 55, Co2 = 400, Potencia = 150, NivleDeBrillo = 300, NivelDeRuido = 50, HumedadDelSuelo = 20, TemperaturaDelSuelo = 18 },
+            new SensorClimax { Id = 2, Temperatura = 25, Humedad = 60, Co2 = 420, Potencia = 160, NivleDeBrillo = 320, NivelDeRuido = 55, HumedadDelSuelo = 22, TemperaturaDelSuelo = 19 }
+    );
         }
     }
 }
