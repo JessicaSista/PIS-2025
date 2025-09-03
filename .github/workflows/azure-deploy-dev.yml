@@ -43,30 +43,36 @@ jobs:
         run: dotnet build --configuration Release --no-restore
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
-      #- name: Run tests
-      # run: dotnet test --no-build --verbosity normal
-      #working-directory: ${{ github.workspace }}/tests
-      # continue-on-error: false # si falla, se corta el workflow
-
+      #Limpieza previa
       - name: Clean publish folder
         run: rm -rf ./publish
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
+      #Generar carpeta publish
       - name: Publish
         run: dotnet publish --configuration Release --no-build --output ./publish
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
+      #Comprimir publish en un zip
+      - name: Zip Publish Folder
+        run: |
+          cd ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish
+          zip -r ../app.zip .
+
+      #Login a Azure
       - name: Login to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS_DEV }}
 
+      #Deploy a Azure Web App (usando el zip)
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: web-smartplatform-dev
-          package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/publish
+          package: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}/app.zip
 
+      #Migraciones EF Core
       - name: Update database (EF Core migrations)
         run: |
           dotnet tool install --global dotnet-ef
