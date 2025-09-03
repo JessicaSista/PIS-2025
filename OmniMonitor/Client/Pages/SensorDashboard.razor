@@ -1,0 +1,76 @@
+﻿@page "/sensor-dashboard"
+@using ApexCharts
+@inject HttpClient Http
+
+<PageTitle>Isolated Chart Test</PageTitle>
+
+<h1>Isolated ApexChart Test</h1>
+<p>This is a minimal test to check if the ApexCharts library is functioning. It has no external dependencies.</p>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Minimal Test Chart</h5>
+                @if (chartInitialized)
+                {
+                    <ApexChart TItem="ChartData" Options="testChartOptions" Series="testChartSeries">
+                    </ApexChart>
+                }
+                else
+                {
+                    <p><em>Initializing chart...</em></p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    // 1. A simple, self-contained record to hold chart data. No external dependencies.
+    private record ChartData(string Category, decimal? Value);
+
+    private ApexChartOptions<ChartData> testChartOptions = new();
+    private List<Series<ChartData>> testChartSeries = new();
+    private bool chartInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            SetupTestChart();
+            chartInitialized = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void SetupTestChart()
+    {
+        // 2. Create a simple list of our self-contained data objects.
+        var testData = new List<ChartData>
+        {
+            new ChartData("Point A", 10),
+            new ChartData("Point B", 30),
+            new ChartData("Point C", 20),
+            new ChartData("Point D", 40)
+        };
+
+        // 3. Configure the chart's options.
+        testChartOptions = new ApexChartOptions<ChartData>
+        {
+            Chart = new Chart { Type = ApexCharts.ChartType.Line },
+            Title = new Title { Text = "Minimal Test" }
+        };
+
+        // 4. Configure the series, converting our data into the required DataPoint format.
+        testChartSeries = new List<Series<ChartData>>
+        {
+            new Series<ChartData> {
+                Name = "Test Series",
+                Data = testData.Select(d => new DataPoint<ChartData> { X = d.Category, Y = d.Value }).ToList()
+            }
+        };
+    }
+}
+

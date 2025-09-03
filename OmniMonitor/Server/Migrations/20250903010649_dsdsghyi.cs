@@ -5,7 +5,7 @@
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class CreateSomeTable1 : Migration
+    public partial class dsdsghyi : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -1,56 +1,65 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Required for ToListAsync and FindAsync
+using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
+using System.Threading.Tasks;       // Required for async operations
 
 namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class MarrunoController(ILogger<MarrunoController> logger)
-        : Controller(logger)
+    public class MarrunoController : ControllerBase
     {
-        private static List<Negro> negros = new List<Negro>
-{
-            new() { Id = 1, Nombre = "Tupac", Edad = 25, BalasRecibidas = 4, NombreRapero = "2Pac" },
-            new() { Id = 2, Nombre = "Christopher", Edad = 24, BalasRecibidas = 3, NombreRapero = "The Notorious B.I.G." },
-            new() { Id = 3, Nombre = "Curtis", Edad = 30, BalasRecibidas = 9, NombreRapero = "50 Cent" },
-            new() { Id = 4, Nombre = "Shawn", Edad = 32, BalasRecibidas = 0, NombreRapero = "Jay-Z" },
-            new() { Id = 5, Nombre = "Kanye", Edad = 28, BalasRecibidas = 0, NombreRapero = "Ye" },
-            new() { Id = 6, Nombre = "Marshall", Edad = 27, BalasRecibidas = 0, NombreRapero = "Eminem" },
-            new() { Id = 7, Nombre = "Kendrick", Edad = 29, BalasRecibidas = 0, NombreRapero = "Kendrick Lamar" },
-            new() { Id = 8, Nombre = "Nasir", Edad = 30, BalasRecibidas = 1, NombreRapero = "Nas" },
-            new() { Id = 9, Nombre = "Andre", Edad = 31, BalasRecibidas = 0, NombreRapero = "Dr. Dre" },
-            new() { Id = 10, Nombre = "Calvin", Edad = 33, BalasRecibidas = 0, NombreRapero = "Snoop Dogg" }
-        };
+        private readonly ILogger<MarrunoController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        [HttpGet]
-        public IActionResult GetAll()
+        public MarrunoController(ILogger<MarrunoController> logger, ApplicationDbContext context)
         {
-            return Ok(negros);
+            _logger = logger;
+            _context = context;
         }
 
-        [HttpPost]
-        public IActionResult Create([FromBody] Negro nuevoNegro)
+        // MODIFIED: Fetches all records from the database asynchronously.
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
         {
-            if (nuevoNegro == null)
+            _logger.LogInformation("Getting all Marrunos from database");
+            var marrunos = await _context.Raperos.ToListAsync(); // Assuming the DbSet is named Negros
+            return Ok(marrunos);
+        }
+
+        // MODIFIED: Fetches a single record by its ID from the database.
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            _logger.LogInformation("Getting Marruno with ID {id}", id);
+
+            // FindAsync is an efficient way to query by primary key.
+            var marruno = await _context.Raperos.FindAsync(id);
+
+            if (marruno == null)
+                return NotFound();
+
+            return Ok(marruno);
+        }
+
+        // MODIFIED: Creates a new record in the database.
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] Rapero nuevo)
+        {
+            if (nuevo == null)
                 return BadRequest("El objeto no puede ser nulo");
 
-            // Generar nuevo Id
-            nuevoNegro.Id = negros.Any() ? negros.Max(n => n.Id) + 1 : 1;
+            _logger.LogInformation("Creating a new Marruno");
 
-            negros.Add(nuevoNegro);
-            return CreatedAtAction(nameof(GetById), new { id = nuevoNegro.Id }, nuevoNegro);
+            // Add the new object to the DbContext.
+            _context.Raperos.Add(nuevo);
+
+            // Save changes to the database. The database will automatically assign the new Id.
+            await _context.SaveChangesAsync();
+
+            // Return a 201 Created response.
+            return CreatedAtAction(nameof(GetById), new { id = nuevo.Id }, nuevo);
         }
-
-
-
-        [HttpGet("{id}")]
-        public IActionResult GetById(int id)
-        {
-            var negro = negros.FirstOrDefault(n => n.Id == id);
-            if (negro == null)
-                return NotFound();
-            return Ok(negro);
-        }
-
     }
 }

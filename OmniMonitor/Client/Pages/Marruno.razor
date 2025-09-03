@@ -3,12 +3,12 @@
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 
-<PageTitle>Marruno Negro</PageTitle>
+<PageTitle>Prueba</PageTitle>
 
-<MudText Typo="Typo.h3">PÁGINA DE MARRUNO EL NEGRO</MudText>
-<MudText Typo="Typo.body1">PROBANDO CON LOS PIBES</MudText>
+<MudText Typo="Typo.h3">PÁGINA DE PRUEBA</MudText>
+<MudText Typo="Typo.body1">PROBANDO</MudText>
 
-<MudTable Items="negros" Hover="true" Bordered="true" Striped="true">
+<MudTable Items="raperos" Hover="true" Bordered="true" Striped="true">
     <HeaderContent>
         <MudTh>Id</MudTh>
         <MudTh>Nombre</MudTh>
@@ -21,11 +21,11 @@
         <MudTd>@context.Id</MudTd>
         <MudTd>@context.Nombre</MudTd>
         <MudTd>@context.Edad</MudTd>
-        <MudTd>@context.BalasRecibidas</MudTd>
+        <MudTd>@context.Millones</MudTd>
         <MudTd>@context.NombreRapero</MudTd>
         <MudTd>
             <!-- Botón que navega a la página detalle -->
-                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/marrunoPage/{context.Id}")">
+            <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary" Href="@($"/marrunoPage/{context.Id}")">
                     Ver detalle
                 </MudButton>
         </MudTd>
@@ -33,17 +33,17 @@
 </MudTable>
 
 @code {
-    private Negro[]? negros;
+    private Rapero[]? raperos;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            negros = await Http.GetFromJsonAsync<Negro[]>("Marruno");
+            raperos = await Http.GetFromJsonAsync<Rapero[]>("Marruno");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar los negros: {ex.Message}");
+            Console.WriteLine($"Error al cargar: {ex.Message}");
         }
     }
 }

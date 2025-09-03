@@ -1,4 +1,4 @@
-using OmniMonitor.Server.Data;
+using OmniMonitor.Server.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -23,12 +23,11 @@ if (OperatingSystem.IsWindows())
 builder.Logging.AddAzureWebAppDiagnostics();
 
 // Add services to the container.
-builder.Services.AddDbContext<Context>(options =>
-{
-    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
-});
 
-// Your existing CORS policy is excellent because it's configurable.
+// https://learn.microsoft.com/en-us/ef/
+// https://www.entityframeworktutorial.net/efcore/entity-framework-core.aspx
+builder.Services.AddDbContext<ApplicationDbContext>();
+
 string corsPolicy = "CORSPolicy";
 builder.Services.AddCors(options =>
 {
@@ -44,6 +43,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -51,11 +51,6 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 WebApplication app = builder.Build();
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<Context>();
-    db.Database.Migrate(); // Esto crea las tablas según las migraciones IMPORTANTE, SI QUERES QUE SE APLIQUE UN CAMBIO A LA DB REMOTA TENES QUE CREAR UNA MIGRACION Y SUBIRLA AL REPO
-}
 
 // Configure the HTTP request pipeline.
 if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment())
@@ -67,6 +62,7 @@ if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment
 else
 {
     app.UseExceptionHandler("/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -75,13 +71,13 @@ if (configuration.GetValue<bool>("EnableHttpsRedirection"))
     app.UseHttpsRedirection();
 }
 
-// NOTE: The duplicate UseHttpsRedirection() line was removed from here.
+app.UseHttpsRedirection();
 
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseCors(corsPolicy); // This is correctly placed.
+app.UseCors(corsPolicy);
 
 app.MapRazorPages();
 app.MapControllers();

@@ -4,17 +4,17 @@
 @using MudBlazor
 @using OmniMonitor.Shared.Dtos
 
-<PageTitle>Agregar Negro</PageTitle>
+<PageTitle>Agregar Rapero</PageTitle>
 
-<MudText Typo="Typo.h3">Agregar Nuevo Negro</MudText>
+<MudText Typo="Typo.h3">Agregar Rapero</MudText>
 
 <MudForm @ref="form" Validated="OnValidSubmit">
-    <MudTextField @bind-Value="nuevoNegro.Nombre" Label="Nombre" Required="true" />
-    <MudTextField @bind-Value="nuevoNegro.Edad" Label="Edad" Required="true" Type="number" />
-    <MudTextField @bind-Value="nuevoNegro.BalasRecibidas" Label="Balas Recibidas" Required="true" Type="number" />
-    <MudTextField @bind-Value="nuevoNegro.NombreRapero" Label="Nombre Rapero" Required="true" />
+    <MudTextField @bind-Value="nuevo.Nombre" Label="Nombre" Required="true" />
+    <MudTextField @bind-Value="nuevo.Edad" Label="Edad" Required="true" Type="number" />
+    <MudTextField @bind-Value="nuevo.Millones" Label="Millones" Required="true" Type="number" />
+    <MudTextField @bind-Value="nuevo.NombreRapero" Label="Nombre Rapero" Required="true" />
 
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Enviar">Enviar</MudButton>
+    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Enviar">Enviar</MudButton>
 </MudForm>
 
 @if (mensaje != null)
@@ -23,7 +23,7 @@
 }
 
 @code {
-    private Negro nuevoNegro = new Negro();
+    private Rapero nuevo = new Rapero();
     private MudForm? form;
     private string? mensaje;
 
@@ -32,18 +32,18 @@
         if (form != null)
         {
             await form.Validate();
-            var response = await Http.PostAsJsonAsync("Marruno", nuevoNegro);
+            var response = await Http.PostAsJsonAsync("Marruno", nuevo);
 
             if (response.IsSuccessStatusCode)
             {
-                mensaje = "Negro agregado exitosamente!";
+                mensaje = "Rapero agregado exitosamente!";
                 // Limpiar formulario
-                nuevoNegro = new Negro();
+                nuevo = new Rapero();
                 form.ResetValidation();
             }
             else
             {
-                mensaje = "Error al agregar el Negro.";
+                mensaje = "Error al agregar Rapero.";
             }
         }
     }

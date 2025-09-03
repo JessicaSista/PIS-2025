@@ -5,7 +5,7 @@
 
 <PageTitle>Detalle Negro</PageTitle>
 
-@if (negro == null)
+@if (Raperos == null)
 {
     <MudText>Cargando...</MudText>
 }
@@ -13,12 +13,12 @@ else
 {
     <MudCard Style="max-width:400px;">
         <MudCardContent>
-            <MudText Typo="Typo.h5">@negro.Nombre (@negro.NombreRapero)</MudText>
-            <MudText>Edad: @negro.Edad</MudText>
-            <MudText>Balas Recibidas: @negro.BalasRecibidas</MudText>
+            <MudText Typo="Typo.h5">@Raperos.Nombre (@Raperos.NombreRapero)</MudText>
+            <MudText>Edad: @Raperos.Edad</MudText>
+            <MudText>Balas Recibidas: @Raperos.Millones</MudText>
         </MudCardContent>
         <MudCardActions>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/marrunoPage">Volver</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary" Href="/marrunoPage">Volver</MudButton>
         </MudCardActions>
     </MudCard>
 }
@@ -26,17 +26,17 @@ else
 @code {
     [Parameter] public int Id { get; set; }
 
-    private Negro? negro;
+    private Rapero? Raperos;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            negro = await Http.GetFromJsonAsync<Negro>($"Marruno/{Id}");
+            Raperos = await Http.GetFromJsonAsync<Rapero>($"Marruno/{Id}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar el negro: {ex.Message}");
+            Console.WriteLine($"Error al cargar el Rapero: {ex.Message}");
         }
     }
 }

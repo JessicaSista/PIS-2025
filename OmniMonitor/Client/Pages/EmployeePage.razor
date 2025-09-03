@@ -1,0 +1,108 @@
+﻿@page "/employees"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<PageTitle>Employees</PageTitle>
+
+<h1>Employee List</h1>
+
+<hr />
+
+<!-- Section to Add a New Employee -->
+<div class="mb-4 p-4 border rounded">
+    <h3>Add New Employee</h3>
+    <div class="input-group">
+        <input class="form-control" @bind="newEmployee.FirstName" placeholder="First Name" />
+        <input class="form-control" @bind="newEmployee.LastName" placeholder="Last Name" />
+        <button class="btn btn-primary" @onclick="AddEmployee">Add Employee</button>
+    </div>
+</div>
+
+
+<p>This component demonstrates fetching data from the server.</p>
+
+@if (employees == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>First Name</th>
+                <th>Last Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var employee in employees)
+            {
+                <tr>
+                    <td>@employee.Id</td>
+                    <td>@employee.FirstName</td>
+                    <td>@employee.LastName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    // Changed to a List to easily add new employees to the UI
+    private List<Employee>? employees;
+
+    // Object to hold the data for the new employee
+    private Employee newEmployee = new Employee();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployees();
+    }
+
+    private async Task LoadEmployees()
+    {
+        try
+        {
+            var employeeArray = await Http.GetFromJsonAsync<Employee[]>("Employee");
+            employees = employeeArray?.ToList() ?? new List<Employee>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching employees: {ex.Message}");
+        }
+    }
+
+    private async Task AddEmployee()
+    {
+        if (string.IsNullOrWhiteSpace(newEmployee.FirstName) || string.IsNullOrWhiteSpace(newEmployee.LastName))
+        {
+            // Optional: Add user feedback for empty fields
+            return;
+        }
+
+        try
+        {
+            // Send a POST request to the API endpoint created in the controller
+            var response = await Http.PostAsJsonAsync("Employee", newEmployee);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Clear the input fields
+                newEmployee = new Employee();
+
+                // Refresh the employee list to show the new entry
+                await LoadEmployees();
+            }
+            else
+            {
+                Console.WriteLine($"Error adding employee: {response.ReasonPhrase}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding employee: {ex.Message}");
+        }
+    }
+}

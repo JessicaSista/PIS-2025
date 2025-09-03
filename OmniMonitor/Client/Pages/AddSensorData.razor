@@ -1,0 +1,80 @@
+﻿@page "/add-sensor-data"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<PageTitle>Add Sensor Reading</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Add New Sensor Reading</MudText>
+<MudText Class="mb-4">Enter the latest environmental data from the sensor below.</MudText>
+
+<MudCard Elevation="2">
+    <MudCardContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Temperatura (°C)" Variant="Variant.Outlined" @bind-Value="newReading.Temperatura" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Thermostat" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Humedad (%)" Variant="Variant.Outlined" @bind-Value="newReading.Humedad" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Opacity" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="CO2 (ppm)" Variant="Variant.Outlined" @bind-Value="newReading.Co2" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Cloud" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Potencia (W)" Variant="Variant.Outlined" @bind-Value="newReading.Potencia" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.FlashOn" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Nivel de Brillo (lux)" Variant="Variant.Outlined" @bind-Value="newReading.NivleDeBrillo" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.WbSunny" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Nivel de Ruido (dB)" Variant="Variant.Outlined" @bind-Value="newReading.NivelDeRuido" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.GraphicEq" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Humedad del Suelo (%)" Variant="Variant.Outlined" @bind-Value="newReading.HumedadDelSuelo" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Spa" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField T="int" Label="Temperatura del Suelo (°C)" Variant="Variant.Outlined" @bind-Value="newReading.TemperaturaDelSuelo" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AcUnit" />
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+    <MudCardActions Class="px-4 pb-4">
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="SubmitReading" Class="ml-auto">Submit Reading</MudButton>
+    </MudCardActions>
+</MudCard>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <MudAlert Severity="@(isSuccess? Severity.Success: Severity.Error)" Class="mt-4" Dense="true">@statusMessage</MudAlert>
+}
+
+
+@code {
+    private SensorClimax newReading = new();
+    private string? statusMessage;
+    private bool isSuccess;
+
+    private async Task SubmitReading()
+    {
+        statusMessage = null; // Clear previous message
+        try
+        {
+            var response = await Http.PostAsJsonAsync("SensorClimax", newReading);
+            if (response.IsSuccessStatusCode)
+            {
+                statusMessage = "Reading submitted successfully!";
+                isSuccess = true;
+                newReading = new(); // Clear the form
+            }
+            else
+            {
+                statusMessage = $"Error: Could not submit reading. (Status: {response.StatusCode})";
+                isSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"A network error occurred: {ex.Message}";
+            isSuccess = false;
+        }
+    }
+}
