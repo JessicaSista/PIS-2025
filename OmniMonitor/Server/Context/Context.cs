@@ -12,7 +12,7 @@ namespace OmniMonitor.Server.Context
         // No longer need a private field, the 'configuration' parameter is available throughout the class.
 
         public DbSet<Employee> Employees { get; set; }
-        public DbSet<Rapero> Raperos { get; set; }
+        public DbSet<Item> Items { get; set; }
         // Add this line inside your ApplicationDbContext.cs
         public DbSet<SensorClimax> SensorClimaxs { get; set; }
 

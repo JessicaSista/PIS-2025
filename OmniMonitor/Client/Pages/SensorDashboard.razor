@@ -6,7 +6,7 @@
 <PageTitle>Sensor Dashboard</PageTitle>
 
 <h1>Sensor Data Dashboard</h1>
-<p>This dashboard displays the latest environmental sensor readings.</p>
+<p>This dashboard displays the latest environmental sensor reading.</p>
 
 @if (!chartInitialized)
 {
@@ -14,9 +14,9 @@
 }
 else
 {
-    <ApexChart TItem="SensorChartData" Title="Environmental Sensor Readings"
+    <ApexChart TItem="SensorChartData" Title="Latest environmental Sensor Reading"
                 Height="400"      
-                Width="800">      
+                Width="800">      >
         <ApexPointSeries TItem="SensorChartData"
                          Items="chartData"
                          Name="Sensor Readings"

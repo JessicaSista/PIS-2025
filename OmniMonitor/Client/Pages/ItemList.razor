@@ -11,18 +11,18 @@
 <MudTable Items="items" Hover="true" Bordered="true" Striped="true">
     <HeaderContent>
         <MudTh>Id</MudTh>
-        <MudTh>Name</MudTh>
-        <MudTh>Age</MudTh>
-        <MudTh>Score</MudTh>
-        <MudTh>Alias</MudTh>
+        <MudTh>Nombre</MudTh>
+        <MudTh>Cantidad</MudTh>
+        <MudTh>Precio</MudTh>
+        <MudTh>Categoria</MudTh>
         <MudTh>Actions</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>@context.Id</MudTd>
         <MudTd>@context.Nombre</MudTd>
-        <MudTd>@context.Edad</MudTd>
-        <MudTd>@context.Millones</MudTd>
-        <MudTd>@context.NombreRapero</MudTd>
+        <MudTd>@context.Cantidad</MudTd>
+        <MudTd>@context.Precio</MudTd>
+        <MudTd>@context.Categoria</MudTd>
         <MudTd>
             <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Primary" Href="@($"/items/{context.Id}")">
                 View Details
@@ -32,13 +32,13 @@
 </MudTable>
 
 @code {
-    private Rapero[]? items;
+    private Item[]? items; 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            items = await Http.GetFromJsonAsync<Rapero[]>("Marruno");
+            items = await Http.GetFromJsonAsync<Item[]>("Item");
         }
         catch (Exception ex)
         {

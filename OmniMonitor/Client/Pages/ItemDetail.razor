@@ -13,9 +13,9 @@ else
 {
     <MudCard Style="max-width:400px;">
         <MudCardContent>
-            <MudText Typo="Typo.h5">@Item.Nombre (@Item.NombreRapero)</MudText>
-            <MudText>Age: @Item.Edad</MudText>
-            <MudText>Score: @Item.Millones</MudText>
+            <MudText Typo="Typo.h5">@Item.Nombre (@Item.Categoria)</MudText>
+            <MudText>Cantidad: @Item.Cantidad</MudText>
+            <MudText>Precio: @Item.Precio</MudText>
         </MudCardContent>
         <MudCardActions>
             <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary" Href="/items">Back</MudButton>
@@ -26,13 +26,13 @@ else
 @code {
     [Parameter] public int Id { get; set; }
 
-    private Rapero? Item;
+    private Item? Item; 
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            Item = await Http.GetFromJsonAsync<Rapero>($"Marruno/{Id}");
+            Item = await Http.GetFromJsonAsync<Item>($"Item/{Id}"); 
         }
         catch (Exception ex)
         {

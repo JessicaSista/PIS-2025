@@ -10,11 +10,12 @@
 
 <MudForm @ref="form" Validated="OnValidSubmit">
     <MudTextField @bind-Value="newItem.Nombre" Label="Name" Required="true" />
-    <MudTextField @bind-Value="newItem.Edad" Label="Age" Required="true" Type="number" />
-    <MudTextField @bind-Value="newItem.Millones" Label="Score" Required="true" Type="number" />
-    <MudTextField @bind-Value="newItem.NombreRapero" Label="Alias" Required="true" />
+    <MudTextField @bind-Value="newItem.Cantidad" Label="Quantity" Required="true" Type="number" />
+    <MudTextField @bind-Value="newItem.Precio" Label="Price" Required="true" Type="number" />
+    <MudTextField @bind-Value="newItem.Categoria" Label="Category" Required="true" />
 
     <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="Submit">Submit</MudButton>
+
 </MudForm>
 
 @if (message != null)
@@ -23,7 +24,7 @@
 }
 
 @code {
-    private Rapero newItem = new Rapero();
+    private Item newItem = new Item();
     private MudForm? form;
     private string? message;
 
@@ -32,12 +33,12 @@
         if (form != null)
         {
             await form.Validate();
-            var response = await Http.PostAsJsonAsync("Marruno", newItem);
+            var response = await Http.PostAsJsonAsync("Item", newItem);
 
             if (response.IsSuccessStatusCode)
             {
                 message = "Item added successfully!";
-                newItem = new Rapero();
+                newItem = new Item();
                 form.ResetValidation();
             }
             else
