@@ -1,0 +1,3 @@
+# Protege los workflows y settings.json
+.github/workflows/*.yml @JessicaSista
+*.json @JessicaSista
