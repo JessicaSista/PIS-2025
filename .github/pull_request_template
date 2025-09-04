@@ -2,6 +2,17 @@
 
 <!-- Qué cambia y por qué -->
 
+## Ticket asociado
+
+<!-- Indicar el ticket de Jira o número de historia -->
+
 ## Cómo probar
 
-<!-- Intrucciones para testear el PR localmente>
+<!-- Instrucciones para testear el PR localmente -->
+
+## Checklist
+
+- [ ] Código compilado sin errores
+- [ ] Tests locales ejecutados y aprobados
+- [ ] Commit y branch nombrados con ticket correspondiente
+- [ ] PR revisado y aprobado por los reviewers necesarios
