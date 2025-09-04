@@ -1,3 +1,9 @@
-# Protege los workflows y settings.json
+# Protege workflows y settings.json
 .github/workflows/*.yml @JessicaSista
 *.json @JessicaSista
+
+# Backend - requiere aprobación de Iván + alguien más
+OmniMonitor.Server/** @IvanQuesoRallado
+
+# Frontend - requiere aprobación de Jessica + alguien más
+OmniMonitor.Client/** @JessicaSista
