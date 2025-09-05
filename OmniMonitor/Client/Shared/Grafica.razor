@@ -1,0 +1,68 @@
+@using ApexCharts
+
+<ApexChart TItem="DataPoint" Height="400">
+    <ApexPointSeries TItem="DataPoint"
+                   Items="data"
+                   Name="@nombreFuncion"
+                   SeriesType="@tipoGrafica"
+                   XValue="@(e => (decimal)e.X)"
+                   YValue="@(e => (decimal)e.Y)" />
+</ApexChart>
+
+@code {
+    [Parameter] public string TipoFuncion { get; set; } = "cuadratica";
+    [Parameter] public string TipoGrafica { get; set; } = "linea";
+    
+    private List<DataPoint> data = new();
+    private string nombreFuncion = "";
+    private SeriesType tipoGrafica = SeriesType.Line;
+
+    protected override void OnInitialized()
+    {
+        ConfigurarTipoGrafica();
+        GenerarDatos();
+    }
+
+    private void ConfigurarTipoGrafica()
+    {
+        tipoGrafica = TipoGrafica.ToLower() == "barras" ? SeriesType.Bar : SeriesType.Line;
+    }
+
+    private void GenerarDatos()
+    {
+        data.Clear();
+        
+        switch (TipoFuncion.ToLower())
+        {
+            case "lineal":
+                nombreFuncion = "f(x) = x";
+                for (int x = -5; x <= 5; x++)
+                {
+                    data.Add(new DataPoint { X = x, Y = x });
+                }
+                break;
+                
+            case "exponencial":
+                nombreFuncion = "f(x) = 2^x";
+                for (int x = -3; x <= 5; x++)
+                {
+                    data.Add(new DataPoint { X = x, Y = Math.Pow(2, x) });
+                }
+                break;
+                
+            default: // cuadratica
+                nombreFuncion = "f(x) = x²";
+                for (int x = -5; x <= 5; x++)
+                {
+                    data.Add(new DataPoint { X = x, Y = x * x });
+                }
+                break;
+        }
+    }
+
+    public class DataPoint
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+    }
+}
