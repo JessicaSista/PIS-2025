@@ -26,19 +26,19 @@ else
                          YValue="e => e.Value" />
     </ApexChart>
 
-    <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudContainer Class="mt-4" MaxWidth="MaxWidth.False">
         
         @if (!graficasCreadas.Any())
         {
             <!-- Estado inicial - Agregar primera gráfica -->
             <div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
                 <MudPaper Class="pa-8 text-center" 
-                         Style="border: 2px dashed #666; background-color: #2a2d3a; cursor: pointer; max-width: 400px;" 
+                         Style="border: 2px dashed #666; cursor: pointer; max-width: 400px;" 
                          Elevation="0"
                          @onclick="AbrirSelector">
                     <MudIcon Icon="@Icons.Material.Filled.Add" 
                             Style="font-size: 48px; color: #999; margin-bottom: 16px;" />
-                    <MudText Typo="Typo.h5" Style="color: white; margin-bottom: 8px;">
+                    <MudText Typo="Typo.h5" Style="margin-bottom: 8px;">
                         Agregar Nueva Gráfica
                     </MudText>
                     <MudText Typo="Typo.body2" Style="color: #999;">
@@ -55,8 +55,8 @@ else
             <MudGrid>
                 @foreach (var grafica in graficasCreadas)
                 {
-                    <MudItem xs="12" sm="6" md="6">
-                        <MudCard Style="background-color: #2a2d3a; border: 1px solid #444;">
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Style="border: 1px solid #444;">
                             <MudCardHeader>
                                 <CardHeaderContent>
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -89,15 +89,15 @@ else
                 }
                 
                 <!-- Botón para agregar más -->
-                <MudItem xs="12" sm="6" md="6">
+                <MudItem xs="12" sm="6" md="4" lg="3">
                     <MudPaper Class="pa-4 text-center" 
-                             Style="border: 2px dashed #666; background-color: #2a2d3a; cursor: pointer; height: 500px; display: flex; align-items: center; justify-content: center;" 
+                             Style="border: 2px dashed #666; cursor: pointer; height: 500px; display: flex; align-items: center; justify-content: center;" 
                              Elevation="0"
                              @onclick="AbrirSelector">
                         <div>
                             <MudIcon Icon="@Icons.Material.Filled.Add" 
                                     Style="font-size: 32px; color: #999; margin-bottom: 8px;" />
-                            <MudText Typo="Typo.body2" Style="color: #999;">
+                            <MudText Typo="Typo.body2">
                                 Agregar Gráfica
                             </MudText>
                         </div>
@@ -112,15 +112,15 @@ else
     <MudOverlay Visible="mostrarSelector" DarkBackground="true" ZIndex="9999">
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px;"
              @onclick:stopPropagation="true">
-            <MudPaper Class="pa-6" Style="background-color: #2a2d3a; max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto;">
+            <MudPaper Class="pa-6" Style="max-width: 800px; width: 100%; max-height: 90vh; overflow-y: auto;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <MudText Typo="Typo.h5" Style="color: white;">Crear Nueva Gráfica</MudText>
+                    <MudText Typo="Typo.h5">Crear Nueva Gráfica</MudText>
                     <MudIconButton Icon="@Icons.Material.Filled.Close" 
                                   Style="color: #999;"
                                   OnClick="CerrarSelector" />
                 </div>
                 
-                <MudText Typo="Typo.h6" Class="mb-4" Style="color: #ccc;">
+                <MudText Typo="Typo.h6" Class="mb-4" Style="color: #585858;">
                     Selecciona el tipo de función y gráfica
                 </MudText>
                 
@@ -128,7 +128,7 @@ else
                     @foreach (var funcion in tiposFuncion)
                     {
                         <MudItem xs="12" md="6">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="color: white;">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">
                                 @funcion.Nombre (@funcion.Formula)
                             </MudText>
                             
@@ -139,7 +139,7 @@ else
                                           Class="mb-2"
                                           StartIcon="@ObtenerIconoFuncion(funcion.Id)"
                                           EndIcon="@ObtenerIconoGrafica(tipoGraf.Id)"
-                                          Style="color: white; border-color: #666;"
+                                          Style="border-color: #666;"
                                           OnClick="() => CrearGrafica(funcion.Id, tipoGraf.Id)">
                                     @funcion.Nombre - @tipoGraf.Nombre
                                 </MudButton>
