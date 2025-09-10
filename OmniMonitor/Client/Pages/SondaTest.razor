@@ -1,0 +1,82 @@
+﻿@page "/sonda-test"
+@inject HttpClient Http
+
+<PageTitle>Prueba API Sonda</PageTitle>
+
+<h3>Prueba de Integración con API de Sonda</h3>
+<p>
+    Presiona el botón para llamar a nuestro backend, el cual a su vez se comunicará con la API de Sonda para obtener la lista de dispositivos.
+</p>
+
+<button class="btn btn-primary px-4 py-2" @onclick="CallApi" disabled="@isLoading">
+    @if (isLoading)
+    {
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <span class="ms-2">Cargando...</span>
+    }
+    else
+    {
+        <span>Llamar a la API 🚀</span>
+    }
+</button>
+
+<hr />
+
+@if (isLoading)
+{
+    <p><em>Esperando respuesta del servidor...</em></p>
+}
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <h4>Error</h4>
+        <p>@errorMessage</p>
+    </div>
+}
+
+@if (apiResponse != null)
+{
+    <div class="alert alert-success" role="alert">
+        <h4>Respuesta Exitosa de la API</h4>
+        <p>Se recibieron los siguientes datos en formato JSON:</p>
+        <pre><code style="white-space: pre-wrap; word-break: break-all;">@apiResponse</code></pre>
+    </div>
+}
+
+
+@code {
+    private bool isLoading = false;
+    private string? apiResponse;
+    private string? errorMessage;
+
+    private async Task CallApi()
+    {
+        isLoading = true;
+        apiResponse = null;
+        errorMessage = null;
+
+        try
+        {
+            // La URL fue corregida para apuntar a "Sonda" en lugar de "Ejemplo"
+            var response = await Http.GetAsync("api/Sonda/devices");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Error del servidor: {response.StatusCode}. {await response.Content.ReadAsStringAsync()}";
+            }
+            else
+            {
+                apiResponse = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocurrió una excepción al intentar conectar con el servidor: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
