@@ -1,9 +1,16 @@
 ﻿@page "/sonda-test"
 @inject HttpClient Http
+@using System.Net.Http.Json
 
-<PageTitle>Prueba API Sonda</PageTitle>
+@*
+  Asegúrate de que las clases del modelo (como Device) sean accesibles
+  desde tu proyecto Client. Lo ideal es que estén en un proyecto "Shared".
+*@
+@using OmniMonitor.Shared.Dtos;
 
-<h3>Prueba de Integración con API de Sonda</h3>
+<PageTitle>Dispositivos de Sonda</PageTitle>
+
+<h3>Integración con API de Sonda</h3>
 <p>
     Presiona el botón para llamar a nuestro backend, el cual a su vez se comunicará con la API de Sonda para obtener la lista de dispositivos.
 </p>
@@ -35,44 +42,70 @@
     </div>
 }
 
-@if (apiResponse != null)
+@*
+  Esta sección ahora muestra una tabla si la lista de 'devices' no es nula.
+*@
+@if (devices != null)
 {
-    <div class="alert alert-success" role="alert">
-        <h4>Respuesta Exitosa de la API</h4>
-        <p>Se recibieron los siguientes datos en formato JSON:</p>
-        <pre><code style="white-space: pre-wrap; word-break: break-all;">@apiResponse</code></pre>
+    <div class="alert alert-success">
+        <strong>¡Éxito!</strong> Se encontraron @devices.Count() dispositivos.
     </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Fuente (Source)</th>
+                <th>Estado</th>
+                <th>Último Dato Recibido</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var device in devices)
+            {
+                <tr>
+                    <td>@device.Id</td>
+                    <td>@device.Name</td>
+                    <td>@device.Source?.Name</td>
+                    <td>
+                        @if (device.IsActive)
+                        {
+                            <span class="badge bg-success">Activo</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Inactivo</span>
+                        }
+                    </td>
+                    <td>@device.LastDataReceived?.ToString("g")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
 
 
 @code {
     private bool isLoading = false;
-    private string? apiResponse;
+    // La variable ahora es una lista de objetos Device, no un string.
+    private List<Device>? devices;
     private string? errorMessage;
 
     private async Task CallApi()
     {
         isLoading = true;
-        apiResponse = null;
+        devices = null;
         errorMessage = null;
 
         try
         {
-            // La URL fue corregida para apuntar a "Sonda" en lugar de "Ejemplo"
-            var response = await Http.GetAsync("api/Sonda/devices");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                errorMessage = $"Error del servidor: {response.StatusCode}. {await response.Content.ReadAsStringAsync()}";
-            }
-            else
-            {
-                apiResponse = await response.Content.ReadAsStringAsync();
-            }
+            // GetFromJsonAsync maneja la deserialización del JSON automáticamente.
+            devices = await Http.GetFromJsonAsync<List<Device>>("api/Sonda/devices");
         }
         catch (Exception ex)
         {
-            errorMessage = $"Ocurrió una excepción al intentar conectar con el servidor: {ex.Message}";
+            errorMessage = $"Ocurrió una excepción al conectar con el servidor: {ex.Message}";
         }
         finally
         {
