@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 /// <summary>
@@ -14,7 +15,7 @@ public interface ISondaApiGetDevicesService
     /// <param name="username">The application username to authenticate with.</param>
     /// <param name="password">The application password for the user.</param>
     /// <returns>A JSON string containing the list of devices.</returns>
-    Task<string> GetAllDevicesAsync(string username, string password);
+    Task<List<Device>?> GetAllDevicesAsync(string username, string password);
 }
 
 /// <summary>
@@ -32,7 +33,7 @@ public class SondaApiGetDevicesService : ISondaApiGetDevicesService
         _sondaAuthService = sondaAuthService;
     }
 
-    public async Task<string> GetAllDevicesAsync(string username, string password)
+    public async Task<List<Device>?> GetAllDevicesAsync(string username, string password)
     {
         // 1. Get a valid token for the user.
         // The SondaAuthService will handle checking the database, validating, and refreshing the token if needed.
@@ -50,7 +51,9 @@ public class SondaApiGetDevicesService : ISondaApiGetDevicesService
         // This will throw an exception if the API returns an error status code (like 403 Forbidden or 404 Not Found).
         response.EnsureSuccessStatusCode();
 
+        var responseBody = await response.Content.ReadAsStringAsync();
+
         // 3. Return the JSON content from the response.
-        return await response.Content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 }
