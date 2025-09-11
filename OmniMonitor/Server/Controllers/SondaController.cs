@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 [Route("api/[controller]")]
 public class SondaController : ControllerBase
 {
-    private readonly ISondaApiService _sondaApiService;
+    private readonly ISondaApiGetDevicesService _sondaApiService;
 
-    public SondaController(ISondaApiService sondaApiService)
+    public SondaController(ISondaApiGetDevicesService sondaApiService)
     {
         _sondaApiService = sondaApiService;
     }
@@ -20,7 +20,7 @@ public class SondaController : ControllerBase
     {
         try
         {
-            var devicesJson = await _sondaApiService.GetDevicesAsync();
+            var devicesJson = await _sondaApiService.GetAllDevicesAsync("admin", "admin");
             return Content(devicesJson, "application/json");
         }
         catch (Exception ex)

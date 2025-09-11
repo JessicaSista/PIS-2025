@@ -42,7 +42,9 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.AddSingleton<ISondaApiService, SondaApiService>();
+builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
+//builder.Services.AddSingleton<ISondaApiGetDevicesService, SondaApiGetDevicesService>();
+builder.Services.AddScoped<ISondaApiGetDevicesService, SondaApiGetDevicesService>();
 builder.Services.AddHttpClient();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
