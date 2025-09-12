@@ -1,0 +1,25 @@
+<MudGrid class="pa-10" Spacing="6" Style="background-color: #0e1421">
+    @foreach (var widget in widgets)
+    {
+        string[] data = widget.Split(",");
+        <DashboardCard width_lg="@int.Parse(data[0])" titulo="@data[1]"></DashboardCard>
+    }
+    <MudItem Width="100%">
+        <MudPaper Class="d-flex flex-column justify-center align-center mud-width-full pa-10 w-100" Elevation="2" Style="background-color: #010717; cursor: pointer; color: #ffffff">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Large"/>
+            <MudText Typo="Typo.h6" Class="mt-4" Align="MudBlazor.Align.Center">
+                Agregar Nueva Gráfica
+            </MudText>
+            <MudText Typo="Typo.body2" Class="mt-2" Align="MudBlazor.Align.Center">
+                Haz clic para crear una nueva visualización de datos
+            </MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter] public string[] widgets {get; set;} = {};
+    string color_back = "#0f1522";
+    string color_border = "#272935";
+
+}
