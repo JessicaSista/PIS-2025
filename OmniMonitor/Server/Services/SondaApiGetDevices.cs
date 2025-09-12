@@ -40,7 +40,7 @@ public class SondaApiGetDevicesService : ISondaApiGetDevicesService
         string token = await _sondaAuthService.GetUserTokenAsync(username, password);
 
         // 2. Prepare and send the request to get the devices using the token.
-        string getDataUrl = "https://sondasmartplatform.com/internal/IoTMonitor/api/Device/devices?page=-1";
+        string getDataUrl = "https://sondasmartplatform.com/internal/IoTMonitor/api/Device/devices?page=1&pageSize=1";
         var client = _httpClientFactory.CreateClient();
 
         // Add the Bearer token to the Authorization header.

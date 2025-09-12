@@ -69,6 +69,7 @@ public class SondaAuthService : ISondaAuthService
             email = "pis@pis.com",
             password = "PIS.sonda2025"
         };
+
         string loginUrl = "https://sondasmartplatform.com/internal/IoTMonitor/api/Account/Login";
         var client = _httpClientFactory.CreateClient();
 

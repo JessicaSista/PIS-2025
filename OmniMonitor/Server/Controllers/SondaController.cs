@@ -14,14 +14,14 @@ public class SondaController : ControllerBase
     }
 
     [HttpGet("devices")]
-    [ProducesResponseType(typeof(string), 200)]
+    [ProducesResponseType(typeof(List<Device>), 200)]
     [ProducesResponseType(500)]
-    public async Task<IActionResult> GetSondaDevices()
+    public async Task<ActionResult<List<Device>>> GetSondaDevices()
     {
         try
         {
-            var devicesJson = await _sondaApiService.GetAllDevicesAsync("admin", "admin");
-            return Content(devicesJson, "application/json");
+            var devices = await _sondaApiService.GetAllDevicesAsync("admin", "admin");
+            return Ok(devices);
         }
         catch (Exception ex)
         {
