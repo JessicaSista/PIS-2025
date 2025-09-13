@@ -48,7 +48,7 @@
       "GetAll": "/api/Dashboard"
     },
     "Device": {
-      "GetAll": "/api/Device",
+      "GetAll": "/api/Device/devices",
       "GetById": "/api/Device",
       "DevicesOfSource": "/api/Device/devicesOfSource",
       "DevicesOfGroup": "/api/Device/devicesOfGroup",
@@ -62,9 +62,9 @@
       "Devices": "/api/DeviceAction/devices"
     },
     "Group": {
-      "GetAll": "/api/Group",
-      "Groups": "/api/Group/groups",
       "GetById": "/api/Group",
+      "Groups": "/api/Group/groups",
+      "GetAll": "/api/Group",
       "Names": "/api/Group/names"
     },
     "Output": {
