@@ -1,5 +1,4 @@
-﻿using Azure;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; // Add this for .ToListAsync()
 using OmniMonitor.Server.Context;    // Add this to reference your DbContext
 using OmniMonitor.Shared.Dtos;
@@ -38,7 +37,6 @@ namespace OmniMonitor.Server.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Employee>> GetEmployee(int id)
         {
-            
             var employee = await _context.Employees.FindAsync(id);
 
             if (employee == null)
@@ -55,7 +53,6 @@ namespace OmniMonitor.Server.Controllers
         [HttpPost]
         public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
         {
-            Console.WriteLine("employee");
             _context.Employees.Add(employee);
             await _context.SaveChangesAsync();
 
