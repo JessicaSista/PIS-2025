@@ -7,26 +7,17 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-/// <summary>
-/// Defines the contract for the Sonda authentication service.
-/// </summary>
 public interface ISondaAuthService
 {
-    /// <summary>
-    /// Gets a valid Sonda API token for a given user, handling validation, caching, and refreshing.
-    /// </summary>
-    /// <param name="Username">The user's email.</param>
-    /// <param name="Password">The user's password.</param>
-    /// <returns>A valid Bearer token.</returns>
+
+    // Para obtener el token de un usuario
     Task<string> GetUserTokenAsync(string username, string password);
+
 }
 
-/// <summary>
-/// Handles user validation and Sonda API token management using a database.
-/// </summary>
 public class SondaAuthService : ISondaAuthService
 {
-    private readonly ApplicationDbContext _context; // Your EF DbContext
+    private readonly ApplicationDbContext _context;
     private readonly IHttpClientFactory _httpClientFactory;
 
     public SondaAuthService(ApplicationDbContext context, IHttpClientFactory httpClientFactory)
@@ -35,33 +26,33 @@ public class SondaAuthService : ISondaAuthService
         _httpClientFactory = httpClientFactory;
     }
 
+
+    // Para obtener el token de un usuario
     public async Task<string> GetUserTokenAsync(string username, string password)
     {
-        // 1. Find the user in the database by their username.
+        // 1. Buscar usuario en DB
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
-        // 2. Validate user credentials.
+        
+        // 2. Validar credenciales
         if (user == null || user.Password != password)
         {
             throw new AuthenticationException("Invalid email or password.");
         }
-
-        // 3. Check if the stored token is still valid (exists and has not expired).
-        // We check for 5 minutes in the future to be safe.
+        
+        // 3. Verificar si el token es válido y no está cerca de expirar (5 minutos de margen).
         if (!string.IsNullOrEmpty(user.SondaToken) && user.TokenExpiration > DateTime.UtcNow.AddMinutes(5))
         {
             Console.WriteLine(">>>> Returning cached token from DB for user: " + user.Username);
             return user.SondaToken;
         }
 
-        // 4. If the token is invalid or missing, request a new one.
+        // 4. Si el token no es válido o está por expirar, solicitar uno nuevo.
         Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.Username);
         return await RefreshAndStoreTokenAsync(user);
     }
 
-    /// <summary>
-    /// Calls the Sonda API to get a new token and saves it to the user's record in the database.
-    /// </summary>
+
+    // Para refrescar y almacenar el token
     private async Task<string> RefreshAndStoreTokenAsync(User user)
     {
         var credentials = new
@@ -70,6 +61,7 @@ public class SondaAuthService : ISondaAuthService
             password = "PIS.sonda2025"
         };
 
+        //URL de login de Sonda (IM)
         string loginUrl = "https://sondasmartplatform.com/internal/IoTMonitor/api/Account/Login";
         var client = _httpClientFactory.CreateClient();
 
@@ -90,11 +82,11 @@ public class SondaAuthService : ISondaAuthService
             throw new InvalidOperationException("Sonda API returned a success status but did not provide a token.");
         }
 
-        // 5. Update the user record with the new token and expiration date.
+        // 5. Actualizar el registro con la información del nuevo token y su expiración.
         user.SondaToken = loginResponse.Token;
         user.TokenExpiration = loginResponse.Expiration;
 
-        // 6. Save changes to the database.
+        // 6. Guardar los cambios en la base de datos.
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
 
@@ -104,9 +96,8 @@ public class SondaAuthService : ISondaAuthService
     }
 }
 
-/// <summary>
-/// Represents the structure of the JSON response from the Sonda Login API.
-/// </summary>
+
+// Respuesta del login de Sonda
 file class SondaLoginResponse
 {
     public string Token { get; set; }
