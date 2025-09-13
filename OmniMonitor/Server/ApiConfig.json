@@ -64,6 +64,7 @@
     "Group": {
       "GetById": "/api/Group",
       "Groups": "/api/Group/groups",
+      "GetAll": "/api/Group",
       "Names": "/api/Group/names"
     },
     "Output": {
