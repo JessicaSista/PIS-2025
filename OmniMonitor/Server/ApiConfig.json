@@ -1,0 +1,94 @@
+{
+  "BaseUrl": "https://sondasmartplatform.com/internal/IoTMonitor",
+  "Credentials": {
+    "Email": "pis@pis.com",
+    "Password": "PIS.sonda2025"
+  },
+  "Endpoints": {
+    "Action": {
+      "GetAll": "/api/Action",
+      "GetById": "/api/Action"
+    },
+    "ActionExecution": {
+      "GetAll": "/api/ActionExecution",
+      "GetById": "/api/ActionExecution"
+    },
+    "Alert": {
+      "GetById": "/api/Alert",
+      "GetAll": "/api/Alert/alerts"
+    },
+    "Analysis": {
+      "GetAll": "/api/Analysis/analyses",
+      "GetNames": "/api/Analysis/analysesnames",
+      "GetById": "/api/Analysis",
+      "GetSchedule": "/api/Analysis/schedule",
+      "Running": "/api/Analysis/running",
+      "Status": "/api/Analysis/status",
+      "Inputs": "/api/Analysis/inputs"
+    },
+    "Analytic": {
+      "TimeSerie": "/api/Analytic/timeSerie",
+      "MultiTimeSerie": "/api/Analytic/multiTimeSerie",
+      "DeviceData": "/api/Analytic/deviceData",
+      "Dashboards": "/api/Analytic/dashboards",
+      "Reports": "/api/Analytic/reports",
+      "FailTime": "/api/Analytic/failTime",
+      "WaitingTime": "/api/Analytic/waitingTime",
+      "ServiceLevelIndicators": "/api/Analytic/serviceLevelIndicators"
+    },
+    "Audit": {
+      "GetAll": "/api/Audit"
+    },
+    "Configuration": {
+      "Get": "/api/Configuration"
+    },
+    "Dashboard": {
+      "GetById": "/api/Dashboard/{id}",
+      "GetFrame": "/api/Dashboard/frame",
+      "GetAll": "/api/Dashboard"
+    },
+    "Device": {
+      "GetAll": "/api/Device/devices",
+      "GetById": "/api/Device",
+      "DevicesOfSource": "/api/Device/devicesOfSource",
+      "DevicesOfGroup": "/api/Device/devicesOfGroup",
+      "Names": "/api/Device/names",
+      "ScanSNMP": "/api/Device/scan/snmp",
+      "Integration": "/api/Device/integration"
+    },
+    "DeviceAction": {
+      "GetAll": "/api/DeviceAction",
+      "GetById": "/api/DeviceAction",
+      "Devices": "/api/DeviceAction/devices"
+    },
+    "Group": {
+      "GetById": "/api/Group",
+      "Groups": "/api/Group/groups",
+      "GetAll": "/api/Group",
+      "Names": "/api/Group/names"
+    },
+    "Output": {
+      "GetAll": "/api/Output",
+      "Outputs": "/api/Output/outputs",
+      "GetById": "/api/Output",
+      "InUseBy": "/api/Output/inUseBy"
+    },
+    "Source": {
+      "GetAll": "/api/Source",
+      "Sources": "/api/Source/sources",
+      "GetById": "/api/Source",
+      "Names": "/api/Source/names"
+    },
+    "SystemStatus": {
+      "DeviceCount": "/api/SystemStatus/deviceCount",
+      "Alerts": "/api/SystemStatus/alerts",
+      "DataCache": "/api/SystemStatus/dataCache",
+      "DataStatus": "/api/SystemStatus/dataStatus",
+      "DataManagerData": "/api/SystemStatus/dataManagerData"
+    },
+    "User": {
+      "GetById": "/api/User",
+      "Users": "/api/User/users"
+    }
+  }
+}
