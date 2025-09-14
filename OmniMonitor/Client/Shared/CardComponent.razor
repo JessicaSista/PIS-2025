@@ -1,0 +1,41 @@
+@using OmniMonitor.Client.Shared
+@using ApexCharts
+
+<div class="card @(Config.Resaltado ? "kpi-highlight" : "")">
+    @if (Config.Tipo == CardType.KPI)
+    {
+        <div class="kpi-container">
+            <div class="kpi-title">@Config.KpiSeleccionado ?? "DATA"</div>
+            <div class="kpi-value">@((Config.KpiValue ?? 0m).ToString("N2"))</div>
+            <div class="kpi-delta">
+                @{
+                    var delta = Config.KpiDeltaPercent ?? 0m;
+                    var sign = delta >= 0 ? "+" : "";
+                }
+                <span class="delta-value">@(sign)@delta.ToString("N2")%</span>
+                <span class="delta-label"> desde el último mes</span>
+            </div>
+        </div>
+    }
+    else if (Config.Tipo == CardType.Grafica)
+    {
+        @if (Config.PreviewData != null && Config.PreviewData.Count > 0)
+        {
+            <ApexChart TItem="DataPoint" Title="@Config.TipoGrafica">
+                <ApexPointSeries TItem="DataPoint"
+                                 Items="Config.PreviewData"
+                                 Name="Serie"
+                                 XValue="@(x => x.Fecha)"
+                                 YValue="@(x => x.Valor)" />
+            </ApexChart>
+        }
+        else
+        {
+            <p>No hay datos para mostrar</p>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public CardConfig Config { get; set; } = default!;
+}

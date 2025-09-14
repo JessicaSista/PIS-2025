@@ -1,0 +1,212 @@
+@using ApexCharts
+@using OmniMonitor.Client.Shared
+@using Microsoft.AspNetCore.Components.Forms
+@using System.Text.Json
+@using System.Text.Json.Serialization
+
+
+<div class="modal" style="@(Visible ? "display:flex" : "display:none")">
+    <div class="modal-content">
+        <h3>Crear nueva card</h3>
+
+        <!-- Tipo de card -->
+        <label>Tipo de Card</label>
+        <select @bind="config.Tipo">
+            <option value="KPI">KPI</option>
+            <option value="Grafica">Gráfica</option>
+        </select>
+
+        @if (config.Tipo == CardType.KPI)
+        {
+            <div>
+                <label>Seleccionar KPI</label>
+                <select @bind="config.KpiSeleccionado">
+                    @foreach (var kpi in posiblesKpis)
+                    {
+                        <option value="@kpi">@kpi</option>
+                    }
+                </select>
+
+                <label>Resaltado</label>
+                <input type="checkbox" @bind="config.Resaltado" />
+            </div>
+        }
+        else if (config.Tipo == CardType.Grafica)
+        {
+            <h4>Series</h4>
+            @foreach (var serie in config.Series)
+            {
+                <div class="serie-row">
+                    <select @bind="serie.Source">
+                        <option value="Source1">Source1</option>
+                        <option value="Source2">Source2</option>
+                    </select>
+                    <select @bind="serie.Sensor">
+                        <option value="Sensor1">Sensor1</option>
+                        <option value="Sensor2">Sensor2</option>
+                    </select>
+                    <select @bind="serie.Dispositivo">
+                        <option value="Dispositivo1">Dispositivo1</option>
+                        <option value="Dispositivo2">Dispositivo2</option>
+                    </select>
+                    <input type="color" @bind="serie.Color" />
+                    <input type="number" min="0.1" step="0.1" @bind="serie.Multiplier" />
+                    <button @onclick="() => RemoveSerie(serie)">X</button>
+                </div>
+            }
+            <button @onclick="AddSerie">Agregar Serie</button>
+
+            <label>Tipo de gráfica</label>
+            <select @bind="config.TipoGrafica">
+                <option value="Linea">Línea</option>
+                <option value="Barra">Barras</option>
+                <option value="Radar">Radar</option>
+            </select>
+
+            <label>Desde</label>
+            <InputDate @bind-Value="config.FechaDesde" />
+
+            <label>Hasta</label>
+            <InputDate @bind-Value="config.FechaHasta" />
+
+            <button @onclick="BuscarDatos">Buscar</button>
+
+            @if (!string.IsNullOrEmpty(loadMessage))
+            {
+                <p>@loadMessage</p>
+            }
+
+            @if (previewData == null || previewData.Count == 0)
+            {
+                <p>No se encontraron datos en el rango elegido.</p>
+            }
+            else
+            {
+                <ApexChart TItem="DataPoint" Title="Preview">
+                    <ApexPointSeries TItem="DataPoint"
+                                     Items="previewData"
+                                     Name="Serie"
+                                     XValue="@(x => x.Fecha)"
+                                     YValue="@(x => x.Valor)" />
+                </ApexChart>
+            }
+        }
+
+        <div class="modal-actions">
+            <button @onclick="Cancelar">Cancelar</button>
+            <button @onclick="Guardar">Guardar</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public EventCallback<CardConfig> OnSave { get; set; }
+
+    private CardConfig config = new();
+    // Hardcodeado - lo usamos en lugar del backend
+    private List<string> posiblesKpis = new List<string>
+    {
+        "Temperatura", "Humedad", "Presión", "Consumo", "Vibración"
+    };
+
+    private List<DataPoint>? previewData;
+    private string? loadMessage;
+
+    protected override void OnParametersSet()
+    {
+        // Aseguramos que haya al menos una serie para poder previsualizar
+        if (config.Series == null)
+            config.Series = new List<ChartSerie>();
+
+        if (config.Series.Count == 0 && config.Tipo == CardType.Grafica)
+        {
+            config.Series.Add(new ChartSerie { Source = "Source1", Sensor = "Sensor1", Dispositivo = "Dispositivo1", Color = "#008000", Multiplier = 1.0 });
+        }
+    }
+
+    private void AddSerie() => config.Series.Add(new ChartSerie());
+    private void RemoveSerie(ChartSerie serie) => config.Series.Remove(serie);
+
+    private Task BuscarDatos()
+    {
+        // Validaciones básicas
+        if (config.FechaHasta <= config.FechaDesde)
+        {
+            previewData = null;
+            loadMessage = "Rango inválido: 'Hasta' debe ser mayor que 'Desde'.";
+            return Task.CompletedTask;
+        }
+
+        // Generamos datos de ejemplo (uno por día)
+        var days = (int)Math.Ceiling((config.FechaHasta - config.FechaDesde).TotalDays) + 1;
+        var list = new List<DataPoint>(days);
+        var rnd = new Random(123); // semilla fija para reproducibilidad
+
+        for (int i = 0; i < days; i++)
+        {
+            var fecha = config.FechaDesde.Date.AddDays(i);
+            // Valor de ejemplo: una oscilación + offset, en decimal
+            decimal valor = 10m + i * 1.25m + (decimal)(Math.Sin(i * 0.5) * 2.5);
+            list.Add(new DataPoint { Fecha = fecha, Valor = valor });
+        }
+
+        previewData = list;
+        loadMessage = $"Preview generado: {previewData.Count} puntos (hardcodeado).";
+
+        return Task.CompletedTask;
+    }
+
+    private async Task Guardar()
+    {
+        // Si es KPI, genera valores de ejemplo
+        if (config.Tipo == CardType.KPI)
+        {
+            // Podés reemplazar esto por una llamada real al backend
+            config.KpiValue = Math.Round( (decimal)(50 + new Random().NextDouble() * 100), 2);
+            // Delta ejemplo: porcentaje positivo/negativo aleatorio
+            config.KpiDeltaPercent = Math.Round((decimal)((new Random().NextDouble() * 10) - 5), 2); // -5%..+5%
+        }
+
+        // Si es gráfica, si previewData existe en modal (generada por BuscarDatos), pégala dentro del config
+        // (si no hay previewData, generamos uno rápido para que la card muestre algo)
+        if (config.Tipo == CardType.Grafica)
+        {
+            if (previewData != null && previewData.Count > 0)
+            {
+                config.PreviewData = previewData;
+            }
+            else
+            {
+                // generar datos de respaldo
+                var days = (int)Math.Ceiling((config.FechaHasta - config.FechaDesde).TotalDays) + 1;
+                var list = new List<DataPoint>(days);
+                for (int i = 0; i < days; i++)
+                {
+                    var fecha = config.FechaDesde.Date.AddDays(i);
+                    decimal valor = 10m + i * 1.25m + (decimal)(Math.Sin(i * 0.5) * 2.5);
+                    list.Add(new DataPoint { Fecha = fecha, Valor = valor });
+                }
+                config.PreviewData = list;
+            }
+        }
+
+        // Deep clone the config so the parent gets a detached copy.
+        var serialized = JsonSerializer.Serialize(config, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        var copy = JsonSerializer.Deserialize<CardConfig>(serialized);
+
+        // invoke save with the detached copy
+        if (copy != null)
+        {
+            await OnSave.InvokeAsync(copy);
+        }
+
+        // If parent uses @bind-Visible, better invoke VisibleChanged; otherwise just set Visible = false for internal close.
+        // If your modal uses bind, call VisibleChanged. If not, parent must close it. 
+        // For safety we set Visible = false locally (won't change parent unless bound).
+        Visible = false;
+    }
+
+
+    private void Cancelar() => Visible = false;
+}
