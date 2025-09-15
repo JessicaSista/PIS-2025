@@ -1,0 +1,45 @@
+@using OmniMonitor.Client.Services
+@inject IAuthorizationService AuthorizationService
+@inject ILogger<RequirePermission> Logger
+
+@if (HasPermission)
+{
+    @ChildContent
+}
+else if (ShowFallback)
+{
+    @FallbackContent
+}
+
+@code {
+    [Parameter] public string PermissionName { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? FallbackContent { get; set; }
+    [Parameter] public bool ShowFallback { get; set; } = false;
+
+    private bool HasPermission { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckPermission();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CheckPermission();
+    }
+
+    private async Task CheckPermission()
+    {
+        try
+        {
+            HasPermission = await AuthorizationService.HasPermissionAsync(PermissionName);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error verificando permiso {PermissionName}", PermissionName);
+            HasPermission = false;
+        }
+    }
+}

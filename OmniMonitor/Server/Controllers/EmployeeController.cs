@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; // Add this for .ToListAsync()
 using OmniMonitor.Server.Context;    // Add this to reference your DbContext
+using OmniMonitor.Server.Attributes; // Add this for authorization attributes
 using OmniMonitor.Shared.Dtos;
 using System.Collections.Generic;
 using System.Threading.Tasks;       // Add this for async operations
@@ -24,6 +25,7 @@ namespace OmniMonitor.Server.Controllers
 
         // 3. The Get method now correctly fetches from the database
         [HttpGet]
+        [RequirePermission("Ver Empleados")]
         public async Task<ActionResult<IEnumerable<Employee>>> Get()
         {
             _logger.LogInformation("Getting all employees from the database");
@@ -36,6 +38,7 @@ namespace OmniMonitor.Server.Controllers
 
         // NEW: Method to get a single employee by ID
         [HttpGet("{id}")]
+        [RequirePermission("Ver Empleados")]
         public async Task<ActionResult<Employee>> GetEmployee(int id)
         {
             
@@ -53,6 +56,7 @@ namespace OmniMonitor.Server.Controllers
         // To use this, send a POST request to /api/employee with the employee data in the body.
         // Do NOT include an "id" in the body; the database will create it.
         [HttpPost]
+        [RequirePermission("Gestionar Empleados")]
         public async Task<ActionResult<Employee>> PostEmployee(Employee employee)
         {
             Console.WriteLine("employee");

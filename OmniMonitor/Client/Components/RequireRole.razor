@@ -1,0 +1,45 @@
+@using OmniMonitor.Client.Services
+@inject IAuthorizationService AuthorizationService
+@inject ILogger<RequireRole> Logger
+
+@if (HasRole)
+{
+    @ChildContent
+}
+else if (ShowFallback)
+{
+    @FallbackContent
+}
+
+@code {
+    [Parameter] public string RoleName { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? FallbackContent { get; set; }
+    [Parameter] public bool ShowFallback { get; set; } = false;
+
+    private bool HasRole { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckRole();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CheckRole();
+    }
+
+    private async Task CheckRole()
+    {
+        try
+        {
+            HasRole = await AuthorizationService.HasRoleAsync(RoleName);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error verificando rol {RoleName}", RoleName);
+            HasRole = false;
+        }
+    }
+}

@@ -23,8 +23,10 @@ namespace OmniMonitor.Server.Services
         {
             try
             {
-                // Buscar usuario en la base de datos
+                // Buscar usuario en la base de datos con sus roles
                 var user = await _context.Users
+                    .Include(u => u.UserRoles)
+                        .ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Username == loginRequest.Username);
 
                 if (user == null)
@@ -46,12 +48,18 @@ namespace OmniMonitor.Server.Services
                     };
                 }
 
-                // Login exitoso sin token
+                // Obtener roles del usuario
+                var userRoles = user.UserRoles
+                    .Select(ur => ur.Role.Name)
+                    .ToList();
+
+                // Login exitoso con información de roles
                 return new LoginResponse
                 {
                     Success = true,
                     Message = "Login exitoso",
-                    User = user
+                    User = user,
+                    Roles = userRoles
                 };
             }
             catch (Exception ex)

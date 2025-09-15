@@ -51,6 +51,7 @@ builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 //builder.Services.AddSingleton<ISondaApiGetDevicesService, SondaApiGetDevicesService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddHttpClient();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
