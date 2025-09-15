@@ -1,0 +1,141 @@
+@page "/datasets"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using MudBlazor
+
+<PageTitle>Datasets</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #ffffff; font-weight: 600;">Datasets</MudText>
+<MudText Typo="Typo.body1" Class="mb-4 mx-4" Style="color: #9ca3af;">Gestiona tus fuentes de datos y conexiones</MudText>
+
+<!-- Barra de búsqueda y filtros -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-15 ml-4 mr-6">
+    <MudTextField 
+        @bind-Value="searchText" 
+        Placeholder="Buscar datasets..." 
+        Variant="Variant.Outlined" 
+        Adornment="Adornment.Start" 
+        AdornmentIcon="@Icons.Material.Filled.Search"
+        Style="background-color: #374151; color: #ffffff;"
+        Class="flex-grow-1 mr-3" />
+    <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+        Filtros
+    </MudButton>
+</MudStack>
+
+<!-- Lista vertical de datasets con padding lateral -->
+<MudContainer Fixed="true" Class="pl-4 pr-6">
+    <MudStack Spacing="3">
+        @foreach (var dataset in datasets)
+        {
+            <MudCard Class="dataset-card" Style="width:100%; background-color: #030A16; border: 1px solid #374151; cursor:pointer;" @onclick="@(() => VerDetalle(dataset.Id))">
+                <MudCardContent Class="pa-4">
+                    <MudStack Row AlignItems="AlignItems.Start" Spacing="3">
+                        <!-- Icono del dataset -->
+                        <MudIcon Icon="@GetDatasetIcon(dataset.Id)" 
+                                 Size="MudBlazor.Size.Large" 
+                                 Style="color: #3b82f6; margin-top: 4px;" />
+                        
+                        <!-- Contenido del dataset -->
+                        <MudStack Class="flex-grow-1">
+                            <MudText Typo="Typo.h6" Style="color: #ffffff; font-weight: 600; margin-bottom: 4px;">
+                                @dataset.Nombre
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="color: #9ca3af; margin-bottom: 8px;">
+                                @GetDatasetDescription(dataset.Id)
+                            </MudText>
+                            <MudStack Row Spacing="4">
+                                <MudText Typo="Typo.caption" Style="color: #6b7280;">
+                                    @GetRecordCount(dataset.Id) registros
+                                </MudText>
+                                <MudText Typo="Typo.caption" Style="color: #6b7280;">
+                                    Actualizado: @dataset.FechaCreacion.ToString("yyyy-MM-dd HH:mm")
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+                        
+                        <!-- Botón de acción -->
+                        <MudButton 
+                            Variant="Variant.Text" 
+                            Color="MudBlazor.Color.Primary" 
+                            OnClick="@(() => VerDetalle(dataset.Id))"
+                            Style="color: #3b82f6;">
+                            Ver Detalle
+                        </MudButton>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        }
+    </MudStack>
+</MudContainer>
+
+
+
+<!-- Botón flotante -->
+<MudButton Href="/items" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary"
+    Style="position: fixed; bottom: 24px; right: 24px; z-index: 1000; border-radius: 50px; padding: 16px 24px; font-weight: 600;">
+    Crear Dataset
+</MudButton>
+
+@code {
+    private List<DatasetDto> datasets = new();
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulación: en la práctica esto vendría de tu API
+        datasets = new List<DatasetDto>
+        {
+            new DatasetDto { Id = 1, Nombre = "Dataset sensores de temperatura Montevideo", FechaCreacion = DateTime.Now.AddDays(-2) },
+            new DatasetDto { Id = 2, Nombre = "Dataset consumo de energía", FechaCreacion = DateTime.Now.AddDays(-5) },
+            new DatasetDto { Id = 3, Nombre = "Dataset Emisiones CO₂", FechaCreacion = DateTime.Now.AddDays(-10) },
+        };
+    }
+
+    private void VerDetalle(int id)
+    {
+        // Redirigir a la vista detallada del dataset
+        // Ej: NavigationManager.NavigateTo($"/datasets/{id}");
+    }
+
+    private string GetDatasetIcon(int id)
+    {
+        return id switch
+        {
+            1 => Icons.Material.Filled.Thermostat, // Sensores de temperatura
+            2 => Icons.Material.Filled.ElectricalServices, // Consumo de energía
+            3 => Icons.Material.Filled.Cloud, // Emisiones CO₂
+            _ => Icons.Material.Filled.Storage
+        };
+    }
+
+    private string GetDatasetDescription(int id)
+    {
+        return id switch
+        {
+            1 => "Datos de sensores de temperatura en tiempo real desde Montevideo.",
+            2 => "Información detallada del consumo energético por sector.",
+            3 => "Métricas de emisiones de CO₂ y gases de efecto invernadero.",
+            _ => "Dataset de información general."
+        };
+    }
+
+    private string GetRecordCount(int id)
+    {
+        return id switch
+        {
+            1 => "15.420",
+            2 => "8.750",
+            3 => "12.300",
+            _ => "0"
+        };
+    }
+
+    public class DatasetDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public DateTime FechaCreacion { get; set; }
+    }
+
+}
