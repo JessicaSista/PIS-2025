@@ -16,9 +16,12 @@
         Variant="Variant.Outlined" 
         Adornment="Adornment.Start" 
         AdornmentIcon="@Icons.Material.Filled.Search"
-        Style="background-color: #374151; color: #ffffff;"
+        Style="background-color: #030A16; color: #ffffff;"
         Class="flex-grow-1 mr-3" />
-    <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+    <MudButton Variant="Variant.Outlined"
+            Color="MudBlazor.Color.Secondary"
+            StartIcon="@Icons.Material.Filled.FilterList"
+            Style="border-radius: 999px; padding: 10px 20px; min-height: 40px; font-weight: 600;">
         Filtros
     </MudButton>
 </MudStack>
@@ -72,7 +75,7 @@
 
 
 <!-- Botón flotante -->
-<MudButton Href="/items" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary"
+<MudButton Href="/crearDataset" Variant="Variant.Filled" Color="MudBlazor.Color.Secondary"
     Style="position: fixed; bottom: 24px; right: 24px; z-index: 1000; border-radius: 50px; padding: 16px 24px; font-weight: 600;">
     Crear Dataset
 </MudButton>

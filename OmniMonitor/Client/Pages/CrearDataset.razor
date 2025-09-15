@@ -1,0 +1,145 @@
+@page "/crearDataset"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using MudBlazor
+
+<PageTitle>Crear Dataset</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-8 mt-2 mx-4" Style="color: #ffffff; font-weight: 600;">Crear Dataset</MudText>
+
+<MudText Typo="Typo.h5" Class="mb-1 mx-4" Style="color: #9ca3af;">Tipo de Dataset</MudText>
+
+<!-- Selector de tipo de dataset -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
+    <MudSelect T="string" @bind-Value="selectedTipo" Variant="Variant.Outlined"
+               Style="background-color: #0F172A; color: #B0B6B6;" Class="flex-grow-1">
+        @foreach (var tipo in tiposDataset)
+        {
+            <MudSelectItem Value="@tipo">@tipo</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>
+
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Modulo 1")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h5" Class="mb-1 mx-4" Style="color: #9ca3af;">Nombre</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="Agregar Nombre"
+                      Variant="Variant.Outlined" 
+                      Style="background-color: #0F172A; color: #B0B6B6;"
+                      Class="flex-grow-1"/>
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h5" Class="mb-1 mx-4" Style="color: #9ca3af;">Descripción</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
+    <MudTextField T="string"
+                  @bind-Value="addDesc"
+                  Placeholder="Agregar Descripción"
+                  Variant="Variant.Outlined"
+                  TextFieldType="MudBlazor.TextFieldType.Multiline"
+                  Lines="3"  
+                  Style="background-color: #0F172A; color: #B0B6B6; max-height: 120px; overflow-y: auto;"
+                  Class="flex-grow-1"/>
+    </MudStack>
+
+
+    <!-- Tres selects en la misma línea: Fuente, Sensor y Dispositivo -->
+    <MudStack Row Spacing="2" Class="mb-8 mx-4">
+       
+        <!-- Fuente -->
+        <div style="width: 33%;">
+            <MudSelect T="string" 
+                    @bind-Value="selectedFuente" 
+                    Variant="Variant.Outlined" 
+                    Clearable 
+                    FullWidth="true"
+                    Label="Seleccionar Fuente"
+                    Style="background-color: #0F172A; color: #B0B6B6;">
+                @foreach (var fuente in fuentesModulo1)
+                {
+                    <MudSelectItem Value="@fuente">@fuente</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Sensor -->
+        <div style="width: 33%;">
+            <MudSelect T="string" 
+                    @bind-Value="selectedSensor" 
+                    Variant="Variant.Outlined" 
+                    Clearable 
+                    FullWidth="true"
+                    Label="Seleccionar Sensor"
+                    Style="background-color: #0F172A; color: #B0B6B6;">
+                @foreach (var sensor in sensores)
+                {
+                    <MudSelectItem Value="@sensor">@sensor</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Dispositivo -->
+        <div style="width: 33%;">
+            <MudSelect T="string" 
+                    @bind-Value="selectedDispositivo" 
+                    Variant="Variant.Outlined" 
+                    Clearable 
+                    FullWidth="true"
+                    Label="Seleccionar Dispositivo"
+                    Style="background-color: #0F172A; color: #B0B6B6;">
+                @foreach (var dispositivo in dispositivos)
+                {
+                    <MudSelectItem Value="@dispositivo">@dispositivo</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-8 mx-4" style="display: flex; justify-content: flex-end;">
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary">Guardar Dataset</MudButton>
+    </div>
+}
+
+@code {
+    // Primer select: tipos de dataset
+    private string selectedTipo = string.Empty;
+    private List<string> tiposDataset = new()
+    {
+        "Inside Monitor",
+        "Modulo 2",
+        "Modulo 3"
+    };
+
+    // Segundo select: fuentes para Modulo 1
+    private string selectedFuente = string.Empty;
+    private List<string> fuentesModulo1 = new()
+    {
+        "Fuente 1",
+        "Fuente 2",
+        "Fuente 3"
+    };
+
+    // Select de sensores
+    private string selectedSensor = string.Empty;
+    private List<string> sensores = new()
+    {
+        "Sensor 1",
+        "Sensor 2",
+        "Sensor 3"
+    };
+
+    // Select de dispositivos
+    private string selectedDispositivo = string.Empty;
+    private List<string> dispositivos = new()
+    {
+        "Dispositivo 1",
+        "Dispositivo 2",
+        "Dispositivo 3"
+    };
+
+    // Campos Nombre y Descripción
+    private string addName = string.Empty;
+    private string addDesc = string.Empty;
+}

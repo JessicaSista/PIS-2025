@@ -71,3 +71,20 @@
   flex-wrap: wrap;
   gap: 20px;
 }
+
+/* Fondo del menú desplegable */
+.mud-popover.mud-select-menu {
+  background-color: #0F172A !important;
+  color: #B0B6B6 !important;
+}
+
+/* Fondo y color de los items del menú */
+.mud-popover.mud-select-menu .mud-list-item {
+  background-color: #0F172A !important;
+  color: #B0B6B6 !important;
+}
+
+/* Hover de los items (opcional, si querés mantener hover predeterminado de MudBlazor, no tocar esto) */
+.mud-popover.mud-select-menu .mud-list-item:hover {
+  /* Dejalo en blanco o en el color que MudBlazor ya aplica por defecto */
+}
