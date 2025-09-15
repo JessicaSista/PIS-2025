@@ -1,0 +1,100 @@
+@page "/login"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar Sesión</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Iniciar Sesión</h3>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+
+                    <EditForm Model="loginRequest" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Usuario:</label>
+                            <InputText id="username" class="form-control" @bind-Value="loginRequest.Username" />
+                            <ValidationMessage For="@(() => loginRequest.Username)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña:</label>
+                            <InputText id="password" type="password" class="form-control" @bind-Value="loginRequest.Password" />
+                            <ValidationMessage For="@(() => loginRequest.Password)" />
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Iniciar Sesión
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginRequest);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                
+                if (loginResponse?.Success == true)
+                {
+                    // Almacenar información del usuario en localStorage
+                    await Http.PostAsJsonAsync("api/auth/store-user", loginResponse);
+                    
+                    // Navegar a la página de prueba
+                    Navigation.NavigateTo("/test-permissions");
+                }
+                else
+                {
+                    errorMessage = loginResponse?.Message ?? "Error de autenticación";
+                }
+            }
+            else
+            {
+                var errorResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                errorMessage = errorResponse?.Message ?? "Error de conexión";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

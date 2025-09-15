@@ -155,6 +155,18 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 13, RoleId = 2, PermissionId = 7 },
                 new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 }
             );
+
+            // Usuarios de prueba
+            builder.Entity<User>().HasData(
+                new User { Id = 1, Username = "admin", Password = "admin" },
+                new User { Id = 2, Username = "visitante", Password = "visitante" }
+            );
+
+            // Asignar roles a usuarios
+            builder.Entity<UserRole>().HasData(
+                new UserRole { Id = 1, UserId = 1, RoleId = 1 }, // admin -> Administrador
+                new UserRole { Id = 2, UserId = 2, RoleId = 2 }  // visitante -> Visitante
+            );
         }
     }
 }
