@@ -68,7 +68,7 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission('Ver Usuarios')">
+                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission(\"Ver Usuarios\")">
                                                 Verificar "Ver Usuarios"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Ver Usuarios") ? (permissionResults["Ver Usuarios"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -77,7 +77,7 @@
                                         </div>
                                         
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission('Crear Usuarios')">
+                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission(\"Crear Usuarios\")">
                                                 Verificar "Crear Usuarios"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Crear Usuarios") ? (permissionResults["Crear Usuarios"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -86,7 +86,7 @@
                                         </div>
                                         
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission('Ver Empleados')">
+                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission(\"Ver Empleados\")">
                                                 Verificar "Ver Empleados"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Ver Empleados") ? (permissionResults["Ver Empleados"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -95,7 +95,7 @@
                                         </div>
                                         
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission('Gestionar Empleados')">
+                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission(\"Gestionar Empleados\")">
                                                 Verificar "Gestionar Empleados"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Gestionar Empleados") ? (permissionResults["Gestionar Empleados"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -113,7 +113,7 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-info me-2" @onclick="() => CheckRole('Administrador')">
+                                            <button class="btn btn-sm btn-outline-info me-2" @onclick="() => CheckRole(\"Administrador\")">
                                                 Verificar "Administrador"
                                             </button>
                                             <span class="badge @(roleResults.ContainsKey("Administrador") ? (roleResults["Administrador"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -122,7 +122,7 @@
                                         </div>
                                         
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-info me-2" @onclick="() => CheckRole('Visitante')">
+                                            <button class="btn btn-sm btn-outline-info me-2" @onclick="() => CheckRole(\"Visitante\")">
                                                 Verificar "Visitante"
                                             </button>
                                             <span class="badge @(roleResults.ContainsKey("Visitante") ? (roleResults["Visitante"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -194,7 +194,7 @@
         {
             // Simular carga de datos del usuario (en una implementación real, esto vendría del localStorage o un servicio)
             // Por ahora, vamos a usar datos de prueba
-            currentUser = new User { Id = 1, Username = "usuario_prueba" };
+            currentUser = new OmniMonitor.Shared.Dtos.User { Id = 1, Username = "usuario_prueba" };
             userRoles = new List<string> { "Administrador" };
             
             // Cargar permisos del usuario

@@ -21,7 +21,7 @@ namespace OmniMonitor.Server.Attributes
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
             // Obtener el servicio de autorización
-            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<OmniMonitor.Server.Services.IAuthorizationService>();
 
             // Obtener el ID del usuario desde el contexto (asumiendo que se almacena en Claims)
             var userIdClaim = context.HttpContext.User.FindFirst("UserId");
@@ -57,7 +57,7 @@ namespace OmniMonitor.Server.Attributes
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
             // Obtener el servicio de autorización
-            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<OmniMonitor.Server.Services.IAuthorizationService>();
 
             // Obtener el ID del usuario desde el contexto
             var userIdClaim = context.HttpContext.User.FindFirst("UserId");
