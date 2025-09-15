@@ -1,0 +1,24 @@
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+
+<MudCard Style="width:100%;background-color:#030a16;border:1px solid #374151;border-radius:12px;cursor:pointer;padding:16px;" @onclick="@OnClick">
+    <MudCardContent  Style="width:100%;">
+        <MudStack Row AlignItems="AlignItems.Start" Spacing="3"  Style="width:100%;">
+            <MudStack  Style="width:100%;">
+                <MudText Style="color:#bcc3c5;font-weight:600;font-size:1.2rem;">@Dataset.Nombre</MudText>
+                <MudText Style="color:#69818d;font-size:1rem;">@Description</MudText>
+                <MudStack Row Justify="Justify.SpaceBetween"  Style="width:100%;">
+                    <MudText Style="color:#69818d;font-size:0.7rem;">@RecordCount registros</MudText>
+                    <MudText Style="color:#69818d;font-size:0.7rem;">Actualizado: @Dataset.FechaCreacion.ToString("yyyy-MM-dd HH:mm")</MudText>
+                </MudStack>
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public DatasetDto Dataset { get; set; } = new();
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public string RecordCount { get; set; } = "0";
+    [Parameter] public EventCallback OnClick { get; set; }
+}

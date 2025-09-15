@@ -5,58 +5,101 @@
 
 <PageTitle>Crear Dataset</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-8 mt-2 mx-4" Style="color: #ffffff; font-weight: 600;">Crear Dataset</MudText>
-
-<MudText Typo="Typo.h5" Class="mb-1 mx-4" Style="color: #9ca3af;">Tipo de Dataset</MudText>
+<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #E5EAEB; font-weight: bold;">
+    Crear Dataset
+</MudText>
+<MudText Typo="Typo.body1" Class="mb-4 mx-4" Style="color: #9ca3af">
+    Tipo de Dataset
+</MudText>
 
 <!-- Selector de tipo de dataset -->
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
-    <MudSelect T="string" @bind-Value="selectedTipo" Variant="Variant.Outlined"
-               Style="background-color: #0F172A; color: #B0B6B6;" Class="flex-grow-1">
+    <MudSelect T="string"
+               @bind-Value="selectedTipo"
+               Variant="Variant.Outlined"
+               Class="flex-grow-1 dark-field"
+               InputClass="dark-field-input"
+               PopoverClass="dark-field-popover">
         @foreach (var tipo in tiposDataset)
         {
             <MudSelectItem Value="@tipo">@tipo</MudSelectItem>
         }
     </MudSelect>
 </MudStack>
+<style>
+/* Select y TextFields oscuros */
+.dark-field .mud-input-root {
+    background-color: #0F172A !important;
+    color: #E5EAEB !important;
+    border: 1px solid #334155 !important;
+    border-radius: 6px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
 
-@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Modulo 1")
+.dark-field .mud-input-input,
+.dark-field .mud-select-value,
+.dark-field .mud-select-text {
+    color: #E5EAEB !important;
+}
+
+/* Placeholder y label */
+.dark-field .mud-input-label,
+.dark-field .mud-input-placeholder {
+    color: #B0B6B6 !important;
+}
+
+/* Hover */
+.dark-field .mud-input-root:hover {
+    box-shadow: 0 0 6px #4A81E9;
+    border-color: #4A81E9 !important;
+}
+
+/* Popover (dropdown) oscuro */
+.dark-field-popover {
+    background-color: #1E293B !important;
+    color: #E5EAEB !important;
+}
+
+.dark-field-popover .mud-list-item {
+    color: #E5EAEB !important;
+}
+</style>
+
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Inside Monitor")
 {
     <!-- Campo Nombre -->
-    <MudText Typo="Typo.h5" Class="mb-1 mx-4" Style="color: #9ca3af;">Nombre</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Nombre</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
         <MudTextField @bind-Value="addName" Placeholder="Agregar Nombre"
                       Variant="Variant.Outlined" 
-                      Style="background-color: #0F172A; color: #B0B6B6;"
-                      Class="flex-grow-1"/>
+                      Class="flex-grow-1 dark-field"/>
     </MudStack>
 
     <!-- Campo Descripción -->
-    <MudText Typo="Typo.h5" Class="mb-1 mx-4" Style="color: #9ca3af;">Descripción</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Descripción</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
-    <MudTextField T="string"
-                  @bind-Value="addDesc"
-                  Placeholder="Agregar Descripción"
-                  Variant="Variant.Outlined"
-                  TextFieldType="MudBlazor.TextFieldType.Multiline"
-                  Lines="3"  
-                  Style="background-color: #0F172A; color: #B0B6B6; max-height: 120px; overflow-y: auto;"
-                  Class="flex-grow-1"/>
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="Agregar Descripción"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"  
+                      Class="flex-grow-1 dark-field"
+                      Style="max-height: 120px; overflow-y: auto;"/>
     </MudStack>
-
 
     <!-- Tres selects en la misma línea: Fuente, Sensor y Dispositivo -->
     <MudStack Row Spacing="2" Class="mb-8 mx-4">
-       
+
         <!-- Fuente -->
         <div style="width: 33%;">
             <MudSelect T="string" 
-                    @bind-Value="selectedFuente" 
-                    Variant="Variant.Outlined" 
-                    Clearable 
-                    FullWidth="true"
-                    Label="Seleccionar Fuente"
-                    Style="background-color: #0F172A; color: #B0B6B6;">
+                       @bind-Value="selectedFuente" 
+                       Variant="Variant.Outlined" 
+                       Clearable 
+                       FullWidth="true"
+                       Label="Seleccionar Fuente"
+                       Class="dark-field">
                 @foreach (var fuente in fuentesModulo1)
                 {
                     <MudSelectItem Value="@fuente">@fuente</MudSelectItem>
@@ -67,12 +110,12 @@
         <!-- Sensor -->
         <div style="width: 33%;">
             <MudSelect T="string" 
-                    @bind-Value="selectedSensor" 
-                    Variant="Variant.Outlined" 
-                    Clearable 
-                    FullWidth="true"
-                    Label="Seleccionar Sensor"
-                    Style="background-color: #0F172A; color: #B0B6B6;">
+                       @bind-Value="selectedSensor" 
+                       Variant="Variant.Outlined" 
+                       Clearable 
+                       FullWidth="true"
+                       Label="Seleccionar Sensor"
+                       Class="dark-field">
                 @foreach (var sensor in sensores)
                 {
                     <MudSelectItem Value="@sensor">@sensor</MudSelectItem>
@@ -83,12 +126,12 @@
         <!-- Dispositivo -->
         <div style="width: 33%;">
             <MudSelect T="string" 
-                    @bind-Value="selectedDispositivo" 
-                    Variant="Variant.Outlined" 
-                    Clearable 
-                    FullWidth="true"
-                    Label="Seleccionar Dispositivo"
-                    Style="background-color: #0F172A; color: #B0B6B6;">
+                       @bind-Value="selectedDispositivo" 
+                       Variant="Variant.Outlined" 
+                       Clearable 
+                       FullWidth="true"
+                       Label="Seleccionar Dispositivo"
+                       Class="dark-field">
                 @foreach (var dispositivo in dispositivos)
                 {
                     <MudSelectItem Value="@dispositivo">@dispositivo</MudSelectItem>
@@ -98,13 +141,17 @@
     </MudStack>
 
     <div class="mb-8 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary">Guardar Dataset</MudButton>
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary">
+            Guardar Dataset
+        </MudButton>
     </div>
 }
 
+
+
+
 @code {
-    // Primer select: tipos de dataset
-    private string selectedTipo = string.Empty;
+    private string selectedTipo = "Inside Monitor";
     private List<string> tiposDataset = new()
     {
         "Inside Monitor",
@@ -112,7 +159,6 @@
         "Modulo 3"
     };
 
-    // Segundo select: fuentes para Modulo 1
     private string selectedFuente = string.Empty;
     private List<string> fuentesModulo1 = new()
     {
@@ -121,7 +167,6 @@
         "Fuente 3"
     };
 
-    // Select de sensores
     private string selectedSensor = string.Empty;
     private List<string> sensores = new()
     {
@@ -130,7 +175,6 @@
         "Sensor 3"
     };
 
-    // Select de dispositivos
     private string selectedDispositivo = string.Empty;
     private List<string> dispositivos = new()
     {
@@ -139,7 +183,6 @@
         "Dispositivo 3"
     };
 
-    // Campos Nombre y Descripción
     private string addName = string.Empty;
     private string addDesc = string.Empty;
 }
