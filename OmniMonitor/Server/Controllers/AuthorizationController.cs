@@ -11,10 +11,10 @@ namespace OmniMonitor.Server.Controllers
     [Route("api/[controller]")]
     public class AuthorizationController : ControllerBase
     {
-        private readonly IAuthorizationService _authorizationService;
+        private readonly OmniMonitor.Server.Services.IAuthorizationService _authorizationService;
         private readonly ApplicationDbContext _context;
 
-        public AuthorizationController(IAuthorizationService authorizationService, ApplicationDbContext context)
+        public AuthorizationController(OmniMonitor.Server.Services.IAuthorizationService authorizationService, ApplicationDbContext context)
         {
             _authorizationService = authorizationService;
             _context = context;
@@ -24,7 +24,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los roles disponibles
         /// </summary>
         [HttpGet("roles")]
-        [RequirePermission("Roles", "Read")]
+        [RequirePermission("Ver Usuarios")]
         public async Task<ActionResult<List<Role>>> GetRoles()
         {
             var roles = await _context.Roles.ToListAsync();
@@ -35,7 +35,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los permisos disponibles
         /// </summary>
         [HttpGet("permissions")]
-        [RequirePermission("Permissions", "Read")]
+        [RequirePermission("Ver Usuarios")]
         public async Task<ActionResult<List<Permission>>> GetPermissions()
         {
             var permissions = await _context.Permissions.ToListAsync();
@@ -46,7 +46,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene los roles de un usuario específico
         /// </summary>
         [HttpGet("users/{userId}/roles")]
-        [RequirePermission("Users", "Read")]
+        [RequirePermission("Ver Usuarios")]
         public async Task<ActionResult<List<string>>> GetUserRoles(int userId)
         {
             var roles = await _authorizationService.GetUserRolesAsync(userId);
@@ -57,7 +57,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene los permisos de un usuario específico
         /// </summary>
         [HttpGet("users/{userId}/permissions")]
-        [RequirePermission("Users", "Read")]
+        [RequirePermission("Ver Usuarios")]
         public async Task<ActionResult<List<Permission>>> GetUserPermissions(int userId)
         {
             var permissions = await _authorizationService.GetUserPermissionsAsync(userId);
@@ -79,7 +79,7 @@ namespace OmniMonitor.Server.Controllers
         /// Verifica si un usuario tiene un rol específico
         /// </summary>
         [HttpGet("users/{userId}/has-role")]
-        [RequirePermission("Users", "Read")]
+        [RequirePermission("Ver Usuarios")]
         public async Task<ActionResult<bool>> HasRole(int userId, [FromQuery] string roleName)
         {
             var hasRole = await _authorizationService.HasRoleAsync(userId, roleName);
@@ -90,7 +90,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene los permisos de un rol específico
         /// </summary>
         [HttpGet("roles/{roleName}/permissions")]
-        [RequirePermission("Roles", "Read")]
+        [RequirePermission("Ver Usuarios")]
         public async Task<ActionResult<List<Permission>>> GetRolePermissions(string roleName)
         {
             var permissions = await _authorizationService.GetRolePermissionsAsync(roleName);
