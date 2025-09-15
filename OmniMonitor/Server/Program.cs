@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 //builder.Services.AddSingleton<ISondaApiGetDevicesService, SondaApiGetDevicesService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpClient();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
