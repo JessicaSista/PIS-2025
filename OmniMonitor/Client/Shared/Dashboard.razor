@@ -1,8 +1,9 @@
+<MudBreakpointProvider>
 <MudGrid class="pa-10" Spacing="6" Style="background-color: #0e1421">
     @foreach (var widget in widgets)
     {
         string[] data = widget.Split(",");
-        <DashboardCard width_lg="@int.Parse(data[0])" titulo="@data[1]"></DashboardCard>
+        <DashboardCard titulo="@data[1]"></DashboardCard>
     }
     <MudItem Width="100%">
         <MudPaper Class="d-flex flex-column justify-center align-center mud-width-full pa-10 w-100" Elevation="2" Style="background-color: #010717; cursor: pointer; color: #ffffff">
@@ -16,7 +17,7 @@
         </MudPaper>
     </MudItem>
 </MudGrid>
-
+</MudBreakpointProvider>
 @code {
     [Parameter] public string[] widgets {get; set;} = {};
     string color_back = "#0f1522";
