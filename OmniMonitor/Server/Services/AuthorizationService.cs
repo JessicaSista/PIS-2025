@@ -31,7 +31,7 @@ namespace OmniMonitor.Server.Services
                 .Where(ur => ur.UserId == userId)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => rp.Permission)
-                .Any(p => p.Name == permissionName);
+                .AnyAsync(p => p.Name == permissionName);
 
             return hasPermission;
         }
@@ -44,7 +44,7 @@ namespace OmniMonitor.Server.Services
             var hasRole = await _context.UserRoles
                 .Where(ur => ur.UserId == userId)
                 .Select(ur => ur.Role)
-                .Any(r => r.Name == roleName);
+                .AnyAsync(r => r.Name == roleName);
 
             return hasRole;
         }

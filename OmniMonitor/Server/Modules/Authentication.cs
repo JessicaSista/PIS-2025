@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Shared.Dtos;
 using System;
 using System.Net.Http;
 using System.Security.Authentication;
