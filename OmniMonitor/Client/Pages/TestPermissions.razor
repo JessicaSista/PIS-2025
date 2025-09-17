@@ -9,7 +9,7 @@
     <div class="row">
         <div class="col-12">
             <h2>Prueba del Sistema de Roles y Permisos</h2>
-            
+
             @if (currentUser == null)
             {
                 <div class="alert alert-warning">
@@ -33,7 +33,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="card">
                             <div class="card-header">
@@ -59,7 +59,7 @@
                 <div class="row mt-4">
                     <div class="col-12">
                         <h4>Pruebas de Permisos</h4>
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="card mb-3">
@@ -68,34 +68,38 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission("Ver Usuarios")">
+                                            <button class="btn btn-sm btn-outline-primary me-2"
+                                                    @onclick="@(() => CheckPermission("Ver Usuarios"))">
                                                 Verificar "Ver Usuarios"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Ver Usuarios") ? (permissionResults["Ver Usuarios"] ? "bg-success" : "bg-danger") : "bg-secondary")">
                                                 @(permissionResults.ContainsKey("Ver Usuarios") ? (permissionResults["Ver Usuarios"] ? "SÍ" : "NO") : "?")
                                             </span>
                                         </div>
-                                        
+
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission("Crear Usuarios")">
+                                            <button class="btn btn-sm btn-outline-primary me-2"
+                                                    @onclick="@(() => CheckPermission("Crear Usuarios"))">
                                                 Verificar "Crear Usuarios"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Crear Usuarios") ? (permissionResults["Crear Usuarios"] ? "bg-success" : "bg-danger") : "bg-secondary")">
                                                 @(permissionResults.ContainsKey("Crear Usuarios") ? (permissionResults["Crear Usuarios"] ? "SÍ" : "NO") : "?")
                                             </span>
                                         </div>
-                                        
+
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission("Ver Empleados")">
+                                            <button class="btn btn-sm btn-outline-primary me-2"
+                                                    @onclick="@(() => CheckPermission("Ver Empleados"))">
                                                 Verificar "Ver Empleados"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Ver Empleados") ? (permissionResults["Ver Empleados"] ? "bg-success" : "bg-danger") : "bg-secondary")">
                                                 @(permissionResults.ContainsKey("Ver Empleados") ? (permissionResults["Ver Empleados"] ? "SÍ" : "NO") : "?")
                                             </span>
                                         </div>
-                                        
+
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => CheckPermission("Gestionar Empleados")">
+                                            <button class="btn btn-sm btn-outline-primary me-2"
+                                                    @onclick="@(() => CheckPermission("Gestionar Empleados"))">
                                                 Verificar "Gestionar Empleados"
                                             </button>
                                             <span class="badge @(permissionResults.ContainsKey("Gestionar Empleados") ? (permissionResults["Gestionar Empleados"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -105,7 +109,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <div class="card mb-3">
                                     <div class="card-header">
@@ -113,16 +117,18 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-info me-2" @onclick="() => CheckRole("Administrador")">
+                                            <button class="btn btn-sm btn-outline-info me-2"
+                                                    @onclick="@(() => CheckRole("Administrador"))">
                                                 Verificar "Administrador"
                                             </button>
                                             <span class="badge @(roleResults.ContainsKey("Administrador") ? (roleResults["Administrador"] ? "bg-success" : "bg-danger") : "bg-secondary")">
                                                 @(roleResults.ContainsKey("Administrador") ? (roleResults["Administrador"] ? "SÍ" : "NO") : "?")
                                             </span>
                                         </div>
-                                        
+
                                         <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-info me-2" @onclick="() => CheckRole("Visitante")">
+                                            <button class="btn btn-sm btn-outline-info me-2"
+                                                    @onclick="@(() => CheckRole("Visitante"))">
                                                 Verificar "Visitante"
                                             </button>
                                             <span class="badge @(roleResults.ContainsKey("Visitante") ? (roleResults["Visitante"] ? "bg-success" : "bg-danger") : "bg-secondary")">
@@ -147,7 +153,7 @@
                                                 @(endpointResults.ContainsKey("employees") ? (endpointResults["employees"] ? "ÉXITO" : "FALLO") : "?")
                                             </span>
                                         </div>
-                                        
+
                                         <div class="mb-2">
                                             <button class="btn btn-sm btn-outline-warning me-2" @onclick="TestAuthorizationEndpoint">
                                                 Probar GET /Authorization/roles (requiere "Ver Usuarios")
@@ -192,12 +198,9 @@
     {
         try
         {
-            // Simular carga de datos del usuario (en una implementación real, esto vendría del localStorage o un servicio)
-            // Por ahora, vamos a usar datos de prueba
             currentUser = new OmniMonitor.Shared.Dtos.User { Id = 1, Username = "usuario_prueba" };
             userRoles = new List<string> { "Administrador" };
-            
-            // Cargar permisos del usuario
+
             var response = await Http.GetAsync($"api/authorization/users/{currentUser.Id}/permissions");
             if (response.IsSuccessStatusCode)
             {
@@ -232,7 +235,7 @@
             Console.WriteLine($"Error verificando permiso {permissionName}: {ex.Message}");
             permissionResults[permissionName] = false;
         }
-        
+
         StateHasChanged();
     }
 
@@ -258,7 +261,7 @@
             Console.WriteLine($"Error verificando rol {roleName}: {ex.Message}");
             roleResults[roleName] = false;
         }
-        
+
         StateHasChanged();
     }
 
@@ -274,7 +277,7 @@
             Console.WriteLine($"Error probando endpoint de empleados: {ex.Message}");
             endpointResults["employees"] = false;
         }
-        
+
         StateHasChanged();
     }
 
@@ -290,7 +293,7 @@
             Console.WriteLine($"Error probando endpoint de autorización: {ex.Message}");
             endpointResults["authorization"] = false;
         }
-        
+
         StateHasChanged();
     }
 

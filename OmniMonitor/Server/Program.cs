@@ -45,7 +45,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.WriteIndented = true;
+    });
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 //builder.Services.AddSingleton<ISondaApiGetDevicesService, SondaApiGetDevicesService>();

@@ -38,6 +38,7 @@ namespace OmniMonitor.Server.Controllers
                 if (result.Success)
                 {
                     _logger.LogInformation($"Login exitoso para usuario: {loginRequest.Username}");
+                    
                     return Ok(result);
                 }
                 else
