@@ -23,6 +23,9 @@ namespace OmniMonitor.Server.Context
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
 
+        // Entidades del sistema de datasets
+        public DbSet<Dataset> Datasets { get; set; }
+
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
@@ -46,8 +49,63 @@ namespace OmniMonitor.Server.Context
             // Configurar relaciones del sistema de roles y permisos
             ConfigureRolePermissionRelationships(builder);
             
+            // Configurar entidad Dataset
+            ConfigureDatasetEntity(builder);
+            
             // Seed default data
             Seed(builder);
+        }
+
+        /// <summary>
+        /// Configura la entidad Dataset
+        /// </summary>
+        private void ConfigureDatasetEntity(ModelBuilder builder)
+        {
+            builder.Entity<Dataset>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                // Configurar propiedades requeridas
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                
+                entity.Property(e => e.Description)
+                    .HasMaxLength(500);
+                
+                entity.Property(e => e.Module)
+                    .IsRequired()
+                    .HasMaxLength(50);
+                
+                entity.Property(e => e.UserId)
+                    .IsRequired();
+                
+                // Configurar relación con User
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(d => d.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                // Configurar índices únicos
+                entity.HasIndex(e => new { e.Name, e.Module, e.UserId, e.TenantId })
+                    .IsUnique()
+                    .HasDatabaseName("IX_Dataset_Name_Module_User_Tenant");
+                
+                // Configurar propiedades JSON para listas
+                entity.Property(e => e.SensorIds)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList()
+                    );
+                
+                entity.Property(e => e.DeviceIds)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToList()
+                    );
+                
+                
+            });
         }
 
         /// <summary>
@@ -132,7 +190,13 @@ namespace OmniMonitor.Server.Context
                 
                 // Permisos de items
                 new Permission { Id = 9, Name = "Ver Items", Description = "Permite ver la lista de items"},
-                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"}
+                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"},
+                
+                // Permisos de datasets
+                new Permission { Id = 11, Name = "Ver Datasets", Description = "Permite ver la lista de datasets"},
+                new Permission { Id = 12, Name = "Crear Datasets", Description = "Permite crear nuevos datasets"},
+                new Permission { Id = 13, Name = "Editar Datasets", Description = "Permite editar datasets existentes"},
+                new Permission { Id = 14, Name = "Eliminar Datasets", Description = "Permite eliminar datasets"}
             );
 
             // Asignar permisos a roles
@@ -148,12 +212,17 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 8, RoleId = 1, PermissionId = 8 },
                 new RolePermission { Id = 9, RoleId = 1, PermissionId = 9 },
                 new RolePermission { Id = 10, RoleId = 1, PermissionId = 10 },
+                new RolePermission { Id = 15, RoleId = 1, PermissionId = 11 },
+                new RolePermission { Id = 16, RoleId = 1, PermissionId = 12 },
+                new RolePermission { Id = 17, RoleId = 1, PermissionId = 13 },
+                new RolePermission { Id = 18, RoleId = 1, PermissionId = 14 },
                 
                 // Visitante solo tiene permisos de lectura
                 new RolePermission { Id = 11, RoleId = 2, PermissionId = 1 },
                 new RolePermission { Id = 12, RoleId = 2, PermissionId = 5 },
                 new RolePermission { Id = 13, RoleId = 2, PermissionId = 7 },
-                new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 }
+                new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 },
+                new RolePermission { Id = 19, RoleId = 2, PermissionId = 11 }
             );
 
             // Usuarios de prueba
@@ -166,6 +235,34 @@ namespace OmniMonitor.Server.Context
             builder.Entity<UserRole>().HasData(
                 new UserRole { Id = 1, UserId = 1, RoleId = 1 }, // admin -> Administrador
                 new UserRole { Id = 2, UserId = 2, RoleId = 2 }  // visitante -> Visitante
+            );
+
+            // Datos de datasets de prueba
+            builder.Entity<Dataset>().HasData(
+                new Dataset 
+                { 
+                    Id = 1, 
+                    Name = "Dataset de Temperatura", 
+                    Description = "Datos de sensores de temperatura de la franja este",
+                    Module = "Insight Monitor",
+                    SourceId = 1,
+                    SensorIds = new List<string> { "Temperatura" },
+                    DeviceIds = new List<int> { 1, 2 },
+                    UserId = 1, // Creado por admin
+                    TenantId = 1
+                },
+                new Dataset 
+                { 
+                    Id = 2, 
+                    Name = "Dataset de Humedad", 
+                    Description = "Datos de sensores de humedad del sector norte",
+                    Module = "Insight Monitor",
+                    DeviceGroupId = 1,
+                    SensorIds = new List<string> { "Humedad" },
+                    DeviceIds = new List<int> { 1 },
+                    UserId = 1, // Creado por admin
+                    TenantId = 1
+                }
             );
         }
     }
