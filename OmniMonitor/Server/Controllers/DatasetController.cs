@@ -87,13 +87,24 @@ public class DatasetController : ControllerBase
             // Obtener dispositivos (primera página)
             var devices = await _sondaApiService.GetAllDevicesByPage(1, "admin", "admin") ?? new List<Device>();
 
-            // Obtener sensores (simulados por ahora)
-            var sensors = new List<Sensor>
+            // Extraer sensores de las sources (vienen incluidos en la respuesta de sources)
+            var allSensors = new List<Sensor>();
+            if (sources != null)
             {
-                new Sensor { Name = "Temperatura", DisplayName = "Sensor de Temperatura", Type = "Temperature" },
-                new Sensor { Name = "Humedad", DisplayName = "Sensor de Humedad", Type = "Humidity" },
-                new Sensor { Name = "CO2", DisplayName = "Sensor de CO2", Type = "CO2" }
-            };
+                foreach (var source in sources)
+                {
+                    if (source.Sensors != null)
+                    {
+                        allSensors.AddRange(source.Sensors);
+                    }
+                }
+            }
+            
+            // Eliminar sensores duplicados basándose en el nombre
+            var uniqueSensors = allSensors
+                .GroupBy(s => s.Name)
+                .Select(g => g.First())
+                .ToList();
 
             return Ok(new DatasetOptionsResponse
             {
@@ -104,7 +115,7 @@ public class DatasetController : ControllerBase
                     Modules = modules,
                     Sources = sources,
                     DeviceGroups = deviceGroups,
-                    Sensors = sensors,
+                    Sensors = uniqueSensors,
                     Devices = devices
                 }
             });
@@ -262,14 +273,29 @@ public class DatasetController : ControllerBase
             var validSourceIds = new List<int>();
             var validDeviceGroupIds = new List<int>();
 
-            // Simular validación de sensores (en el futuro esto vendrá de una API externa)
+            // Validar sensores usando los sensores de las sources
             if (request.SensorIds.Any())
             {
-                var validSensors = new List<string> { "Temperatura", "Humedad", "CO2", "Potencia", "NivelDeBrillo", "NivelDeRuido", "HumedadDelSuelo", "TemperaturaDelSuelo" };
+                // Obtener todos los sensores de las sources
+                var allSources = await _sondaApiService.GetAllSources("admin", "admin");
+                var allSensors = new List<Sensor>();
+                
+                if (allSources != null)
+                {
+                    foreach (var source in allSources)
+                    {
+                        if (source.Sensors != null)
+                        {
+                            allSensors.AddRange(source.Sensors);
+                        }
+                    }
+                }
+                
+                var validSensorNames = allSensors.Select(s => s.Name).ToList();
                 
                 foreach (var sensorId in request.SensorIds)
                 {
-                    if (validSensors.Contains(sensorId))
+                    if (validSensorNames.Contains(sensorId))
                     {
                         validSensorIds.Add(sensorId);
                     }
