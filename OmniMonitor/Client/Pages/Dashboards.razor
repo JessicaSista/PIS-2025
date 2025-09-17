@@ -1,0 +1,18 @@
+@page "/dashboards"
+<Dashboard widgets=@widgets></Dashboard>
+@code {
+    (bool, string)[] widgets = new (bool, string)[] {
+        (true, "Data1,2999,false"),
+        (true,"Data2,2343.00,false"),
+        (true,"Data3,234342.99,true"),
+        (true,"Data4,23432.99,false"),
+        (false, "Sensor de Proximidad"),
+        (false, "Dispositivo de Monitoreo"),
+        (false, "Tarjeta de Expansión"),
+        (false, "Módulo Wi-Fi"),
+        (false, "Sensor de Flujo de Agua"),
+        (false, "Medidor de Voltaje"),
+        (false, "Batería de Litio Recargable"),
+        (false, "Cargador de Baterías")
+    };
+}
