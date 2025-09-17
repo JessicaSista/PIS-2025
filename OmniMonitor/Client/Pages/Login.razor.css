@@ -1,0 +1,37 @@
+﻿/* Estilo del formulario principal */
+/*.login-paper {
+    background-color: blue;!important*/ /* Color de fondo del contenedor */
+    /*color: white;*/ /* Color de texto predeterminado para el contenedor */
+/*}*/
+
+/* Color del texto de los labels de los inputs */
+/*.mud-input-control .mud-input-label {
+    color: white !important;*/ /* Asegura que las etiquetas "Email" y "Contraseña" sean blancas */
+/*}*/
+
+/* Color de los textos escritos en los inputs */
+/*.mud-input-control.mud-input-control-outlined .mud-input-input {
+    color: white !important;
+}*/
+
+/* Color del texto del subtítulo "Accede a tu cuenta de OmniMonitor" */
+/*.mud-text-body2 {
+    color: #a0a0a0 !important;*/ /* Un gris claro para el subtítulo */
+/*}*/
+
+/* Color de los placeholders de los inputs (el texto que aparece cuando están vacíos) */
+/*.mud-input-control.mud-input-control-outlined .mud-input-slot::before {
+    color: #a0a0a0 !important;
+}*/
+
+/* Color del enlace "¿Olvidaste tu contraseña?" */
+/*.mud-link.mud-link-base {
+    color: #a0a0a0 !important;
+}
+
+.login-center-container {
+    display: flex;
+    justify-content: center;*/ /* Centrado horizontal */
+    /*align-items: center;*/ /* Centrado vertical */
+    /*min-height: 100vh;*/ /* Asegura que el contenedor ocupe la altura total de la vista */
+/*}*/
