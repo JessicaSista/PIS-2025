@@ -1,7 +1,9 @@
 @page "/crearDataset"
 @using OmniMonitor.Shared.Dtos
-@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 @using MudBlazor
+@inject ISnackbar Snackbar
 
 <PageTitle>Crear Dataset</PageTitle>
 
@@ -26,6 +28,7 @@
         }
     </MudSelect>
 </MudStack>
+
 <style>
 /* Select y TextFields oscuros */
 .dark-field .mud-input-root {
@@ -63,6 +66,11 @@
 .dark-field-popover .mud-list-item {
     color: #E5EAEB !important;
 }
+
+.dark-field .mud-input > textarea.mud-input-root-outlined {
+    margin-top: 0 !important;
+    padding-top: 9px !important;
+}
 </style>
 
 @if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Inside Monitor")
@@ -79,13 +87,13 @@
     <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Descripción</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-8 mx-4">
         <MudTextField T="string"
-                      @bind-Value="addDesc"
-                      Placeholder="Agregar Descripción"
-                      Variant="Variant.Outlined"
-                      TextFieldType="MudBlazor.TextFieldType.Multiline"
-                      Lines="3"  
-                      Class="flex-grow-1 dark-field"
-                      Style="max-height: 120px; overflow-y: auto;"/>
+            @bind-Value="addDesc"
+            Placeholder="Agregar Descripción"
+            Variant="Variant.Outlined"
+            TextFieldType="MudBlazor.TextFieldType.Multiline"
+            Lines="3"
+            Class="flex-grow-1 dark-field mt-0"
+            MaxLength="200" />
     </MudStack>
 
     <!-- Tres selects en la misma línea: Fuente, Sensor y Dispositivo -->
@@ -141,48 +149,83 @@
     </MudStack>
 
     <div class="mb-8 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary">
+        <MudButton OnClick="GuardarDataset" Variant="Variant.Filled" Color="MudBlazor.Color.Primary">
             Guardar Dataset
         </MudButton>
     </div>
 }
 
-
-
-
 @code {
     private string selectedTipo = "Inside Monitor";
-    private List<string> tiposDataset = new()
-    {
-        "Inside Monitor",
-        "Modulo 2",
-        "Modulo 3"
-    };
+    private List<string> tiposDataset = new() { "Inside Monitor", "Modulo 2", "Modulo 3" };
 
     private string selectedFuente = string.Empty;
-    private List<string> fuentesModulo1 = new()
-    {
-        "Fuente 1",
-        "Fuente 2",
-        "Fuente 3"
-    };
+    private List<string> fuentesModulo1 = new() { "Fuente 1", "Fuente 2", "Fuente 3" };
 
     private string selectedSensor = string.Empty;
-    private List<string> sensores = new()
-    {
-        "Sensor 1",
-        "Sensor 2",
-        "Sensor 3"
-    };
+    private List<string> sensores = new() { "Sensor 1", "Sensor 2", "Sensor 3" };
 
     private string selectedDispositivo = string.Empty;
-    private List<string> dispositivos = new()
-    {
-        "Dispositivo 1",
-        "Dispositivo 2",
-        "Dispositivo 3"
-    };
+    private List<string> dispositivos = new() { "Dispositivo 1", "Dispositivo 2", "Dispositivo 3" };
 
     private string addName = string.Empty;
     private string addDesc = string.Empty;
+
+    private async Task GuardarDataset()
+    {
+        try
+        {
+            var nuevo = new DatasetDto
+            {
+                Id = (int)DateTimeOffset.Now.ToUnixTimeSeconds(),
+                Nombre = addName,
+                Descripcion = addDesc,
+                FechaCreacion = DateTime.Now
+            };
+
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", "datasets");
+            var lista = string.IsNullOrEmpty(json)
+                ? new List<DatasetDto>()
+                : System.Text.Json.JsonSerializer.Deserialize<List<DatasetDto>>(json)!;
+
+            lista.Add(nuevo);
+
+            var nuevoJson = System.Text.Json.JsonSerializer.Serialize(lista);
+            await JS.InvokeVoidAsync("localStorage.setItem", "datasets", nuevoJson);
+
+            // Mostrar snackbar de éxito con solo cruz
+            ShowSuccess($"Dataset '{nuevo.Nombre}' creado exitosamente");
+
+            // Navegar luego del snackbar (opcional)
+            Nav.NavigateTo("/datasets");
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo crear el dataset: {ex.Message}");
+        }
+    }
+
+    private void ShowSuccess(string mensaje)
+    {
+        Snackbar.Add(mensaje, Severity.Success, config =>
+        {
+            config.SnackbarVariant = Variant.Filled;
+            config.ShowCloseIcon = true;       // solo la cruz
+            config.RequireInteraction = false;  // se cierra automáticamente
+            config.VisibleStateDuration = 2500; // ms
+            config.CloseAfterNavigation = false;
+        });
+    }
+
+    private void ShowError(string mensaje)
+    {
+        Snackbar.Add(mensaje, Severity.Error, config =>
+        {
+            config.SnackbarVariant = Variant.Filled;
+            config.ShowCloseIcon = true;
+            config.RequireInteraction = false;
+            config.VisibleStateDuration = 4000; // ms
+            config.CloseAfterNavigation = false;
+        });
+    }
 }

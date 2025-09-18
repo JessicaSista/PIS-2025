@@ -3,6 +3,9 @@
 @inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
 
 <PageTitle>Datasets</PageTitle>
 
@@ -17,16 +20,18 @@
 </MudStack>
 
 <MudContainer Fixed="true" Class="pl-4 pr-6">
-    <MudStack Spacing="3">
+    <MudGrid GutterSize="3">
         @foreach (var dataset in datasets)
         {
-            <DatasetCardComponent 
-                Dataset="dataset"
-                Description="@GetDatasetDescription(dataset.Id)"
-                RecordCount="@GetRecordCount(dataset.Id)"
-                OnClick="@(() => VerDetalle(dataset.Id))" />
+            <MudItem xs="12" sm="6" md="4">
+                <DatasetCardComponent 
+                    Dataset="dataset" 
+                    Description="@dataset.Descripcion"
+                    RecordCount="@dataset.RecordCount.ToString()" 
+                    OnClick="@(() => VerDetalle(dataset.Id))" />
+            </MudItem>
         }
-    </MudStack>
+    </MudGrid>
 </MudContainer>
 
 <MudButton 
@@ -53,20 +58,49 @@
 }
 </style>
 
-
 @code {
-
     private List<DatasetDto> datasets = new();
     private string searchText = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
+        // Cargar datasets de ejemplo
         datasets = new List<DatasetDto>
         {
             new DatasetDto { Id = 1, Nombre = "Dataset sensores de temperatura Montevideo", FechaCreacion = DateTime.Now.AddDays(-2) },
             new DatasetDto { Id = 2, Nombre = "Dataset consumo de energía", FechaCreacion = DateTime.Now.AddDays(-5) },
             new DatasetDto { Id = 3, Nombre = "Dataset Emisiones CO₂", FechaCreacion = DateTime.Now.AddDays(-10) },
         };
+
+        // Cargar datasets del usuario desde localStorage
+        var json = await JS.InvokeAsync<string>("localStorage.getItem", "datasets");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var locales = System.Text.Json.JsonSerializer.Deserialize<List<DatasetDto>>(json);
+            if (locales != null)
+                datasets.AddRange(locales);
+        }
+
+        // Mostrar snackbar si viene mensaje por query string (parseo manual)
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var q in query)
+            {
+                var kv = q.Split('=', 2);
+                if (kv.Length == 2 && kv[0] == "snackbar")
+                {
+                    var mensaje = Uri.UnescapeDataString(kv[1]);
+                    Snackbar.Add(mensaje, Severity.Success, config =>
+                    {
+                        config.SnackbarVariant = Variant.Filled;
+                        config.Action = "OK";
+                        config.ActionColor = MudBlazor.Color.Primary;
+                    });
+                }
+            }
+        }
     }
 
     private void VerDetalle(int id) { }
@@ -94,4 +128,12 @@
         3 => "12.300",
         _ => "0"
     };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (datasets.Count > 0)
+        {
+            await JS.InvokeVoidAsync("equalizeCardHeights");
+        }
+    }
 }

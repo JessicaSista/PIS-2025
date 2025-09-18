@@ -34,5 +34,24 @@
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>
+<script>
+    window.equalizeCardHeights = () => {
+        const cards = document.querySelectorAll('.dataset-card');
+        let max = 0;
+
+        // reset heights first
+        cards.forEach(c => c.style.height = 'auto');
+
+        cards.forEach(c => {
+            if (c.offsetHeight > max) max = c.offsetHeight;
+        });
+
+        cards.forEach(c => c.style.height = max + 'px');
+    };
+
+    window.addEventListener('resize', () => {
+        window.equalizeCardHeights();
+    });
+</script>
 
 </html>
