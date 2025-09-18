@@ -6,6 +6,18 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+
+<!--<MudLayout Style="background: linear-gradient(to bottom, #0F1522, #20262F); min-height: 100vh;">
+    <MudStack Row Style="min-height: 100vh;">
+        <NavMenu />
+        <main>
+            @Body
+        </main>
+    </MudStack>
+</MudLayout> -->
+
+
+
 <div style="@(_isDarkMode ? _darkModeVars : _lightModeVars)">
     <MudLayout>
         <CascadingValue Value="_drawerOpen">
@@ -96,3 +108,4 @@
         _isDarkMode = !_isDarkMode;
     }
 }
+
