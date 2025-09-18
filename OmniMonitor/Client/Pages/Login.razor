@@ -16,12 +16,15 @@
 
             <MudForm Model="@loginRequest" @ref="@form" @bind-IsValid="@success" @bind-Errors="@errors" Class="d-flex flex-column" Style="width:100%;">
                 <MudTextField T="string" Label="@Localizer["UsernameLabel"]"
+
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Username"
                               For="@(() => loginRequest.Username)"
                               Class="mb-4" />
 
+
                 <MudTextField T="string" Label="@Localizer["PasswordLabel"]"
+
                               InputType="@(showPassword ? InputType.Text : InputType.Password)"
                               Adornment="Adornment.End"
                               AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
@@ -37,7 +40,9 @@
                            Class="mt-2"
                            StartIcon="@Icons.Material.Filled.Login"
                            OnClick="@HandleLogin">
+
                     @Localizer["LoginButton"]
+
                 </MudButton>
             </MudForm>
 
@@ -72,6 +77,7 @@
             else
             {
                 Snackbar.Add(@Localizer["ErrorMessage"], Severity.Error);
+
             }
         }
     }

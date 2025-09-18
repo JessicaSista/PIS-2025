@@ -1,18 +1,44 @@
-﻿@using MudBlazor
+@using MudBlazor
 
-<MudPaper Width="250px" Class="py-3" Elevation="0">
-    <MudNavMenu>
-        <MudText Typo="Typo.h6" Class="px-4">Omni Monitor</MudText>
-        <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Sonda</MudText>
-        <MudDivider Class="my-2"/>
-        <MudNavLink Href="/">Home</MudNavLink>
-        <MudNavLink Href="/counter">Counter</MudNavLink>
-        <MudNavLink Href="/fetchdata">Fetch data</MudNavLink>
-        <MudNavLink Href="/employees">Employees page</MudNavLink>
-        <MudNavLink Href="/items">Items</MudNavLink>
-        <MudNavLink Href="/items-add">Add Item</MudNavLink>
-        <MudNavLink Href="/add-sensor-data">Add Sensor Data</MudNavLink>
-        <MudNavLink Href="/sensor-dashboard">ApexChart Example</MudNavLink>
-        <MudNavLink Href="/sonda-test">Ejemplo API</MudNavLink>
-    </MudNavMenu>
-</MudPaper>
+<div Class="navmenu-container">
+    <MudPaper Width="250px" Class="py-3" Elevation="0">
+        
+        <MudNavMenu>
+    
+        @if (_drawerOpen)
+        {
+            <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Principal</MudText>
+        }        
+        <MudNavLink Href="/dashboards" Icon=@Icons.Material.Filled.Home>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Dashboards</span>
+            }
+        </MudNavLink>
+        <MudNavLink Href="/datasets" Icon="@Icons.Material.Filled.Dataset">
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Datasets</span>
+            }
+        </MudNavLink>
+        <MudNavLink Href="/visualizaciones" Icon=@Icons.Material.Filled.InsertChart>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Visualizaciones</span>
+            }
+        </MudNavLink>
+        <MudNavLink Href="/dashboards" Icon=@Icons.Material.Filled.Article>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Reportes</span>
+            }
+        </MudNavLink>
+              
+        
+        </MudNavMenu>
+    </MudPaper>
+</div>
+
+@code {
+    [CascadingParameter] private bool _drawerOpen { get; set; } 
+}

@@ -1,0 +1,55 @@
+@using MudBlazor
+@inject NavigationManager Navigation
+
+<div class="appbar-container">
+    <MudAppBar Elevation="3">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="ToggleDrawer" />
+        <MudNavLink Href="/dashboard" Class="logo-link">
+            <div class="logo-container">
+                <MudImage Src="LogoSonda.jpg" Alt="LogoS" Style="width:40px; height:40px;" Class="rounded-lg logo-image" />
+                <MudText Typo="Typo.h6" Class="logo-text">OmniMonitor</MudText>
+            </div>
+        </MudNavLink>
+
+        <MudSpacer />
+        
+        <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                        OnClick="ToggleTheme" 
+                        Title="@($"Cambiar a modo {(IsDarkMode ? "claro" : "oscuro")}")" />
+        
+        <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowDropDown" Class="language-selector">
+                    ES
+                </MudButton>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem>
+                    <MudText>Español</MudText>
+                </MudMenuItem>
+                <MudMenuItem>
+                    <MudText>English</MudText>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
+
+        <MudMenu>
+            <ActivatorContent>
+                <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" />
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem OnClick="@(() => Navigation.NavigateTo("/login"))">
+                    <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
+                    <span>Cerrar Sesion</span>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
+    </MudAppBar>
+</div>
+
+@code {
+    [Parameter] public EventCallback ToggleDrawer { get; set; }
+    [Parameter] public bool IsDarkMode { get; set; }
+    [Parameter] public EventCallback ToggleTheme { get; set; }    
+    private string searchText = "";
+}
