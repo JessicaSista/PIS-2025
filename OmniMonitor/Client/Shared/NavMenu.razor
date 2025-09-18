@@ -9,10 +9,10 @@
         {
             <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Principal</MudText>
         }        
-        <MudNavLink Href="/dashboard" Icon=@Icons.Material.Filled.Home>
+        <MudNavLink Href="/dashboards" Icon=@Icons.Material.Filled.Home>
             @if (_drawerOpen)
             {
-                <span class="ml-2">Dashboard Principal</span>
+                <span class="ml-2">Dashboards</span>
             }
         </MudNavLink>
         <MudNavLink Href="/datasets" Icon="@Icons.Material.Filled.Dataset">
@@ -27,31 +27,14 @@
                 <span class="ml-2">Visualizaciones</span>
             }
         </MudNavLink>
-        <MudNavLink Href="/dashboards" Icon=@Icons.Material.Filled.Palette>
+        <MudNavLink Href="/dashboards" Icon=@Icons.Material.Filled.Article>
             @if (_drawerOpen)
-            {
-                <span class="ml-2">Dashboards</span>
-            }
-        </MudNavLink>
-              
-        <MudNavLink Style="margin-top:30px;"Href="#" Icon="@Icons.Material.Filled.Share">
-            @if (_drawerOpen)
-            {
-                <span class="ml-2">Compartir</span>
-            }
-        </MudNavLink>
-        <MudNavLink Href="#" Icon=@Icons.Material.Filled.Download>
-                @if (_drawerOpen)
-            {
-                <span class="ml-2">Exportar</span>
-            }
-        </MudNavLink>
-        <MudNavLink Href="#" Icon=@Icons.Material.Filled.Description>
-                @if (_drawerOpen)
             {
                 <span class="ml-2">Reportes</span>
             }
         </MudNavLink>
+              
+        
         </MudNavMenu>
     </MudPaper>
 </div>

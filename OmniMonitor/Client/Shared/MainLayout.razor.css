@@ -1,15 +1,15 @@
 ::deep .mud-drawer {
-    background-color: var(--mud-palette-drawer-background) !important;
+    background: var(--mud-palette-drawer-background) !important;
     border-right: 1px solid var(--mud-palette-drawer-border, rgba(0, 0, 0, 0.12)) !important;
 }
 
 ::deep .mud-main-content {
     min-height: 100vh;
-    background-color: var(--mud-palette-background) !important;
+    background: var(--mud-palette-background) !important;
 }
 
 ::deep .mud-drawer-content {
-    background-color: var(--mud-palette-drawer-background) !important;
+    background: var(--mud-palette-drawer-background) !important;
     overflow: hidden !important;
     border-right: 1px solid var(--mud-palette-drawer-border, rgba(0, 0, 0, 0.12)) !important;
 }
