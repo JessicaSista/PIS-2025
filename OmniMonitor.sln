@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniMonitor.Client", "OmniM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OmniMonitor.Shared", "OmniMonitor\Shared\OmniMonitor.Shared.csproj", "{CD3C957D-CA23-4331-B5C0-D4436794CB7A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "OmniMonitor\Tests\Tests.csproj", "{EE1B2363-8B89-4416-BE7F-24867B6EB529}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{CD3C957D-CA23-4331-B5C0-D4436794CB7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CD3C957D-CA23-4331-B5C0-D4436794CB7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CD3C957D-CA23-4331-B5C0-D4436794CB7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE1B2363-8B89-4416-BE7F-24867B6EB529}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE1B2363-8B89-4416-BE7F-24867B6EB529}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE1B2363-8B89-4416-BE7F-24867B6EB529}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE1B2363-8B89-4416-BE7F-24867B6EB529}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
