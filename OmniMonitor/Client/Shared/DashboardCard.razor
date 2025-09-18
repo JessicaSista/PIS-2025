@@ -1,0 +1,79 @@
+@inject ISnackbar SnackbarService
+
+<MudItem lg=@width_lg md=@width_md sm="@width_xs" xs=@width_xs>
+    <MudCard Style="@($"background-color: #121a2d; color: #ffffff; height: {card_height}px; border: 1px solid #343a49")" Outlined="true">
+        <MudCardHeader Class="d-flex justify-space-between pt-5 pl-3 pr-2" Style="height: 40px; color: #ccc">
+            <MudStack Row="true" Spacing="0">
+                <MudStack Spacing="0">
+                    <MudIconButton @onclick="resizeUp" Icon="@Icons.Material.Filled.KeyboardArrowUp" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit"/>
+                    <MudIconButton @onclick="resizeDown" Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit"/>
+                </MudStack>
+                <MudIconButton @onclick="resizeLeft" Icon="@Icons.Material.Filled.KeyboardArrowLeft" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Inherit"/>
+                <MudIconButton @onclick="resizeRight" Icon="@Icons.Material.Filled.KeyboardArrowRight" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Inherit"/>
+            </MudStack>
+            <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Inherit"/>
+        </MudCardHeader>
+        <MudText Typo="Typo.h6" Align="MudBlazor.Align.Center" SColor="MudBlazor.Color.Inherit">@titulo</MudText>
+        <MudCardContent>
+
+        </MudCardContent>
+    </MudCard>
+</MudItem>
+
+@code{
+    //Parametro para saber el Breakpoint actual
+    [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
+
+    //Parametros
+    [Parameter] public int card_height {get; set;} = 400;
+    [Parameter] public int width_lg { get; set; } = 3;
+    [Parameter] public int width_md { get; set; } = 6;
+    [Parameter] public int width_xs { get; set; } = 12;
+    [Parameter] public string titulo  { get; set; } = "no deberías ver esto";
+
+    //Funciones para cambiar la disposicion de los widgets en el dashboard
+    private void resizeUp(){
+        if(card_height == 300){
+            SnackbarService.Add("No se puede disminuir más. Recuerde que puede cambiar el tamaño mínimo en ajustes", Severity.Warning);
+            return;
+        }
+        card_height -= 50;
+    }
+    
+    private void resizeDown(){
+        card_height +=50;
+        Console.WriteLine(CurrentBreakpoint);
+    }
+
+    private void resizeLeft(){
+        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && width_xs > 6){
+            width_xs -= 1; 
+            return;
+        }
+        else if((CurrentBreakpoint == Breakpoint.Md) && width_md > 4){
+            width_md -= 1;
+            return;
+        }
+        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && width_lg > 3){
+            width_lg -= 1;
+            return;
+        }
+        SnackbarService.Add("No se puede disminuir más. Recuerde que puede cambiar el tamaño mínimo en ajustes", Severity.Warning);
+    }
+
+    private void resizeRight(){
+        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && width_xs < 12){
+            width_xs += 1; 
+            return;
+        }
+        else if(CurrentBreakpoint == Breakpoint.Md && width_md < 12){
+            width_md += 1;
+            return;
+        }
+        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && width_lg < 12){
+            width_lg += 1;
+            return;
+        }
+        SnackbarService.Add("No se puede aumentar más.", Severity.Warning);
+    }
+}
