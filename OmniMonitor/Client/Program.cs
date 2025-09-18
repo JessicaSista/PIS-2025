@@ -17,7 +17,7 @@ builder.Services.AddMudServices();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 var supportedCultures = new[] { "es", "en" };
-CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("es");
-CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("es");
+CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("en");
+CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("en");
 
 await builder.Build().RunAsync();
