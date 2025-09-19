@@ -12,16 +12,16 @@ namespace OmniMonitor.Server.Context
         // No longer need a private field, the 'configuration' parameter is available throughout the class.
 
         public DbSet<Employee> Employees { get; set; }
-        public DbSet<User> Users { get; set; }
         public DbSet<Item> Items { get; set; }
         // Add this line inside your ApplicationDbContext.cs
         public DbSet<SensorClimax> SensorClimaxs { get; set; }
-        
+
         // Entidades del sistema de roles y permisos
-        public DbSet<Role> Roles { get; set; }
-        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<Permission> Permissions { get; set; }
 
         /// <summary>
         /// Configuration step using the injected IConfiguration.
