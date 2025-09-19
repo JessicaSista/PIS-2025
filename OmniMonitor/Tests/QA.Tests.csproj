@@ -28,4 +28,11 @@
     <ProjectReference Include="..\Client\OmniMonitor.Client.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+	<None Update="..\Server\ApiConfig.json">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <Link>ApiConfig.json</Link>
+	</None>
+   </ItemGroup>
+
 </Project>
