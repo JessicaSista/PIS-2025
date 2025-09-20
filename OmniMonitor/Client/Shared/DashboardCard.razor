@@ -40,87 +40,103 @@
 }
 
 @code{
-    //Parametro para saber el Breakpoint actual
-    [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
+    public partial class DashboardCard
+    {
+        //Parametro para saber el Breakpoint actual
+        [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
 
-    //Parametros
-    [Parameter] public int height {get; set;} = 400;
-    [Parameter] public int width_lg { get; set; } = 3;
-    [Parameter] public int width_md { get; set; } = 6;
-    [Parameter] public int width_xs { get; set; } = 12;
-    [Parameter] public string titulo  { get; set; } = "no deberías ver esto";
+        //Parametros
+        [Parameter] public int height { get; set; } = 400;
+        [Parameter] public int width_lg { get; set; } = 3;
+        [Parameter] public int width_md { get; set; } = 6;
+        [Parameter] public int width_xs { get; set; } = 12;
+        [Parameter] public string titulo { get; set; } = "no deberías ver esto";
 
-    [Parameter] public (string, string, double, double[])[] data { get; set; } = Array.Empty<(string, string, double, double[])>();
-    [Parameter] public int tipo_grafica { get; set; } = 0;
-    [Parameter] public string[] dominio { get; set; } = {};
-    [Parameter] public double multiplicador {get; set;} = 1;
+        [Parameter] public (string, string, double, double[])[] data { get; set; } = Array.Empty<(string, string, double, double[])>();
+        [Parameter] public int tipo_grafica { get; set; } = 0;
+        [Parameter] public string[] dominio { get; set; } = { };
+        [Parameter] public double multiplicador { get; set; } = 1;
 
-    //Parameto temporal para saber si es KPI
-    [Parameter] public bool esKPI {get; set;} = false;
+        //Parameto temporal para saber si es KPI
+        [Parameter] public bool esKPI { get; set; } = false;
 
-    //Estructura de mapping para los tipos de grafica
-    private SeriesType[] tipos_grafica = {SeriesType.Line, SeriesType.Bar, SeriesType.Area};
-
-
-    //Funciones para cambiar la disposicion de los widgets en el dashboard
-    private void resizeUp(){
-        if(height == 300){
-            SnackbarService.Add("No se puede disminuir más. Recuerde que puede cambiar el tamaño mínimo en ajustes", Severity.Warning);
-            return;
-        }
-        height -= 50;
-    }
-    
-    private void resizeDown(){
-        height +=50;
-        Console.WriteLine(CurrentBreakpoint);
-    }
-
-    private void resizeLeft(){
-        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && width_xs > 6){
-            width_xs -= 1; 
-            return;
-        }
-        else if((CurrentBreakpoint == Breakpoint.Md) && width_md > 4){
-            width_md -= 1;
-            return;
-        }
-        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && width_lg > 3){
-            width_lg -= 1;
-            return;
-        }
-        SnackbarService.Add("No se puede disminuir más. Recuerde que puede cambiar el tamaño mínimo en ajustes", Severity.Warning);
-    }
-
-    private void resizeRight(){
-        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && width_xs < 12){
-            width_xs += 1; 
-            return;
-        }
-        else if(CurrentBreakpoint == Breakpoint.Md && width_md < 12){
-            width_md += 1;
-            return;
-        }
-        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && width_lg < 12){
-            width_lg += 1;
-            return;
-        }
-        SnackbarService.Add("No se puede aumentar más.", Severity.Warning);
-    }
+        //Estructura de mapping para los tipos de grafica
+        private SeriesType[] tipos_grafica = { SeriesType.Line, SeriesType.Bar, SeriesType.Area };
 
 
-    //CODIGO PARA LAS GRAFICAS
-    public class DataPoint {
-        public string X { get; set; } = string.Empty;
-        public decimal Y { get; set; }
-    }
-
-    // Método para convertir array de ints a DataPoints
-    private DataPoint[] GetDataPoints(double[] data) {
-        return data.Select((value, index) => new DataPoint
+        //Funciones para cambiar la disposicion de los widgets en el dashboard
+        private void resizeUp()
         {
-            X = index < dominio.Length ? dominio[index] : index.ToString(),
-            Y = (decimal)value
-        }).ToArray();
+            if (height == 300)
+            {
+                SnackbarService.Add("No se puede disminuir más. Recuerde que puede cambiar el tamaño mínimo en ajustes", Severity.Warning);
+                return;
+            }
+            height -= 50;
+        }
+
+        private void resizeDown()
+        {
+            height += 50;
+            Console.WriteLine(CurrentBreakpoint);
+        }
+
+        private void resizeLeft()
+        {
+            if ((CurrentBreakpoint == Breakpoint.Xs || CurrentBreakpoint == Breakpoint.Sm) && width_xs > 6)
+            {
+                width_xs -= 1;
+                return;
+            }
+            else if ((CurrentBreakpoint == Breakpoint.Md) && width_md > 4)
+            {
+                width_md -= 1;
+                return;
+            }
+            else if ((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && width_lg > 3)
+            {
+                width_lg -= 1;
+                return;
+            }
+            SnackbarService.Add("No se puede disminuir más. Recuerde que puede cambiar el tamaño mínimo en ajustes", Severity.Warning);
+        }
+
+        private void resizeRight()
+        {
+            if ((CurrentBreakpoint == Breakpoint.Xs || CurrentBreakpoint == Breakpoint.Sm) && width_xs < 12)
+            {
+                width_xs += 1;
+                return;
+            }
+            else if (CurrentBreakpoint == Breakpoint.Md && width_md < 12)
+            {
+                width_md += 1;
+                return;
+            }
+            else if ((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && width_lg < 12)
+            {
+                width_lg += 1;
+                return;
+            }
+            SnackbarService.Add("No se puede aumentar más.", Severity.Warning);
+        }
+
+
+        //CODIGO PARA LAS GRAFICAS
+        public class DataPoint
+        {
+            public string X { get; set; } = string.Empty;
+            public decimal Y { get; set; }
+        }
+
+        // Método para convertir array de ints a DataPoints
+        private DataPoint[] GetDataPoints(double[] data)
+        {
+            return data.Select((value, index) => new DataPoint
+                {
+                    X = index < dominio.Length ? dominio[index] : index.ToString(),
+                    Y = (decimal)value
+                }).ToArray();
+        }
     }
 }
