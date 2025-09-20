@@ -1,13 +1,18 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
+using System.Text;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 ConfigurationManager configuration = builder.Configuration;
 
+// --- Logging Configuration ---
 builder.Logging.ClearProviders();
 builder.Logging.AddDebug();
 builder.Logging.AddConsole();
@@ -27,10 +32,7 @@ if (OperatingSystem.IsWindows())
 }
 builder.Logging.AddAzureWebAppDiagnostics();
 
-// Add services to the container.
-
-// https://learn.microsoft.com/en-us/ef/
-// https://www.entityframeworktutorial.net/efcore/entity-framework-core.aspx
+// --- Add services to the container ---
 builder.Services.AddDbContext<ApplicationDbContext>();
 
 string corsPolicy = "CORSPolicy";
@@ -45,6 +47,43 @@ builder.Services.AddCors(options =>
     });
 });
 
+// --- JWT AUTHENTICATION SERVICES WITH DEBUGGING ---
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // --- DEBUGGING EVENTS ---
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("--- Token validation SUCCEEDED for user: {User}", context.Principal.Identity.Name);
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError(context.Exception, "--- Token validation FAILED ---");
+                return Task.CompletedTask;
+            }
+        };
+        // --- END OF DEBUGGING EVENTS ---
+    });
+// --- END OF JWT SECTION ---
+
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
@@ -52,37 +91,23 @@ builder.Services.AddControllersWithViews()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 builder.Services.AddRazorPages();
+
 builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
-//builder.Services.AddSingleton<ISondaApiGetDevicesService, SondaApiGetDevicesService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<OmniMonitor.Server.Services.IAuthorizationService, OmniMonitor.Server.Services.AuthorizationService>();
+builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddHttpClient();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "OmniMonitor", Version = builder.Configuration["Version"] });
 });
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
-// Corre automáticamente las migraciones en local, se hace de esta manera para mantener la misma "lógica" que el ambiente remoto
-if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment())
-{
-    using IServiceScope scope = app.Services.CreateScope();
-    ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    //db.Database.Migrate();
-
-    app.UseWebAssemblyDebugging();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-
-// Configure the HTTP request pipeline.
-if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment())
+// --- Configure the HTTP request pipeline ---
+if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
@@ -91,7 +116,6 @@ if (configuration.GetValue<bool>("Development") || app.Environment.IsDevelopment
 else
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -100,16 +124,20 @@ if (configuration.GetValue<bool>("EnableHttpsRedirection"))
     app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
-
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 app.UseRouting();
 app.UseCors(corsPolicy);
 
+// --- ADD AUTHENTICATION MIDDLEWARE (ORDER IS CRITICAL) ---
+app.UseAuthentication();
+app.UseAuthorization();
+// --- END OF MIDDLEWARE SECTION ---
+
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
 
 app.Run();
+

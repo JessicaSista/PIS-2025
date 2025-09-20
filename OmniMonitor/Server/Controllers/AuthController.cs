@@ -77,13 +77,5 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, false);
             }
         }
-
-        [HttpPost("store-user")]
-        public ActionResult StoreUser([FromBody] LoginResponse loginResponse)
-        {
-            // Este endpoint simula el almacenamiento del usuario
-            // En una implementación real, esto se haría en el cliente (localStorage, sessionStorage, etc.)
-            return Ok(new { message = "Usuario almacenado correctamente" });
-        }
     }
 }

@@ -1,7 +1,12 @@
 @page "/login"
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Client.Auth
+@using Blazored.LocalStorage
+@using Microsoft.AspNetCore.Components.Authorization
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Iniciar Sesión</PageTitle>
 
@@ -22,7 +27,7 @@
 
                     <EditForm Model="loginRequest" OnValidSubmit="HandleLogin">
                         <DataAnnotationsValidator />
-                        
+
                         <div class="mb-3">
                             <label for="username" class="form-label">Usuario:</label>
                             <InputText id="username" class="form-control" @bind-Value="loginRequest.Username" />
@@ -64,28 +69,31 @@
         try
         {
             var response = await Http.PostAsJsonAsync("api/auth/login", loginRequest);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                
-                if (loginResponse?.Success == true)
+
+                if (loginResponse?.Success == true && !string.IsNullOrEmpty(loginResponse.Token))
                 {
-                    // Almacenar información del usuario en localStorage
-                    await Http.PostAsJsonAsync("api/auth/store-user", loginResponse);
-                    
-                    // Navegar a la página de prueba
-                    Navigation.NavigateTo("/test-permissions");
+                    // 1. Store the token in the browser's local storage.
+                    await LocalStorage.SetItemAsync("authToken", loginResponse.Token);
+
+                    // 2. Notify the application that the authentication state has changed.
+                    await ((ApiAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(loginResponse.Token);
+
+                    // 3. Navigate to the test page with a forced reload to ensure the new auth state is applied.
+                    // Navigation.NavigateTo("/test-permissions", forceLoad: true);
                 }
                 else
                 {
-                    errorMessage = loginResponse?.Message ?? "Error de autenticación";
+                    errorMessage = loginResponse?.Message ?? "Error de autenticación: Token no recibido.";
                 }
             }
             else
             {
                 var errorResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                errorMessage = errorResponse?.Message ?? "Error de conexión";
+                errorMessage = errorResponse?.Message ?? "Error de conexión o credenciales incorrectas.";
             }
         }
         catch (Exception ex)

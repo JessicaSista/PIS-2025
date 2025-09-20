@@ -1,7 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Logging; // Required for logging
 using OmniMonitor.Server.Services;
+using System.Linq; // Required for seeing all claims
+using System.Security.Claims; // Required for ClaimTypes
+using System.Threading.Tasks;
+using System;
 
 namespace OmniMonitor.Server.Attributes
 {
@@ -20,24 +24,39 @@ namespace OmniMonitor.Server.Attributes
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
-            // Obtener el servicio de autorización
-            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<OmniMonitor.Server.Services.IAuthorizationService>();
+            // --- DEBUGGING CODE ---
+            // Get the logger service to print debug information to the server console
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<RequirePermissionAttribute>>();
+            logger.LogInformation("--- [RequirePermission] Authorization Check Started ---");
+            logger.LogInformation("Required Permission: {Permission}", _permissionName);
 
-            // Obtener el ID del usuario desde el contexto (asumiendo que se almacena en Claims)
-            var userIdClaim = context.HttpContext.User.FindFirst("UserId");
+            // Print all claims for the current user
+            var allClaims = context.HttpContext.User.Claims.Select(c => $"{c.Type}: {c.Value}");
+            logger.LogInformation("User Claims: {Claims}", string.Join(" | ", allClaims));
+            // --- END OF DEBUGGING CODE ---
+
+            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+
+            var userIdClaim = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                context.Result = new UnauthorizedResult();
+                logger.LogWarning("Authorization FAILED: UserId claim not found or invalid. Claim was: {ClaimValue}", userIdClaim?.Value ?? "NULL");
+                context.Result = new UnauthorizedResult(); // User is not authenticated or ID is missing
                 return;
             }
 
-            // Verificar si el usuario tiene el permiso requerido
+            logger.LogInformation("Successfully parsed UserId: {UserId}", userId);
+
             var hasPermission = await authorizationService.HasPermissionAsync(userId, _permissionName);
             if (!hasPermission)
             {
-                context.Result = new ForbidResult();
+                logger.LogWarning("Authorization FAILED: User {UserId} does not have permission '{Permission}'", userId, _permissionName);
+                context.Result = new ForbidResult(); // User is authenticated but not authorized
                 return;
             }
+
+            logger.LogInformation("Authorization SUCCEEDED for User {UserId} with Permission '{Permission}'", userId, _permissionName);
         }
     }
 
@@ -56,24 +75,31 @@ namespace OmniMonitor.Server.Attributes
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
-            // Obtener el servicio de autorización
-            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<OmniMonitor.Server.Services.IAuthorizationService>();
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<RequireRoleAttribute>>();
+            logger.LogInformation("--- [RequireRole] Authorization Check Started ---");
+            logger.LogInformation("Required Role: {Role}", _roleName);
 
-            // Obtener el ID del usuario desde el contexto
-            var userIdClaim = context.HttpContext.User.FindFirst("UserId");
+            var authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+
+            var userIdClaim = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
+                logger.LogWarning("Authorization FAILED: UserId claim not found or invalid.");
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
-            // Verificar si el usuario tiene el rol requerido
             var hasRole = await authorizationService.HasRoleAsync(userId, _roleName);
             if (!hasRole)
             {
+                logger.LogWarning("Authorization FAILED: User {UserId} does not have role '{Role}'", userId, _roleName);
                 context.Result = new ForbidResult();
                 return;
             }
+
+            logger.LogInformation("Authorization SUCCEEDED for User {UserId} with Role '{Role}'", userId, _roleName);
         }
     }
 }
+

@@ -1,7 +1,10 @@
 @page "/test-permissions"
 @using OmniMonitor.Shared.Dtos
+@using System.Security.Claims
 @inject HttpClient Http
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <PageTitle>Prueba de Permisos</PageTitle>
 
@@ -10,198 +13,148 @@
         <div class="col-12">
             <h2>Prueba del Sistema de Roles y Permisos</h2>
 
-            @if (currentUser == null)
-            {
-                <div class="alert alert-warning">
-                    <h4>No hay usuario autenticado</h4>
-                    <p>Por favor, inicia sesión para probar el sistema de permisos.</p>
-                    <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
-                </div>
-            }
-            else
-            {
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Información del Usuario</h5>
-                            </div>
-                            <div class="card-body">
-                                <p><strong>Usuario:</strong> @currentUser.Username</p>
-                                <p><strong>ID:</strong> @currentUser.Id</p>
-                                <p><strong>Roles:</strong> @string.Join(", ", userRoles ?? new List<string>())</p>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Información del Usuario Autenticado</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Usuario:</strong> @context.User.Identity?.Name</p>
+                                    <p><strong>ID:</strong> @(context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value)</p>
+                                    <p><strong>Roles:</strong> @(string.Join(", ", context.User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value)))</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>Permisos del Usuario</h5>
-                            </div>
-                            <div class="card-body">
-                                @if (userPermissions != null && userPermissions.Any())
-                                {
-                                    @foreach (var permission in userPermissions)
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>Permisos del Usuario (desde API)</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (isLoadingPermissions)
                                     {
-                                        <span class="badge bg-success me-1 mb-1">@permission.Name</span>
+                                        <p class="text-muted">Cargando permisos...</p>
                                     }
-                                }
-                                else
-                                {
-                                    <p class="text-muted">Cargando permisos...</p>
-                                }
+                                    else if (userPermissions != null && userPermissions.Any())
+                                    {
+                                        @foreach (var permission in userPermissions)
+                                        {
+                                            <span class="badge bg-success me-1 mb-1">@permission.Name</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <p class="text-danger">No se pudieron cargar los permisos o no tiene ninguno.</p>
+                                    }
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <h4>Pruebas de Permisos</h4>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header">
-                                        <h6>Verificar Permisos Específicos</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2"
-                                                    @onclick="@(() => CheckPermission("Ver Usuarios"))">
-                                                Verificar "Ver Usuarios"
-                                            </button>
-                                            <span class="badge @(permissionResults.ContainsKey("Ver Usuarios") ? (permissionResults["Ver Usuarios"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(permissionResults.ContainsKey("Ver Usuarios") ? (permissionResults["Ver Usuarios"] ? "SÍ" : "NO") : "?")
-                                            </span>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h4>Pruebas de Permisos</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6>Verificar Permisos Específicos</h6>
                                         </div>
-
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2"
-                                                    @onclick="@(() => CheckPermission("Crear Usuarios"))">
-                                                Verificar "Crear Usuarios"
-                                            </button>
-                                            <span class="badge @(permissionResults.ContainsKey("Crear Usuarios") ? (permissionResults["Crear Usuarios"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(permissionResults.ContainsKey("Crear Usuarios") ? (permissionResults["Crear Usuarios"] ? "SÍ" : "NO") : "?")
-                                            </span>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2"
-                                                    @onclick="@(() => CheckPermission("Ver Empleados"))">
-                                                Verificar "Ver Empleados"
-                                            </button>
-                                            <span class="badge @(permissionResults.ContainsKey("Ver Empleados") ? (permissionResults["Ver Empleados"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(permissionResults.ContainsKey("Ver Empleados") ? (permissionResults["Ver Empleados"] ? "SÍ" : "NO") : "?")
-                                            </span>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-primary me-2"
-                                                    @onclick="@(() => CheckPermission("Gestionar Empleados"))">
-                                                Verificar "Gestionar Empleados"
-                                            </button>
-                                            <span class="badge @(permissionResults.ContainsKey("Gestionar Empleados") ? (permissionResults["Gestionar Empleados"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(permissionResults.ContainsKey("Gestionar Empleados") ? (permissionResults["Gestionar Empleados"] ? "SÍ" : "NO") : "?")
-                                            </span>
+                                        <div class="card-body">
+                                            @foreach (var permissionName in permissionsToTest)
+                                            {
+                                                <div class="mb-2">
+                                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="@(() => CheckPermission(permissionName))">
+                                                        Verificar "@permissionName"
+                                                    </button>
+                                                    <span class="badge @(permissionResults.ContainsKey(permissionName) ? (permissionResults[permissionName] ? "bg-success" : "bg-danger") : "bg-secondary")">
+                                                        @(permissionResults.ContainsKey(permissionName) ? (permissionResults[permissionName] ? "SÍ" : "NO") : "?")
+                                                    </span>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="card mb-3">
-                                    <div class="card-header">
-                                        <h6>Verificar Roles</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-info me-2"
-                                                    @onclick="@(() => CheckRole("Administrador"))">
-                                                Verificar "Administrador"
-                                            </button>
-                                            <span class="badge @(roleResults.ContainsKey("Administrador") ? (roleResults["Administrador"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(roleResults.ContainsKey("Administrador") ? (roleResults["Administrador"] ? "SÍ" : "NO") : "?")
-                                            </span>
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header">
+                                            <h6>Verificar Roles</h6>
                                         </div>
-
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-info me-2"
-                                                    @onclick="@(() => CheckRole("Visitante"))">
-                                                Verificar "Visitante"
-                                            </button>
-                                            <span class="badge @(roleResults.ContainsKey("Visitante") ? (roleResults["Visitante"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(roleResults.ContainsKey("Visitante") ? (roleResults["Visitante"] ? "SÍ" : "NO") : "?")
-                                            </span>
+                                        <div class="card-body">
+                                            @foreach (var roleName in rolesToTest)
+                                            {
+                                                <div class="mb-2">
+                                                    <button class="btn btn-sm btn-outline-info me-2" @onclick="@(() => CheckRole(roleName))">
+                                                        Verificar "@roleName"
+                                                    </button>
+                                                    <span class="badge @(roleResults.ContainsKey(roleName) ? (roleResults[roleName] ? "bg-success" : "bg-danger") : "bg-secondary")">
+                                                        @(roleResults.ContainsKey(roleName) ? (roleResults[roleName] ? "SÍ" : "NO") : "?")
+                                                    </span>
+                                                </div>
+                                            }
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h5>Pruebas de Endpoints Protegidos</h5>
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-success me-2" @onclick="TestEmployeeEndpoint">
-                                                Probar GET /Employee (requiere "Ver Empleados")
-                                            </button>
-                                            <span class="badge @(endpointResults.ContainsKey("employees") ? (endpointResults["employees"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(endpointResults.ContainsKey("employees") ? (endpointResults["employees"] ? "ÉXITO" : "FALLO") : "?")
-                                            </span>
-                                        </div>
-
-                                        <div class="mb-2">
-                                            <button class="btn btn-sm btn-outline-warning me-2" @onclick="TestAuthorizationEndpoint">
-                                                Probar GET /Authorization/roles (requiere "Ver Usuarios")
-                                            </button>
-                                            <span class="badge @(endpointResults.ContainsKey("authorization") ? (endpointResults["authorization"] ? "bg-success" : "bg-danger") : "bg-secondary")">
-                                                @(endpointResults.ContainsKey("authorization") ? (endpointResults["authorization"] ? "ÉXITO" : "FALLO") : "?")
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <button class="btn btn-secondary" @onclick="Logout">
-                                    Cerrar Sesión
-                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
-            }
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-secondary" @onclick="Logout">
+                                Cerrar Sesión
+                            </button>
+                        </div>
+                    </div>
+
+                </Authorized>
+                <NotAuthorized>
+                    <div class="alert alert-warning">
+                        <h4>No hay usuario autenticado</h4>
+                        <p>Por favor, inicia sesión para probar el sistema de permisos.</p>
+                        <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
     </div>
 </div>
 
 @code {
-    private OmniMonitor.Shared.Dtos.User? currentUser;
-    private List<string>? userRoles;
     private List<Permission>? userPermissions;
+    private bool isLoadingPermissions = true;
+    private int currentUserId;
+
     private Dictionary<string, bool> permissionResults = new();
     private Dictionary<string, bool> roleResults = new();
-    private Dictionary<string, bool> endpointResults = new();
+
+    private readonly List<string> permissionsToTest = new() { "Ver Usuarios", "Crear Usuarios", "Ver Empleados", "Gestionar Empleados" };
+    private readonly List<string> rolesToTest = new() { "Administrador", "Visitante" };
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadUserData();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out currentUserId))
+            {
+                await LoadUserPermissions();
+            }
+        }
     }
 
-    private async Task LoadUserData()
+    private async Task LoadUserPermissions()
     {
+        isLoadingPermissions = true;
         try
         {
-            currentUser = new OmniMonitor.Shared.Dtos.User { Id = 1, Username = "usuario_prueba" };
-            userRoles = new List<string> { "Administrador" };
-
-            var response = await Http.GetAsync($"api/authorization/users/{currentUser.Id}/permissions");
+            var response = await Http.GetAsync($"api/authorization/users/{currentUserId}/permissions");
             if (response.IsSuccessStatusCode)
             {
                 userPermissions = await response.Content.ReadFromJsonAsync<List<Permission>>();
@@ -209,102 +162,46 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error cargando datos del usuario: {ex.Message}");
+            Console.WriteLine($"Error cargando permisos del usuario: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingPermissions = false;
         }
     }
 
     private async Task CheckPermission(string permissionName)
     {
-        if (currentUser == null) return;
-
         try
         {
-            var response = await Http.GetAsync($"api/authorization/users/{currentUser.Id}/has-permission?permissionName={permissionName}");
-            if (response.IsSuccessStatusCode)
-            {
-                var hasPermission = await response.Content.ReadFromJsonAsync<bool>();
-                permissionResults[permissionName] = hasPermission;
-            }
-            else
-            {
-                permissionResults[permissionName] = false;
-            }
+            var response = await Http.GetAsync($"api/authorization/users/{currentUserId}/has-permission?permissionName={Uri.EscapeDataString(permissionName)}");
+            permissionResults[permissionName] = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<bool>();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error verificando permiso {permissionName}: {ex.Message}");
             permissionResults[permissionName] = false;
         }
-
-        StateHasChanged();
     }
 
     private async Task CheckRole(string roleName)
     {
-        if (currentUser == null) return;
-
         try
         {
-            var response = await Http.GetAsync($"api/authorization/users/{currentUser.Id}/has-role?roleName={roleName}");
-            if (response.IsSuccessStatusCode)
-            {
-                var hasRole = await response.Content.ReadFromJsonAsync<bool>();
-                roleResults[roleName] = hasRole;
-            }
-            else
-            {
-                roleResults[roleName] = false;
-            }
+            var response = await Http.GetAsync($"api/authorization/users/{currentUserId}/has-role?roleName={Uri.EscapeDataString(roleName)}");
+            roleResults[roleName] = response.IsSuccessStatusCode && await response.Content.ReadFromJsonAsync<bool>();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error verificando rol {roleName}: {ex.Message}");
             roleResults[roleName] = false;
         }
-
-        StateHasChanged();
     }
 
-    private async Task TestEmployeeEndpoint()
+    private async Task Logout()
     {
-        try
-        {
-            var response = await Http.GetAsync("api/employee");
-            endpointResults["employees"] = response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error probando endpoint de empleados: {ex.Message}");
-            endpointResults["employees"] = false;
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task TestAuthorizationEndpoint()
-    {
-        try
-        {
-            var response = await Http.GetAsync("api/authorization/roles");
-            endpointResults["authorization"] = response.IsSuccessStatusCode;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error probando endpoint de autorización: {ex.Message}");
-            endpointResults["authorization"] = false;
-        }
-
-        StateHasChanged();
-    }
-
-    private void Logout()
-    {
-        currentUser = null;
-        userRoles = null;
-        userPermissions = null;
-        permissionResults.Clear();
-        roleResults.Clear();
-        endpointResults.Clear();
+        // Use the custom provider to notify the app of logout
+        await ((OmniMonitor.Client.Auth.ApiAuthenticationStateProvider)AuthStateProvider).NotifyUserLogout();
         Navigation.NavigateTo("/login");
     }
 }
