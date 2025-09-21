@@ -53,8 +53,8 @@ public class SondaIMService : ISondaIMService
 
     public async Task<List<Device>?> GetAllDevicesByPage(int page, string username, string password)
     {
-        string baseUrl = _apiConfig.BaseUrl;
-        string endpoint = _apiConfig.Endpoints["Device"]["GetAll"];
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Device"]["GetAll"];
 
         if (page <= 0)
         {
@@ -81,8 +81,8 @@ public class SondaIMService : ISondaIMService
     public async Task<Device?> GetDeviceById(int id, string username, string password)
     {
 
-        string baseUrl = _apiConfig.BaseUrl;
-        string endpoint = _apiConfig.Endpoints["Device"]["GetById"];
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Device"]["GetById"];
         string getDataUrl = baseUrl + endpoint + "/" + id;
 
         string token = await _sondaAuthService.GetUserTokenAsync(username, password);
@@ -115,8 +115,8 @@ public class SondaIMService : ISondaIMService
 
     public async Task<List<DeviceGroup>> GetAllDeviceGroups(string username, string password)
     {
-        string baseUrl = _apiConfig.BaseUrl;
-        string endpoint = _apiConfig.Endpoints["Group"]["Groups"];
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Group"]["Groups"];
 
         string token = await _sondaAuthService.GetUserTokenAsync(username, password);
 
@@ -148,8 +148,8 @@ public class SondaIMService : ISondaIMService
     {
         string token = await _sondaAuthService.GetUserTokenAsync(username, password);
 
-        string baseUrl = _apiConfig.BaseUrl;
-        string endpoint = _apiConfig.Endpoints["Group"]["GetById"];
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Group"]["GetById"];
 
         string getDataUrl = baseUrl + endpoint + "/" + id;
         var client = _httpClientFactory.CreateClient();
@@ -180,8 +180,8 @@ public class SondaIMService : ISondaIMService
     {
         string token = await _sondaAuthService.GetUserTokenAsync(username, password);
 
-        string baseUrl = _apiConfig.BaseUrl;
-        string endpoint = _apiConfig.Endpoints["Source"]["Sources"];
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Source"]["Sources"];
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -210,8 +210,8 @@ public class SondaIMService : ISondaIMService
     {
         string token = await _sondaAuthService.GetUserTokenAsync(username, password);
 
-        string baseUrl = _apiConfig.BaseUrl;
-        string endpoint = _apiConfig.Endpoints["Source"]["GetById"];
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Source"]["GetById"];
 
         string getDataUrl = baseUrl + endpoint + "/" + id;
         var client = _httpClientFactory.CreateClient();

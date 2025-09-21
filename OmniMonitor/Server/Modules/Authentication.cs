@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System;
@@ -20,11 +22,13 @@ public class SondaAuthService : ISondaAuthService
 {
     private readonly ApplicationDbContext _context;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ApiConfig _apiConfig;
 
-    public SondaAuthService(ApplicationDbContext context, IHttpClientFactory httpClientFactory)
+    public SondaAuthService(ApplicationDbContext context, IHttpClientFactory httpClientFactory, IOptions<ApiConfig> apiConfigOptions)
     {
         _context = context;
         _httpClientFactory = httpClientFactory;
+        _apiConfig = apiConfigOptions.Value;
     }
 
 
@@ -56,14 +60,13 @@ public class SondaAuthService : ISondaAuthService
     // Para refrescar y almacenar el token
     private async Task<string> RefreshAndStoreTokenAsync(User user)
     {
-        var credentials = new
-        {
-            email = "pis@pis.com",
-            password = "PIS.sonda2025"
-        };
 
-        //URL de login de Sonda (IM)
-        string loginUrl = "https://sondasmartplatform.com/internal/IoTMonitor/api/Account/Login";
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string email = _apiConfig.Credentials.CredentialsIM.Email;
+        string pass = _apiConfig.Credentials.CredentialsIM.Password;
+        string loginUrl = _apiConfig.EndpointsIM["Login"]["Login"];
+        var credentials = new { email = email, password = pass };
+
         var client = _httpClientFactory.CreateClient();
 
         var content = new StringContent(JsonSerializer.Serialize(credentials), Encoding.UTF8, "application/json");

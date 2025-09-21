@@ -83,7 +83,7 @@
                     await ((ApiAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(loginResponse.Token);
 
                     // 3. Navigate to the test page with a forced reload to ensure the new auth state is applied.
-                    // Navigation.NavigateTo("/test-permissions", forceLoad: true);
+                    Navigation.NavigateTo("/test-permissions", forceLoad: true);
                 }
                 else
                 {
