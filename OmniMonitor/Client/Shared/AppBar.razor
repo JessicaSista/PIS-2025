@@ -17,7 +17,7 @@
                         OnClick="ToggleTheme" 
                         Title="@($"Cambiar a modo {(IsDarkMode ? "claro" : "oscuro")}")" />
         
-        <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
+        @* <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
             <ActivatorContent>
                 <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowDropDown" Class="language-selector">
                     ES
@@ -31,7 +31,9 @@
                     <MudText>English</MudText>
                 </MudMenuItem>
             </ChildContent>
-        </MudMenu>
+        </MudMenu> *@
+
+        <LanguageSelector />
 
         <MudMenu>
             <ActivatorContent>

@@ -1,0 +1,43 @@
+﻿@using System.Globalization
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JSRuntime
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Definir idioma por defecto si no hay nada guardado.
+        const string DefaultCultureCode = "en";
+
+        // 1. Lee la cultura guardada en el Local Storage
+        var savedCulture = await LocalStorage.GetItemAsStringAsync("culture");
+        string cultureCodeToUse = savedCulture;
+
+        // No puede ser 4 lineas para un console.log
+        // string textito = "Cultura default";
+        await JSRuntime.InvokeVoidAsync("console.log", cultureCodeToUse);
+        var data = new { user = "nacho", id = 101 };
+        await JSRuntime.InvokeVoidAsync("console.log", "Datos del usuario:", data);
+
+
+        // 2. Si no hay nada guardado o es inválido, uso el valor por defecto.
+        if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
+        {
+            cultureCodeToUse = DefaultCultureCode;
+        } else
+        {
+            cultureCodeToUse = savedCulture;
+        }
+
+        // 3. Establece la cultura globalmente (aplica el idioma)
+        var cultureInfo = new CultureInfo(cultureCodeToUse);
+        CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+        CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+
+        // 4. Si usamos el valor por defecto, lo guardamos para la próxima sesión.
+        if (string.IsNullOrEmpty(savedCulture))
+        {
+            await LocalStorage.SetItemAsStringAsync("culture", DefaultCultureCode);
+        }
+    }
+}

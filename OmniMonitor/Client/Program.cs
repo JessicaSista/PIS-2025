@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Localization;
 using System.Globalization;
 using MudBlazor.Services;
+using Blazored.LocalStorage;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -14,10 +15,9 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 builder.Services.AddMudServices();
 
+builder.Services.AddBlazoredLocalStorage();
+
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-var supportedCultures = new[] { "es", "en" };
-CultureInfo.DefaultThreadCurrentCulture = new CultureInfo("es");
-CultureInfo.DefaultThreadCurrentUICulture = new CultureInfo("es");
 
 await builder.Build().RunAsync();
