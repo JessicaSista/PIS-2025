@@ -40,8 +40,6 @@
 }
 
 @code{
-    public partial class DashboardCard
-    {
         //Parametro para saber el Breakpoint actual
         [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
 
@@ -138,5 +136,4 @@
                     Y = (decimal)value
                 }).ToArray();
         }
-    }
 }
