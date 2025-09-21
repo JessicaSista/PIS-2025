@@ -1,21 +1,111 @@
-﻿@using MudBlazor
+@using MudBlazor
 @inherits LayoutComponentBase
 
-@* Required *@
-<MudThemeProvider />
+<MudThemeProvider Theme="_currentTheme" @bind-IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
-
-@* Needed for dialogs *@
 <MudDialogProvider />
-
-@* Needed for snackbars *@
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudStack Row>
+
+<!--<MudLayout Style="background: linear-gradient(to bottom, #0F1522, #20262F); min-height: 100vh;">
+    <MudStack Row Style="min-height: 100vh;">
         <NavMenu />
         <main>
             @Body
         </main>
     </MudStack>
-</MudLayout>
+</MudLayout> -->
+
+
+
+<div style="@(_isDarkMode ? _darkModeVars : _lightModeVars)">
+    <MudLayout>
+        <CascadingValue Value="_drawerOpen">
+            <MudDrawer @bind-Open="_drawerOpen"
+                       Variant="DrawerVariant.Mini"
+                       Elevation="1"
+                       MiniVariantWidth="80px"
+                       Anchor="Anchor.Start"
+                       Class="custom-drawer">
+                <NavMenu />
+            </MudDrawer>
+        </CascadingValue>
+        <MudMainContent>
+            <AppBar ToggleDrawer="ToggleDrawer" 
+                    IsDarkMode="@_isDarkMode" 
+                    ToggleTheme="ToggleTheme" />
+            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+</div>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = true;
+
+    private MudTheme _currentTheme = new()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#1E88E5",
+            Secondary = "#424242",
+            Background = "#E3F2FD",
+            AppbarBackground = "#BBDEFB",
+            AppbarText = "#0D47A1",
+            DrawerBackground = "#BBDEFB",
+            DrawerText = "#212121",
+            Surface = "#FFFFFF",
+            TextPrimary = "#212121",
+            TextSecondary = "rgba(0, 0, 0, 0.6)",
+            ActionDefault = "#6200EE"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#1E88E5",
+            Secondary = "#424242",
+            Background = "#121212",
+            AppbarBackground = "#1E1E1E",
+            AppbarText = "#FFFFFF",
+            DrawerBackground = "#1E1E1E",
+            DrawerText = "#FFFFFF",
+            Surface = "#1E1E1E",
+            TextPrimary = "#FFFFFF",
+            TextSecondary = "rgba(255, 255, 255, 0.7)",
+            ActionDefault = "#BB86FC"
+        }
+    };
+
+    private string _lightModeVars = @"
+        --mud-palette-action-hover: rgba(0, 0, 0, 0.04);
+        --mud-palette-action-selected: rgba(0, 0, 0, 0.08);
+        --mud-palette-drawer-border: rgba(0, 0, 0, 0.12);
+        --mud-palette-scrollbar-track: #F5F5F5;
+        --mud-palette-scrollbar-thumb: #BDBDBD;
+        --mud-palette-scrollbar-thumb-hover: #9E9E9E;
+    ";
+
+    private string _darkModeVars = @"
+        --mud-palette-action-hover: rgba(255, 255, 255, 0.08);
+        --mud-palette-action-selected: rgba(255, 255, 255, 0.15);
+        --mud-palette-drawer-border: rgba(255, 255, 255, 0.12);
+        --mud-palette-scrollbar-track: #2D2D2D;
+        --mud-palette-scrollbar-thumb: #555555;
+        --mud-palette-scrollbar-thumb-hover: #777777;
+        --mud-palette-background: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
+        --mud-palette-drawer-background: #1E1E1E;
+        --mud-palette-surface: rgba(30, 30, 30, 0.8);
+    ";
+
+    private void ToggleDrawer()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+}
+

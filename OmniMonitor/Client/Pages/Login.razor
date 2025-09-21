@@ -1,0 +1,83 @@
+﻿@page "/login"
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+@using OmniMonitor.Shared.Dtos
+@using System.ComponentModel.DataAnnotations
+
+<div class="login-center-container">
+    <MudContainer MaxWidth="MudBlazor.MaxWidth.Small">
+        <MudPaper Class="pa-6 rounded-lg d-flex flex-column align-center login-paper" Elevation="10">
+
+            <MudText Typo="Typo.h5" Class="mb-2">Iniciar Sesión</MudText>
+
+            <MudText Typo="Typo.body2" Class="mb-6">Accede a tu cuenta de OmniMonitor</MudText>
+
+            <MudForm Model="@loginRequest" @ref="@form" @bind-IsValid="@success" @bind-Errors="@errors" Class="d-flex flex-column" Style="width:100%;">
+                <MudTextField T="string" Label="Email"
+                              Variant="MudBlazor.Variant.Outlined"
+                              @bind-Value="@loginRequest.Username"
+                              For="@(() => loginRequest.Username)"
+                              Class="mb-4" />
+
+                <MudTextField T="string" Label="Contraseña"
+                              InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                              OnAdornmentClick="@TogglePasswordVisibility"
+                              Variant="MudBlazor.Variant.Outlined"
+                              @bind-Value="@loginRequest.Password"
+                              For="@(() => loginRequest.Password)"
+                              Class="mb-4" />
+
+                <MudButton Variant="MudBlazor.Variant.Filled"
+                           Color="MudBlazor.Color.Primary"
+                           FullWidth="true"
+                           Class="mt-2"
+                           StartIcon="@Icons.Material.Filled.Login"
+                           OnClick="@HandleLogin">
+                    Iniciar Sesión
+                </MudButton>
+            </MudForm>
+
+            <MudLink Href="/forgot-password" Class="mt-6 mud-text-secondary">¿Olvidaste tu contraseña?</MudLink>
+        </MudPaper>
+    </MudContainer>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new LoginRequest();
+    private MudForm? form;
+    private bool success;
+    private string[] errors = { };
+    private bool showPassword = false;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task HandleLogin()
+    {
+        await form!.Validate();
+        if (form.IsValid)
+        {
+            // Llama a tu servicio de autenticación real aquí
+            bool loginSuccessful = await MockLogin(loginRequest.Username, loginRequest.Password);
+            if (loginSuccessful)
+            {
+                NavManager.NavigateTo("/index");
+            }
+            else
+            {
+                Snackbar.Add("Credenciales incorrectas. Por favor, inténtelo de nuevo.", Severity.Error);
+            }
+        }
+    }
+
+    private async Task<bool> MockLogin(string? username, string? password)
+    {
+        // Simulación de una llamada al backend. Reemplaza con tu lógica de autenticación real.
+        await Task.Delay(500);
+        return username == "admin" && password == "admin";
+    }
+}

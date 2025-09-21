@@ -1,6 +1,7 @@
-using OmniMonitor.Server.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using OmniMonitor.Server.Configuration;
+using OmniMonitor.Server.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,9 @@ ConfigurationManager configuration = builder.Configuration;
 builder.Logging.ClearProviders();
 builder.Logging.AddDebug();
 builder.Logging.AddConsole();
+builder.Configuration.AddJsonFile("ApiConfig.json", optional: false, reloadOnChange: true);
+builder.Services.Configure<ApiConfig>(builder.Configuration);
+
 if (OperatingSystem.IsWindows())
 {
     builder.Logging.AddEventLog(eventLogSettings =>
@@ -42,6 +46,10 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
+//builder.Services.AddSingleton<ISondaApiGetDevicesService, SondaApiGetDevicesService>();
+builder.Services.AddScoped<ISondaIMService, SondaIMService>();
+builder.Services.AddHttpClient();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -87,7 +95,15 @@ if (configuration.GetValue<bool>("EnableHttpsRedirection"))
 app.UseHttpsRedirection();
 
 app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+        ctx.Context.Response.Headers.Append("Expires", "0");
+    }
+});
 
 app.UseRouting();
 app.UseCors(corsPolicy);
