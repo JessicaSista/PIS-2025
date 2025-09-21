@@ -11,10 +11,7 @@ namespace OmniMonitor.Server.Context
     {
         // No longer need a private field, the 'configuration' parameter is available throughout the class.
 
-        public DbSet<Employee> Employees { get; set; }
-        public DbSet<Item> Items { get; set; }
         // Add this line inside your ApplicationDbContext.cs
-        public DbSet<SensorClimax> SensorClimaxs { get; set; }
 
         // Entidades del sistema de roles y permisos
         public DbSet<User> Users { get; set; }
@@ -102,11 +99,6 @@ namespace OmniMonitor.Server.Context
         /// </summary>
         protected void Seed(ModelBuilder builder)
         {
-            // Datos de sensores
-            builder.Entity<SensorClimax>().HasData(
-                new SensorClimax { Id = 1, Temperatura = 24, Humedad = 55, Co2 = 400, Potencia = 150, NivleDeBrillo = 300, NivelDeRuido = 50, HumedadDelSuelo = 20, TemperaturaDelSuelo = 18 },
-                new SensorClimax { Id = 2, Temperatura = 25, Humedad = 60, Co2 = 420, Potencia = 160, NivleDeBrillo = 320, NivelDeRuido = 55, HumedadDelSuelo = 22, TemperaturaDelSuelo = 19 }
-            );
 
             // Datos de roles
             builder.Entity<Role>().HasData(

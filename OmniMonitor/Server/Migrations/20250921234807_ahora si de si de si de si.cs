@@ -8,41 +8,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class rollback3 : Migration
+    public partial class ahorasidesidesidesi : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Employees",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Employees", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Items",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Nombre = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Cantidad = table.Column<int>(type: "int", nullable: false),
-                    Precio = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Categoria = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Items", x => x.Id);
-                });
-
             migrationBuilder.CreateTable(
                 name: "Permissions",
                 columns: table => new
@@ -69,26 +39,6 @@ namespace OmniMonitor.Server.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Roles", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SensorClimaxs",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Temperatura = table.Column<int>(type: "int", nullable: false),
-                    Humedad = table.Column<int>(type: "int", nullable: false),
-                    Co2 = table.Column<int>(type: "int", nullable: false),
-                    Potencia = table.Column<int>(type: "int", nullable: false),
-                    NivleDeBrillo = table.Column<int>(type: "int", nullable: false),
-                    NivelDeRuido = table.Column<int>(type: "int", nullable: false),
-                    HumedadDelSuelo = table.Column<int>(type: "int", nullable: false),
-                    TemperaturaDelSuelo = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SensorClimaxs", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -192,15 +142,6 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "SensorClimaxs",
-                columns: new[] { "Id", "Co2", "Humedad", "HumedadDelSuelo", "NivelDeRuido", "NivleDeBrillo", "Potencia", "Temperatura", "TemperaturaDelSuelo" },
-                values: new object[,]
-                {
-                    { 1, 400, 55, 20, 50, 300, 150, 24, 18 },
-                    { 2, 420, 60, 22, 55, 320, 160, 25, 19 }
-                });
-
-            migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "Password", "SondaTokenAM", "SondaTokenEM", "SondaTokenIM", "SondaTokenUM", "TokenExpirationAM", "TokenExpirationEM", "TokenExpirationIM", "TokenExpirationUM", "Username" },
                 values: new object[,]
@@ -272,16 +213,7 @@ namespace OmniMonitor.Server.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Employees");
-
-            migrationBuilder.DropTable(
-                name: "Items");
-
-            migrationBuilder.DropTable(
                 name: "RolePermissions");
-
-            migrationBuilder.DropTable(
-                name: "SensorClimaxs");
 
             migrationBuilder.DropTable(
                 name: "UserRoles");

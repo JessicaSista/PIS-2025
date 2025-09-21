@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250921220924_rollback3")]
-    partial class rollback3
+    [Migration("20250921234807_ahora si de si de si de si")]
+    partial class ahorasidesidesidesi
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,54 +24,6 @@ namespace OmniMonitor.Server.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Employee", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Employees");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Item", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Cantidad")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Categoria")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("Precio")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Items");
-                });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
                 {
@@ -300,69 +252,6 @@ namespace OmniMonitor.Server.Migrations
                             Id = 14,
                             PermissionId = 9,
                             RoleId = 2
-                        });
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.SensorClimax", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Co2")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Humedad")
-                        .HasColumnType("int");
-
-                    b.Property<int>("HumedadDelSuelo")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NivelDeRuido")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NivleDeBrillo")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Potencia")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Temperatura")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TemperaturaDelSuelo")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SensorClimaxs");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Co2 = 400,
-                            Humedad = 55,
-                            HumedadDelSuelo = 20,
-                            NivelDeRuido = 50,
-                            NivleDeBrillo = 300,
-                            Potencia = 150,
-                            Temperatura = 24,
-                            TemperaturaDelSuelo = 18
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Co2 = 420,
-                            Humedad = 60,
-                            HumedadDelSuelo = 22,
-                            NivelDeRuido = 55,
-                            NivleDeBrillo = 320,
-                            Potencia = 160,
-                            Temperatura = 25,
-                            TemperaturaDelSuelo = 19
                         });
                 });
 
