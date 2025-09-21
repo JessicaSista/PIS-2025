@@ -1,22 +1,42 @@
 ﻿@page "/login"
-@inject NavigationManager NavManager
-@inject ISnackbar Snackbar
+@using OmniMonitor.Client.Auth
+@using Blazored.LocalStorage
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
 @using OmniMonitor.Shared.Dtos
 @using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
 
 <div class="login-center-container">
     <MudContainer MaxWidth="MudBlazor.MaxWidth.Small">
         <MudPaper Class="pa-6 rounded-lg d-flex flex-column align-center login-paper" Elevation="10">
 
             <MudText Typo="Typo.h5" Class="mb-2">Iniciar Sesión</MudText>
-
             <MudText Typo="Typo.body2" Class="mb-6">Accede a tu cuenta de OmniMonitor</MudText>
 
-            <MudForm Model="@loginRequest" @ref="@form" @bind-IsValid="@success" @bind-Errors="@errors" Class="d-flex flex-column" Style="width:100%;">
+            @*
+                Cambiamos MudForm por EditForm para proveer el EditContext que DataAnnotationsValidator necesita.
+                Esto soluciona el error de renderizado. La lógica de OnValidSubmit sigue funcionando igual.
+            *@
+            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin" Class="d-flex flex-column" Style="width:100%;">
+                <DataAnnotationsValidator />
+
+                @* Mostramos el mensaje de error aquí si existe *@
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+                }
+
                 <MudTextField T="string" Label="Email"
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Username"
                               For="@(() => loginRequest.Username)"
+                              Required="true"
+                              RequiredError="El email es obligatorio."
                               Class="mb-4" />
 
                 <MudTextField T="string" Label="Contraseña"
@@ -27,17 +47,32 @@
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Password"
                               For="@(() => loginRequest.Password)"
+                              Required="true"
+                              RequiredError="La contraseña es obligatoria."
                               Class="mb-4" />
 
-                <MudButton Variant="MudBlazor.Variant.Filled"
+                @*
+                    El ButtonType.Submit activará el OnValidSubmit del EditForm.
+                    El estado de carga deshabilita el botón mientras se procesa la solicitud.
+                *@
+                <MudButton ButtonType="ButtonType.Submit"
+                           Variant="MudBlazor.Variant.Filled"
                            Color="MudBlazor.Color.Primary"
+                           Disabled="@isLoading"
                            FullWidth="true"
                            Class="mt-2"
-                           StartIcon="@Icons.Material.Filled.Login"
-                           OnClick="@HandleLogin">
-                    Iniciar Sesión
+                           StartIcon="@Icons.Material.Filled.Login">
+                    @if (isLoading)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Iniciando...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Iniciar Sesión</MudText>
+                    }
                 </MudButton>
-            </MudForm>
+            </EditForm>
 
             <MudLink Href="/forgot-password" Class="mt-6 mud-text-secondary">¿Olvidaste tu contraseña?</MudLink>
         </MudPaper>
@@ -45,10 +80,9 @@
 </div>
 
 @code {
-    private LoginRequest loginRequest = new LoginRequest();
-    private MudForm? form;
-    private bool success;
-    private string[] errors = { };
+    private LoginRequest loginRequest = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
     private bool showPassword = false;
 
     private void TogglePasswordVisibility()
@@ -58,26 +92,52 @@
 
     private async Task HandleLogin()
     {
-        await form!.Validate();
-        if (form.IsValid)
+        isLoading = true;
+        errorMessage = string.Empty; // Limpiamos errores previos
+        StateHasChanged(); // Actualiza la UI para mostrar el estado de carga
+
+        try
         {
-            // Llama a tu servicio de autenticación real aquí
-            bool loginSuccessful = await MockLogin(loginRequest.Username, loginRequest.Password);
-            if (loginSuccessful)
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginRequest);
+
+            if (response.IsSuccessStatusCode)
             {
-                NavManager.NavigateTo("/index");
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                if (loginResponse?.Success == true && !string.IsNullOrEmpty(loginResponse.Token))
+                {
+                    // 1. Almacenar el token
+                    await LocalStorage.SetItemAsync("authToken", loginResponse.Token);
+
+                    // 2. Notificar al proveedor de autenticación
+                    await ((ApiAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(loginResponse.Token);
+
+                    // 3. Navegar a la página principal con recarga forzada para aplicar el estado de autenticación
+                    NavManager.NavigateTo("/", forceLoad: true);
+                }
+                else
+                {
+                    errorMessage = loginResponse?.Message ?? "Error de autenticación: Token no recibido.";
+                    Snackbar.Add(errorMessage, Severity.Error);
+                }
             }
             else
             {
-                Snackbar.Add("Credenciales incorrectas. Por favor, inténtelo de nuevo.", Severity.Error);
+                var errorResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                errorMessage = errorResponse?.Message ?? "Error de conexión o credenciales incorrectas.";
+                Snackbar.Add(errorMessage, Severity.Error);
             }
         }
-    }
-
-    private async Task<bool> MockLogin(string? username, string? password)
-    {
-        // Simulación de una llamada al backend. Reemplaza con tu lógica de autenticación real.
-        await Task.Delay(500);
-        return username == "admin" && password == "admin";
+        catch (Exception ex)
+        {
+            errorMessage = $"Ocurrió un error inesperado: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged(); // Actualiza la UI para quitar el estado de carga
+        }
     }
 }
+
