@@ -1,68 +1,43 @@
-.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
+.navmenu-container ::deep .mud-paper {
+    background-color: var(--fondo-drawer) !important;
+    height: 100vh;
+    overflow-y: hidden !important;
+    border-right: 1px solid var(--borde-drawer);
+    transition: background-color 250ms ease-in-out;
 }
 
-.top-row {
-    height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+.navmenu-container ::deep .mud-text-secondary,
+.navmenu-container ::deep .mud-paper p {
+    color: var(--mud-palette-text-secondary, rgba(255, 255, 255, 0.7)) !important;
 }
 
-.navbar-brand {
-    font-size: 1.1rem;
+.navmenu-container ::deep .mud-nav-link {
+    color: var(--mud-palette-text-primary, #FFFFFF) !important;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.oi {
-    width: 2rem;
-    font-size: 1.1rem;
-    vertical-align: text-top;
-    top: -2px;
+.navmenu-container ::deep .mud-nav-link .mud-icon-root {
+    color: var(--mud-palette-text-secondary, rgba(255, 255, 255, 0.7)) !important;
 }
 
-.nav-item {
-    font-size: 0.9rem;
-    padding-bottom: 0.5rem;
+.navmenu-container ::deep .mud-nav-link.active {
+    background-color: var(--seleccion, rgba(255, 255, 255, 0.15)) !important;
+    color: var(--mud-palette-primary, #90CAF9) !important;
 }
 
-    .nav-item:first-of-type {
-        padding-top: 1rem;
-    }
-
-    .nav-item:last-of-type {
-        padding-bottom: 1rem;
-    }
-
-    .nav-item ::deep a {
-        color: #d7d7d7;
-        border-radius: 4px;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        line-height: 3rem;
-    }
-
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.25);
-    color: white;
+.navmenu-container ::deep .mud-nav-link:hover:not(.active) {
+    background-color: var(--hover, rgba(255, 255, 255, 0.08)) !important;
 }
 
-.nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+.navmenu-container ::deep .mud-nav-group {
+    border-bottom: 1px solid var(--borde-drawer, rgba(255, 255, 255, 0.12));
 }
 
-@media (min-width: 641px) {
-    .navbar-toggler {
-        display: none;
-    }
+.navmenu-container ::deep .mud-nav-group .mud-nav-link {
+    font-weight: 500;
+    color: var(--mud-palette-text-primary, #FFFFFF) !important;
+}
 
-    .collapse {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
-    }
-    
-    .nav-scrollable {
-        /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 3.5rem);
-        overflow-y: auto;
-    }
+.navmenu-container ::deep .mud-nav-group .mud-nav-link .mud-nav-link-icon {
+    color: var(--mud-palette-text-secondary, rgba(255, 255, 255, 0.7)) !important;
 }

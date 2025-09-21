@@ -1,0 +1,139 @@
+@page "/datasets"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using MudBlazor
+@using OmniMonitor.Shared
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<PageTitle>Datasets</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #E5EAEB; font-weight: bold;">Datasets</MudText>
+<MudText Typo="Typo.body1" Class="mb-4 mx-4" Style="color: #9ca3af">Gestiona tus fuentes de datos y conexiones</MudText>
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-15 ml-4 mr-6">
+    <MudTextField @bind-Value="searchText" Placeholder="Buscar datasets..." Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="flex-grow-1 mr-3" />
+    <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary" StartIcon="@Icons.Material.Filled.FilterList">
+        Filtros
+    </MudButton>
+</MudStack>
+
+<MudContainer Fixed="true" Class="pl-4 pr-6">
+    <MudGrid GutterSize="3">
+        @foreach (var dataset in datasets)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <DatasetCardComponent 
+                    Dataset="dataset" 
+                    Description="@dataset.Descripcion"
+                    RecordCount="@dataset.RecordCount.ToString()" 
+                    OnClick="@(() => VerDetalle(dataset.Id))" />
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+<MudButton 
+    Href="/crearDataset"
+    Variant="Variant.Filled"
+    Class="crear-dataset-btn"
+    StartIcon="@Icons.Material.Filled.Add">
+    Crear Dataset
+</MudButton>
+
+<style>
+.crear-dataset-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    background-color: #4A81E9;
+    color: white;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.crear-dataset-btn:hover {
+    background-color: #3a69c0; /* un poco más oscuro */
+}
+</style>
+
+@code {
+    private List<DatasetDto> datasets = new();
+    private string searchText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargar datasets de ejemplo
+        datasets = new List<DatasetDto>
+        {
+            new DatasetDto { Id = 1, Nombre = "Dataset sensores de temperatura Montevideo", FechaCreacion = DateTime.Now.AddDays(-2) },
+            new DatasetDto { Id = 2, Nombre = "Dataset consumo de energía", FechaCreacion = DateTime.Now.AddDays(-5) },
+            new DatasetDto { Id = 3, Nombre = "Dataset Emisiones CO₂", FechaCreacion = DateTime.Now.AddDays(-10) },
+        };
+
+        // Cargar datasets del usuario desde localStorage
+        var json = await JS.InvokeAsync<string>("localStorage.getItem", "datasets");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var locales = System.Text.Json.JsonSerializer.Deserialize<List<DatasetDto>>(json);
+            if (locales != null)
+                datasets.AddRange(locales);
+        }
+
+        // Mostrar snackbar si viene mensaje por query string (parseo manual)
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var q in query)
+            {
+                var kv = q.Split('=', 2);
+                if (kv.Length == 2 && kv[0] == "snackbar")
+                {
+                    var mensaje = Uri.UnescapeDataString(kv[1]);
+                    Snackbar.Add(mensaje, Severity.Success, config =>
+                    {
+                        config.SnackbarVariant = Variant.Filled;
+                        config.Action = "OK";
+                        config.ActionColor = MudBlazor.Color.Primary;
+                    });
+                }
+            }
+        }
+    }
+
+    private void VerDetalle(int id) { }
+
+    private string GetDatasetIcon(int id) => id switch
+    {
+        1 => Icons.Material.Filled.Thermostat,
+        2 => Icons.Material.Filled.ElectricalServices,
+        3 => Icons.Material.Filled.Cloud,
+        _ => Icons.Material.Filled.Storage
+    };
+
+    private string GetDatasetDescription(int id) => id switch
+    {
+        1 => "Datos de sensores de temperatura en tiempo real desde Montevideo.",
+        2 => "Información detallada del consumo energético por sector.",
+        3 => "Métricas de emisiones de CO₂ y gases de efecto invernadero.",
+        _ => "Dataset de información general."
+    };
+
+    private string GetRecordCount(int id) => id switch
+    {
+        1 => "15.420",
+        2 => "8.750",
+        3 => "12.300",
+        _ => "0"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (datasets.Count > 0)
+        {
+            await JS.InvokeVoidAsync("equalizeCardHeights");
+        }
+    }
+}

@@ -1,0 +1,108 @@
+.appbar-container ::deep .mud-appbar {
+    background-color: var(--mud-palette-appbar-background) !important;
+    color: var(--mud-palette-appbar-text, var(--mud-palette-text-primary)) !important;
+    padding: 0 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12));
+}
+
+.appbar-container ::deep .mud-icon-button,
+.appbar-container ::deep .mud-appbar .mud-nav-link .mud-nav-link-text {
+    color: var(--mud-palette-appbar-text, var(--mud-palette-text-primary)) !important;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.appbar-container ::deep .mud-icon-button .mud-icon-root {
+    color: inherit !important;
+}
+
+::deep .logo-container {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    pointer-events: none;
+}
+
+::deep .logo-link {
+    display: inline-block;
+    height: 100%;
+    text-decoration: none;
+    max-width: 210px;
+}
+
+::deep .logo-image {
+    display: inline-block;
+    vertical-align: middle;
+    pointer-events: auto;
+}
+
+::deep .logo-text {
+    display: inline-block;
+    color: var(--mud-palette-text-primary, #212121);
+    margin: 0 0 0 8px;
+    padding: 0;
+    vertical-align: middle;
+    line-height: 1.2;
+    white-space: nowrap;
+    font-weight: 500;
+    pointer-events: auto;
+    transition: color 0.3s ease;
+}
+
+::deep .logo-link:hover .logo-text {
+    color: var(--mud-palette-primary);
+}
+
+::deep .language-selector {
+    color: var(--mud-palette-text-secondary, rgba(0, 0, 0, 0.6)) !important;
+    text-transform: none;
+    font-weight: 500;
+    min-width: 50px;
+    padding: 0 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+::deep .language-selector:hover {
+    color: var(--mud-palette-text-primary, #212121) !important;
+    background-color: var(--hover, rgba(0, 0, 0, 0.04)) !important;
+}
+
+::deep .mud-menu-item {
+    min-height: 36px;
+}
+
+.appbar-container ::deep .custom-textfield.mud-input-outlined .mud-input-root {
+    width: 100%;
+    color: var(--mud-palette-text-primary, #212121) !important;
+    background-color: var(--hover, rgba(0, 0, 0, 0.04)) !important;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.appbar-container ::deep .custom-textfield .mud-input-root:hover {
+    background-color: var(--seleccion, rgba(0, 0, 0, 0.08)) !important;
+}
+
+.appbar-container ::deep .custom-textfield .mud-input-root:focus-within {
+    background-color: var(--seleccion, rgba(0, 0, 0, 0.08)) !important;
+}
+
+.appbar-container ::deep .custom-textfield .mud-input-root input::placeholder {
+    color: var(--mud-palette-text-disabled, rgba(0, 0, 0, 0.38)) !important;
+}
+
+.appbar-container ::deep .custom-textfield .mud-input-root input {
+    color: var(--mud-palette-text-primary) !important;
+    padding: 8px 12px !important;
+}
+
+.appbar-container ::deep .custom-textfield .mud-input-root .mud-input-adornment {
+    color: var(--mud-palette-text-secondary, rgba(0, 0, 0, 0.6)) !important;
+}
+
+.appbar-container ::deep .mud-input-underline:before,
+.appbar-container ::deep .mud-input-underline:after,
+.appbar-container ::deep .mud-input-underline:hover:before,
+.appbar-container ::deep .mud-input-underline:hover:not(.Mui-disabled):before {
+    border-bottom: none !important;
+}

@@ -14,6 +14,8 @@ namespace OmniMonitor.Shared.Dtos
         /// A message providing details about the login attempt (e.g., "Login successful" or an error message).
         /// </summary>
         public string? Message { get; set; }
+        public User? User { get; set; }
+        public List<string>? Roles { get; set; }
 
         /// <summary>
         /// The JWT authentication token, provided on successful login.
