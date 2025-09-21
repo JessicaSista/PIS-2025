@@ -1,5 +1,6 @@
 ﻿@page "/login"
 @inject IStringLocalizer<Login> Localizer
+@inject IStringLocalizer<SharedResource> SharedLocalizer
 @inject NavigationManager NavManager
 @inject ISnackbar Snackbar
 @using OmniMonitor.Shared.Dtos
@@ -10,7 +11,7 @@
     <MudContainer MaxWidth="MudBlazor.MaxWidth.Small">
         <MudPaper Class="pa-6 rounded-lg d-flex flex-column align-center login-paper" Elevation="10">
 
-            <MudText Typo="Typo.h5" Class="mb-2">@Localizer["Title"]</MudText>
+            <MudText Typo="Typo.h5" Class="mb-2">@SharedLocalizer["LoginTitle"]</MudText>
 
             <MudText Typo="Typo.body2" Class="mb-6">@Localizer["Subtitle"]</MudText>
 
