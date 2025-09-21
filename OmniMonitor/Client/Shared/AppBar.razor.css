@@ -3,7 +3,7 @@
     color: var(--mud-palette-appbar-text, var(--mud-palette-text-primary)) !important;
     padding: 0 16px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid var(--mud-palette-drawer-border, rgba(0, 0, 0, 0.12));
+    border-bottom: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12));
 }
 
 .appbar-container ::deep .mud-icon-button,
@@ -64,7 +64,7 @@
 
 ::deep .language-selector:hover {
     color: var(--mud-palette-text-primary, #212121) !important;
-    background-color: var(--mud-palette-action-hover, rgba(0, 0, 0, 0.04)) !important;
+    background-color: var(--hover, rgba(0, 0, 0, 0.04)) !important;
 }
 
 ::deep .mud-menu-item {
@@ -74,17 +74,17 @@
 .appbar-container ::deep .custom-textfield.mud-input-outlined .mud-input-root {
     width: 100%;
     color: var(--mud-palette-text-primary, #212121) !important;
-    background-color: var(--mud-palette-action-hover, rgba(0, 0, 0, 0.04)) !important;
+    background-color: var(--hover, rgba(0, 0, 0, 0.04)) !important;
     border-radius: 4px;
     transition: background-color 0.2s ease;
 }
 
 .appbar-container ::deep .custom-textfield .mud-input-root:hover {
-    background-color: var(--mud-palette-action-selected, rgba(0, 0, 0, 0.08)) !important;
+    background-color: var(--seleccion, rgba(0, 0, 0, 0.08)) !important;
 }
 
 .appbar-container ::deep .custom-textfield .mud-input-root:focus-within {
-    background-color: var(--mud-palette-action-selected, rgba(0, 0, 0, 0.08)) !important;
+    background-color: var(--seleccion, rgba(0, 0, 0, 0.08)) !important;
 }
 
 .appbar-container ::deep .custom-textfield .mud-input-root input::placeholder {
