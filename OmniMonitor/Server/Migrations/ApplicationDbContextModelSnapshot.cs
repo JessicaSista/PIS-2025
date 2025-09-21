@@ -375,10 +375,28 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("SondaToken")
+                    b.Property<string>("SondaTokenAM")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("TokenExpiration")
+                    b.Property<string>("SondaTokenEM")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SondaTokenIM")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SondaTokenUM")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("TokenExpirationAM")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenExpirationEM")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenExpirationIM")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenExpirationUM")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Username")

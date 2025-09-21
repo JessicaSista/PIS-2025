@@ -19,9 +19,22 @@ namespace OmniMonitor.Shared.Dtos
 
         [Required]
         public string Password { get; set; } = string.Empty;
-        public string? SondaToken { get; set; }
 
-        public DateTime? TokenExpiration { get; set; }
+        public string? SondaTokenIM { get; set; }
+
+        public DateTime? TokenExpirationIM { get; set; }
+
+        public string? SondaTokenAM { get; set; }
+
+        public DateTime? TokenExpirationAM { get; set; }
+
+        public string? SondaTokenUM { get; set; }
+
+        public DateTime? TokenExpirationUM { get; set; }
+
+        public string? SondaTokenEM { get; set; }
+
+        public DateTime? TokenExpirationEM { get; set; }
 
         // Relación con roles
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

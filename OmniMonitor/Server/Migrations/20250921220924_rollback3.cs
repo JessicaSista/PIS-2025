@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class loginTables : Migration
+    public partial class rollback3 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -99,8 +99,14 @@ namespace OmniMonitor.Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SondaToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TokenExpiration = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    SondaTokenIM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationIM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenAM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationAM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenUM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationUM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenEM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationEM = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -196,11 +202,11 @@ namespace OmniMonitor.Server.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "Password", "SondaToken", "TokenExpiration", "Username" },
+                columns: new[] { "Id", "Password", "SondaTokenAM", "SondaTokenEM", "SondaTokenIM", "SondaTokenUM", "TokenExpirationAM", "TokenExpirationEM", "TokenExpirationIM", "TokenExpirationUM", "Username" },
                 values: new object[,]
                 {
-                    { 1, "admin", null, null, "admin" },
-                    { 2, "visitante", null, null, "visitante" }
+                    { 1, "admin", null, null, null, null, null, null, null, null, "admin" },
+                    { 2, "visitante", null, null, null, null, null, null, null, null, "visitante" }
                 });
 
             migrationBuilder.InsertData(
