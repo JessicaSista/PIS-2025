@@ -1,11 +1,10 @@
 @page "/dashboards"
-<Dashboard widgets=@widgets></Dashboard>
+<Dashboard Widgets=@Widgets></Dashboard>
 @code {
-    (bool, string)[] widgets = new (bool, string)[] {
-        (true, "Data1,2999,false"),
-        (true,"Data2,2343.00,false"),
-        (true,"Data3,234342.99,true"),
-        (true,"Data4,23432.99,false"),
+    (bool, string)[] Widgets = new (bool, string)[] {
+        (true, "DATA1,2999,false"),
+        (true,"DATA2,2343.00,false"),
+        (true,"DATA3,234342.99,true"),
         (false, "Sensor de Proximidad"),
         (false, "Dispositivo de Monitoreo"),
         (false, "Tarjeta de Expansión"),
