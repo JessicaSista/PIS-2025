@@ -121,7 +121,7 @@
     <value>Error: Usuario o Contraseña Incorrectos.</value>
   </data>
   <data name="LoginButton" xml:space="preserve">
-    <value>IniciarSesión</value>
+    <value>Iniciar Sesión</value>
   </data>
   <data name="PasswordLabel" xml:space="preserve">
     <value>Contraseña</value>

@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <Folder Include="Dialogs\" />
+    <Folder Include="Resources\Pages\" />
   </ItemGroup>
 
 </Project>

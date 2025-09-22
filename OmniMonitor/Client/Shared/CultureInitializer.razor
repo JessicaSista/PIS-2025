@@ -1,43 +1,58 @@
 ﻿@using System.Globalization
 @using Blazored.LocalStorage
 @inject ILocalStorageService LocalStorage
-@inject IJSRuntime JSRuntime
+
+@if (IsCultureLoaded)
+{
+    @ChildContent
+}
+else
+{
+    // Mostrar un mensaje de carga mientras se inicializa el idioma
+    <div class="d-flex justify-center align-center" style="height: 100vh;">
+        <p>Cargando aplicación...</p>
+    </div>
+}
 
 @code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    private bool IsCultureLoaded { get; set; } = false;
+
     protected override async Task OnInitializedAsync()
     {
-        // Definir idioma por defecto si no hay nada guardado.
-        const string DefaultCultureCode = "en";
+        // Define el idioma por defecto si no hay nada guardado.
+        const string DefaultCultureCode = "es";
 
         // 1. Lee la cultura guardada en el Local Storage
         var savedCulture = await LocalStorage.GetItemAsStringAsync("culture");
-        string cultureCodeToUse = savedCulture;
+        string cultureCodeToUse;
 
-        // No puede ser 4 lineas para un console.log
-        // string textito = "Cultura default";
-        await JSRuntime.InvokeVoidAsync("console.log", cultureCodeToUse);
-        var data = new { user = "nacho", id = 101 };
-        await JSRuntime.InvokeVoidAsync("console.log", "Datos del usuario:", data);
-
-
-        // 2. Si no hay nada guardado o es inválido, uso el valor por defecto.
+        // 2. Si no hay nada guardado o es inválido, usa el valor por defecto.
         if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
         {
             cultureCodeToUse = DefaultCultureCode;
-        } else
+        }
+        else
         {
             cultureCodeToUse = savedCulture;
         }
 
-        // 3. Establece la cultura globalmente (aplica el idioma)
+        // 3. Si usamos el valor por defecto, lo guardamos para la próxima sesión.
+        if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
+        {
+            await LocalStorage.SetItemAsStringAsync("culture", cultureCodeToUse);
+        }
+
+        // 4. Establece la cultura globalmente (aplica el idioma)
         var cultureInfo = new CultureInfo(cultureCodeToUse);
         CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
-        // 4. Si usamos el valor por defecto, lo guardamos para la próxima sesión.
-        if (string.IsNullOrEmpty(savedCulture))
-        {
-            await LocalStorage.SetItemAsStringAsync("culture", DefaultCultureCode);
-        }
+        // 5. MARCA LA CULTURA COMO CARGADA Y NOTIFICA EL CAMBIO DE ESTADO
+        // Esto siempre se debe ejecutar para permitir el renderizado
+        IsCultureLoaded = true;
+        StateHasChanged();
     }
 }

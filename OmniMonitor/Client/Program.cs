@@ -17,7 +17,7 @@ builder.Services.AddMudServices();
 
 builder.Services.AddBlazoredLocalStorage();
 
-builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.AddLocalization();
 
 
 await builder.Build().RunAsync();
