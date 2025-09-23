@@ -25,7 +25,7 @@ public class SondaUMService : ISondaUMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-   public async void testUMAPI (string username, string password)
+   public async Task<string> TestUMAPI (string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["GetAll"];
@@ -33,6 +33,7 @@ public class SondaUMService : ISondaUMService
         string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
 
         Console.Write("TOKEN RECIBIDO: " + token);
+        return token;
     }
 
 
