@@ -1,10 +1,10 @@
 {
-    "BaseUrl": {
-        "UrlIM": "https://sondasmartplatform.com/internal/IoTMonitor",
-        "UrlAM": "",
-        "UrlEM": "https://sondasmartplatform.com/internal/EventManager",
-        "UrlUM": "https://sondasmartplatform.com/internal/UrbanMonitor"
-    },
+  "BaseUrl": {
+    "UrlIM": "https://sondasmartplatform.com/internal/IoTMonitor",
+    "UrlAM": "https://sondasmartplatform.com/internal/AssetManager",
+    "UrlEM": "https://sondasmartplatform.com/internal/EventManager",
+    "UrlUM": "https://sondasmartplatform.com/internal/UrbanMonitor"
+  },
     "Credentials": {
         "CredentialsIM": {
             "Email": "pis@pis.com",
@@ -114,12 +114,18 @@
         }
     },
     "EndpointsAM": {
-
+      "Login": {
+        "Login": "/api/account/login"
+      }
     },
     "EndpointsEM": {
-
+      "Login": {
+        "Login": "/api/Account/login"
+      }
     },
     "EndpointsUM": {
-
+      "Login": {
+        "Login": "/api/account/login"
+      }
     }
 }
