@@ -126,6 +126,10 @@
     "EndpointsUM": {
       "Login": {
         "Login": "/api/account/login"
+      },
+      "Zone": {
+        "Zones": "/api/zone/zones",
+        "GetById": "/api/zone/"
       }
     }
 }
