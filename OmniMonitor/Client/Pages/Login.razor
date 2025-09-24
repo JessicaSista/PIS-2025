@@ -11,9 +11,9 @@
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
 
-<div class="login-center-container">
+<div class="login-center-container flex-grow">
     <MudContainer MaxWidth="MudBlazor.MaxWidth.Small">
-        <MudPaper Class="pa-6 rounded-lg d-flex flex-column align-center login-paper" Elevation="10">
+        <MudPaper Class="pa-6 rounded-lg d-flex flex-column justify-content-center align-center login-paper" Elevation="10">
 
             <MudText Typo="Typo.h5" Class="mb-2">Iniciar Sesión</MudText>
             <MudText Typo="Typo.body2" Class="mb-6">Accede a tu cuenta de OmniMonitor</MudText>
@@ -73,8 +73,6 @@
                     }
                 </MudButton>
             </EditForm>
-
-            <MudLink Href="/forgot-password" Class="mt-6 mud-text-secondary">¿Olvidaste tu contraseña?</MudLink>
         </MudPaper>
     </MudContainer>
 </div>
@@ -141,3 +139,15 @@
     }
 }
 
+<style>
+    .login-paper {
+        background-color: #010717;
+    }
+
+    .login-center-container {
+        display: flex;
+        flex-grow: 1;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
