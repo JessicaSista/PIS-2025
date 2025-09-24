@@ -1,10 +1,16 @@
 @using MudBlazor
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
 
 <div class="appbar-container">
     <MudAppBar Elevation="3">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="ToggleDrawer" />
-        <MudNavLink Href="/dashboards" Class="logo-link">
+        <AuthorizeView>
+            <Authorized>
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="ToggleDrawer" />
+            </Authorized>
+        </AuthorizeView>
+        <MudNavLink OnClick="@(() => Navigation.NavigateTo("/dashboards"))" Class="logo-link">
             <div class="logo-container">
                 <MudImage Src="LogoSonda.jpg" Alt="LogoS" Style="width:40px; height:40px;" Class="rounded-lg logo-image" />
                 <MudText Typo="Typo.h6" Class="logo-text">OmniMonitor</MudText>
@@ -33,17 +39,21 @@
             </ChildContent>
         </MudMenu>
 
-        <MudMenu>
-            <ActivatorContent>
-                <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" />
-            </ActivatorContent>
-            <ChildContent>
-                <MudMenuItem OnClick="@(() => Navigation.NavigateTo("/login"))">
-                    <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
-                    <span>Cerrar Sesion</span>
-                </MudMenuItem>
-            </ChildContent>
-        </MudMenu>
+        <AuthorizeView>
+            <Authorized>
+                <MudMenu>
+                    <ActivatorContent>
+                        <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" />
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem OnClick="Logout">
+                            <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
+                            <span>Cerrar Sesion</span>
+                        </MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
 </div>
 
@@ -52,4 +62,12 @@
     [Parameter] public bool IsDarkMode { get; set; }
     [Parameter] public EventCallback ToggleTheme { get; set; }    
     private string searchText = "";
+
+
+    private async Task Logout()
+    {   
+        var apiAuthStateProvider = (Auth.ApiAuthenticationStateProvider)AuthStateProvider;
+        await apiAuthStateProvider.NotifyUserLogout();
+        Navigation.NavigateTo("/login");
+    }
 }
