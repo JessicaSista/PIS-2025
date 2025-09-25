@@ -1,4 +1,5 @@
 ﻿@page "/login"
+@using Microsoft.Extensions.Localization
 @using OmniMonitor.Client.Auth
 @using Blazored.LocalStorage
 @using Microsoft.AspNetCore.Components.Authorization
@@ -10,18 +11,16 @@
 @inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IStringLocalizer<Login> Localizer
+@inject IStringLocalizer<SharedResource> SharedLocalizer
 
 <div class="login-center-container flex-grow">
     <MudContainer MaxWidth="MudBlazor.MaxWidth.Small">
         <MudPaper Class="pa-6 rounded-lg d-flex flex-column justify-content-center align-center login-paper" Elevation="10">
 
-            <MudText Typo="Typo.h5" Class="mb-2">Iniciar Sesión</MudText>
-            <MudText Typo="Typo.body2" Class="mb-6">Accede a tu cuenta de OmniMonitor</MudText>
+            <MudText Typo="Typo.h5" Class="mb-2">@SharedLocalizer["LoginTitle"]</MudText>
+            <MudText Typo="Typo.body2" Class="mb-6">@Localizer["Subtitle"]</MudText>
 
-            @*
-                Cambiamos MudForm por EditForm para proveer el EditContext que DataAnnotationsValidator necesita.
-                Esto soluciona el error de renderizado. La lógica de OnValidSubmit sigue funcionando igual.
-            *@
             <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin" Class="d-flex flex-column" Style="width:100%;">
                 <DataAnnotationsValidator />
 
@@ -31,7 +30,7 @@
                     <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
                 }
 
-                <MudTextField T="string" Label="Email"
+                <MudTextField T="string" Label="@Localizer["UsernameLabel"]"
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Username"
                               For="@(() => loginRequest.Username)"
@@ -39,7 +38,7 @@
                               RequiredError="El email es obligatorio."
                               Class="mb-4" />
 
-                <MudTextField T="string" Label="Contraseña"
+                <MudTextField T="string" Label="@Localizer["PasswordLabel"]"
                               InputType="@(showPassword ? InputType.Text : InputType.Password)"
                               Adornment="Adornment.End"
                               AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
@@ -69,7 +68,7 @@
                     }
                     else
                     {
-                        <MudText>Iniciar Sesión</MudText>
+                        <MudText>@Localizer["LoginButton"]</MudText>
                     }
                 </MudButton>
             </EditForm>
