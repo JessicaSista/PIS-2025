@@ -1,32 +1,23 @@
-﻿@using System.Globalization
-@using Blazored.LocalStorage
-@inject ILocalStorageService LocalStorage
+﻿using System.Globalization;
+using Blazored.LocalStorage;
+using Microsoft.AspNetCore.Components;
 
-@if (IsCultureLoaded)
+public class CultureInitializer
 {
-    @ChildContent
-}
-else
-{
-    // Mostrar un mensaje de carga mientras se inicializa el idioma
-    <div class="d-flex justify-center align-center" style="height: 100vh;">
-        <p>Cargando aplicación...</p>
-    </div>
-}
+    private readonly ILocalStorageService _localStorage;
 
-@code {
-    [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public CultureInitializer(ILocalStorageService localStorage)
+    {
+        _localStorage = localStorage;
+    }
 
-    private bool IsCultureLoaded { get; set; } = false;
-
-    protected override async Task OnInitializedAsync()
+    public async Task InitializeCultureAsync()
     {
         // Define el idioma por defecto si no hay nada guardado.
         const string DefaultCultureCode = "es";
 
         // 1. Lee la cultura guardada en el Local Storage
-        var savedCulture = await LocalStorage.GetItemAsStringAsync("culture");
+        var savedCulture = await _localStorage.GetItemAsStringAsync("culture");
         string cultureCodeToUse;
 
         // 2. Si no hay nada guardado o es inválido, usa el valor por defecto.
@@ -42,17 +33,12 @@ else
         // 3. Si usamos el valor por defecto, lo guardamos para la próxima sesión.
         if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
         {
-            await LocalStorage.SetItemAsStringAsync("culture", cultureCodeToUse);
+            await _localStorage.SetItemAsStringAsync("culture", cultureCodeToUse);
         }
 
         // 4. Establece la cultura globalmente (aplica el idioma)
         var cultureInfo = new CultureInfo(cultureCodeToUse);
         CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
-
-        // 5. MARCA LA CULTURA COMO CARGADA Y NOTIFICA EL CAMBIO DE ESTADO
-        // Esto siempre se debe ejecutar para permitir el renderizado
-        IsCultureLoaded = true;
-        StateHasChanged();
     }
 }

@@ -27,6 +27,11 @@
     private readonly string[] SupportedCultures = { "es", "en" };
     private CultureInfo CurrentCulture => CultureInfo.DefaultThreadCurrentUICulture;
 
+    protected override void OnInitialized()
+    {
+        Console.WriteLine($"Idioma actual: {CultureInfo.CurrentUICulture.Name}");
+    }
+
     private async void ChangeLanguage(string newCulture)
     {
         if (newCulture != CurrentCulture.Name)

@@ -1,4 +1,5 @@
 using OmniMonitor.Client;
+using OmniMonitor.Client.Shared;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Localization;
@@ -17,7 +18,15 @@ builder.Services.AddMudServices();
 
 builder.Services.AddBlazoredLocalStorage();
 
-builder.Services.AddLocalization();
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
+// Agrega una instancia del servicio de inicialización de cultura
+builder.Services.AddScoped<CultureInitializer>();
 
-await builder.Build().RunAsync();
+var app = builder.Build();
+
+// Obtiene el servicio de inicialización y lo llama para configurar la cultura al inicio
+var cultureInitializer = app.Services.GetRequiredService<CultureInitializer>();
+await cultureInitializer.InitializeCultureAsync();
+
+await app.RunAsync();
