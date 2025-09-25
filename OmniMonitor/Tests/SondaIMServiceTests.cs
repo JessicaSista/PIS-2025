@@ -17,8 +17,9 @@ public class SondaIMServiceTests
 {
     private SondaIMService CreateService(HttpResponseMessage response, string token = "test-token")
     {
-        var mockAuthService = new Mock<ISondaAuthService>();
-        mockAuthService.Setup(x => x.GetUserTokenAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(token);
+
+    var mockAuthService = new Mock<ISondaAuthService>();
+    mockAuthService.Setup(x => x.GetUserTokenIMAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(token);
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock.Protected()
@@ -33,10 +34,13 @@ public class SondaIMServiceTests
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
 
-    var apiConfig = new ApiConfig
+        var apiConfig = new OmniMonitor.Server.Configuration.ApiConfig
         {
-            BaseUrl = "http://localhost/api/",
-            Endpoints = new Dictionary<string, Dictionary<string, string>>
+            BaseUrl = new OmniMonitor.Server.Configuration.BaseUrlConfig
+            {
+                UrlIM = "http://localhost/api/"
+            },
+            EndpointsIM = new Dictionary<string, Dictionary<string, string>>
             {
                 ["Source"] = new Dictionary<string, string>
                 {
@@ -55,7 +59,7 @@ public class SondaIMServiceTests
                 }
             }
         };
-    var options = Options.Create<ApiConfig>(apiConfig);
+        var options = Options.Create<OmniMonitor.Server.Configuration.ApiConfig>(apiConfig);
 
         return new SondaIMService(httpClientFactoryMock.Object, mockAuthService.Object, options);
     }
