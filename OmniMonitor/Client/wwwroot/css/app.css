@@ -99,3 +99,24 @@ a, .btn-link {
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
+
+
+
+/*solucion tempora para el fondo del tooltip de ApexChart*/
+.apexcharts-menu {
+    background: #010717 !important;
+    border: 1px solid #333 !important;
+}
+.apexcharts-theme-light .apexcharts-menu-item:hover {
+    background: #1d2848 !important;
+}
+.apexcharts-tooltip {
+    background: #010717 !important;
+    color: #ffffff !important;
+    border: 1px solid #333 !important;
+}
+
+.apexcharts-tooltip-title {
+    background: #010717 !important;
+    color: #ffffff !important;
+}

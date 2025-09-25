@@ -1,8 +1,8 @@
 .navmenu-container ::deep .mud-paper {
-    background-color: var(--mud-palette-drawer-background) !important;
+    background-color: var(--fondo-drawer) !important;
     height: 100vh;
     overflow-y: hidden !important;
-    border-right: 1px solid var(--mud-palette-drawer-border);
+    border-right: 1px solid var(--borde-drawer);
     transition: background-color 250ms ease-in-out;
 }
 
@@ -21,16 +21,16 @@
 }
 
 .navmenu-container ::deep .mud-nav-link.active {
-    background-color: var(--mud-palette-action-selected, rgba(255, 255, 255, 0.15)) !important;
+    background-color: var(--seleccion, rgba(255, 255, 255, 0.15)) !important;
     color: var(--mud-palette-primary, #90CAF9) !important;
 }
 
 .navmenu-container ::deep .mud-nav-link:hover:not(.active) {
-    background-color: var(--mud-palette-action-hover, rgba(255, 255, 255, 0.08)) !important;
+    background-color: var(--hover, rgba(255, 255, 255, 0.08)) !important;
 }
 
 .navmenu-container ::deep .mud-nav-group {
-    border-bottom: 1px solid var(--mud-palette-drawer-border, rgba(255, 255, 255, 0.12));
+    border-bottom: 1px solid var(--borde-drawer, rgba(255, 255, 255, 0.12));
 }
 
 .navmenu-container ::deep .mud-nav-group .mud-nav-link {

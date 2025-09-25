@@ -1,17 +1,17 @@
 ::deep .mud-drawer {
-    background: var(--mud-palette-drawer-background) !important;
-    border-right: 1px solid var(--mud-palette-drawer-border, rgba(0, 0, 0, 0.12)) !important;
+    background: var(--fondo-drawer) !important;
+    border-right: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12)) !important;
 }
 
 ::deep .mud-main-content {
     min-height: 100vh;
-    background: var(--mud-palette-background) !important;
+    background: var(--fondo) !important;
 }
 
 ::deep .mud-drawer-content {
-    background: var(--mud-palette-drawer-background) !important;
+    background: var(--fondo-drawer) !important;
     overflow: hidden !important;
-    border-right: 1px solid var(--mud-palette-drawer-border, rgba(0, 0, 0, 0.12)) !important;
+    border-right: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12)) !important;
 }
 
 ::deep .mud-drawer-content .mud-nav-menu {
@@ -29,7 +29,7 @@
 
 ::deep .mud-drawer-header {
     min-height: 64px;
-    border-bottom: 1px solid var(--mud-palette-drawer-border);
+    border-bottom: 1px solid var(--borde-drawer);
     padding: 0 16px;
     display: flex;
     align-items: center;
@@ -46,22 +46,22 @@
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--mud-palette-scrollbar-track, #f5f5f5);
+    background: var(--scrollbar-fondo, #f5f5f5);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--mud-palette-scrollbar-thumb, #bdbdbd);
+    background: var(--scrollbar-pulgar, #bdbdbd);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--mud-palette-scrollbar-thumb-hover, #9e9e9e);
+    background: var(--scrollbar-pulgar-hover, #9e9e9e);
 }
 
 * {
     scrollbar-width: thin;
-    scrollbar-color: var(--mud-palette-scrollbar-thumb, #bdbdbd) var(--mud-palette-scrollbar-track, #f5f5f5);
+    scrollbar-color: var(--scrollbar-pulgar, #bdbdbd) var(--scrollbar-fondo, #f5f5f5);
 }
 
 .top-row {
