@@ -126,6 +126,12 @@
   <data name="PasswordLabel" xml:space="preserve">
     <value>Password</value>
   </data>
+  <data name="RequiredUsername" xml:space="preserve">
+    <value>Username required.</value>
+  </data>
+  <data name="RequiredPassword" xml:space="preserve">
+    <value>Password required.</value>
+  </data>
   <data name="Subtitle" xml:space="preserve">
     <value>Access your OmniMonitor account</value>
   </data>

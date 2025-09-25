@@ -30,15 +30,17 @@
                     <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
                 }
 
-                <MudTextField T="string" Label="@Localizer["UsernameLabel"]"
+                <MudText Typo="Typo.body2" Class="mb-2">@Localizer["UsernameLabel"]</MudText>
+                <MudTextField T="string"
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Username"
                               For="@(() => loginRequest.Username)"
                               Required="true"
-                              RequiredError="El email es obligatorio."
+                              RequiredError="@Localizer["RequiredUsername"]"
                               Class="mb-4" />
 
-                <MudTextField T="string" Label="@Localizer["PasswordLabel"]"
+                <MudText Typo="Typo.body2" Class="mb-2">@Localizer["PasswordLabel"]</MudText>
+                <MudTextField T="string"
                               InputType="@(showPassword ? InputType.Text : InputType.Password)"
                               Adornment="Adornment.End"
                               AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
@@ -50,10 +52,6 @@
                               RequiredError="La contraseña es obligatoria."
                               Class="mb-4" />
 
-                @*
-                    El ButtonType.Submit activará el OnValidSubmit del EditForm.
-                    El estado de carga deshabilita el botón mientras se procesa la solicitud.
-                *@
                 <MudButton ButtonType="ButtonType.Submit"
                            Variant="MudBlazor.Variant.Filled"
                            Color="MudBlazor.Color.Primary"
