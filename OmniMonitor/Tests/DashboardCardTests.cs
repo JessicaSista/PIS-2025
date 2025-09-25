@@ -27,7 +27,7 @@ public class DashboardCardTests : TestContext
         // Arrange & Act
         var cut = RenderComponent<DashboardCard>(
             ComponentParameter.CreateParameter(nameof(DashboardCard.esKPI), true),
-            ComponentParameter.CreateParameter(nameof(DashboardCard.titulo), "Mi KPI")
+            ComponentParameter.CreateParameter(nameof(DashboardCard.Title), "Mi KPI")
         );
         // Assert
         Assert.Contains("Mi KPI", cut.Markup);
@@ -56,25 +56,25 @@ public class DashboardCardTests : TestContext
 
         var cut = RenderComponent<DashboardCard>(
             ComponentParameter.CreateParameter(nameof(DashboardCard.esKPI), false),
-            ComponentParameter.CreateParameter(nameof(DashboardCard.data), data)
+            ComponentParameter.CreateParameter(nameof(DashboardCard.Datos), data)
         );
 
         // Verificamos cantidad de series
-        Assert.Equal(2, cut.Instance.data.Length);
+        Assert.Equal(2, cut.Instance.Datos.Length);
 
         // Verificamos nombres y colores
-        Assert.Equal("Sales", cut.Instance.data[0].Item1);
-        Assert.Equal("#ff0000", cut.Instance.data[0].Item2);
-        Assert.Equal("Costs", cut.Instance.data[1].Item1);
-        Assert.Equal("#00ff00", cut.Instance.data[1].Item2);
+        Assert.Equal("Sales", cut.Instance.Datos[0].Item1);
+        Assert.Equal("#ff0000", cut.Instance.Datos[0].Item2);
+        Assert.Equal("Costs", cut.Instance.Datos[1].Item1);
+        Assert.Equal("#00ff00", cut.Instance.Datos[1].Item2);
 
         // Verificamos longitud de datos
-        Assert.Equal(3, cut.Instance.data[0].Item4.Length);
-        Assert.Equal(3, cut.Instance.data[1].Item4.Length);
+        Assert.Equal(3, cut.Instance.Datos[0].Item4.Length);
+        Assert.Equal(3, cut.Instance.Datos[1].Item4.Length);
 
         // Verificamos algunos valores
-        Assert.Equal(10, cut.Instance.data[0].Item4[0]);
-        Assert.Equal(15, cut.Instance.data[1].Item4[2]);
+        Assert.Equal(10, cut.Instance.Datos[0].Item4[0]);
+        Assert.Equal(15, cut.Instance.Datos[1].Item4[2]);
     }
 
     [Fact]
@@ -126,13 +126,13 @@ public class DashboardCardTests : TestContext
         .Add(p => p.Value, Breakpoint.Lg)
         .AddChildContent<DashboardCard>(child => child
         .Add(p => p.esKPI, false)
-        .Add(p => p.width_lg, 6)
+        .Add(p => p.WidthLg, 6)
     )
 );
 
         var buttons = cut.FindAll("button.mud-icon-button");
         buttons[2].Click(); // Left arrow
-        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.width_lg);
+        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.WidthLg);
     }
 
     [Fact]
@@ -142,12 +142,72 @@ public class DashboardCardTests : TestContext
             .Add(p => p.Value, Breakpoint.Lg)
             .AddChildContent<DashboardCard>(child => child
                 .Add(p => p.esKPI, false)
-                .Add(p => p.width_lg, 4)
+                .Add(p => p.WidthLg, 4)
             )
         );
         var buttons = cut.FindAll("button.mud-icon-button");
         buttons[3].Click(); // Right arrow
-        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.width_lg);
+        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.WidthLg);
+    }
+
+    [Fact]
+    public void Graph_ResizeLeft_DecreasesWidth_MdBreakpoint()
+    {
+        var cut = RenderComponent<CascadingValue<Breakpoint>>(parameters => parameters
+            .Add(p => p.Value, Breakpoint.Md)
+            .AddChildContent<DashboardCard>(child => child
+                .Add(p => p.esKPI, false)
+                .Add(p => p.WidthMd, 6)
+            )
+        );
+        var buttons = cut.FindAll("button.mud-icon-button");
+        buttons[2].Click();
+        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.WidthMd);
+    }
+
+    [Fact]
+    public void Graph_ResizeRight_IncreasesWidth_MdBreakpoint()
+    {
+        var cut = RenderComponent<CascadingValue<Breakpoint>>(parameters => parameters
+            .Add(p => p.Value, Breakpoint.Md)
+            .AddChildContent<DashboardCard>(child => child
+                .Add(p => p.esKPI, false)
+                .Add(p => p.WidthMd, 4)
+            )
+        );
+        var buttons = cut.FindAll("button.mud-icon-button");
+        buttons[3].Click();
+        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.WidthMd);
+    }
+
+    [Fact]
+    public void Graph_ResizeLeft_DecreasesWidth_XsBreakpoint()
+    {
+        var cut = RenderComponent<CascadingValue<Breakpoint>>(parameters => parameters
+            .Add(p => p.Value, Breakpoint.Xs)
+            .AddChildContent<DashboardCard>(child => child
+                .Add(p => p.esKPI, false)
+                .Add(p => p.WidthXs, 7)
+            )
+        );
+        var buttons = cut.FindAll("button.mud-icon-button");
+        buttons[2].Click();
+        Assert.Equal(6, cut.FindComponent<DashboardCard>().Instance.WidthXs);
+    }
+
+    [Fact]
+    public void Graph_ResizeRight_IncreasesWidth_XsBreakpoint()
+    {
+        var cut = RenderComponent<CascadingValue<Breakpoint>>(parameters => parameters
+            .Add(p => p.Value, Breakpoint.Xs)
+            .AddChildContent<DashboardCard>(child => child
+                .Add(p => p.esKPI, false)
+                .Add(p => p.WidthXs, 4)
+            )
+        );
+        var buttons = cut.FindAll("button.mud-icon-button");
+        buttons[3].Click();
+        Assert.Equal(5, cut.FindComponent<DashboardCard>().Instance.WidthXs);
     }
 
     [Theory]
@@ -158,10 +218,10 @@ public class DashboardCardTests : TestContext
     {
         var cut = RenderComponent<DashboardCard>(
             ComponentParameter.CreateParameter(nameof(DashboardCard.esKPI), false),
-            ComponentParameter.CreateParameter(nameof(DashboardCard.tipo_grafica), tipoIndex)
+            ComponentParameter.CreateParameter(nameof(DashboardCard.GraphType), tipoIndex)
         );
 
         // Verificamos que el índice es válido
-        Assert.InRange(cut.Instance.tipo_grafica, 0, 2);
+        Assert.InRange(cut.Instance.GraphType, 0, 2);
     }
 }
