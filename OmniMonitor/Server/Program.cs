@@ -94,6 +94,7 @@ builder.Services.AddRazorPages();
 
 builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
+builder.Services.AddScoped<ISondaUMService, SondaUMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddHttpClient();
