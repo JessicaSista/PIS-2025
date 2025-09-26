@@ -97,6 +97,14 @@ builder.Services.AddScoped<ISondaIMService, SondaIMService>();
 builder.Services.AddScoped<ISondaUMService, SondaUMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
+
+// Registro de validadores de módulos de datasets
+builder.Services.AddScoped<IDatasetModuleValidator, DatasetIMValidator>();
+// TODO: Agregar otros validadores cuando se implementen otros módulos
+// builder.Services.AddScoped<IDatasetModuleValidator, DatasetAMValidator>();
+// builder.Services.AddScoped<IDatasetModuleValidator, DatasetUMValidator>();
+
+builder.Services.AddScoped<IDatasetService, DatasetService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();

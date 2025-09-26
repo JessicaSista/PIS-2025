@@ -20,6 +20,10 @@ namespace OmniMonitor.Server.Context
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Permission> Permissions { get; set; }
 
+        // Entidades del sistema de datasets
+        public DbSet<Dataset> Datasets { get; set; }
+        public DbSet<DeviceGrupo> DeviceGrupos { get; set; }
+
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
@@ -42,6 +46,9 @@ namespace OmniMonitor.Server.Context
             
             // Configurar relaciones del sistema de roles y permisos
             ConfigureRolePermissionRelationships(builder);
+            
+            // Configurar relaciones del sistema de datasets
+            ConfigureDatasetRelationships(builder);
             
             // Seed default data
             Seed(builder);
@@ -95,6 +102,41 @@ namespace OmniMonitor.Server.Context
         }
 
         /// <summary>
+        /// Configura las relaciones entre las entidades de datasets
+        /// </summary>
+        private void ConfigureDatasetRelationships(ModelBuilder builder)
+        {
+            // Configurar Dataset
+            builder.Entity<Dataset>()
+                .HasKey(d => d.Id);
+
+            builder.Entity<Dataset>()
+                .HasOne(d => d.Usuario)
+                .WithMany()
+                .HasForeignKey(d => d.IdUsuario)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configurar DeviceGrupo
+            builder.Entity<DeviceGrupo>()
+                .HasKey(dg => dg.Id);
+
+            builder.Entity<DeviceGrupo>()
+                .HasOne(dg => dg.Dataset)
+                .WithMany(d => d.DeviceGrupos)
+                .HasForeignKey(dg => dg.IdDataset)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Índices únicos
+            builder.Entity<Dataset>()
+                .HasIndex(d => new { d.Nombre, d.IdUsuario })
+                .IsUnique();
+
+            builder.Entity<DeviceGrupo>()
+                .HasIndex(dg => new { dg.GrupoDevice, dg.IdDevice, dg.IdDataset })
+                .IsUnique();
+        }
+
+        /// <summary>
         /// Method to seed default data to the database.
         /// </summary>
         protected void Seed(ModelBuilder builder)
@@ -124,7 +166,11 @@ namespace OmniMonitor.Server.Context
                 
                 // Permisos de items
                 new Permission { Id = 9, Name = "Ver Items", Description = "Permite ver la lista de items"},
-                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"}
+                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"},
+                
+                // Permisos de datasets
+                new Permission { Id = 11, Name = "Ver Datasets", Description = "Permite ver la lista de datasets"},
+                new Permission { Id = 12, Name = "Gestionar Datasets", Description = "Permite crear, editar y eliminar datasets"}
             );
 
             // Asignar permisos a roles
@@ -140,12 +186,15 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 8, RoleId = 1, PermissionId = 8 },
                 new RolePermission { Id = 9, RoleId = 1, PermissionId = 9 },
                 new RolePermission { Id = 10, RoleId = 1, PermissionId = 10 },
+                new RolePermission { Id = 15, RoleId = 1, PermissionId = 11 },
+                new RolePermission { Id = 16, RoleId = 1, PermissionId = 12 },
                 
                 // Visitante solo tiene permisos de lectura
                 new RolePermission { Id = 11, RoleId = 2, PermissionId = 1 },
                 new RolePermission { Id = 12, RoleId = 2, PermissionId = 5 },
                 new RolePermission { Id = 13, RoleId = 2, PermissionId = 7 },
-                new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 }
+                new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 },
+                new RolePermission { Id = 17, RoleId = 2, PermissionId = 11 }
             );
 
             // Usuarios de prueba
