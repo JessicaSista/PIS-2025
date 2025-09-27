@@ -21,11 +21,11 @@ public class SondaMainController : ControllerBase
     [HttpGet("devices")]
     [ProducesResponseType(typeof(List<Device>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<Device>>> GetSondaDevices(int page, string user, string pass)
+    public async Task<ActionResult<List<Device>>> GetSondaDevices(int page)
     {
         try
         {
-            var devices = await _sondaIMApiService.GetAllDevicesByPage(page, user, pass);
+            var devices = await _sondaIMApiService.GetAllDevices("admin", "admin");
             return Ok(devices);
         }
         catch (Exception ex)
@@ -51,7 +51,6 @@ public class SondaMainController : ControllerBase
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
-
 
 
     // ---------------- DEVICE GROUPS ----------------

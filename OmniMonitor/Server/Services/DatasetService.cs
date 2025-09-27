@@ -102,48 +102,39 @@ namespace OmniMonitor.Server.Services
                     return null;
                 }
 
-                // 1. Obtener todos los devices de la API, manejando la paginación.
-                List<Device> allDevices = new List<Device>();
-                int currentPage = 1;
-                List<Device>? pagedDevices;
-                do
+                // 1. Obtener todos los devices de la API en una sola llamada.
+                List<Device>? allDevices = await _sondaIMService.GetAllDevices(user.Username, user.Password);
+
+                if (allDevices != null && allDevices.Any())
                 {
-                    // Se asume que el password almacenado es el correcto para la API.
-                    pagedDevices = await _sondaIMService.GetAllDevicesByPage(currentPage, user.Username, user.Password);
-                    if (pagedDevices != null && pagedDevices.Any())
+                    // 2. Filtrar la lista completa de devices en memoria.
+                    IEnumerable<Device> filteredDevices = allDevices;
+
+                    if (dataset.Id_Source.HasValue)
                     {
-                        allDevices.AddRange(pagedDevices);
-                        currentPage++;
+                        // El objeto Device tiene una propiedad 'SourceId', por lo que este filtro es directo.
+                        filteredDevices = filteredDevices.Where(d => d.SourceId == dataset.Id_Source.Value);
                     }
-                } while (pagedDevices != null && pagedDevices.Any());
+                    if (dataset.Id_Group.HasValue)
+                    {
+                        // El objeto Device tiene una lista de grupos. Verificamos si alguno de ellos coincide.
+                        filteredDevices = filteredDevices.Where(d => d.Groups != null && d.Groups.Any(g => g.Id == dataset.Id_Group.Value));
+                    }
 
-                // 2. Filtrar la lista completa de devices en memoria.
-                IEnumerable<Device> filteredDevices = allDevices;
+                    /*if (!string.IsNullOrEmpty(dataset.SensorName))
+                    {
+                        string sensorNameToFind = dataset.SensorName;
 
-                if (dataset.Id_Source.HasValue)
-                {
-                    // El objeto Device tiene una propiedad 'SourceId', por lo que este filtro es directo.
-                    filteredDevices = filteredDevices.Where(d => d.SourceId == dataset.Id_Source.Value);
-                }
-                if (dataset.Id_Group.HasValue)
-                {
-                    // El objeto Device tiene una lista de grupos. Verificamos si alguno de ellos coincide.
-                    filteredDevices = filteredDevices.Where(d => d.Groups != null && d.Groups.Any(g => g.Id == dataset.Id_Group.Value));
-                }
+                        // Filtramos los devices de la API que contengan un sensor con el nombre especificado.
+                        filteredDevices = filteredDevices.Where(d => d.Sensors != null && d.Sensors.Any(s => s.Name == sensorNameToFind));
+                    }*/
 
-                if (!string.IsNullOrEmpty(dataset.SensorName))
-                {
-                    string sensorNameToFind = dataset.SensorName;
-
-                    // Filtramos los devices de la API que contengan un sensor con el nombre especificado.
-                    filteredDevices = filteredDevices.Where(d => d.Sensors != null && d.Sensors.Any(s => s.Name == sensorNameToFind));
-                }
-
-                // 3. Agregar los IDs de los devices encontrados al dataset.
-                var foundDeviceIds = filteredDevices.Select(d => d.Id).ToList();
-                foreach (var deviceId in foundDeviceIds)
-                {
-                    dataset.DatasetDevices.Add(new DatasetDevice { Id_device = deviceId });
+                    // 3. Agregar los IDs de los devices encontrados al dataset.
+                    var foundDeviceIds = filteredDevices.Select(d => d.Id).ToList();
+                    foreach (var deviceId in foundDeviceIds)
+                    {
+                        dataset.DatasetDevices.Add(new DatasetDevice { Id_device = deviceId });
+                    }
                 }
             }
 
@@ -153,3 +144,4 @@ namespace OmniMonitor.Server.Services
         }
     }
 }
+
