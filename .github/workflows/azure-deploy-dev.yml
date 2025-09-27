@@ -43,10 +43,11 @@ jobs:
         run: dotnet build --configuration Release --no-restore
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
 
-      #- name: Run tests
-      # run: dotnet test --no-build --verbosity normal
-      #working-directory: ${{ github.workspace }}/tests
-      # continue-on-error: false # si falla, se corta el workflow
+      - name: Run Tests
+        run: dotnet test ./OmniMonitor/Tests/QA.Tests.csproj --no-build --verbosity normal
+        working-directory: ${{ github.workspace }}
+        continue-on-error: false # si falla, se corta el workflow
+
       - name: Clean publish folder
         run: rm -rf ./publish
         working-directory: ${{ github.workspace }}/${{ steps.find-server.outputs.server_path }}
