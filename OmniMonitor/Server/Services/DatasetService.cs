@@ -46,11 +46,31 @@ namespace OmniMonitor.Server.Services
                 Name = request.Name,
                 Description = request.Description,
                 Is_Dataset = request.IsDataset,
-                ContentType = request.ContentType, // Solo relevante si Is_Dataset es 'N'
                 Id_Source = request.SourceId,
                 Id_Group = request.GroupId,
                 SensorName = request.SensorName
             };
+
+            // --- LÓGICA MODIFICADA PARA CONTENTTYPE ---
+           // if (request.IsDataset == "S")
+          //  {
+          //      newDataset.ContentType = "0"; // 0 para indicar un dataset formal
+          //  }
+         //   else // Si IsDataset es 'N'
+          //  {
+                if (request.DeviceIds != null && request.DeviceIds.Any())
+                {
+                    newDataset.ContentType = "1"; // 1 para indicar un device
+                }
+                else if (request.SourceId.HasValue)
+                {
+                    newDataset.ContentType = "2"; // 2 para indicar una source
+                }
+                else if (!string.IsNullOrEmpty(request.SensorName))
+                {
+                    newDataset.ContentType = "3"; // 3 para indicar un sensor
+                }
+         //   }
 
             // Si el usuario seleccionó devices específicos, los agregamos.
             if (request.DeviceIds != null && request.DeviceIds.Any())
@@ -102,30 +122,52 @@ namespace OmniMonitor.Server.Services
                     return null;
                 }
 
-                // 1. Obtener todos los devices de la API en una sola llamada.
-                List<Device>? allDevices = await _sondaIMService.GetAllDevices(user.Username, user.Password);
+                // --- LÓGICA MODIFICADA: Búsqueda dinámica optimizada ---
+                List<Device>? devicesFromSource = null;
+                List<Device>? devicesFromGroup = null;
 
-                if (allDevices != null && allDevices.Any())
+                // 1. Obtener las listas de dispositivos de la API según los filtros proporcionados.
+                if (dataset.Id_Source.HasValue)
                 {
-                    // 2. Filtrar la lista completa de devices en memoria.
-                    IEnumerable<Device> filteredDevices = allDevices;
+                    devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.Username, user.Password);
+                }
+                if (dataset.Id_Group.HasValue)
+                {
+                    devicesFromGroup = await _sondaIMService.GetDeviceOfGroup(dataset.Id_Group.Value, user.Username, user.Password);
+                }
 
-                    if (dataset.Id_Source.HasValue)
-                    {
-                        // El objeto Device tiene una propiedad 'SourceId', por lo que este filtro es directo.
-                        filteredDevices = filteredDevices.Where(d => d.SourceId == dataset.Id_Source.Value);
-                    }
-                    if (dataset.Id_Group.HasValue)
-                    {
-                        // El objeto Device tiene una lista de grupos. Verificamos si alguno de ellos coincide.
-                        filteredDevices = filteredDevices.Where(d => d.Groups != null && d.Groups.Any(g => g.Id == dataset.Id_Group.Value));
-                    }
+                // 2. Determinar la lista final de dispositivos a partir de las listas obtenidas.
+                List<Device> finalDeviceList = new List<Device>();
+
+                if (devicesFromSource != null && devicesFromGroup != null)
+                {
+                    // Caso AND: Intersección de ambas listas. Se necesitan los devices que estén en ambas.
+                    var deviceIdsFromGroup = new HashSet<int>(devicesFromGroup.Select(d => d.Id));
+                    finalDeviceList = devicesFromSource.Where(d => deviceIdsFromGroup.Contains(d.Id)).ToList();
+                }
+                else if (devicesFromSource != null)
+                {
+                    // Solo se filtró por source.
+                    finalDeviceList = devicesFromSource;
+                }
+                else if (devicesFromGroup != null)
+                {
+                    // Solo se filtró por grupo.
+                    finalDeviceList = devicesFromGroup;
+                }
+                else
+                {
+                    // Fallback: si no hay ni source ni grupo, obtener todos.
+                    finalDeviceList = await _sondaIMService.GetAllDevices(user.Username, user.Password) ?? new List<Device>();
+                }
+
+                if (finalDeviceList.Any())
+                {
+                    IEnumerable<Device> filteredDevices = finalDeviceList;
 
                     /*if (!string.IsNullOrEmpty(dataset.SensorName))
                     {
                         string sensorNameToFind = dataset.SensorName;
-
-                        // Filtramos los devices de la API que contengan un sensor con el nombre especificado.
                         filteredDevices = filteredDevices.Where(d => d.Sensors != null && d.Sensors.Any(s => s.Name == sensorNameToFind));
                     }*/
 

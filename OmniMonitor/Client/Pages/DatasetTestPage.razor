@@ -73,10 +73,9 @@
 
                     @if (allDevices.Any())
                     {
-                        <MudSelect T="IEnumerable<int>" @bind-Value="selectedDeviceIds" Label="Devices" MultiSelection="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelect T="int" @bind-SelectedValues="selectedDeviceIds" Label="Devices" MultiSelection="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                              @foreach (var device in allDevices)
                             {
-                                <!-- LÍNEA MODIFICADA: Se eliminó T="int" para evitar el error de casteo -->
                                 <MudSelectItem Value="@device.Id">@device.Name</MudSelectItem>
                             }
                         </MudSelect>
@@ -186,7 +185,7 @@
 
     private List<Dataset>? userDatasets;
     private Dataset? selectedDataset;
-
+    
     // Banderas de estado de carga
     private bool isLoadingOptions = true;
     private bool isLoadingDatasets = false;
@@ -211,9 +210,6 @@
             allSources = await GetAndHandleResponse<List<Source>>("api/SondaMain/sources") ?? new();
             allGroups = await GetAndHandleResponse<List<DeviceGroup>>("api/SondaMain/groups") ?? new();
             allDevices = await GetAndHandleResponse<List<Device>>("api/SondaMain/devices?user=admin&pass=admin") ?? new();
-            Console.WriteLine("dasbdasiopdbhasipodnsaoidniopas" + allDevices.Count());
-
-            //for ()
 
             if (allDevices.Any())
             {
