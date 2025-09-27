@@ -72,7 +72,9 @@ public class SondaIMService : ISondaIMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        
+
+        Console.WriteLine($"Response Body (Devices): {responseBody}");
+
         var pagedResponse = JsonSerializer.Deserialize<PagedDeviceResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         return pagedResponse?.PagedData;
