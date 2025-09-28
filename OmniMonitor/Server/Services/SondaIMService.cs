@@ -12,13 +12,19 @@ public interface ISondaIMService
 
     //****************DEVICES***************
     // GET all devices
-    Task<List<Device>?> GetAllDevicesByPage(int page, string username, string password);
+    Task<List<Device>?> GetAllDevices(string username, string password);
 
     // GET device by ID
     Task<Device?> GetDeviceById(int id, string username, string password);
+
+
+    // Obtener todos los devices pertenecientes a una source
+    Task<List<Device>?> GetDeviceOfSource(int id, string username, string password);
+
+    // Obtener todos los devices pertenecientes a un grupo
+    Task<List<Device>?> GetDeviceOfGroup(int id, string username, string password);
     //***************************************
 
-    
     //***************DEVICE GROUPS*************
     // GET all device groups
     Task<List<DeviceGroup>> GetAllDeviceGroups(string username, string password);
@@ -51,31 +57,29 @@ public class SondaIMService : ISondaIMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<List<Device>?> GetAllDevicesByPage(int page, string username, string password)
+    public async Task<List<Device>?> GetAllDevices(string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["GetAll"];
-
-        if (page <= 0)
-        {
-            throw new ArgumentException("El número de página debe ser positivo.", nameof(page));
-        }
-
         string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
 
-        string getDataUrl = baseUrl + endpoint + "?page=" + page;
+        // Se actualizó la URL para usar page=-1 y obtener todos los dispositivos
+        string getDataUrl = $"{baseUrl}{endpoint}?page=-1";
+
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        // Respuesta de la API
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        
-        var pagedResponse = JsonSerializer.Deserialize<PagedDeviceResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-        return pagedResponse?.PagedData;
+        Console.WriteLine($"Response Body (All Devices): {responseBody}");
+
+        // La respuesta ahora es un arreglo directo de dispositivos, por lo que se deserializa a List<Device>
+        var devices = JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return devices;
     }
 
     public async Task<Device?> GetDeviceById(int id, string username, string password)
@@ -175,6 +179,56 @@ public class SondaIMService : ISondaIMService
         return parsed;
     }
 
+    public async Task<List<Device>> GetDeviceOfSource(int id, string username, string password)
+    {
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Device"]["DevicesOfSource"];
+
+        string getDataUrl = baseUrl + endpoint + "/" + id;
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync(getDataUrl);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        Console.WriteLine($"Response Body (DevicesOfSource): {responseBody}");
+
+        // La respuesta ahora es un arreglo directo de dispositivos, por lo que se deserializa a List<Device>
+        var devices = JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return devices;
+    }
+
+    // Obtener todos los devices pertenecientes a un grupo
+    public async Task<List<Device>> GetDeviceOfGroup(int id, string username, string password)
+    {
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Device"]["DevicesOfGroup"];
+
+        string getDataUrl = baseUrl + endpoint + "/" + id;
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync(getDataUrl);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        Console.WriteLine($"Response Body (GetDeviceOfGroup): {responseBody}");
+
+        // La respuesta ahora es un arreglo directo de dispositivos, por lo que se deserializa a List<Device>
+        var devices = JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        return devices;
+    }
 
     public async Task<List<Source>> GetAllSources(string username, string password)
     {
