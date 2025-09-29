@@ -21,9 +21,10 @@
         
         <MudIconButton Icon="@(IsDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
                         OnClick="ToggleTheme" 
-                        Title="@($"Cambiar a modo {(IsDarkMode ? "claro" : "oscuro")}")" />
+                        Title="@($"Cambiar a modo {(IsDarkMode ? "claro" : "oscuro")}")"
+                        Class="theme-toggle" />
         
-        @* <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
+        <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
             <ActivatorContent>
                 <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowDropDown" Class="language-selector">
                     ES
@@ -37,15 +38,18 @@
                     <MudText>English</MudText>
                 </MudMenuItem>
             </ChildContent>
-        </MudMenu> *@
-
-        <LanguageSelector />
+        </MudMenu> 
+      
+       <LanguageSelector />
 
         <AuthorizeView>
             <Authorized>
-                <MudMenu>
+                <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
                     <ActivatorContent>
-                        <MudIconButton Icon="@Icons.Material.Filled.AccountCircle" />
+                        <MudButton Variant="Variant.Text" Class="user-selector">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Class="icon-account" />
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowDropDown" Class="icon-arrow" />
+                        </MudButton>
                     </ActivatorContent>
                     <ChildContent>
                         <MudMenuItem OnClick="Logout">
@@ -56,15 +60,14 @@
                 </MudMenu>
             </Authorized>
         </AuthorizeView>
+
     </MudAppBar>
 </div>
 
 @code {
     [Parameter] public EventCallback ToggleDrawer { get; set; }
     [Parameter] public bool IsDarkMode { get; set; }
-    [Parameter] public EventCallback ToggleTheme { get; set; }    
-    private string searchText = "";
-
+    [Parameter] public EventCallback ToggleTheme { get; set; }
 
     private async Task Logout()
     {   
