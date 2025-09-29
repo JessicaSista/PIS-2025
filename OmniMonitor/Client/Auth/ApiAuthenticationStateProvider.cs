@@ -1,11 +1,12 @@
 ﻿using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
+using System;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 
 namespace OmniMonitor.Client.Auth
 {
@@ -13,10 +14,12 @@ namespace OmniMonitor.Client.Auth
     {
         private readonly ILocalStorageService _localStorage;
         private readonly JwtSecurityTokenHandler _tokenHandler = new();
+        private readonly HttpClient _httpClient;
 
-        public ApiAuthenticationStateProvider(ILocalStorageService localStorage)
+        public ApiAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient)
         {
             _localStorage = localStorage;
+            _httpClient = httpClient;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -25,17 +28,24 @@ namespace OmniMonitor.Client.Auth
             {
                 var token = await _localStorage.GetItemAsync<string>("authToken");
 
+
+                // Si no hay token
                 if (string.IsNullOrWhiteSpace(token))
                 {
+                    _httpClient.DefaultRequestHeaders.Authorization = null;
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Anonymous user
                 }
 
+                // Si hay token lo parseamos
                 var jsonToken = _tokenHandler.ReadToken(token) as JwtSecurityToken;
 
+
+                // Si el jsonToken es null o ha expirado
                 if (jsonToken == null || jsonToken.ValidTo < DateTime.UtcNow)
                 {
                     await _localStorage.RemoveItemAsync("authToken");
-                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Expired or invalid token
+                    _httpClient.DefaultRequestHeaders.Authorization = null;
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
                 // The JWT token uses short claim type names (e.g., "nameid"),
@@ -69,6 +79,8 @@ namespace OmniMonitor.Client.Auth
             }
             catch
             {
+                await _localStorage.RemoveItemAsync("authToken");
+                _httpClient.DefaultRequestHeaders.Authorization = null;
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Error state
             }
         }
@@ -76,6 +88,7 @@ namespace OmniMonitor.Client.Auth
         public async Task NotifyUserAuthentication(string token)
         {
             await _localStorage.SetItemAsync("authToken", token);
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var authState = await GetAuthenticationStateAsync();
             NotifyAuthenticationStateChanged(Task.FromResult(authState));
         }
@@ -83,6 +96,7 @@ namespace OmniMonitor.Client.Auth
         public async Task NotifyUserLogout()
         {
             await _localStorage.RemoveItemAsync("authToken");
+            _httpClient.DefaultRequestHeaders.Authorization = null;
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
             var authState = Task.FromResult(new AuthenticationState(anonymousUser));
             NotifyAuthenticationStateChanged(authState);

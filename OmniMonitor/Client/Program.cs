@@ -11,11 +11,8 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// --- REMOVE THE OLD HTTPCLIENT REGISTRATION ---
-// builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-
-// --- ADD THE NEW HTTPCLIENT FACTORY CONFIGURATION ---
+// --- ADD THE HTTPCLIENT FACTORY CONFIGURATION ---
 
 // 1. Register the AuthHeaderHandler from the Canvas
 builder.Services.AddScoped<AuthHeaderHandler>();
@@ -40,4 +37,16 @@ builder.Services.AddAuthorizationCore();
 
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
 
-await builder.Build().RunAsync();
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+
+// Agrega una instancia del servicio de inicializacion de cultura
+builder.Services.AddScoped<CultureInitializer>();
+
+var app = builder.Build();
+
+// Obtiene el servicio de inicializacion y lo llama para configurar la cultura al inicio
+var cultureInitializer = app.Services.GetRequiredService<CultureInitializer>();
+await cultureInitializer.InitializeCultureAsync();
+
+await app.RunAsync();

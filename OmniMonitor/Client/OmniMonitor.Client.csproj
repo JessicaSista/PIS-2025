@@ -5,7 +5,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="Shared\RedirectToLogin.razor" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Blazor-ApexCharts" Version="6.0.2" />

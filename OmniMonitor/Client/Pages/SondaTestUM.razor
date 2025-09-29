@@ -1,0 +1,129 @@
+﻿@page "/sonda-test-um"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@using System.Net.Http.Json
+
+<h3>SondaTestUM</h3>
+
+<div class="mb-3">
+    <!-- Botón UM -->
+    <button class="btn btn-primary me-2" @onclick="CallUMApi" disabled="@isLoadingUM">
+        @if (isLoadingUM)
+        {
+            <span>Cargando...</span>
+        }
+        else
+        {
+            <span>Probar Endpoint UM</span>
+        }
+    </button>
+
+    <!-- Botón All Zones -->
+    <button class="btn btn-secondary me-2" @onclick="CallZonesApi" disabled="@isLoadingZones">
+        @if (isLoadingZones)
+        {
+            <span>Cargando Zones...</span>
+        }
+        else
+        {
+            <span>Probar Zones</span>
+        }
+    </button>
+
+    <!-- Input + Botón Zone por ID -->
+    <input type="number" class="form-control d-inline-block me-2" style="width:100px" @bind="zoneId" />
+    <button class="btn btn-info" @onclick="CallZoneByIdApi" disabled="@isLoadingZoneById">
+        @if (isLoadingZoneById)
+        {
+            <span>Cargando...</span>
+        }
+        else
+        {
+            <span>Probar Zone por ID</span>
+        }
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(resultUM))
+{
+    <p><b>Respuesta UM:</b> @resultUM</p>
+}
+
+@if (!string.IsNullOrEmpty(resultZones))
+{
+    <p><b>Respuesta Zones:</b> @resultZones</p>
+}
+
+@if (!string.IsNullOrEmpty(resultZoneById))
+{
+    <p><b>Respuesta Zone por ID:</b> @resultZoneById</p>
+}
+
+@code {
+    private string? resultUM;
+    private string? resultZones;
+    private string? resultZoneById;
+
+    private bool isLoadingUM = false;
+    private bool isLoadingZones = false;
+    private bool isLoadingZoneById = false;
+
+    private int zoneId;
+
+    private async Task CallUMApi()
+    {
+        try
+        {
+            isLoadingUM = true;
+            resultUM = null;
+            resultUM = await Http.GetStringAsync("api/SondaMain/um");
+        }
+        catch (Exception ex)
+        {
+            resultUM = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingUM = false;
+        }
+    }
+
+    private async Task CallZonesApi()
+    {
+        try
+        {
+            isLoadingZones = true;
+            resultZones = null;
+            resultZones = await Http.GetStringAsync("api/SondaMain/zones");
+        }
+        catch (Exception ex)
+        {
+            resultZones = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingZones = false;
+        }
+    }
+
+    private async Task CallZoneByIdApi()
+    {
+        try
+        {
+            isLoadingZoneById = true;
+            resultZoneById = null;
+
+           
+            resultZoneById = await Http.GetStringAsync($"api/SondaMain/zones/{zoneId}");
+        }
+        catch (Exception ex)
+        {
+            resultZoneById = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingZoneById = false;
+        }
+    }
+}

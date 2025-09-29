@@ -22,6 +22,71 @@ namespace OmniMonitor.Server.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dataset", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("Id_Group")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Source")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Is_Dataset")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SensorName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Datasets");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_device")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetDevices");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -353,6 +418,17 @@ namespace OmniMonitor.Server.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.Dataset", "Dataset")
+                        .WithMany("DatasetDevices")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.RolePermission", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.Permission", "Permission")
@@ -389,6 +465,11 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dataset", b =>
+                {
+                    b.Navigation("DatasetDevices");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
