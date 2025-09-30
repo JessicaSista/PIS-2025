@@ -1,16 +1,16 @@
-@page "/crearDataset"
+@page "/editarDataset/{id:int}"
 @using OmniMonitor.Shared.Dtos
+@using Microsoft.AspNetCore.Components
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @using MudBlazor
 @inject ISnackbar Snackbar
 
-<PageTitle>Crear Dataset</PageTitle>
+<PageTitle>Editar Dataset</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #e1e6e7; font-weight: 500; font-family: Inter, Roboto, sans-serif;">
-    Crear Dataset
+    Editar Dataset
 </MudText>
-
 
 <!-- Selector de tipo de dataset -->
 <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Tipo de Dataset</MudText>
@@ -72,12 +72,22 @@
 }
 </style>
 
-@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Inside Monitor")
+@if (cargando)
+{
+    <MudProgressCircular Class="mx-4" Indeterminate="true" Color="MudBlazor.Color.Primary" />
+}
+else if (noEncontrado)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mx-4 my-4">
+        No se encontró el dataset solicitado.
+    </MudAlert>
+}
+else
 {
     <!-- Campo Nombre -->
     <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Nombre</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
-        <MudTextField @bind-Value="addName" Placeholder="Agregar Nombre"
+        <MudTextField @bind-Value="addName" Placeholder="Nombre del Dataset"
                       Variant="Variant.Outlined" 
                       Class="flex-grow-1 dark-field"/>
     </MudStack>
@@ -87,7 +97,7 @@
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
         <MudTextField T="string"
             @bind-Value="addDesc"
-            Placeholder="Agregar Descripción"
+            Placeholder="Descripción"
             Variant="Variant.Outlined"
             TextFieldType="MudBlazor.TextFieldType.Multiline"
             Lines="3"
@@ -97,7 +107,6 @@
 
     <!-- Tres selects en la misma línea: Fuente, Sensor y Dispositivo -->
     <MudStack Row Spacing="2" Class="mb-4 mx-4">
-
         <!-- Fuente -->
         <div style="width: 33%;">
             <MudSelect T="string" 
@@ -147,14 +156,19 @@
         </div>
     </MudStack>
 
-    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton OnClick="GuardarDataset" Variant="Variant.Filled" Color="MudBlazor.Color.Primary">
-            Guardar Dataset
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarCambios" Variant="Variant.Filled" Color="MudBlazor.Color.Primary">
+            Guardar Cambios
         </MudButton>
     </div>
 }
 
 @code {
+    [Parameter] public int id { get; set; }
+
     private string selectedTipo = "Inside Monitor";
     private List<string> tiposDataset = new() { "Inside Monitor", "Modulo 2", "Modulo 3" };
 
@@ -170,61 +184,83 @@
     private string addName = string.Empty;
     private string addDesc = string.Empty;
 
-    private async Task GuardarDataset()
+    private bool cargando = true;
+    private bool noEncontrado = false;
+
+    protected override async Task OnParametersSetAsync()
     {
         try
         {
-            var nuevo = new DatasetDto
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", "datasets");
+            if (string.IsNullOrEmpty(json))
             {
-                Id = (int)DateTimeOffset.Now.ToUnixTimeSeconds(),
-                Nombre = addName,
-                Descripcion = addDesc,
-                FechaCreacion = DateTime.Now
-            };
+                noEncontrado = true;
+                return;
+            }
 
+            var lista = System.Text.Json.JsonSerializer.Deserialize<List<DatasetDto>>(json) ?? new();
+            var existente = lista.FirstOrDefault(d => d.Id == id);
+            if (existente == null)
+            {
+                noEncontrado = true;
+                return;
+            }
+
+            // Poblar campos (básicos)
+            addName = existente.Nombre ?? string.Empty;
+            addDesc = existente.Descripcion ?? string.Empty;
+            // selectedTipo/Fuente/Sensor/Dispositivo quedan a criterio (mock)
+        }
+        catch
+        {
+            noEncontrado = true;
+        }
+        finally
+        {
+            cargando = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
             var json = await JS.InvokeAsync<string>("localStorage.getItem", "datasets");
             var lista = string.IsNullOrEmpty(json)
                 ? new List<DatasetDto>()
                 : System.Text.Json.JsonSerializer.Deserialize<List<DatasetDto>>(json)!;
 
-            lista.Add(nuevo);
+            var idx = lista.FindIndex(d => d.Id == id);
+            if (idx >= 0)
+            {
+                lista[idx].Nombre = addName;
+                lista[idx].Descripcion = addDesc;
+                // Podrías persistir más campos si existieran en el modelo
 
-            var nuevoJson = System.Text.Json.JsonSerializer.Serialize(lista);
-            await JS.InvokeVoidAsync("localStorage.setItem", "datasets", nuevoJson);
+                var nuevoJson = System.Text.Json.JsonSerializer.Serialize(lista);
+                await JS.InvokeVoidAsync("localStorage.setItem", "datasets", nuevoJson);
 
-            // Mostrar snackbar de éxito con solo cruz
-            ShowSuccess($"Dataset '{nuevo.Nombre}' creado exitosamente");
+                Snackbar.Add($"Dataset '{addName}' actualizado", Severity.Success, cfg =>
+                {
+                    cfg.SnackbarVariant = Variant.Filled;
+                });
 
-            // Navegar luego del snackbar (opcional)
-            Nav.NavigateTo("/datasets");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                Snackbar.Add("No se encontró el dataset para actualizar", Severity.Warning);
+            }
         }
         catch (Exception ex)
         {
-            ShowError($"No se pudo crear el dataset: {ex.Message}");
+            Snackbar.Add($"No se pudo actualizar el dataset: {ex.Message}", Severity.Error);
         }
     }
 
-    private void ShowSuccess(string mensaje)
+    private void Cancelar()
     {
-        Snackbar.Add(mensaje, Severity.Success, config =>
-        {
-            config.SnackbarVariant = Variant.Filled;
-            config.ShowCloseIcon = true;       // solo la cruz
-            config.RequireInteraction = false;  // se cierra automáticamente
-            config.VisibleStateDuration = 2500; // ms
-            config.CloseAfterNavigation = false;
-        });
-    }
-
-    private void ShowError(string mensaje)
-    {
-        Snackbar.Add(mensaje, Severity.Error, config =>
-        {
-            config.SnackbarVariant = Variant.Filled;
-            config.ShowCloseIcon = true;
-            config.RequireInteraction = false;
-            config.VisibleStateDuration = 4000; // ms
-            config.CloseAfterNavigation = false;
-        });
+        Nav.NavigateTo("/datasets");
     }
 }
