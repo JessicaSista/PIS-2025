@@ -23,6 +23,8 @@ public interface ISondaIMService
 
     // Obtener todos los devices pertenecientes a un grupo
     Task<List<Device>?> GetDeviceOfGroup(int id, string username, string password);
+
+    Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username, string password);
     //***************************************
 
     //***************DEVICE GROUPS*************
@@ -39,6 +41,10 @@ public interface ISondaIMService
 
     // GET source by ID
     Task<Source?> GetSourceById(int id, string username, string password);
+    //*****************************************
+
+    //****************SENSORS*****************
+    Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username, string password);
     //*****************************************
 
 }
@@ -230,6 +236,34 @@ public class SondaIMService : ISondaIMService
         return devices;
     }
 
+    public async Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username, string password)
+    {
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Analytic"]["DeviceData"];
+
+        string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
+        string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
+
+        string datesParameter = $"{formattedDateFrom},{formattedDateTo}";
+
+        string encodedDates = Uri.EscapeDataString(datesParameter);
+
+        string url = $"{baseUrl}{endpoint}?deviceId={deviceId}&dates={encodedDates}";
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        Console.WriteLine($"URL GetDeviceDataByDate: {url}");
+
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<List<DeviceData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    }
+
     public async Task<List<Source>> GetAllSources(string username, string password)
     {
         string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
@@ -285,7 +319,31 @@ public class SondaIMService : ISondaIMService
         return parsed;
     }
 
+    public async Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username, string password)
+    {
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Analytic"]["TimeSerie"];
 
+        string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
+        string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
 
+        string datesParameter = $"{formattedDateFrom},{formattedDateTo}";
 
+        string encodedDates = Uri.EscapeDataString(datesParameter);
+
+        string url = $"{baseUrl}{endpoint}?deviceId={deviceId}&sensorName={sensorName}&dates={encodedDates}";
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        Console.WriteLine($"URL GetSensorDataByDate: {url}");
+
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    }
 }
