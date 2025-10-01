@@ -13,9 +13,8 @@
             </MudStack>
         </MudStack>
 
-        <!-- Footer (registros y actualizado) -->
-        <MudStack Row Justify="Justify.SpaceBetween" Style="width:100%; margin-top:auto;">
-            <MudText Style="color:#69818d;font-size:0.7rem;">@RecordCount registros</MudText>
+        <!-- Footer (actualizado) -->
+        <MudStack Row Justify="Justify.FlexEnd" Style="width:100%; margin-top:auto;">
             <MudText Style="color:#69818d;font-size:0.7rem;">Actualizado: @Dataset.FechaCreacion.ToString("yyyy-MM-dd HH:mm")</MudText>
         </MudStack>
 
@@ -26,6 +25,5 @@
 @code {
     [Parameter] public DatasetDto Dataset { get; set; } = new();
     [Parameter] public string Description { get; set; } = string.Empty;
-    [Parameter] public string RecordCount { get; set; } = "0";
     [Parameter] public EventCallback OnClick { get; set; }
 }

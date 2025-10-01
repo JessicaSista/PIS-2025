@@ -1,11 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 // Se asume que existe un servicio y DTOs para interactuar con la API de Sonda
 using OmniMonitor.Server.Services;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace OmniMonitor.Server.Services
@@ -16,6 +15,9 @@ namespace OmniMonitor.Server.Services
         Task<Dataset> CreateDatasetAsync(CreateDatasetRequest request);
         Task<List<Dataset>> GetAllDatasetsAsync(string username);
         Task<Dataset?> GetDatasetByIdAsync(int datasetId, string username);
+        Task<Dataset?> GetDatasetByIdForEditAsync(int datasetId, string username);
+        Task<Dataset> UpdateDatasetAsync(Dataset dataset);
+        Task DeleteDatasetAsync(int datasetId, string username);
     }
 
     // --- Implementación del servicio ---
@@ -183,6 +185,112 @@ namespace OmniMonitor.Server.Services
             // simplemente lo devolvemos tal como está.
             return dataset;
         }
+
+        /// <summary>
+        /// Obtiene un dataset por su ID y nombre de usuario para edición, SIN aplicar lógica de búsqueda dinámica.
+        /// Devuelve el dataset exactamente como está guardado en la base de datos.
+        /// </summary>
+        public async Task<Dataset?> GetDatasetByIdForEditAsync(int datasetId, string username)
+        {
+            return await _context.Datasets
+                .Include(d => d.DatasetDevices)
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+        }
+
+        /// <summary>
+        /// Actualiza un dataset existente.
+        /// </summary>
+        public async Task<Dataset> UpdateDatasetAsync(Dataset dataset)
+        {
+            if (dataset == null)
+            {
+                throw new ArgumentNullException(nameof(dataset), "El dataset no puede ser nulo.");
+            }
+
+            var existingDataset = await _context.Datasets
+                .Include(d => d.DatasetDevices)
+                .FirstOrDefaultAsync(d => d.Id == dataset.Id);
+
+            if (existingDataset == null)
+            {
+                throw new InvalidOperationException($"No se encontró el dataset con ID {dataset.Id}.");
+            }
+
+            // Actualizar campos
+            existingDataset.Name = dataset.Name;
+            existingDataset.Description = dataset.Description;
+            existingDataset.Id_Source = dataset.Id_Source;
+            existingDataset.Id_Group = dataset.Id_Group;
+            existingDataset.SensorName = dataset.SensorName;
+            existingDataset.Is_Dataset = dataset.Is_Dataset;
+            existingDataset.ContentType = dataset.ContentType;
+
+            // Marcar explícitamente los campos nullable como modificados
+            // para asegurar que EF detecte cuando se setean a null
+            _context.Entry(existingDataset).Property(d => d.Id_Source).IsModified = true;
+            _context.Entry(existingDataset).Property(d => d.Id_Group).IsModified = true;
+            _context.Entry(existingDataset).Property(d => d.SensorName).IsModified = true;
+
+            // Actualizar la lista de devices
+            // Solo eliminar los devices que ya están guardados en la BD (con ID > 0)
+            var existingDevicesToRemove = existingDataset.DatasetDevices
+                .Where(dd => dd.Id > 0)
+                .ToList();
+
+            if (existingDevicesToRemove.Any())
+            {
+                _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
+            }
+
+            // Limpiar toda la colección
+            existingDataset.DatasetDevices.Clear();
+
+            // Agregar los nuevos devices si existen
+            if (dataset.DatasetDevices != null && dataset.DatasetDevices.Any())
+            {
+                foreach (var datasetDevice in dataset.DatasetDevices)
+                {
+                    existingDataset.DatasetDevices.Add(new DatasetDevice 
+                    { 
+                        DatasetId = existingDataset.Id,
+                        Id_device = datasetDevice.Id_device 
+                    });
+                }
+            }
+
+            _context.Datasets.Update(existingDataset);
+            await _context.SaveChangesAsync();
+
+            return existingDataset;
+        }
+
+        /// <summary>
+        /// Elimina un dataset y sus relaciones con devices.
+        /// </summary>
+        public async Task DeleteDatasetAsync(int datasetId, string username)
+        {
+            var dataset = await _context.Datasets
+                .Include(d => d.DatasetDevices)
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+
+            if (dataset == null)
+            {
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+            }
+
+            // Solo eliminar las relaciones DatasetDevice que ya están en la BD (con ID > 0)
+            var existingDevicesToRemove = dataset.DatasetDevices
+                .Where(dd => dd.Id > 0)
+                .ToList();
+
+            if (existingDevicesToRemove.Any())
+            {
+                _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
+            }
+
+            // Eliminar el dataset
+            _context.Datasets.Remove(dataset);
+            await _context.SaveChangesAsync();
+        }
     }
 }
-
