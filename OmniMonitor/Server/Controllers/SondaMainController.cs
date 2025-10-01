@@ -241,4 +241,75 @@ public class SondaMainController : ControllerBase
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
+    [HttpGet("newsUM")]
+    [ProducesResponseType(typeof(List<News>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<News>>> GetAllNews(
+        [FromQuery] int startIndex = 1,
+        [FromQuery] string? queryString = null,
+        [FromQuery] string? sort = null,
+        [FromQuery] int count = 10)
+    {
+        try
+        {
+            // Pasar los parámetros al servicio
+            var news = await _sondaUMApiService.GetAllNews("admin", "admin", startIndex, queryString, sort, count);
+            return Ok(news);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("newsUM/{id}")]
+    [ProducesResponseType(typeof(News), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<News>> GetNewsById(int id)
+    {
+        try
+        {
+            var newsItem = await _sondaUMApiService.GetNewsById(id, "admin", "admin");
+            if (newsItem == null) return NotFound($"No se encontró la noticia {id}");
+            return Ok(newsItem);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("events")]
+    [ProducesResponseType(typeof(List<Event>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<Event>>> GetAllEvents()
+    {
+        try
+        {
+            var events = await _sondaUMApiService.GetAllEvents("admin", "admin");
+            return Ok(events);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("events/{id}")]
+    [ProducesResponseType(typeof(Event), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<Event>> GetEventById(int id)
+    {
+        try
+        {
+            var eventItem = await _sondaUMApiService.GetEventById(id, "admin", "admin");
+            if (eventItem == null) return NotFound($"No se encontró el evento {id}");
+            return Ok(eventItem);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
 }
