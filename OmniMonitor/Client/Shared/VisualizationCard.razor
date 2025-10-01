@@ -1,0 +1,54 @@
+@using MudBlazor
+
+<MudPaper Class="pa-4" Style="background-color: #030a16; height: 100%;">
+    <MudCard Elevation="0" Style="background-color: transparent;">
+        <MudCardHeader>
+            <CardHeaderAvatar>
+                <MudPaper Square="true" Class="pa-2" Style="background-color: #1d283a !important; color: #f4f8fd; border-radius: 2px">
+                    <MudIcon Icon="@Icon" />
+                </MudPaper>
+            </CardHeaderAvatar>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6" Style="color: #c0c4c3">@Title</MudText>
+                @if (!string.IsNullOrEmpty(SubType))
+                {
+                    <MudText Typo="Typo.caption" 
+                            Class="mud-theme-primary px-2 py-1 rounded-pill" Style="background-color: #1d283a !important;">
+                        @SubType
+                    </MudText>
+                }
+            </CardHeaderContent>
+            <CardHeaderActions>
+                @Actions
+            </CardHeaderActions>
+        </MudCardHeader>
+        <MudCardContent>
+            @* El contenido de la gráfica se renderiza aquí *@
+            <MudText Typo="Typo.h1" Align="MudBlazor.Align.Center" Style="padding: 4rem 0;">Grafica</MudText>
+        </MudCardContent>
+        <MudCardActions Class="d-block">
+            <MudText Typo="Typo.body2">Dataset: @Dataset</MudText>
+            <MudText Typo="Typo.caption">Actualizado: @LastUpdated</MudText>
+        </MudCardActions>
+    </MudCard>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = "Título";
+
+    [Parameter]
+    public string SubType { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Icon { get; set; } = Icons.Material.Filled.Analytics;
+
+    [Parameter]
+    public string Dataset { get; set; } = "N/A";
+
+    [Parameter]
+    public string LastUpdated { get; set; } = "N/A";
+
+    [Parameter]
+    public RenderFragment? Actions { get; set; }
+}

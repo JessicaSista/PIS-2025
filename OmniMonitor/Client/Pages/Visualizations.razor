@@ -1,0 +1,58 @@
+@page "/visualizations"
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
+    <MudItem Class="d-flex justify-space-between mb-10">
+        <MudItem>
+            <MudText Typo="Typo.h4" Style="color: #dde3e1">Visualizaciones</MudText>
+            <MudText Typo="Typo.body1" Style="color: #667d8a">Crea y gestiona gráficos y visualizaciones de datos</MudText>
+        </MudItem>
+        <MudItem>
+            <MudButton Variant="Variant.Filled" Style="background-color: #c2c2c3">
+                <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Small" />
+                Default
+            </MudButton>
+        </MudItem>
+    </MudItem>
+    <MudItem Style="width: 500px">
+        <MudTextField @bind-Value="searchQuery" Label="Nueva visualización" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
+    </MudItem>
+</MudContainer>
+
+@using MudBlazor
+
+<MudGrid Spacing="4" Justify="Justify.Center">
+    <MudItem xs="12" sm="6" md="4">
+        <VisualizationCard Title="Ventas por Mes"
+                           SubType="Barras"
+                           Icon="@Icons.Material.Filled.BarChart"
+                           Dataset="Ventas Mensuales"
+                           LastUpdated="2024-01-0714:30" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="4">
+        <VisualizationCard Title="Tendencia Trimestral"
+                           SubType="Líneas"
+                           Icon="@Icons.Material.Filled.ShowChart"
+                           Dataset="Ventas Mensuales"
+                           LastUpdated="2024-01-0714:30" />
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="4">
+        <VisualizationCard Title="Análisis Radar KPIs"
+                           SubType="Radar"
+                           Icon="@Icons.Material.Filled.Radar"
+                           Dataset="Ventas Mensuales"
+                           LastUpdated="2024-01-0714:30">
+            <Actions>
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" IconColor="MudBlazor.Color.Inherit">
+                     <MudMenuItem>Ver Detalles</MudMenuItem>
+                     <MudMenuItem>Exportar</MudMenuItem>
+                </MudMenu>
+                <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">Editar</MudButton>
+            </Actions>
+        </VisualizationCard>
+    </MudItem>
+</MudGrid>
+
+@code{
+    public string searchQuery {get; set;}  = "";
+}
