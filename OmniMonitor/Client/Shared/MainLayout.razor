@@ -22,41 +22,49 @@
 
 
 <div style="@ThemeService.CurrentThemeVariables">
-    <MudLayout>
-        <CascadingValue Value="_drawerOpen">
-            <AuthorizeView>
-                <Authorized>
-                    <MudDrawer @bind-Open="_drawerOpen"
-                               Variant="DrawerVariant.Mini"
-                               Elevation="1"
-                               MiniVariantWidth="80px"
-                               Anchor="Anchor.Start"
-                               Class="custom-drawer">
-                        <NavMenu />
-                    </MudDrawer>
-                </Authorized>
-            </AuthorizeView>
-        </CascadingValue>
-        <MudMainContent Class="d-flex flex-grow">
-            <AppBar ToggleDrawer="ToggleDrawer"/>
+    @if (_isThemeInitialized)
+    {
+        <MudLayout>
+            <CascadingValue Value="_drawerOpen">
+                <AuthorizeView>
+                    <Authorized>
+                        <MudDrawer @bind-Open="_drawerOpen"
+                                   Variant="DrawerVariant.Mini"
+                                   Elevation="1"
+                                   MiniVariantWidth="80px"
+                                   Anchor="Anchor.Start"
+                                   Class="custom-drawer">
+                            <NavMenu />
+                        </MudDrawer>
+                    </Authorized>
+                </AuthorizeView>
+            </CascadingValue>
+            <MudMainContent Class="d-flex flex-grow">
+                <AppBar ToggleDrawer="ToggleDrawer"/>
 
-            <MudContainer MaxWidth="MaxWidth.False" Class="pa-4 d-flex flex-column flex-grow">
-                @Body
-            </MudContainer>
-        </MudMainContent>
-    </MudLayout>
+                <MudContainer MaxWidth="MaxWidth.False" Class="pa-4 d-flex flex-column flex-grow">
+                    @Body
+                </MudContainer>
+            </MudMainContent>
+        </MudLayout>
+    }
 </div>
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isThemeInitialized = false;
 
     protected override async Task OnInitializedAsync()
     {
         // 1. Inicializa el tema al inicio de la app (carga desde LocalStorage)
         await ThemeService.InitializeThemeAsync();
 
-        // 2. Se suscribe al evento para que sepa cuándo redibujar
-        ThemeService.OnThemeChange += ThemeChanged;
+        // 2. Una vez cargado el tema, marcamos la bandera y forzamos el renderizado
+        _isThemeInitialized = true;
+        InvokeAsync(StateHasChanged);
+
+        // 3. Se suscribe al evento para que sepa cuándo redibujar
+        ThemeService.OnThemeChange += ThemeChanged;
     }
 
     private void ThemeChanged()

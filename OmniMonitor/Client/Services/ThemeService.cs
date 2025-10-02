@@ -19,19 +19,39 @@ namespace OmniMonitor.Client.Services
             --scrollbar-fondo: #F5F5F5;
             --scrollbar-pulgar: #BDBDBD;
             --scrollbar-pulgar-hover: #9E9E9E;
-            --fondo-drawer: #BBDEFB;
             --superficie: #FFFFFF;
             --Boton-Usuario: rgba(30, 30, 30, 0.8);
             --text-primary: #212121;
             --text-secondary: rgba(0, 0, 0, 0.6);
             --text-disabled: rgba(0, 0, 0, 0.38);
-            --appbar-background: #BBDEFB;
-            --appbar-text: #0D47A1;
             --theme-toggle: rgba(30, 30, 30, 0.8);
+
+
+
+            //Usar estas variables
+            //Para llamar las variables en CSS: var(--nombre-variable) ejemplo: color: var(--textColor1);
+
 
             --fondo: #E3F2FD;
             --card-color-1: #BBDEFB;
             --textField-color-1: #E3F2FD;
+            --textColor-1: #E1E6E7;
+            --textColor-2: #647984;
+            --textColor-3: #C2C6C0;
+            --textColor-4: #949FD0;
+            --textColor-5: #F47F7F;
+            --textColor-6: #91A2B7;
+            --WindowColor-1: #BBDEFB;
+            --PrimaryButton: #4A81E9;
+            --SecondaryButton: #C2C2C3;
+            --ErrorButton: #8F1515;
+            
+            --appbar-background: #BBDEFB;
+            --appbar-text: #0D47A1;
+            --drawer-background: #BBDEFB;
+            --drawer-text: #212121;
+            
+            --fondo-drawer: #BBDEFB;
         ";
 
         private readonly string _darkModeVars = @"
@@ -41,19 +61,37 @@ namespace OmniMonitor.Client.Services
             --scrollbar-fondo: #2D2D2D;
             --scrollbar-pulgar: #555555;
             --scrollbar-pulgar-hover: #777777;
-            --fondo-drawer: #1E1E1E;
             --superficie: rgba(30, 30, 30, 0.8);
             --Boton-Usuario: #9AA5CE;
             --text-primary: #C4C6CB;
             --text-secondary: rgba(255, 255, 255, 0.7);
             --text-disabled: rgba(255, 255, 255, 0.38);
-            --appbar-background: #1E1E1E;
-            --appbar-text: #C4C6CB;
             --theme-toggle: #C4C6CB;
+            
+
+            //Usar estas variables
+            //Para llamar las variables en CSS: var(--nombre-variable) ejemplo: color: var(--textColor1);
 
             --fondo: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
             --card-color-1: #030A16;
             --textField-color-1: #020817;
+            --textColor-1: #E1E6E7;
+            --textColor-2: #647984;
+            --textColor-3: #C2C6C0;
+            --textColor-4: #949FD0;
+            --textColor-5: #F47F7F;
+            --textColor-6: #91A2B7;
+            --WindowColor-1: #0F172A;
+            --PrimaryButton: #4A81E9;
+            --SecondaryButton: #C2C2C3;
+            --ErrorButton: #8F1515;
+
+            --appbar-background: #1A1818;
+            --appbar-text: #FFFFFF;
+            --drawer-background: #1A1818;
+            --drawer-text: #B7BBB2;
+            
+            --fondo-drawer: #1A1818;
         ";
 
         public string CurrentThemeVariables => (CurrentMode==ThemeMode.Dark) ? _darkModeVars : _lightModeVars;
@@ -80,32 +118,37 @@ namespace OmniMonitor.Client.Services
                 // Paleta para el Modo Claro
                 PaletteLight = new PaletteLight()
                 {
-                    Primary = "#1E88E5",
-                    Secondary = "#424242",
-                    Background = "#E3F2FD",
                     AppbarBackground = "#BBDEFB",
                     AppbarText = "#0D47A1",
                     DrawerBackground = "#BBDEFB",
                     DrawerText = "#212121",
-                    Surface = "#FFFFFF",
                     TextPrimary = "#212121",
                     TextSecondary = "rgba(0, 0, 0, 0.6)",
-                    ActionDefault = "#6200EE"
+                    Primary = "#1E88E5",
+                    Secondary = "#424242",
+                    Error = "#8F1515",
+
+                    
+                    //Surface = "#FFFFFF",
+                    //ActionDefault = "#6200EE"
+                    //Background = "#E3F2FD",
                 },
                 // Paleta para el Modo Oscuro
                 PaletteDark = new PaletteDark()
                 {
-                    Primary = "#1E88E5",
-                    Secondary = "#424242",
-                    Background = "#121212",
-                    AppbarBackground = "#1E1E1E",
+                    AppbarBackground = "#1A1818",
                     AppbarText = "#FFFFFF",
-                    DrawerBackground = "#1E1E1E",
-                    DrawerText = "#FFFFFF",
-                    Surface = "#1E1E1E",
+                    DrawerBackground = "#1A1818",
+                    DrawerText = "#B7BBB2",
                     TextPrimary = "#FFFFFF",
-                    TextSecondary = "rgba(255, 255, 255, 0.7)",
-                    ActionDefault = "#BB86FC"
+                    TextSecondary = "91A2B7",
+                    Primary = "#4A81E9",
+                    Secondary = "#C2C2C3",
+                    Error = "#8F1515",
+
+                    //Surface = "#1E1E1E",
+                    //ActionDefault = "#BB86FC"
+                    //Background = "#121212",
                 }
             };
         }
