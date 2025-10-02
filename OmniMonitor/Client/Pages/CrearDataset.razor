@@ -7,16 +7,19 @@
 @using MudBlazor
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Datasets> Localizer
+
 
 <PageTitle>Crear Dataset</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">
-    Crear Dataset
+    @Localizer["CrearDataset"]
 </MudText>
 
 
 <!-- Selector de tipo de dataset -->
-<MudText Typo="Typo.h6" Class="mb-1 mx-4" >Tipo de Dataset</MudText>
+<MudText Typo="Typo.h6" Class="mb-1 mx-4" >@Localizer["Modulo"]</MudText>
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
     <MudSelect T="string"
                @bind-Value="selectedTipo"
@@ -34,9 +37,9 @@
 @if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Inside Monitor")
 {
     <!-- Campo Nombre -->
-    <MudText Typo="Typo.h6" Class="mb-1 mx-4" >Nombre</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4" >@Localizer["Nombre"]</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
-        <MudTextField @bind-Value="addName" Placeholder="Agregar Nombre"
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
                       Variant="Variant.Outlined"
                       Class="flex-grow-1 dark-field"
                       MaxLength="50"
@@ -44,11 +47,11 @@
     </MudStack>
 
     <!-- Campo Descripción -->
-    <MudText Typo="Typo.h6" Class="mb-1 mx-4" >Descripción</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4" >@Localizer["Descripcion"]</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
         <MudTextField T="string"
                       @bind-Value="addDesc"
-                      Placeholder="Agregar Descripción"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
                       Variant="Variant.Outlined"
                       TextFieldType="MudBlazor.TextFieldType.Multiline"
                       Lines="3"
@@ -67,8 +70,9 @@
                        Value="@selectedSourceId"
                        ValueChanged="@OnSourceChanged"
                        Variant="Variant.Outlined"
+                       Clearable
                        FullWidth="true"
-                       Label="Seleccionar Fuente"
+                       Label="@Localizer["SeleccionarFuente"]"
                        Class="@($"dark-field")"
                        Required="true">
                 @foreach (var source in sources)
@@ -86,7 +90,7 @@
                        Variant="Variant.Outlined"
                        Clearable
                        FullWidth="true"
-                       Label="Seleccionar Grupo"
+                       Label="@Localizer["SeleccionarGrupo"]"
                        Class="dark-field">
                 @foreach (var group in deviceGroups)
                 {
@@ -99,11 +103,12 @@
         <div style="width: 25%;">
             <MudSelect T="int"
                        SelectedValues="selectedDeviceIds"
+                       SelectedValuesChanged="OnSelectedDevicesChanged"
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        Clearable
                        FullWidth="true"
-                       Label="Seleccionar Dispositivo(s)"
+                       Label="@Localizer["SeleccionarDispositivo"]"
                        Class="dark-field">
                 @foreach (var device in devices)
                 {
@@ -119,7 +124,7 @@
                        Variant="Variant.Outlined"
                        Clearable
                        FullWidth="true"
-                       Label="Seleccionar Sensor"
+                       Label="@Localizer["SeleccionarSensor"]"
                        Class="@($"dark-field")"
                        Required="true">
                 @foreach (var sensor in sensores)
@@ -135,7 +140,7 @@
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
                    Disabled="@(! selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) )">
-            Guardar Dataset
+            @Localizer["GuardarDataset"]
         </MudButton>
 
     </div>
@@ -234,16 +239,13 @@
         StateHasChanged();
     }
 
-    // Cuando cambian los dispositivos seleccionados (multi-select): POR AHORA NO DEBERÍA DE PASAR NADA (PREGUNTAR)
-    /*private Task OnSelectedDevicesChanged(IEnumerable<int> values)
+    // Cuando cambian los dispositivos seleccionados (multi-select)
+    private Task OnSelectedDevicesChanged(IEnumerable<int> values)
     {
         selectedDeviceIds = values != null ? new HashSet<int>(values) : new HashSet<int>();
-        // si el usuario cambia la selección de dispositivos, borramos el sensor seleccionado
-        selectedSensor = string.Empty;
-
         StateHasChanged();
         return Task.CompletedTask;
-    }*/
+    }
 
     //Cuando cambia el sensor
     private Task OnSensorChanged(string sensor)
@@ -317,8 +319,10 @@
     {
         try
         {
+            // Guardar el sensor actualmente seleccionado
+            var currentSelectedSensor = selectedSensor;
+            
             sensores.Clear();
-            selectedSensor = string.Empty;
 
             if (selectedSourceId.HasValue)
             {
@@ -326,7 +330,21 @@
                 if (sensorsResponse.IsSuccessStatusCode)
                 {
                     sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
+                    
+                    // Si el sensor previamente seleccionado existe en la nueva lista, mantenerlo seleccionado
+                    if (!string.IsNullOrEmpty(currentSelectedSensor) && sensores.Contains(currentSelectedSensor))
+                    {
+                        selectedSensor = currentSelectedSensor;
+                    }
+                    else
+                    {
+                        selectedSensor = string.Empty;
+                    }
                 }
+            }
+            else
+            {
+                selectedSensor = string.Empty;
             }
 
             StateHasChanged();
@@ -335,6 +353,7 @@
         {
             ShowError($"Error al cargar sensores: {ex.Message}");
             sensores = new List<string>();
+            selectedSensor = string.Empty;
         }
     }
 
@@ -397,7 +416,7 @@
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                ShowError($"Error al crear el dataset: {error}");
+                ShowError(error);
             }
         }
         catch (Exception ex)

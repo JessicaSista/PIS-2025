@@ -40,6 +40,10 @@ public class DatasetController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
@@ -112,22 +116,27 @@ public class DatasetController : ControllerBase
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
             }
 
-            // Actualizar todos los campos del dataset
-            existingDataset.Name = request.Name;
-            existingDataset.Description = request.Description;
-            existingDataset.Id_Source = request.SourceId;
-            existingDataset.Id_Group = request.GroupId;
-            existingDataset.SensorName = request.SensorName;
-            existingDataset.Is_Dataset = request.IsDataset;
-            existingDataset.ContentType = request.ContentType;
+            // Crear un dataset temporal con los nuevos valores para la validación
+            var datasetToUpdate = new Dataset
+            {
+                Id = existingDataset.Id,
+                Name = request.Name,
+                Description = request.Description,
+                Id_Source = request.SourceId,
+                Id_Group = request.GroupId,
+                SensorName = request.SensorName,
+                Is_Dataset = request.IsDataset,
+                ContentType = request.ContentType,
+                Username = existingDataset.Username
+            };
 
             // Actualizar los devices si se proporcionaron
             if (request.DeviceIds != null && request.DeviceIds.Any())
             {
-                existingDataset.DatasetDevices.Clear();
+                datasetToUpdate.DatasetDevices = new List<DatasetDevice>();
                 foreach (var deviceId in request.DeviceIds)
                 {
-                    existingDataset.DatasetDevices.Add(new DatasetDevice 
+                    datasetToUpdate.DatasetDevices.Add(new DatasetDevice 
                     { 
                         DatasetId = existingDataset.Id,
                         Id_device = deviceId 
@@ -136,14 +145,18 @@ public class DatasetController : ControllerBase
             }
             else
             {
-                // Si no hay devices, limpiar la colección
-                existingDataset.DatasetDevices.Clear();
+                datasetToUpdate.DatasetDevices = new List<DatasetDevice>();
             }
 
-            var updatedDataset = await _datasetService.UpdateDatasetAsync(existingDataset);
+            // Llamar al servicio que incluye la validación de nombres únicos
+            var updatedDataset = await _datasetService.UpdateDatasetAsync(datasetToUpdate);
             return Ok(updatedDataset);
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }

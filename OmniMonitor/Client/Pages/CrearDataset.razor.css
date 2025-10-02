@@ -27,6 +27,16 @@
     border-color: #4A81E9 !important;
 }
 
+/* Popover (dropdown) oscuro */
+.dark-field-popover {
+    background-color: #1E293B !important;
+    color: #E5EAEB !important;
+}
+
+.dark-field-popover .mud-list-item {
+    color: #E5EAEB !important;
+}
+
 .dark-field .mud-input > textarea.mud-input-root-outlined {
     margin-top: 0 !important;
     padding-top: 9px !important;
@@ -40,4 +50,55 @@
 /* si el usuario pone foco, resaltamos un poco más */
 .required-empty .mud-input-root:focus-within {
     box-shadow: 0 0 10px rgba(239,68,68,0.25);
+}
+
+/* Estilos adicionales para componentes MudBlazor específicos */
+.dark-field .mud-select .mud-input-root {
+    background-color: #0F172A !important;
+    color: #E5EAEB !important;
+}
+
+.dark-field .mud-text-field .mud-input-root {
+    background-color: #0F172A !important;
+    color: #E5EAEB !important;
+}
+
+/* Estilos para el componente MudSelect completo */
+.dark-field .mud-select {
+    background-color: #0F172A !important;
+    color: #E5EAEB !important;
+}
+
+/* Modo oscuro - cambiar a celeste más oscuro */
+@media (prefers-color-scheme: dark) {
+    .dark-field .mud-input-root {
+        background-color: #e8f4fd !important;
+        color: #0d47a1 !important;
+        border: 1px solid #2196f3 !important;
+    }
+
+    .dark-field .mud-input-input,
+    .dark-field .mud-select-value,
+    .dark-field .mud-select-text {
+        color: #0d47a1 !important;
+    }
+
+    .dark-field .mud-input-label,
+    .dark-field .mud-input-placeholder {
+        color: #1976d2 !important;
+    }
+
+    .dark-field .mud-input-root:hover {
+        box-shadow: 0 0 6px #42a5f5;
+        border-color: #42a5f5 !important;
+    }
+
+    .dark-field-popover {
+        background-color: #f5f9ff !important;
+        color: #0d47a1 !important;
+    }
+
+    .dark-field-popover .mud-list-item {
+        color: #0d47a1 !important;
+    }
 }

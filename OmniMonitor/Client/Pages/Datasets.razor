@@ -11,6 +11,8 @@
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Datasets> Localizer
 
 <PageTitle>Datasets</PageTitle>
 
@@ -19,24 +21,24 @@
             <MudText Typo="Typo.h4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">Datasets</MudText>
         </MudStack>
         <AddButton OnClick="CrearDataset">
-            Crear Dataset
+            @Localizer["CrearDataset"]
         </AddButton>
     </MudStack>
     <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
-        <MudText Typo="Typo.body1" Class="mb-4" Style="color: #a5a8b5; font-family: Inter, Roboto, sans-serif;">Gestiona tus fuentes de datos y conexiones</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4" Style="color: #a5a8b5; font-family: Inter, Roboto, sans-serif;">@Localizer["Gestiona"]</MudText>
     </MudStack>
 
 
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
     <MudTextField @bind-Value="searchText"
                   Immediate="true"
-                  Placeholder="Buscar datasets..."
+                  Placeholder="@Localizer["Buscar"]"
                   Variant="Variant.Outlined"
                   Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Filled.Search"
                   Class="flex-grow-1 mr-3" />
     <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary" StartIcon="@Icons.Material.Filled.FilterList">
-        Filtros
+        @Localizer["Filtros"]
     </MudButton>
 </MudStack>
 

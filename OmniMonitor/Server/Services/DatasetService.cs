@@ -42,6 +42,15 @@ namespace OmniMonitor.Server.Services
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
             }
 
+            // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
+            var existingDataset = await _context.Datasets
+                .FirstOrDefaultAsync(d => d.Username == request.Username && d.Name == request.Name);
+            
+            if (existingDataset != null)
+            {
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{request.Username}'.");
+            }
+
             var newDataset = new Dataset
             {
                 Username = request.Username,
@@ -214,6 +223,20 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
             {
                 throw new InvalidOperationException($"No se encontró el dataset con ID {dataset.Id}.");
+            }
+
+            // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
+            if (!string.IsNullOrEmpty(dataset.Name) && dataset.Name != existingDataset.Name)
+            {
+                var duplicateDataset = await _context.Datasets
+                    .FirstOrDefaultAsync(d => d.Username == existingDataset.Username && 
+                                            d.Name == dataset.Name && 
+                                            d.Id != dataset.Id);
+                
+                if (duplicateDataset != null)
+                {
+                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{dataset.Name}' para el usuario '{existingDataset.Username}'.");
+                }
             }
 
             // Actualizar campos
