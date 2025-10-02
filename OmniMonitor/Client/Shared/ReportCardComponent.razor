@@ -1,0 +1,52 @@
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+@inject NavigationManager NavigationManager
+
+<MudCard Class="report-card">
+    <MudCardContent>
+        <MudStack>
+            <!-- Header: Icon, Title, and Menu -->
+            <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="3">
+                    <MudIcon Icon="@Icons.Material.Filled.Article" Style="color: #9ca3af;" />
+                    <MudText Typo="Typo.h6" Style="color:#E5EAEB; font-weight: 600;">@Reporte.Nombre</MudText>
+                </MudStack>
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="MudBlazor.Size.Medium" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem OnClick="EditarReporte">Editar</MudMenuItem>
+                    <MudMenuItem OnClick="EliminarReporte">Eliminar</MudMenuItem>
+                </MudMenu>
+            </MudStack>
+
+            <!-- Description -->
+            <MudText Typo="Typo.body2" Class="mt-2" Style="color: #9ca3af; min-height: 40px;">@Description</MudText>
+
+        </MudStack>
+    </MudCardContent>
+    <MudCardActions Class="d-flex justify-end pa-2">
+         <MudText Typo="Typo.caption" Style="color: #6b7280;">Actualizado: @Reporte.FechaCreacion.ToString("yyyy-MM-dd")</MudText>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter] public ReporteDto Reporte { get; set; } = new();
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public EventCallback<int> OnClick { get; set; }
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    private void EditarReporte()
+    {
+        // Detiene la propagación para no activar el OnClick de la tarjeta
+        NavigationManager.NavigateTo($"/editar-reporte/{Reporte.Id}");
+    }
+
+    private async Task EliminarReporte()
+    {
+        // Detiene la propagación y emite el evento de eliminación
+        await OnDelete.InvokeAsync(Reporte.Id);
+    }
+
+    private async Task HandleCardClick()
+    {
+        await OnClick.InvokeAsync(Reporte.Id);
+    }
+}
