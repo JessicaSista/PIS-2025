@@ -1,0 +1,68 @@
+@using MudBlazor
+
+<MudButton 
+    Variant="Variant.Filled"
+    Class="@GetButtonClass()"
+    StartIcon="@Icons.Material.Filled.Add"
+    OnClick="OnClick"
+    Href="@Href"
+    Disabled="@Disabled">
+    @ChildContent
+</MudButton>
+
+<style>
+    .add-button {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #2c2f3f !important;
+        font-weight: 500 !important;
+        text-transform: none !important;
+        border-radius: 0.5rem !important;
+        padding: 0.5rem 1rem !important;
+        transition: all 0.2s ease-in-out !important;
+        font-family: Inter, Roboto, sans-serif !important;
+    }
+
+    .add-button:hover {
+        background-color: #e1e6e7 !important;
+        border-color: #3b82f6 !important;
+        transform: scale(1.02);
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.35) !important;
+    }
+
+    .add-button:active {
+        transform: scale(1.0);
+    }
+
+    .add-button:focus {
+        outline: 2px solid #3b82f6 !important;
+        outline-offset: 2px !important;
+    }
+
+    /* Light mode styles */
+    [data-mud-theme="false"] .add-button {
+        background-color: #3b82f6 !important;
+        color: #ffffff !important;
+        border-color: #3b82f6 !important;
+    }
+
+    [data-mud-theme="false"] .add-button:hover {
+        background-color: #2563eb !important;
+        border-color: #2563eb !important;
+        transform: scale(1.02);
+        box-shadow: 0px 4px 12px rgba(59, 130, 246, 0.3) !important;
+    }
+</style>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+
+    private string GetButtonClass()
+    {
+        return string.IsNullOrEmpty(CssClass) ? "add-button" : $"add-button {CssClass}";
+    }
+}

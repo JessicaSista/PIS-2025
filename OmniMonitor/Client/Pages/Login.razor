@@ -21,10 +21,8 @@
             <MudText Typo="Typo.h5" Class="mb-2">@SharedLocalizer["LoginTitle"]</MudText>
             <MudText Typo="Typo.body2" Class="mb-6">@Localizer["Subtitle"]</MudText>
 
-            <EditForm Model="@loginRequest" OnValidSubmit="HandleLogin" Class="d-flex flex-column" Style="width:100%;">
-                <DataAnnotationsValidator />
+            <EditForm Model="@loginRequest" OnSubmit="HandleSubmit" Class="d-flex flex-column" Style="width:100%;">
 
-                @* Mostramos el mensaje de error aquí si existe *@
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
                     <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
@@ -35,9 +33,17 @@
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Username"
                               For="@(() => loginRequest.Username)"
-                              Required="true"
-                              RequiredError="@Localizer["RequiredUsername"]"
-                              Class="mb-4" />
+                              Class="mb-1" />
+
+                @if (showValidationErrors && string.IsNullOrEmpty(loginRequest.Username))
+                {
+                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error" Class="mb-4 mt-1">@Localizer["RequiredUsername"]</MudText>
+                }
+                else
+                {
+                    <div class="mb-4"></div>
+                }
+
 
                 <MudText Typo="Typo.body2" Class="mb-2">@Localizer["PasswordLabel"]</MudText>
                 <MudTextField T="string"
@@ -48,9 +54,17 @@
                               Variant="MudBlazor.Variant.Outlined"
                               @bind-Value="@loginRequest.Password"
                               For="@(() => loginRequest.Password)"
-                              Required="true"
-                              RequiredError="La contraseña es obligatoria."
-                              Class="mb-4" />
+                              Class="mb-1" />
+
+                @if (showValidationErrors && string.IsNullOrEmpty(loginRequest.Password))
+                {
+                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error" Class="mb-4 mt-1">@Localizer["RequiredPassword"]</MudText>
+                }
+                else
+                {
+                    <div class="mb-4"></div>
+                }
+
 
                 <MudButton ButtonType="ButtonType.Submit"
                            Variant="MudBlazor.Variant.Filled"
@@ -62,7 +76,7 @@
                     @if (isLoading)
                     {
                         <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
-                        <MudText Class="ms-2">Iniciando...</MudText>
+                        <MudText Class="ms-2">@Localizer["LoginInButtonText"]</MudText>
                     }
                     else
                     {
@@ -79,17 +93,54 @@
     private string errorMessage = string.Empty;
     private bool isLoading = false;
     private bool showPassword = false;
+    private bool showValidationErrors = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity!.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private bool ValidateInputs()
+    {
+        return !string.IsNullOrEmpty(loginRequest.Username) && !string.IsNullOrEmpty(loginRequest.Password);
+    }
+
 
     private void TogglePasswordVisibility()
     {
         showPassword = !showPassword;
     }
 
+    
+    private async Task HandleSubmit(EditContext context)
+    {
+        errorMessage = string.Empty;
+
+        if (ValidateInputs())
+        {
+            showValidationErrors = false;
+            await HandleLogin();
+        }
+        else
+        {
+            showValidationErrors = true;
+            isLoading = false;
+        }
+
+        StateHasChanged();
+    }
+
     private async Task HandleLogin()
     {
         isLoading = true;
-        errorMessage = string.Empty; // Limpiamos errores previos
-        StateHasChanged(); // Actualiza la UI para mostrar el estado de carga
+        errorMessage = string.Empty;
+        StateHasChanged();
 
         try
         {
@@ -108,24 +159,19 @@
                     await ((ApiAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(loginResponse.Token);
 
                     // 3. Navegar a la página principal con recarga forzada para aplicar el estado de autenticación
-                    NavManager.NavigateTo("/", forceLoad: true);
-                }
-                else
-                {
-                    errorMessage = loginResponse?.Message ?? "Error de autenticación: Token no recibido.";
-                    Snackbar.Add(errorMessage, Severity.Error);
+                    NavManager.NavigateTo("/", forceLoad: true, replace: true);
                 }
             }
             else
             {
-                var errorResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                errorMessage = errorResponse?.Message ?? "Error de conexión o credenciales incorrectas.";
+                // Manejo de errores de autenticación del servidor
+                errorMessage = @Localizer["AuthenticationError"];
                 Snackbar.Add(errorMessage, Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Ocurrió un error inesperado: {ex.Message}";
+            errorMessage = $"{@Localizer["UnexpectedErrorPrefix"].Value}{ex.Message}";
             Snackbar.Add(errorMessage, Severity.Error);
         }
         finally
@@ -138,7 +184,7 @@
 
 <style>
     .login-paper {
-        background-color: #010717;
+        background-color: var(--fondo);
     }
 
     .login-center-container {

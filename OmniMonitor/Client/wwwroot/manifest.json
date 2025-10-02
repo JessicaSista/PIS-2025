@@ -1,0 +1,10 @@
+{
+  "name": "OmniMonitor",
+  "short_name": "Omni",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f111a",
+  "theme_color": "#1a1d2a",
+  "icons": []
+}
+

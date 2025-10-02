@@ -130,6 +130,14 @@
       "Zone": {
         "Zones": "/api/zone/zones",
         "GetById": "/api/zone/"
+      },
+      "News": {
+        "News": "/api/news/news",
+        "GetById": "/api/news/"
+      },
+      "Event": {
+        "Events": "/api/event/events",
+        "GetById": "/api/event/"
       }
     }
 }
