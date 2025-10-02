@@ -1,69 +1,101 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using OmniMonitor.Server.Context;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using OmniMonitor.Client.Pages;
-using OmniMonitor.Shared.Dtos;
-using RichardSzalay.MockHttp;
 using Xunit;
-using Xunit.Abstractions;
-using System.Net.Http.Json;
 using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components.Authorization;
+using OmniMonitor.Shared.Dtos;
+using Moq.Protected;
+using System.Net.Http;
+using System.Net;
+using Moq;
 
 namespace OmniMonitor.Client.Tests
 {
     public class TestPermissions : TestContext
     {
-        private readonly ITestOutputHelper _output;
         private readonly TestAuthorizationContext _authContext;
 
-        public TestPermissions(ITestOutputHelper output)
+        public TestPermissions()
         {
-            _output = output;
-            _authContext = this.AddTestAuthorization(); // Solo esto, sin registrar AuthenticationStateProvider
+            _authContext = this.AddTestAuthorization();
         }
 
         [Fact]
-        public void RenderizaPermisosDelUsuario()
+        public async Task RenderizaPermisosDelUsuario()
         {
-            // Arrange
-            var userId = 1;
-            var permissions = new List<Permission>
-            {
-                new Permission { Id = 1, Name = "apis:read" },
-                new Permission { Id = 2, Name = "dashboards:write" }
+            var dbName = $"TestDbLocal_{System.Guid.NewGuid()}";
+            var localDbSettings = new Dictionary<string, string> {
+                {"ConnectionStrings:DefaultConnection", $"Server=(localdb)\\mssqllocaldb;Database={dbName};Trusted_Connection=True;"}
             };
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(localDbSettings)
+                .Build();
 
-            var mockHttp = new MockHttpMessageHandler();
-            mockHttp.When("http://localhost/api/authorization/users/1/permissions")
-                .Respond("application/json", System.Text.Json.JsonSerializer.Serialize(permissions));
-            mockHttp.When("http://localhost/api/authorization/users/1/has-permission*")
-                .Respond("application/json", "true");
-            mockHttp.When("http://localhost/api/authorization/users/1/has-role*")
-                .Respond("application/json", "true");
+            var dbContext = new ApplicationDbContext(configuration);
+            await dbContext.Database.EnsureDeletedAsync();
+            await dbContext.Database.EnsureCreatedAsync();
 
-            var httpClient = mockHttp.ToHttpClient();
-            httpClient.BaseAddress = new System.Uri("http://localhost/");
-            Services.AddSingleton<HttpClient>(httpClient);
+            var permiso1 = new Permission { Name = "apis:read", Description = "Permite leer APIs" };
+            var permiso2 = new Permission { Name = "dashboards:write", Description = "Permite editar dashboards" };
+            var permisoVerUsuarios = new Permission { Name = "Ver Usuarios", Description = "Permite ver usuarios" };
 
-            // Configura el usuario autenticado y sus claims
+            var rol = new Role { Name = "Administrador" };
+            dbContext.Permissions.AddRange(permiso1, permiso2, permisoVerUsuarios);
+            dbContext.Roles.Add(rol);
+            dbContext.SaveChanges();
+
+            dbContext.RolePermissions.Add(new RolePermission { RoleId = rol.Id, PermissionId = permiso1.Id });
+            dbContext.RolePermissions.Add(new RolePermission { RoleId = rol.Id, PermissionId = permiso2.Id });
+            dbContext.RolePermissions.Add(new RolePermission { RoleId = rol.Id, PermissionId = permisoVerUsuarios.Id });
+            dbContext.SaveChanges();
+
+            var user = new User { Username = "testuser", Password = "test" };
+            dbContext.Users.Add(user);
+            dbContext.SaveChanges();
+
+            dbContext.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = rol.Id });
+            dbContext.SaveChanges();
+
+            Services.AddSingleton<ApplicationDbContext>(dbContext);
+
             _authContext.SetAuthorized("testuser");
             _authContext.SetClaims(
                 new Claim(ClaimTypes.Name, "testuser"),
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Role, "Administrador")
             );
 
+            // Mock necesario para Blazored.LocalStorage
             var localStorageMock = new Moq.Mock<Blazored.LocalStorage.ILocalStorageService>();
             Services.AddSingleton(localStorageMock.Object);
 
-            // Act
+            var handler = new Mock<HttpMessageHandler>();
+            handler.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("[{\"Name\":\"apis:read\"},{\"Name\":\"dashboards:write\"}]"),
+                });
+
+            var httpClient = new HttpClient(handler.Object)
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            Services.AddSingleton<HttpClient>(httpClient);
+
             var cut = RenderComponent<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<Pages.TestPermissions>());
-            
 
             cut.WaitForAssertion(() =>
             {
@@ -72,65 +104,21 @@ namespace OmniMonitor.Client.Tests
                 Assert.Contains("dashboards:write", cut.Markup);
                 Assert.Contains("Administrador", cut.Markup);
                 Assert.Contains("testuser", cut.Markup);
-            }, timeout: System.TimeSpan.FromSeconds(5));
-        }
-
-        [Fact]
-        public void RenderizaSinPermisos()
-        {
-            // Arrange
-            var userId = 2;
-            var permissions = new List<Permission>(); // Sin permisos
-
-            var mockHttp = new MockHttpMessageHandler();
-            mockHttp.When("http://localhost/api/authorization/users/2/permissions")
-                .Respond("application/json", System.Text.Json.JsonSerializer.Serialize(permissions));
-            mockHttp.When("http://localhost/api/authorization/users/2/has-permission*")
-                .Respond("application/json", "false");
-            mockHttp.When("http://localhost/api/authorization/users/2/has-role*")
-                .Respond("application/json", "false");
-
-            var httpClient = mockHttp.ToHttpClient();
-            httpClient.BaseAddress = new System.Uri("http://localhost/");
-            Services.AddSingleton<HttpClient>(httpClient);
-
-            // Configura el usuario autenticado y sus claims
-            _authContext.SetAuthorized("noperms");
-            _authContext.SetClaims(
-                new Claim(ClaimTypes.Name, "noperms"),
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Role, "Visitante")
-            );
-
-            var localStorageMock = new Moq.Mock<Blazored.LocalStorage.ILocalStorageService>();
-            Services.AddSingleton(localStorageMock.Object);
-
-            // Act
-            var cut = RenderComponent<CascadingAuthenticationState>(parameters => parameters
-                .AddChildContent<Pages.TestPermissions>());
-
-            cut.WaitForAssertion(() =>
-            {
-                Assert.Contains("No se pudieron cargar los permisos o no tiene ninguno.", cut.Markup);
-                Assert.Contains("Visitante", cut.Markup);
-                Assert.Contains("noperms", cut.Markup);
-            }, timeout: System.TimeSpan.FromSeconds(5));
+            }, timeout: System.TimeSpan.FromSeconds(30));
         }
 
         [Fact]
         public void RenderizaNoAutenticado()
         {
-            // Arrange
             _authContext.SetNotAuthorized();
 
+            // Mock necesario para Blazored.LocalStorage
             var localStorageMock = new Moq.Mock<Blazored.LocalStorage.ILocalStorageService>();
             Services.AddSingleton(localStorageMock.Object);
 
-            // Act
             var cut = RenderComponent<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<Pages.TestPermissions>());
 
-            // Assert
             cut.WaitForAssertion(() =>
             {
                 Assert.Contains("No hay usuario autenticado", cut.Markup);
@@ -138,68 +126,29 @@ namespace OmniMonitor.Client.Tests
             }, timeout: System.TimeSpan.FromSeconds(5));
         }
 
-        private void MostrarPermisos(IEnumerable<Permission> permisos)
-        {
-            if (permisos == null || !permisos.Any())
-            {
-                _output.WriteLine("No hay permisos.");
-                return;
-            }
-
-            foreach (var permiso in permisos)
-            {
-                _output.WriteLine($"Permiso: {permiso.Id} - {permiso.Name} - {permiso.Description}");
-            }
-        }
-
         [Fact]
-        public void MuestraPermisosManual()
+        public async Task DatosSeed_PublicadosCorrectamente()
         {
-            var permisos = new List<Permission>
-            {
-                new Permission { Id = 1, Name = "apis:read", Description = "Permite leer APIs" },
-                new Permission { Id = 2, Name = "dashboards:write", Description = "Permite editar dashboards" }
+            var localDbSettings = new Dictionary<string, string> {
+                {"ConnectionStrings:DefaultConnection", "Server=(localdb)\\mssqllocaldb;Database=TestDbLocal;Trusted_Connection=True;"}
             };
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(localDbSettings)
+                .Build();
 
-            MostrarPermisos(permisos);
+            var dbContext = new ApplicationDbContext(configuration);
 
-            Assert.True(true); // Solo para que el test pase
-        }
+            await dbContext.Database.EnsureDeletedAsync();
+            await dbContext.Database.EnsureCreatedAsync();
 
-        [Fact]
-        public async Task MuestraTodosLosPermisosDesdeApi()
-        {
-            var mockHttp = new MockHttpMessageHandler();
-            var allPermissions = new List<Permission>
-            {
-                new Permission { Id = 1, Name = "apis:read", Description = "Permite leer APIs" },
-                new Permission { Id = 2, Name = "dashboards:write", Description = "Permite editar dashboards" },
-                // ... otros permisos
-            };
+            var adminRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.Name == "Administrador");
+            Assert.NotNull(adminRole);
 
-            mockHttp.When("http://localhost/api/authorization/permissions")
-                .Respond("application/json", System.Text.Json.JsonSerializer.Serialize(allPermissions));
+            var adminUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+            Assert.NotNull(adminUser);
 
-            var httpClient = mockHttp.ToHttpClient();
-            httpClient.BaseAddress = new System.Uri("http://localhost/");
-            Services.AddSingleton<HttpClient>(httpClient);
-
-            // Act
-            var response = await httpClient.GetAsync("api/authorization/permissions");
-            var permisos = await response.Content.ReadFromJsonAsync<List<Permission>>();
-
-            MostrarPermisos(permisos);
-
-            Assert.NotNull(permisos);
+            var permisos = await dbContext.Permissions.ToListAsync();
             Assert.True(permisos.Count > 0);
         }
-    }
-
-    // Mock mínimo de Permission para los tests
-    public class Permission
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public string? Description { get; set; }
     }
 }

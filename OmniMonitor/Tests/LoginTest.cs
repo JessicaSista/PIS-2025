@@ -1,26 +1,57 @@
 using Blazored.LocalStorage;
 using Bunit;
+using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Localization;
+using Moq;
+using Moq.Protected;
 using MudBlazor;
 using MudBlazor.Services;
 using OmniMonitor.Client.Pages;
+using OmniMonitor.Server.Context;
+using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
-using Moq;
-using Moq.Protected;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
 
 public class LoginTest : TestContext
 {
+    private ApplicationDbContext CrearDbContext()
+    {
+        var dbName = $"TestDbLocal_{Guid.NewGuid()}";
+        var inMemorySettings = new Dictionary<string, string> {
+            {"ConnectionStrings:DefaultConnection", $"Server=(localdb)\\mssqllocaldb;Database={dbName};Trusted_Connection=True;"}
+        };
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var context = new ApplicationDbContext(configuration);
+
+        // Elimina y crea la base de datos para evitar conflictos
+        context.Database.EnsureDeleted();
+        context.Database.EnsureCreated();
+
+        // Poblar usuarios solo si la base está vacía
+        if (!context.Users.Any())
+        {
+            context.Users.Add(new User { Id = 1, Username = "admin", Password = "admin" });
+            context.Users.Add(new User { Id = 2, Username = "visitante", Password = "visitante" });
+            context.SaveChanges();
+        }
+        return context;
+    }
+
     public LoginTest()
     {
         Services.AddMudServices();
@@ -28,13 +59,42 @@ public class LoginTest : TestContext
         Services.AddSingleton<ISnackbar>(new MockSnackbar());
         Services.AddSingleton<NavigationManager>(new FakeNavigationManager());
         Services.AddSingleton<ILocalStorageService>(new MockLocalStorageService());
+
+        var localizerMock = new Mock<IStringLocalizer<SharedResource>>();
+        localizerMock
+            .Setup(l => l["LoginTitle"])
+            .Returns(new LocalizedString("LoginTitle", "Iniciar Sesión"));
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(localizerMock.Object);
+
+        // Mock para el localizer específico del Login
+        var localizerLoginMock = new Mock<IStringLocalizer<OmniMonitor.Client.Pages.Login>>();
+        localizerLoginMock
+            .Setup(l => l["UsernameLabel"])
+            .Returns(new LocalizedString("UsernameLabel", "Usuario o Email"));
+        localizerLoginMock
+            .Setup(l => l["PasswordLabel"])
+            .Returns(new LocalizedString("PasswordLabel", "Contraseña"));
+        localizerLoginMock
+            .Setup(l => l["LoginButton"])
+            .Returns(new LocalizedString("LoginButton", "Iniciar Sesión"));
+        localizerLoginMock
+            .Setup(l => l["RequiredUsername"])
+            .Returns(new LocalizedString("RequiredUsername", "El usuario es obligatorio."));
+        localizerLoginMock
+            .Setup(l => l["Subtitle"])
+            .Returns(new LocalizedString("Subtitle", "Ingrese sus credenciales para acceder."));
+        Services.AddSingleton<IStringLocalizer<OmniMonitor.Client.Pages.Login>>(localizerLoginMock.Object);
+
+        // Registrar el contexto en memoria
+        var dbContext = CrearDbContext();
+        Services.AddSingleton<ApplicationDbContext>(dbContext);
     }
 
     [Fact]
     public void Login_RenderizaCamposYBoton()
     {
         var cut = RenderComponent<Login>();
-        Assert.Contains("Email", cut.Markup);
+        Assert.Contains("Usuario o Email", cut.Markup);
         Assert.Contains("Contraseña", cut.Markup);
         Assert.Contains("Iniciar Sesión", cut.Markup);
     }
@@ -132,6 +192,28 @@ public class LoginTest : TestContext
         loginButton.Click();
         // Espera a que el mensaje de error aparezca
         cut.WaitForAssertion(() => Assert.Contains("Credenciales incorrectas", cut.Markup, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Login_ConsultaCredencialesEnBaseDeDatos()
+    {
+        // Arrange: obtener el contexto registrado
+        var dbContext = Services.GetRequiredService<ApplicationDbContext>();
+
+        // Prueba con credenciales válidas
+        var usuarioValido = dbContext.Users
+            .FirstOrDefault(u => u.Username == "visitante" && u.Password == "visitante");
+        Assert.NotNull(usuarioValido);
+
+        // Prueba con credenciales inválidas
+        var usuarioInvalido = dbContext.Users
+            .FirstOrDefault(u => u.Username == "visitante" && u.Password == "incorrecta");
+        Assert.Null(usuarioInvalido);
+
+        // Prueba con usuario inexistente
+        var usuarioNoExiste = dbContext.Users
+            .FirstOrDefault(u => u.Username == "Admi" && u.Password == "admin");
+        Assert.Null(usuarioNoExiste);
     }
 
     // Mock de ISnackbar

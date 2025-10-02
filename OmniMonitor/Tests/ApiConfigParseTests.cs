@@ -12,26 +12,38 @@ namespace QA.Tests
         [Fact]
         public void ApiConfig_Deserialize_FromJson_WorksCorrectly()
         {
-            var json = File.ReadAllText("ApiConfig.json");
-            ApiConfig config = JsonSerializer.Deserialize<ApiConfig>(json);
+            const string configPath = "ApiConfig.json";
+            Assert.True(File.Exists(configPath), $"El archivo {configPath} no existe en el directorio de ejecución.");
+
+            string json = File.ReadAllText(configPath);
+            ApiConfig config = null;
+
+            try
+            {
+                config = JsonSerializer.Deserialize<ApiConfig>(json);
+            }
+            catch (Exception ex)
+            {
+                Assert.True(false, $"Error al deserializar el JSON: {ex.Message}");
+            }
 
             Assert.NotNull(config);
             Assert.NotNull(config.BaseUrl);
             Assert.NotNull(config.Credentials);
 
             // Prueba URLs
-            Assert.False(string.IsNullOrWhiteSpace(config.BaseUrl.UrlIM));
-            Assert.False(string.IsNullOrWhiteSpace(config.BaseUrl.UrlEM));
-            Assert.False(string.IsNullOrWhiteSpace(config.BaseUrl.UrlUM));
+            Assert.False(string.IsNullOrWhiteSpace(config.BaseUrl.UrlIM), "UrlIM está vacío o nulo");
+            Assert.False(string.IsNullOrWhiteSpace(config.BaseUrl.UrlEM), "UrlEM está vacío o nulo");
+            Assert.False(string.IsNullOrWhiteSpace(config.BaseUrl.UrlUM), "UrlUM está vacío o nulo");
 
             // Prueba credenciales IM
             Assert.NotNull(config.Credentials.CredentialsIM);
-            Assert.False(string.IsNullOrWhiteSpace(config.Credentials.CredentialsIM.Email));
-            Assert.False(string.IsNullOrWhiteSpace(config.Credentials.CredentialsIM.Password));
+            Assert.False(string.IsNullOrWhiteSpace(config.Credentials.CredentialsIM.Email), "Email IM vacío");
+            Assert.False(string.IsNullOrWhiteSpace(config.Credentials.CredentialsIM.Password), "Password IM vacío");
 
             // Prueba Endpoints IM
             Assert.NotNull(config.EndpointsIM);
-            Assert.True(config.EndpointsIM.ContainsKey("Login"));
+            Assert.True(config.EndpointsIM.ContainsKey("Login"), "No existe la clave 'Login' en EndpointsIM");
             Assert.Equal("/api/Account/Login", config.EndpointsIM["Login"]["Login"]);
 
             // Prueba EndpointsAM, EndpointsEM, EndpointsUM (aunque estén vacíos)
@@ -39,12 +51,10 @@ namespace QA.Tests
             Assert.NotNull(config.EndpointsEM);
             Assert.NotNull(config.EndpointsUM);
 
-            // Imprime algunos valores
+            // Imprime algunos valores para depuración
             Console.WriteLine("UrlIM: " + config.BaseUrl.UrlIM);
             Console.WriteLine("Email IM: " + config.Credentials.CredentialsIM.Email);
             Console.WriteLine("Login Endpoint: " + config.EndpointsIM["Login"]["Login"]);
-
-            // Puedes repetir para otras categorías si tienes datos de ejemplo
         }
     }
 }

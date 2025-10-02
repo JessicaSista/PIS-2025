@@ -1,6 +1,7 @@
 using Blazored.LocalStorage;
 using Bunit;
 using Bunit.TestDoubles;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -23,7 +24,7 @@ public class SessionTimeoutTests : TestContext
         // Arrange: simula token expirado en LocalStorage
         var localStorageMock = new Mock<ILocalStorageService>();
         localStorageMock.Setup(x => x.GetItemAsync<DateTime>("token_expires_at", default))
-            .ReturnsAsync(DateTime.UtcNow.AddDays(-1)); // Expirado
+            .ReturnsAsync(DateTime.UtcNow.AddMinutes(-10)); // Expirado
 
         Services.AddSingleton(localStorageMock.Object);
 
@@ -32,7 +33,6 @@ public class SessionTimeoutTests : TestContext
             new TestAuthProvider(new ClaimsPrincipal(new ClaimsIdentity()))
         );
 
-        // FakeNavigationManager ya está registrado por Bunit
         var navMan = Services.GetRequiredService<FakeNavigationManager>();
 
         // Act: renderiza el componente que debe redirigir
@@ -46,6 +46,8 @@ public class SessionTimeoutTests : TestContext
             Assert.Contains("Iniciar Sesión", cut.Markup);
         }, timeout: TimeSpan.FromSeconds(5));
     }
+
+  
 
     // Proveedor de autenticación de test
     public class TestAuthProvider : AuthenticationStateProvider
