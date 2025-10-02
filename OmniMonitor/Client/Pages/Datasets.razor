@@ -16,7 +16,7 @@
 
     <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
         <MudStack>
-            <MudText Typo="Typo.h4" Style="color:e1e6e7; font-weight: 500; font-family: Inter, Roboto, sans-serif;">Datasets</MudText>
+            <MudText Typo="Typo.h4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">Datasets</MudText>
         </MudStack>
         <AddButton OnClick="CrearDataset">
             Crear Dataset
@@ -143,7 +143,6 @@
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
 
-            // ⬇️ AGREGAR AQUÍ
             Console.WriteLine($"DEBUG: Username obtenido: '{username}'");
 
             if (string.IsNullOrEmpty(username))
@@ -263,30 +262,7 @@
         NavigationManager.NavigateTo("/crearDataset");
     }
 
-    private string GetDatasetIcon(int id) => id switch
-    {
-        1 => Icons.Material.Filled.Thermostat,
-        2 => Icons.Material.Filled.ElectricalServices,
-        3 => Icons.Material.Filled.Cloud,
-        _ => Icons.Material.Filled.Storage
-    };
-
-    private string GetDatasetDescription(int id) => id switch
-    {
-        1 => "Datos de sensores de temperatura en tiempo real desde Montevideo.",
-        2 => "Información detallada del consumo energético por sector.",
-        3 => "Métricas de emisiones de CO₂ y gases de efecto invernadero.",
-        _ => "Dataset de información general."
-    };
-
-    private string GetRecordCount(int id) => id switch
-    {
-        1 => "15.420",
-        2 => "8.750",
-        3 => "12.300",
-        _ => "0"
-    };
-
+   
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (datasets.Count > 0)

@@ -10,13 +10,13 @@
 
 <PageTitle>Crear Dataset</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #e1e6e7; font-weight: 500; font-family: Inter, Roboto, sans-serif;">
+<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">
     Crear Dataset
 </MudText>
 
 
 <!-- Selector de tipo de dataset -->
-<MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Tipo de Dataset</MudText>
+<MudText Typo="Typo.h6" Class="mb-1 mx-4" >Tipo de Dataset</MudText>
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
     <MudSelect T="string"
                @bind-Value="selectedTipo"
@@ -31,86 +31,46 @@
     </MudSelect>
 </MudStack>
 
-<style>
-/* Select y TextFields oscuros */
-.dark-field .mud-input-root {
-    background-color: #0F172A !important;
-    color: #E5EAEB !important;
-    border: 1px solid #334155 !important;
-    border-radius: 6px;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.dark-field .mud-input-input,
-.dark-field .mud-select-value,
-.dark-field .mud-select-text {
-    color: #E5EAEB !important;
-}
-
-/* Placeholder y label */
-.dark-field .mud-input-label,
-.dark-field .mud-input-placeholder {
-    color: #B0B6B6 !important;
-}
-
-/* Hover */
-.dark-field .mud-input-root:hover {
-    box-shadow: 0 0 6px #4A81E9;
-    border-color: #4A81E9 !important;
-}
-
-/* Popover (dropdown) oscuro */
-.dark-field-popover {
-    background-color: #1E293B !important;
-    color: #E5EAEB !important;
-}
-
-.dark-field-popover .mud-list-item {
-    color: #E5EAEB !important;
-}
-
-.dark-field .mud-input > textarea.mud-input-root-outlined {
-    margin-top: 0 !important;
-    padding-top: 9px !important;
-}
-</style>
-
 @if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Inside Monitor")
 {
     <!-- Campo Nombre -->
-    <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Nombre</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4" >Nombre</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
         <MudTextField @bind-Value="addName" Placeholder="Agregar Nombre"
-                      Variant="Variant.Outlined" 
-                      Class="flex-grow-1 dark-field"/>
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
     </MudStack>
 
     <!-- Campo Descripción -->
-    <MudText Typo="Typo.h6" Class="mb-1 mx-4" Style="color: #E5EAEB;">Descripción</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4" >Descripción</MudText>
     <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
         <MudTextField T="string"
-            @bind-Value="addDesc"
-            Placeholder="Agregar Descripción"
-            Variant="Variant.Outlined"
-            TextFieldType="MudBlazor.TextFieldType.Multiline"
-            Lines="3"
-            Class="flex-grow-1 dark-field mt-0"
-            MaxLength="200" />
+                      @bind-Value="addDesc"
+                      Placeholder="Agregar Descripción"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
     </MudStack>
+
 
     <!-- Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
     <MudStack Row Spacing="2" Class="mb-4 mx-4">
 
         <!-- Fuente -->
         <div style="width: 25%;">
-            <MudSelect T="int?" 
-                    Value="@selectedSourceId"
-                    ValueChanged="@OnSourceChanged"
-                    Variant="Variant.Outlined" 
-                    FullWidth="true"
-                    Label="Seleccionar Fuente *"
-                    Class="dark-field"
-                    Required="true">
+            <MudSelect T="int?"
+                       Value="@selectedSourceId"
+                       ValueChanged="@OnSourceChanged"
+                       Variant="Variant.Outlined"
+                       FullWidth="true"
+                       Label="Seleccionar Fuente"
+                       Class="@($"dark-field")"
+                       Required="true">
                 @foreach (var source in sources)
                 {
                     <MudSelectItem Value="@((int?)source.Id)">@source.Name</MudSelectItem>
@@ -120,45 +80,48 @@
 
         <!-- Grupo -->
         <div style="width: 25%;">
-            <MudSelect T="int?" 
-                    Value="@selectedGroupId"
-                    ValueChanged="@OnGroupChanged"
-                    Variant="Variant.Outlined" 
-                    Clearable 
-                    FullWidth="true"
-                    Label="Seleccionar Grupo"
-                    Class="dark-field">
+            <MudSelect T="int?"
+                       Value="@selectedGroupId"
+                       ValueChanged="@OnGroupChanged"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="Seleccionar Grupo"
+                       Class="dark-field">
                 @foreach (var group in deviceGroups)
                 {
                     <MudSelectItem Value="@((int?)group.Id)">@group.Name</MudSelectItem>
                 }
             </MudSelect>
         </div>
-
+           <!--SelectedValuesChanged="OnSelectedDevicesChanged"-->
+        <!-- Dispositivo -->
         <div style="width: 25%;">
-            <MudSelect T="int?" 
-                    @bind-Value="selectedDeviceId"
-                    Variant="Variant.Outlined" 
-                    Clearable 
-                    FullWidth="true"
-                    Label="Seleccionar Dispositivo"
-                    Class="dark-field">
+            <MudSelect T="int"
+                       SelectedValues="selectedDeviceIds"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       Clearable
+                       FullWidth="true"
+                       Label="Seleccionar Dispositivo(s)"
+                       Class="dark-field">
                 @foreach (var device in devices)
                 {
-                    <MudSelectItem Value="@((int?)device.Id)">@device.Name</MudSelectItem>
+                    <MudSelectItem T="int" Value="@device.Id">@device.Name</MudSelectItem>
                 }
             </MudSelect>
         </div>
 
         <!-- Sensor -->
         <div style="width: 25%;">
-            <MudSelect T="string" 
-                       @bind-Value="selectedSensor" 
-                       Variant="Variant.Outlined" 
-                       Clearable 
+            <MudSelect T="string"
+                       @bind-Value="selectedSensor"
+                       Variant="Variant.Outlined"
+                       Clearable
                        FullWidth="true"
                        Label="Seleccionar Sensor"
-                       Class="dark-field">
+                       Class="@($"dark-field")"
+                       Required="true">
                 @foreach (var sensor in sensores)
                 {
                     <MudSelectItem Value="@sensor">@sensor</MudSelectItem>
@@ -168,9 +131,13 @@
     </MudStack>
 
     <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton OnClick="GuardarDataset" Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="@(!selectedSourceId.HasValue)">
+        <MudButton OnClick="GuardarDataset"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(! selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) )">
             Guardar Dataset
         </MudButton>
+
     </div>
 }
 
@@ -178,34 +145,30 @@
     private string selectedTipo = "Inside Monitor";
     private List<string> tiposDataset = new() { "Inside Monitor", "Modulo 2", "Modulo 3" };
 
-    // 🆕 NUEVO: Listas dinámicas desde la API
     private List<Source> sources = new();
     private List<DeviceGroup> deviceGroups = new();
     private List<Device> devices = new();
 
-    // 🆕 NUEVO: Valores seleccionados (ahora son IDs en lugar de strings)
     private int? selectedSourceId = null;
     private int? selectedGroupId = null;
-    private int? selectedDeviceId = null;
-    
+    private HashSet<int> selectedDeviceIds = new();
+
     private string selectedSensor = string.Empty;
     private List<string> sensores = new();
 
     private string addName = string.Empty;
     private string addDesc = string.Empty;
 
-    // 🆕 NUEVO: Credenciales del usuario
     private string currentUsername = string.Empty;
     private string currentPassword = string.Empty;
 
-    // 🆕 NUEVO: Método que se ejecuta al cargar la página
     protected override async Task OnInitializedAsync()
     {
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUsername = authState.User.Identity?.Name ?? "";
-            currentPassword = "admin"; // ⬅️ VER EXPLICACIÓN ABAJO
+            currentPassword = "admin"; 
 
             if (string.IsNullOrEmpty(currentUsername))
             {
@@ -244,21 +207,50 @@
         }
     }
 
-    //Cuando cambia la fuente seleccionada
+    // Cuando cambia la fuente seleccionada: limpiar grupo, dispositivos y sensor
     private async Task OnSourceChanged(int? sourceId)
     {
+        // asigno nuevo source
         selectedSourceId = sourceId;
+
+        // limpio dependencias
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+
+        // recargo listas en base al nuevo source
         await LoadDevices();
         await LoadSensors();
+
+        StateHasChanged();
     }
 
-    //Cuando cambia el grupo seleccionado
+    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
+        //se recargan los dispositivos porque se borra el "filtro" de grupo
         await LoadDevices();
+
+        StateHasChanged();
     }
 
+    // Cuando cambian los dispositivos seleccionados (multi-select): POR AHORA NO DEBERÍA DE PASAR NADA (PREGUNTAR)
+    /*private Task OnSelectedDevicesChanged(IEnumerable<int> values)
+    {
+        selectedDeviceIds = values != null ? new HashSet<int>(values) : new HashSet<int>();
+        // si el usuario cambia la selección de dispositivos, borramos el sensor seleccionado
+        selectedSensor = string.Empty;
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }*/
+
+    //Cuando cambia el sensor
+    private Task OnSensorChanged(string sensor)
+    {
+        selectedSensor = sensor ?? string.Empty;
+        return Task.CompletedTask;
+    }
     // Cargar devices con intersección de filtros
     private async Task LoadDevices()
     {
@@ -365,6 +357,16 @@
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(selectedSensor))
+            {
+                ShowError("Debe seleccionar un sensor");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
             if (string.IsNullOrWhiteSpace(addName))
             {
                 ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
@@ -378,12 +380,10 @@
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
-                SourceId = selectedSourceId,           // ✅ Ahora ya es int?
-                GroupId = selectedGroupId,             // ✅ Ahora ya es int?
+                SourceId = selectedSourceId,
+                GroupId = selectedGroupId,
                 SensorName = selectedSensor,
-                DeviceIds = selectedDeviceId.HasValue 
-                    ? new List<int> { selectedDeviceId.Value } 
-                    : null
+                DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
             var response = await Http.PostAsJsonAsync("api/Dataset", request);
