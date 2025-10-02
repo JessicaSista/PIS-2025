@@ -1,7 +1,10 @@
 @using MudBlazor
+@using OmniMonitor.Client.Services
 @inherits LayoutComponentBase
+@inject ThemeService ThemeService
 
-<MudThemeProvider Theme="_currentTheme" @bind-IsDarkMode="_isDarkMode" />
+<MudThemeProvider Theme="ThemeService.CurrentTheme"
+                  IsDarkMode="@(ThemeService.CurrentMode == ThemeMode.Dark)" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -18,7 +21,7 @@
 
 
 
-<div style="@(_isDarkMode ? _darkModeVars : _lightModeVars)">
+<div style="@ThemeService.CurrentThemeVariables">
     <MudLayout>
         <CascadingValue Value="_drawerOpen">
             <AuthorizeView>
@@ -35,9 +38,8 @@
             </AuthorizeView>
         </CascadingValue>
         <MudMainContent Class="d-flex flex-grow">
-            <AppBar ToggleDrawer="ToggleDrawer" 
-                    IsDarkMode="@_isDarkMode" 
-                    ToggleTheme="ToggleTheme" />
+            <AppBar ToggleDrawer="ToggleDrawer"/>
+
             <MudContainer MaxWidth="MaxWidth.False" Class="pa-4 d-flex flex-column flex-grow">
                 @Body
             </MudContainer>
@@ -47,86 +49,32 @@
 
 @code {
     private bool _drawerOpen = true;
-    private bool _isDarkMode = true;
 
-    private MudTheme _currentTheme = new()
+    protected override async Task OnInitializedAsync()
     {
-        PaletteLight = new PaletteLight()
-        {
-            Primary = "#1E88E5",
-            Secondary = "#424242",
-            Background = "#E3F2FD",
-            AppbarBackground = "#BBDEFB",
-            AppbarText = "#0D47A1",
-            DrawerBackground = "#BBDEFB",
-            DrawerText = "#212121",
-            Surface = "#FFFFFF",
-            TextPrimary = "#212121",
-            TextSecondary = "rgba(0, 0, 0, 0.6)",
-            ActionDefault = "#6200EE"
-        },
-        PaletteDark = new PaletteDark()
-        {
-            Primary = "#1E88E5",
-            Secondary = "#424242",
-            Background = "#121212",
-            AppbarBackground = "#1E1E1E",
-            AppbarText = "#FFFFFF",
-            DrawerBackground = "#1E1E1E",
-            DrawerText = "#FFFFFF",
-            Surface = "#1E1E1E",
-            TextPrimary = "#FFFFFF",
-            TextSecondary = "rgba(255, 255, 255, 0.7)",
-            ActionDefault = "#BB86FC"
-        }
-    };
+        // 1. Inicializa el tema al inicio de la app (carga desde LocalStorage)
+        await ThemeService.InitializeThemeAsync();
 
-    private string _lightModeVars = @"
-        --hover: rgba(0, 0, 0, 0.04);
-        --seleccion: rgba(0, 0, 0, 0.08);
-        --borde-drawer: rgba(0, 0, 0, 0.12);
-        --scrollbar-fondo: #F5F5F5;
-        --scrollbar-pulgar: #BDBDBD;
-        --scrollbar-pulgar-hover: #9E9E9E;
-        --fondo: #E3F2FD;
-        --fondo-drawer: #BBDEFB;
-        --superficie: #FFFFFF;
-        --Boton-Usuario: rgba(30, 30, 30, 0.8);
-        --text-primary: #212121;
-        --text-secondary: rgba(0, 0, 0, 0.6);
-        --text-disabled: rgba(0, 0, 0, 0.38);
-        --appbar-background: #BBDEFB;
-        --appbar-text: #0D47A1;
-        --theme-toggle: rgba(30, 30, 30, 0.8);
-    ";
+        // 2. Se suscribe al evento para que sepa cuándo redibujar
+        ThemeService.OnThemeChange += ThemeChanged;
+    }
 
-    private string _darkModeVars = @"
-        --hover: rgba(255, 255, 255, 0.08);
-        --seleccion: rgba(255, 255, 255, 0.15);
-        --borde-drawer: rgba(255, 255, 255, 0.12);
-        --scrollbar-fondo: #2D2D2D;
-        --scrollbar-pulgar: #555555;
-        --scrollbar-pulgar-hover: #777777;
-        --fondo: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
-        --fondo-drawer: #1E1E1E;
-        --superficie: rgba(30, 30, 30, 0.8);
-        --Boton-Usuario: #9AA5CE;
-        --text-primary: #C4C6CB;
-        --text-secondary: rgba(255, 255, 255, 0.7);
-        --text-disabled: rgba(255, 255, 255, 0.38);
-        --appbar-background: #1E1E1E;
-        --appbar-text: #C4C6CB;
-        --theme-toggle: #C4C6CB;
-    ";
+    private void ThemeChanged()
+    {
+        // CRÍTICO: Fuerza el redibujado en el hilo de la UI cuando el tema cambia
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        // Importante: elimina la suscripción al evento al desechar el componente
+        ThemeService.OnThemeChange -= ThemeChanged;
+    }
 
     private void ToggleDrawer()
     {
         _drawerOpen = !_drawerOpen;
     }
 
-    private void ToggleTheme()
-    {
-        _isDarkMode = !_isDarkMode;
-    }
 }
 

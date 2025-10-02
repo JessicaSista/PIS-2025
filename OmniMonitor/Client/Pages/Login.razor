@@ -37,7 +37,8 @@
                               For="@(() => loginRequest.Username)"
                               Required="true"
                               RequiredError="@Localizer["RequiredUsername"]"
-                              Class="mb-4" />
+                              Class="mb-4 textfield-custom-bg"
+                              Style="background-color: var(--textField-color-1);" />
 
                 <MudText Typo="Typo.body2" Class="mb-2">@Localizer["PasswordLabel"]</MudText>
                 <MudTextField T="string"
@@ -50,7 +51,8 @@
                               For="@(() => loginRequest.Password)"
                               Required="true"
                               RequiredError="La contraseña es obligatoria."
-                              Class="mb-4" />
+                              Class="mb-4 textfield-custom-bg"
+                              Style="background-color: var(--textField-color-1);" />
 
                 <MudButton ButtonType="ButtonType.Submit"
                            Variant="MudBlazor.Variant.Filled"
@@ -138,7 +140,7 @@
 
 <style>
     .login-paper {
-        background-color: #010717;
+        background-color: var(--card-color-1);
     }
 
     .login-center-container {
@@ -146,5 +148,11 @@
         flex-grow: 1;
         justify-content: center;
         align-items: center;
+    }
+
+    /* Regla para aplicar el color de fondo al contenedor de entrada de texto interno */
+    .textfield-custom-bg .mud-input-control-input-container {
+        background-color: var(--textField-color-1) !important;
+        border-radius: 4px; /* Opcional: para que coincida con el borde del Outlined */
     }
 </style>
