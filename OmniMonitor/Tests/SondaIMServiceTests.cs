@@ -65,39 +65,35 @@ public class SondaIMServiceTests
     [Fact]
     async Task GetAllDevicesByPage_ReturnsDevicesList()
     {
-        var pagedResponse = new PagedDeviceResponse
+        var devices = new List<Device>
         {
-            PagedData = new List<Device>
-            {
-                new Device { Id = 1, Name = "Device1" },
-                new Device { Id = 2, Name = "Device2" }
-            }
+            new Device { Id = 1, Name = "Device1" },
+            new Device { Id = 2, Name = "Device2" }
         };
-        var json = System.Text.Json.JsonSerializer.Serialize(pagedResponse);
+        var json = System.Text.Json.JsonSerializer.Serialize(devices);
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json)
         };
         var service = CreateService(response);
-        //var result = await service.GetAllDevicesByPage(1, "user", "pass");
-        //Assert.NotNull(result);
-        //Assert.Equal(2, result.Count);
-        //Assert.Equal("Device1", result[0].Name);
+        var result = await service.GetAllDevices("user", "pass");
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Device1", result[0].Name);
     }
 
     [Fact]
     async Task GetAllDevicesByPage_ReturnsNull_WhenNotFound()
     {
-        // Simula respuesta vacía (sin datos paginados)
-        var pagedResponse = new PagedDeviceResponse { PagedData = null };
-        var json = System.Text.Json.JsonSerializer.Serialize(pagedResponse);
+        // Simula respuesta nula
+        var json = "null";
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json)
         };
         var service = CreateService(response);
-        //var result = await service.GetAllDevicesByPage(1, "user", "pass");
-        //Assert.Null(result);
+        var result = await service.GetAllDevices("user", "pass");
+        Assert.Null(result);
     }
 
     [Fact]
