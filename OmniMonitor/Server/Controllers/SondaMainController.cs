@@ -52,6 +52,27 @@ public class SondaMainController : ControllerBase
         }
     }
 
+    [HttpGet("devices/data")]
+    [ProducesResponseType(typeof(List<DeviceData>), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<DeviceData>>> GetDeviceData(int deviceId, DateTime dateFrom, DateTime dateTo, string user, string password)
+    {
+        try
+        {
+            var deviceData = await _sondaIMApiService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, user, password);
+            if (deviceData == null || !deviceData.Any())
+            {
+                return NotFound($"No se encontraron datos para el dispositivo {deviceId} en el rango de fechas especificado.");
+            }
+            return Ok(deviceData);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener los datos del device: {ex.Message}");
+        }
+    }
+
 
     // ---------------- DEVICE GROUPS ----------------
     [HttpGet("groups")]
