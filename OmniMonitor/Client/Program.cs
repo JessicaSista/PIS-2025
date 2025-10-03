@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using OmniMonitor.Client;
 using OmniMonitor.Client.Auth;
+using OmniMonitor.Client.Services;
 using System.Net.Http;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -36,6 +37,8 @@ builder.Services.AddBlazoredLocalStorage();
 builder.Services.AddAuthorizationCore();
 
 builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
+
+builder.Services.AddScoped<ThemeService>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 

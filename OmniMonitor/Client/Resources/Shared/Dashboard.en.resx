@@ -117,22 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Actualizado" xml:space="preserve">
-    <value>Updated:</value>
+  <data name="AgregarNuevaGrafica" xml:space="preserve">
+    <value>Add New Chart</value>
   </data>
-  <data name="DashboardsTitle" xml:space="preserve">
-    <value>Dashboards</value>
-  </data>
-  <data name="DatasetsTitle" xml:space="preserve">
-    <value>Datasets</value>
-  </data>
-  <data name="LoginTitle" xml:space="preserve">
-    <value>Login</value>
-  </data>
-  <data name="ReportsTitle" xml:space="preserve">
-    <value>Reports</value>
-  </data>
-  <data name="VisualizationsTitle" xml:space="preserve">
-    <value>Visualizations</value>
+  <data name="TextoCrearGraficoKPI" xml:space="preserve">
+    <value>Click to create a new chart or KPI</value>
   </data>
 </root>
