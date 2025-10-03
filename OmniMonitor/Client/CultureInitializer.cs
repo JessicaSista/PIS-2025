@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
 
@@ -18,12 +18,11 @@ public class CultureInitializer
 
         // 1. Lee la cultura guardada en el Local Storage
         var savedCulture = await _localStorage.GetItemAsStringAsync("culture");
-        string cultureCodeToUse;
+        string cultureCodeToUse = DefaultCultureCode;
 
         // 2. Si no hay nada guardado o es inválido, usa el valor por defecto.
         if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
         {
-            cultureCodeToUse = DefaultCultureCode;
         }
         else
         {

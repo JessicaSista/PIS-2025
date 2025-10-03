@@ -1,22 +1,23 @@
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> SharedLocalizer
 
 <MudCard Class="dataset-card" @onclick="OnClick" 
-         Style="width:100%; background-color:#030a16; border:1px solid #374151; border-radius:12px; cursor:pointer; padding:16px; display:flex; flex-direction:column; height:200px;">
+         Style="width:100%; background-color:var(--card); border:1px solid #374151; border-radius:12px; cursor:pointer; padding:16px; display:flex; flex-direction:column; height:200px;">
     <MudCardContent Style="width:100%; display:flex; flex-direction:column; flex-grow:1;">
 
         <!-- Contenido principal (nombre y descripción) -->
         <MudStack Row AlignItems="AlignItems.Start" Spacing="0" Style="width:100%;">
             <MudStack Style="width:100%;" Spacing="0">
-                <MudText Style="color:#bcc3c5;font-weight:600;font-size:1.2rem;">@Dataset.Nombre</MudText>
-                 <MudText Style="color:#69818d;font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">@Description</MudText>
+                <MudText Style="color:var(--card-text-primary);font-weight:600;font-size:1.2rem;">@Dataset.Nombre</MudText>
+                <MudText Style="color:var(--card-text-secondary);font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">@Description</MudText>
             </MudStack>
         </MudStack>
 
-        <!-- Footer (registros y actualizado) -->
-        <MudStack Row Justify="Justify.SpaceBetween" Style="width:100%; margin-top:auto;">
-            <MudText Style="color:#69818d;font-size:0.7rem;">@RecordCount registros</MudText>
-            <MudText Style="color:#69818d;font-size:0.7rem;">Actualizado: @Dataset.FechaCreacion.ToString("yyyy-MM-dd HH:mm")</MudText>
+        <!-- Footer (actualizado) -->
+        <MudStack Row Justify="Justify.FlexEnd" Style="width:100%; margin-top:auto;">
+            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@SharedLocalizer["Actualizado"] @Dataset.FechaCreacion.ToString("yyyy-MM-dd HH:mm")</MudText>
         </MudStack>
 
     </MudCardContent>
@@ -26,6 +27,5 @@
 @code {
     [Parameter] public DatasetDto Dataset { get; set; } = new();
     [Parameter] public string Description { get; set; } = string.Empty;
-    [Parameter] public string RecordCount { get; set; } = "0";
     [Parameter] public EventCallback OnClick { get; set; }
 }

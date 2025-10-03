@@ -166,6 +166,48 @@ public class SondaMainController : ControllerBase
     }
 
     // ---------------- SENSORS ----------------
+    
+    /// <summary>
+    /// Obtiene todos los sensores únicos de los dispositivos pertenecientes a una fuente específica.
+    /// </summary>
+    [HttpGet("sensors/source/{sourceId}")]
+    [ProducesResponseType(typeof(List<string>), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<string>>> GetSensorsBySource(int sourceId, string user, string password)
+    {
+        try
+        {
+            // Obtener todos los dispositivos de la fuente
+            var devices = await _sondaIMApiService.GetDeviceOfSource(sourceId, user, password);
+            
+            if (devices == null || !devices.Any())
+            {
+                return NotFound($"No se encontraron dispositivos para la fuente {sourceId}.");
+            }
+
+            // Extraer todos los sensores únicos de los dispositivos
+            var uniqueSensors = devices
+                .Where(d => d.Sensors != null && d.Sensors.Any())
+                .SelectMany(d => d.Sensors!)
+                .Where(s => !string.IsNullOrEmpty(s.Name))
+                .Select(s => s.Name!)
+                .Distinct()
+                .OrderBy(name => name)
+                .ToList();
+
+            if (!uniqueSensors.Any())
+            {
+                return NotFound($"No se encontraron sensores en los dispositivos de la fuente {sourceId}.");
+            }
+
+            return Ok(uniqueSensors);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener los sensores de la fuente: {ex.Message}");
+        }
+    }
     [HttpGet("sensors/data")]
     [ProducesResponseType(typeof(List<SensorData>), 200)]
     [ProducesResponseType(404)]
