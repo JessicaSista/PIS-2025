@@ -1,0 +1,150 @@
+<MudDialog Style="background: #0f1522">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
+            Nueva Visualización
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="5">
+            <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background: #030a16" Spacing="3">
+                <MudItem Lg="7" Sm="7" Xs="12" Class="pl-0 pt-0">
+                    <MudText Typo="Typo.h6">Dataset</MudText>
+                    <MudSelect T="string" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Elemento Uno")">DATA 1</MudSelectItem>
+                        <MudSelectItem Value="@("Elemento Dos")">DATA 2</MudSelectItem>
+                        <MudSelectItem Value="@("Elemento Tres")">DATA 3</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem Lg="3" Sm="3" Xs="6" Class="pt-0">
+                    <MudText Typo="Typo.h6">Multiplicador</MudText>
+                    <MudNumericField HideSpinButtons="true" @bind-Value="DecimalValue" Variant="Variant.Outlined" Step=".2M" />
+                </MudItem>
+                <MudItem Lg="2" Sm="2" Xs="6" Class="pt-0">
+                    <MudText Typo="Typo.h6">Color</MudText>
+                    <MudColorPicker @bind-Text="_colorValue" Style="@($"color: {_colorValue};")" Placeholder="Seleccionar color" Variant="Variant.Outlined"/>
+                </MudItem>
+            </MudGrid>
+            
+            <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background: #030a16"  Spacing="3">
+                <MudItem Lg="7" Sm="7" Xs="12" Class="pt-0 pl-0">
+                    <MudText Typo="Typo.h6">Dataset</MudText>
+                    <MudSelect T="string" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Elemento Uno")">DATA 2</MudSelectItem>
+                        <MudSelectItem Value="@("Elemento Dos")">DATA 1</MudSelectItem>
+                        <MudSelectItem Value="@("Elemento Tres")">DATA 3</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem Lg="3" Sm="3" Xs="6" Class="pt-0">
+                    <MudText Typo="Typo.h6">Multiplicador</MudText>
+                    <MudNumericField HideSpinButtons="true" @bind-Value="DecimalValue" Variant="Variant.Outlined" Step=".2M" />
+                </MudItem>
+                <MudItem Lg="2" Sm="2" Xs="6" Class="pt-0">
+                    <MudText Typo="Typo.h6">Color</MudText>
+                    <MudColorPicker @bind-Text="_colorValue" Style="@($"color: {_colorValue};")" Placeholder="Seleccionar color" Variant="Variant.Outlined"/>
+                </MudItem>
+            </MudGrid>
+        </MudStack>
+        <MudGrid Style="background: #0f1522" Class="mt-0 mb-5">
+            <MudItem xs="6">
+                <MudButton FullWidth="true"
+                        Variant="Variant.Outlined" 
+                        StartIcon="@Icons.Material.Filled.AddCircleOutline" 
+                        Color="MudBlazor.Color.Inherit"
+                        Size="MudBlazor.Size.Large"
+                        Style="padding: 20px 10px">
+                    Agregar Sensor
+                </MudButton>
+            </MudItem>
+            <MudItem xs="6">
+                <MudButton FullWidth="true"
+                        Variant="Variant.Outlined" 
+                        StartIcon="@Icons.Material.Filled.AddCircleOutline" 
+                        Color="MudBlazor.Color.Inherit"
+                        Size="MudBlazor.Size.Large"
+                        Style="padding: 20px 10px">
+                    Agregar Dataset
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+
+        <MudText Typo="Typo.h6">Tipo de gráfica</MudText>
+        <MudSelect T="string" 
+                @bind-Value="graficaSeleccionada" 
+                Variant="Variant.Outlined"
+                Margin="Margin.Normal"
+                Dense="true">
+            @foreach (var tipo in TiposDeGrafica)
+            {
+                <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudDivider DividerType="DividerType.Middle" Class="mt-5 mb-10"/>
+
+        <MudGrid>
+                <!-- Desde -->
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle1">Desde</MudText>
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudDatePicker Label="Fecha" @bind-Date="desdeFecha" DateFormat="dd/MM/yyyy" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTimePicker Label="Hora" @bind-Time="desdeHora" />
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+
+                <!-- Hasta -->
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle1">Hasta</MudText>
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudDatePicker Label="Fecha" @bind-Date="hastaFecha" DateFormat="dd/MM/yyyy" />
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudTimePicker Label="Hora" @bind-Time="hastaHora" />
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+            </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+
+    // Variable para almacenar la opción seleccionada. 
+    // Se inicializa en "Linea" para que coincida con tu imagen.
+    private string graficaSeleccionada = "Linea";
+
+    // Lista de opciones para el selector.
+    private List<string> TiposDeGrafica = new List<string>() 
+    { 
+        "Linea", 
+        "Barra", 
+        "Circular", 
+        "Puntos" 
+    };
+
+
+    private DateTime? desdeFecha { get; set; }
+    private TimeSpan? desdeHora { get; set; }
+
+    private DateTime? hastaFecha { get; set; }
+    private TimeSpan? hastaHora { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string _colorValue = "ffffff";
+    public decimal DecimalValue { get; set; }
+}
