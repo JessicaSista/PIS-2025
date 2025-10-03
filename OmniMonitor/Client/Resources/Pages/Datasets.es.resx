@@ -195,4 +195,28 @@
   <data name="ErrorInicializar" xml:space="preserve">
     <value>Error al inicializar:</value>
   </data>
+  <data name="DebeFuente" xml:space="preserve">
+    <value>Debe seleccionar una fuente</value>
+  </data>
+  <data name="DatasetCreadoExito" xml:space="preserve">
+    <value>creado con éxito</value>
+  </data>
+  <data name="NoSePudoCrear" xml:space="preserve">
+    <value>No se pudo crear: </value>
+  </data>
+  <data name="ErrorCargaDispositivos" xml:space="preserve">
+    <value>Error al cargar dispositivos:</value>
+  </data>
+  <data name="ErrorCargaFuentes" xml:space="preserve">
+    <value>Error al cargar fuentes y grupos:</value>
+  </data>
+  <data name="ErrorCargaSensores" xml:space="preserve">
+    <value>Error al cargar sensores:</value>
+  </data>
+  <data name="NosePudoActualizar" xml:space="preserve">
+    <value>No se pudo actualizar:</value>
+  </data>
+  <data name="Actualizado" xml:space="preserve">
+    <value>actualizado</value>
+  </data>
 </root>

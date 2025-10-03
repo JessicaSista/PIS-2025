@@ -177,7 +177,7 @@
 
             if (string.IsNullOrEmpty(currentUsername))
             {
-                ShowError("No se pudo obtener el usuario actual");
+                ShowError(@Localizer["ErrorUsuario"]);
                 return;
             }
 
@@ -185,7 +185,7 @@
         }
         catch (Exception ex)
         {
-            ShowError($"Error al inicializar: {ex.Message}");
+            ShowError($"{Localizer["ErrorInicializar"]} {ex.Message}");
         }
     }
 
@@ -208,7 +208,7 @@
         }
         catch (Exception ex)
         {
-            ShowError($"Error al cargar sources y grupos: {ex.Message}");
+            ShowError($"{Localizer["ErrorCargaFuentes"]} {ex.Message}");
         }
     }
 
@@ -309,7 +309,7 @@
         }
         catch (Exception ex)
         {
-            ShowError($"Error al cargar dispositivos: {ex.Message}");
+            ShowError($"{Localizer["ErrorCargaDispositivos"]} {ex.Message}");
             devices = new List<Device>();
         }
     }
@@ -351,7 +351,7 @@
         }
         catch (Exception ex)
         {
-            ShowError($"Error al cargar sensores: {ex.Message}");
+            ShowError($"{Localizer["ErrorCargaSensores"]} {ex.Message}");
             sensores = new List<string>();
             selectedSensor = string.Empty;
         }
@@ -372,7 +372,7 @@
 
             if (!selectedSourceId.HasValue)
             {
-                ShowError("Debe seleccionar una fuente");
+                ShowError(@Localizer["DebeFuente"]);
                 return;
             }
 
@@ -410,7 +410,7 @@
             if (response.IsSuccessStatusCode)
             {
                 var newDataset = await response.Content.ReadFromJsonAsync<Dataset>();
-                ShowSuccess($"Dataset '{newDataset.Name}' creado exitosamente");
+                ShowSuccess($"'{newDataset.Name}' {Localizer["DatasetCreadoExito"]}");
                 Nav.NavigateTo("/datasets");
             }
             else
@@ -421,7 +421,7 @@
         }
         catch (Exception ex)
         {
-            ShowError($"No se pudo crear el dataset: {ex.Message}");
+            ShowError($"{Localizer["NoSePudoCrear"]} {ex.Message}");
         }
     }
 

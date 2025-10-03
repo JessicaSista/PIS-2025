@@ -293,7 +293,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar sources y grupos: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["ErrorCargaFuentes"]} {ex.Message}", Severity.Error);
         }
     }
 
@@ -384,7 +384,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar dispositivos: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["ErrorCargaDispositivos"]} {ex.Message}", Severity.Error);
             devices = new List<Device>();
         }
     }
@@ -426,7 +426,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar sensores: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["ErrorCargaSensores"]} {ex.Message}", Severity.Error);
             sensores = new List<string>();
             selectedSensor = string.Empty;
         }
@@ -487,7 +487,7 @@ else
             if (response.IsSuccessStatusCode)
             {
                 var updatedDataset = await response.Content.ReadFromJsonAsync<Dataset>();
-                Snackbar.Add($"Dataset '{updatedDataset.Name}' actualizado", Severity.Success, cfg =>
+                Snackbar.Add($"Dataset '{updatedDataset.Name}' {Localizer["Actualizado"]}", Severity.Success, cfg =>
                 {
                     cfg.SnackbarVariant = Variant.Filled;
                 });
@@ -501,7 +501,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"No se pudo actualizar el dataset: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["NoSePudoActualizar"]} {ex.Message}", Severity.Error);
         }
     }
 
