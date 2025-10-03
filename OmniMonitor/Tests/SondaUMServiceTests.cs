@@ -1,19 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Microsoft.Identity.Client;
 using Moq;
 using Moq.Protected;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
-using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 // using OmniMonitor.Server.Services;
-using Xunit;
+
 
 public class SondaUMServiceTests
 {
@@ -589,7 +584,7 @@ public class SondaUMServiceTests
 		var service = CreateServiceFake(dataPerEndpoint);
 		var result = await service.GetAllNews("user", "pass", sort: "title");
 		Assert.NotNull(result);
-		Assert.Equal(2, result.Count);
+		Assert.Equal(3, result.Count);
 		Assert.Equal("Alpha", result[0].Title);
 		Assert.Equal("Beta", result[1].Title);
 		Assert.Equal("Zeta", result[2].Title);
