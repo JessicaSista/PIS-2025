@@ -145,6 +145,28 @@
     "EndpointsEM": {
         "Login": {
             "Login": "/api/Account/Login"
+        },
+        "Event": {
+            "GetById": "/api/Event/{eventId}",
+            "GetEvents": "/api/Event/events",
+            "GetPending": "/api/event/events/pending"
+
+        },
+        "Alert": {
+            "GetById": "/api/Alert/{alertId}",
+            "GetAll": "/api/Alert",
+            "GetStored": "/api/Alert/stored"
+        },
+        "EventType": {
+            "GetEventTypes": "/api/EventType/eventTypes"
+        },
+        "Extension": {
+            "GetById": "/api/Extensions/{extensionId}",
+            "GetAll": "/api/Extensions",
+            "GetAttachedItems": "/api/extensions/{extensionId}/attachedItems"
+        },
+        "ResourceType": {
+            "GetById": "/api/Resources/{id}"
         }
     },
     "EndpointsUM": {

@@ -80,7 +80,7 @@ public class SondaAMService : ISondaAMService
         }
 
         string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
-
+        Console.WriteLine($"SONDA API TOKEN: {token}");
         string getDataUrl = baseUrl + endpoint + "?assetId=" + id;
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
