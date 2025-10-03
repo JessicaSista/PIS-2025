@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="ErrorMessage" xml:space="preserve">
-    <value>Error: Wrong Username or Password.</value>
+  <data name="AuthenticationError" xml:space="preserve">
+    <value>Invalid Credentials</value>
   </data>
   <data name="LoginButton" xml:space="preserve">
     <value>Login</value>
@@ -137,5 +137,11 @@
   </data>
   <data name="UsernameLabel" xml:space="preserve">
     <value>User</value>
+  </data>
+  <data name="UnexpectedErrorPrefix" xml:space="preserve">
+    <value>An unexpected error occurred: </value>
+  </data>
+  <data name="LoginInButtonText" xml:space="preserve">
+    <value>Loggin in...</value>
   </data>
 </root>

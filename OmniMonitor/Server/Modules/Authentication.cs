@@ -212,7 +212,6 @@ public class SondaAuthService : ISondaAuthService
         return await RefreshAndStoreTokenAMAsync(user);
     }
 
-
     // Para refrescar y almacenar el token AM
     private async Task<string> RefreshAndStoreTokenAMAsync(User user)
     {

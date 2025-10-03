@@ -51,13 +51,12 @@ namespace OmniMonitor.Server.Services
                 SensorName = request.SensorName
             };
 
-            // --- LÓGICA MODIFICADA PARA CONTENTTYPE ---
-           // if (request.IsDataset == "S")
-          //  {
-          //      newDataset.ContentType = "0"; // 0 para indicar un dataset formal
-          //  }
-         //   else // Si IsDataset es 'N'
-          //  {
+            if (request.IsDataset == "S")
+            {
+               newDataset.ContentType = "0"; // 0 para indicar un dataset formal
+            }
+            else // Si IsDataset es 'N'
+            {
                 if (request.DeviceIds != null && request.DeviceIds.Any())
                 {
                     newDataset.ContentType = "1"; // 1 para indicar un device
@@ -70,7 +69,7 @@ namespace OmniMonitor.Server.Services
                 {
                     newDataset.ContentType = "3"; // 3 para indicar un sensor
                 }
-         //   }
+            }
 
             // Si el usuario seleccionó devices específicos, los agregamos.
             if (request.DeviceIds != null && request.DeviceIds.Any())
