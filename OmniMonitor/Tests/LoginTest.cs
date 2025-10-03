@@ -2,6 +2,7 @@ using Blazored.LocalStorage;
 using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,18 +12,13 @@ using Moq;
 using Moq.Protected;
 using MudBlazor;
 using MudBlazor.Services;
+using OmniMonitor.Client.Auth;
 using OmniMonitor.Client.Pages;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Shared;
 using OmniMonitor.Shared.Dtos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
 
 public class LoginTest : TestContext
 {
@@ -54,20 +50,31 @@ public class LoginTest : TestContext
 
     public LoginTest()
     {
+        Services.AddAuthorization();
         Services.AddMudServices();
         JSInterop.SetupVoid(_ => true);
+
+        // Mock de ILocalStorageService
+        var localStorageMock = new MockLocalStorageService();
+        Services.AddSingleton<ILocalStorageService>(localStorageMock);
+
+        // Mock de HttpClient
+        var handler = new Mock<HttpMessageHandler>();
+        var httpClient = new HttpClient(handler.Object)
+        {
+            BaseAddress = new Uri("http://localhost")
+        };
+        Services.AddSingleton<HttpClient>(httpClient);
+
+        // Registrar el provider DESPUÉS de los mocks
+        Services.AddSingleton<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
+
         Services.AddSingleton<ISnackbar>(new MockSnackbar());
         Services.AddSingleton<NavigationManager>(new FakeNavigationManager());
-        Services.AddSingleton<ILocalStorageService>(new MockLocalStorageService());
-
-        var localizerMock = new Mock<IStringLocalizer<SharedResource>>();
-        localizerMock
-            .Setup(l => l["LoginTitle"])
-            .Returns(new LocalizedString("LoginTitle", "Iniciar Sesión"));
-        Services.AddSingleton<IStringLocalizer<SharedResource>>(localizerMock.Object);
+        Services.AddHttpClient();
 
         // Mock para el localizer específico del Login
-        var localizerLoginMock = new Mock<IStringLocalizer<OmniMonitor.Client.Pages.Login>>();
+        var localizerLoginMock = new Mock<IStringLocalizer<Login>>();
         localizerLoginMock
             .Setup(l => l["UsernameLabel"])
             .Returns(new LocalizedString("UsernameLabel", "Usuario o Email"));
@@ -83,7 +90,20 @@ public class LoginTest : TestContext
         localizerLoginMock
             .Setup(l => l["Subtitle"])
             .Returns(new LocalizedString("Subtitle", "Ingrese sus credenciales para acceder."));
-        Services.AddSingleton<IStringLocalizer<OmniMonitor.Client.Pages.Login>>(localizerLoginMock.Object);
+        localizerLoginMock
+            .Setup(l => l["AuthenticationError"])
+            .Returns(new LocalizedString("AuthenticationError", "Credenciales incorrectas"));
+        localizerLoginMock
+            .Setup(l => l["UnexpectedErrorPrefix"])
+            .Returns(new LocalizedString("UnexpectedErrorPrefix", "Error: "));
+        Services.AddSingleton<IStringLocalizer<Login>>(localizerLoginMock.Object);
+
+        // Mock para el localizer compartido (SharedResource)
+        var localizerSharedMock = new Mock<IStringLocalizer<SharedResource>>();
+        localizerSharedMock
+            .Setup(l => l[It.IsAny<string>()])
+            .Returns((string key) => new LocalizedString(key, key));
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(localizerSharedMock.Object);
 
         // Registrar el contexto en memoria
         var dbContext = CrearDbContext();
@@ -143,8 +163,35 @@ public class LoginTest : TestContext
             BaseAddress = new Uri("http://localhost")
         };
 
+        // Mock para IStringLocalizer<Login>
+        var localizerMock = new Mock<IStringLocalizer<Login>>();
+        localizerMock.Setup(l => l["UnexpectedErrorPrefix"])
+            .Returns(new LocalizedString("UnexpectedErrorPrefix", "Error: "));
+        localizerMock.Setup(l => l["AuthenticationError"])
+            .Returns(new LocalizedString("AuthenticationError", "Error de autenticación"));
+        // Agrega más setups si usas más claves en la vista
+
+        // Mock para IStringLocalizer<SharedResource>
+        var sharedLocalizerMock = new Mock<IStringLocalizer<SharedResource>>();
+        sharedLocalizerMock.Setup(l => l["LoginTitle"])
+            .Returns(new LocalizedString("LoginTitle", "Iniciar sesión"));
+        sharedLocalizerMock.Setup(l => l["Subtitle"])
+            .Returns(new LocalizedString("Subtitle", "Introduce tus credenciales"));
+        // Agrega más setups si usas más claves en la vista
+
+        // Reemplaza el HttpClient
         Services.RemoveAll<HttpClient>();
         Services.AddSingleton<HttpClient>(httpClient);
+
+        // Vuelve a registrar el provider para que use el nuevo HttpClient
+        Services.RemoveAll<AuthenticationStateProvider>();
+        Services.AddSingleton<AuthenticationStateProvider, ApiAuthenticationStateProvider>();
+
+        // Registra los localizadores mockeados
+        Services.RemoveAll<IStringLocalizer<Login>>();
+        Services.AddSingleton<IStringLocalizer<Login>>(localizerMock.Object);
+        Services.RemoveAll<IStringLocalizer<SharedResource>>();
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(sharedLocalizerMock.Object);
 
         var nav = Services.GetRequiredService<NavigationManager>() as FakeNavigationManager;
         var cut = RenderComponent<Login>();
@@ -170,11 +217,7 @@ public class LoginTest : TestContext
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.Unauthorized,
-                Content = JsonContent.Create(new OmniMonitor.Shared.Dtos.LoginResponse
-                {
-                    Success = false,
-                    Message = "Credenciales incorrectas"
-                })
+                Content = new StringContent("{\"success\":false,\"message\":\"Credenciales incorrectas\"}", System.Text.Encoding.UTF8, "application/json")
             });
 
         var httpClient = new HttpClient(handlerMock.Object)
@@ -182,16 +225,38 @@ public class LoginTest : TestContext
             BaseAddress = new Uri("http://localhost")
         };
 
+        // Mock para IStringLocalizer<Login>
+        var localizerMock = new Mock<IStringLocalizer<Login>>();
+        localizerMock
+            .Setup(l => l["AuthenticationError"])
+            .Returns(new LocalizedString("AuthenticationError", "Credenciales incorrectas"));
+        localizerMock
+            .Setup(l => l["UnexpectedErrorPrefix"])
+            .Returns(new LocalizedString("UnexpectedErrorPrefix", "Error: "));
+
+        // Mock para ISnackbar
+        var snackbarMock = new MockSnackbar();
+
+        // Reemplaza servicios relevantes
         Services.RemoveAll<HttpClient>();
         Services.AddSingleton<HttpClient>(httpClient);
+
+        Services.RemoveAll<IStringLocalizer<Login>>();
+        Services.AddSingleton<IStringLocalizer<Login>>(localizerMock.Object);
+
+        Services.RemoveAll<ISnackbar>();
+        Services.AddSingleton<ISnackbar>(snackbarMock);
 
         var cut = RenderComponent<Login>();
         cut.Find("input[type=text]").Change("usuario");
         cut.Find("input[type=password]").Change("incorrecta");
         var loginButton = cut.Find("button.mud-button");
         loginButton.Click();
-        // Espera a que el mensaje de error aparezca
-        cut.WaitForAssertion(() => Assert.Contains("Credenciales incorrectas", cut.Markup, StringComparison.OrdinalIgnoreCase));
+
+        cut.WaitForAssertion(
+            () => Assert.Contains("Credenciales incorrectas", cut.Markup, StringComparison.OrdinalIgnoreCase),
+            timeout: TimeSpan.FromSeconds(10)
+          );
     }
 
     [Fact]
@@ -207,12 +272,14 @@ public class LoginTest : TestContext
 
         // Prueba con credenciales inválidas
         var usuarioInvalido = dbContext.Users
-            .FirstOrDefault(u => u.Username == "visitante" && u.Password == "incorrecta");
+            .AsEnumerable()
+            .FirstOrDefault(u => u.Username == "visitante" && u.Password == "viSitante");
         Assert.Null(usuarioInvalido);
 
         // Prueba con usuario inexistente
         var usuarioNoExiste = dbContext.Users
-            .FirstOrDefault(u => u.Username == "Admi" && u.Password == "admin");
+            .AsEnumerable()
+            .FirstOrDefault(u => u.Username == "Admin" && u.Password == "admin");
         Assert.Null(usuarioNoExiste);
     }
 

@@ -24,7 +24,7 @@ public class SessionTimeoutTests : TestContext
         // Arrange: simula token expirado en LocalStorage
         var localStorageMock = new Mock<ILocalStorageService>();
         localStorageMock.Setup(x => x.GetItemAsync<DateTime>("token_expires_at", default))
-            .ReturnsAsync(DateTime.UtcNow.AddMinutes(-10)); // Expirado
+            .ReturnsAsync(DateTime.UtcNow.AddMinutes(-1)); // Expirado
 
         Services.AddSingleton(localStorageMock.Object);
 
