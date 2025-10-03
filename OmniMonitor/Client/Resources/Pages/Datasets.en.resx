@@ -168,4 +168,16 @@
   <data name="Filtros" xml:space="preserve">
     <value>Filters</value>
   </data>
+  <data name="Editar" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Eliminar" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Confirmación" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="PreguntaEliminar1" xml:space="preserve">
+    <value>Are you sure you want to delete {0}?</value>
+  </data>
 </root>

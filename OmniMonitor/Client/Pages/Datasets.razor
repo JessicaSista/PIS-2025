@@ -48,21 +48,30 @@
         {
             <MudItem xs="12" sm="6" md="4">
                 <div style="position: relative;">
-                    <DatasetCardComponent
-                        Dataset="dataset"
-                        Description="@dataset.Descripcion"
-                        OnClick="@(() => EditarDataset(dataset))" />
+                    <DatasetCardComponent Dataset="dataset"
+                                          Description="@dataset.Descripcion"
+                                          OnClick="@(() => EditarDataset(dataset))" />
 
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight"
-                             Class="position-absolute" Style="position:absolute; top:8px; right:8px;">
-                        <MudMenuItem OnClick="@(() => EditarDataset(dataset))">Editar</MudMenuItem>
-                        <MudMenuItem OnClick="@(() => ConfirmEliminar(dataset))">Eliminar</MudMenuItem>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                             AnchorOrigin="Origin.TopRight"
+                             TransformOrigin="Origin.TopRight"
+                             Class="position-absolute"
+                             Style="position:absolute; top:8px; right:8px;">
+
+                        <MudMenuItem OnClick="@(() => EditarDataset(dataset))">
+                            @Localizer["Editar"]
+                        </MudMenuItem>
+
+                        <MudMenuItem OnClick="@(() => ConfirmEliminar(dataset))">
+                            @Localizer["Eliminar"]
+                        </MudMenuItem>
                     </MudMenu>
                 </div>
             </MudItem>
         }
     </MudGrid>
 </MudContainer>
+
 
 
 @code {
@@ -90,11 +99,17 @@
     private async Task ConfirmEliminar(DatasetDto dataset)
     {
         if (dataset is null) return;
+        var titulo = Localizer["Confirmación"];
+        var mensaje = (MarkupString)string.Format(
+            Localizer["PreguntaEliminar1"],
+            $"<b>{dataset.Nombre}</b>"
+        );
+
         bool? result = await DialogService.ShowMessageBox(
-            "Confirmación",
-            (MarkupString)$"¿Eliminar '<b>{dataset.Nombre}</b>' Dataset?",
-            yesText: "Eliminar",
-            cancelText: "Cancelar",
+            titulo,
+            mensaje,
+            yesText: Localizer["Eliminar"],
+            cancelText: Localizer["Cancelar"],
             options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
         );
 
