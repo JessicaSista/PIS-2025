@@ -180,4 +180,19 @@
   <data name="PreguntaEliminar1" xml:space="preserve">
     <value>Are you sure you want to delete {0}?</value>
   </data>
+  <data name="ErrorUsuario" xml:space="preserve">
+    <value>Failed to retrieve the current user</value>
+  </data>
+  <data name="ErrorEliminar" xml:space="preserve">
+    <value>Failed to delete:</value>
+  </data>
+  <data name="Eliminado" xml:space="preserve">
+    <value>Deleted</value>
+  </data>
+  <data name="ErrorCarga" xml:space="preserve">
+    <value>Unable to load datasets:</value>
+  </data>
+  <data name="ErrorInicializar" xml:space="preserve">
+    <value>Error initializing:</value>
+  </data>
 </root>

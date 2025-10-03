@@ -123,7 +123,7 @@
 
                 if (string.IsNullOrEmpty(username))
                 {
-                    Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
+                    Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
                     return;
                 }
 
@@ -133,7 +133,7 @@
                 {
                     datasets.RemoveAll(d => d.Id == dataset.Id);
                     filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
-                    Snackbar.Add($"Dataset '{dataset.Nombre}' eliminado", Severity.Success, config =>
+                    Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;
                     });
@@ -142,12 +142,12 @@
                 else
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add($"Error al eliminar: {error}", Severity.Error);
+                    Snackbar.Add($"{Localizer["ErrorEliminar"]} {error}", Severity.Error);
                 }
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Error al eliminar el dataset: {ex.Message}", Severity.Error);
+                Snackbar.Add($"{Localizer["ErrorEliminar"]} {ex.Message}", Severity.Error);
             }
         }
     }
@@ -164,7 +164,7 @@
 
             if (string.IsNullOrEmpty(username))
             {
-                Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
+                Snackbar.Add(@Localizer["ErrorUsuario"] , Severity.Warning);
                 filteredDatasets = new List<DatasetDto>();
                 return;
             }
@@ -195,7 +195,7 @@
                 // ⬇️ REEMPLAZAR estas 2 líneas
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"DEBUG: Error response: {errorContent}");
-                Snackbar.Add($"Error al cargar los datasets: {response.StatusCode}", Severity.Error);
+                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
                 // ⬆️ Por esta línea antigua: Snackbar.Add("Error al cargar los datasets", Severity.Error);
                 
                 datasets = new List<DatasetDto>();
@@ -228,7 +228,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al inicializar: {ex.Message}", Severity.Error);
+            Snackbar.Add($"{Localizer["ErrorInicializar"]} {ex.Message}", Severity.Error);
             datasets = new List<DatasetDto>();
             filteredDatasets = new List<DatasetDto>();
         }
