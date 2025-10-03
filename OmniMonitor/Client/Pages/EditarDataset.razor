@@ -34,50 +34,6 @@
     </MudSelect>
 </MudStack>
 
-<style>
-/* Select y TextFields oscuros */
-.dark-field .mud-input-root {
-    background-color: #0F172A !important;
-    color: #E5EAEB !important;
-    border: 1px solid #334155 !important;
-    border-radius: 6px;
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.dark-field .mud-input-input,
-.dark-field .mud-select-value,
-.dark-field .mud-select-text {
-    color: #E5EAEB !important;
-}
-
-/* Placeholder y label */
-.dark-field .mud-input-label,
-.dark-field .mud-input-placeholder {
-    color: #B0B6B6 !important;
-}
-
-/* Hover */
-.dark-field .mud-input-root:hover {
-    box-shadow: 0 0 6px #4A81E9;
-    border-color: #4A81E9 !important;
-}
-
-/* Popover (dropdown) oscuro */
-.dark-field-popover {
-    background-color: #1E293B !important;
-    color: #E5EAEB !important;
-}
-
-.dark-field-popover .mud-list-item {
-    color: #E5EAEB !important;
-}
-
-.dark-field .mud-input > textarea.mud-input-root-outlined {
-    margin-top: 0 !important;
-    padding-top: 9px !important;
-}
-</style>
-
 @if (cargando)
 {
     <MudProgressCircular Class="mx-4" Indeterminate="true" Color="MudBlazor.Color.Primary" />
