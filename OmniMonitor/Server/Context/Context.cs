@@ -19,7 +19,10 @@ namespace OmniMonitor.Server.Context
         public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Permission> Permissions { get; set; }
-
+        public DbSet<Dataset> Datasets { get; set; }
+        public DbSet<DatasetDevice> DatasetDevices { get; set; }
+        public DbSet<Visualizacion> Visualizaciones { get; set; }
+        public DbSet<GrupoDataset> GrupoDatasets { get; set; }
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>

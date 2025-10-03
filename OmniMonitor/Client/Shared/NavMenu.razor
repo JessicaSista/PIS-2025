@@ -15,7 +15,7 @@
         <MudNavLink Href="/dashboards" Icon=@Icons.Material.Filled.Home>
             @if (_drawerOpen)
             {
-                <span class="ml-2">@SharedLocalizer["DashboardTitle"]</span>
+                <span class="ml-2">@SharedLocalizer["DashboardsTitle"]</span>
             }
         </MudNavLink>
         <MudNavLink Href="/datasets" Icon="@Icons.Material.Filled.Dataset">
@@ -34,6 +34,12 @@
             @if (_drawerOpen)
             {
                 <span class="ml-2">@SharedLocalizer["ReportsTitle"]</span>
+            }
+        </MudNavLink>
+        <MudNavLink Href="/Visualizacion-rapida" Icon=@Icons.Material.Filled.TrendingUp>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Visualizacion Rapida</span>
             }
         </MudNavLink>
               

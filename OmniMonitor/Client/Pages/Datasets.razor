@@ -4,17 +4,35 @@
 @inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
+@using Microsoft.AspNetCore.Components
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
 <PageTitle>Datasets</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #E5EAEB; font-weight: bold;">Datasets</MudText>
-<MudText Typo="Typo.body1" Class="mb-4 mx-4" Style="color: #9ca3af">Gestiona tus fuentes de datos y conexiones</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+        <MudStack>
+            <MudText Typo="Typo.h4" Style="color:e1e6e7; font-weight: 500; font-family: Inter, Roboto, sans-serif;">Datasets</MudText>
+        </MudStack>
+        <AddButton OnClick="ShowCreateDatasetModal">
+            Crear Dataset
+        </AddButton>
+    </MudStack>
+    <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+        <MudText Typo="Typo.body1" Class="mb-4" Style="color: #a5a8b5; font-family: Inter, Roboto, sans-serif;">Gestiona tus fuentes de datos y conexiones</MudText>
+    </MudStack>
 
-<MudStack Row Justify="Justify.SpaceBetween" Class="mb-15 ml-4 mr-6">
-    <MudTextField @bind-Value="searchText" Placeholder="Buscar datasets..." Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="flex-grow-1 mr-3" />
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
+    <MudTextField @bind-Value="searchText"
+                  Immediate="true"
+                  Placeholder="Buscar datasets..."
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="flex-grow-1 mr-3" />
     <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary" StartIcon="@Icons.Material.Filled.FilterList">
         Filtros
     </MudButton>
@@ -22,47 +40,80 @@
 
 <MudContainer Fixed="true" Class="pl-4 pr-6">
     <MudGrid GutterSize="3">
-        @foreach (var dataset in datasets)
+        @foreach (var dataset in filteredDatasets)
         {
             <MudItem xs="12" sm="6" md="4">
-                <DatasetCardComponent 
-                    Dataset="dataset" 
-                    Description="@dataset.Descripcion"
-                    RecordCount="@dataset.RecordCount.ToString()" 
-                    OnClick="@(() => VerDetalle(dataset.Id))" />
+                <div style="position: relative;">
+                    <DatasetCardComponent
+                        Dataset="dataset"
+                        Description="@dataset.Descripcion"
+                        RecordCount="@dataset.RecordCount.ToString()"
+                        OnClick="@(() => VerDetalle(dataset.Id))" />
+
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" AnchorOrigin="Origin.TopRight" TransformOrigin="Origin.TopRight"
+                             Class="position-absolute" Style="position:absolute; top:8px; right:8px;">
+                        <MudMenuItem OnClick="@(() => EditarDataset(dataset))">Editar</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => ConfirmEliminar(dataset))">Eliminar</MudMenuItem>
+                    </MudMenu>
+                </div>
             </MudItem>
         }
     </MudGrid>
 </MudContainer>
 
-<MudButton 
-    Href="/crearDataset"
-    Variant="Variant.Filled"
-    Class="crear-dataset-btn"
-    StartIcon="@Icons.Material.Filled.Add">
-    Crear Dataset
-</MudButton>
-
-<style>
-.crear-dataset-btn {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1000;
-    background-color: #4A81E9;
-    color: white;
-    transition: background-color 0.2s ease-in-out;
-}
-
-.crear-dataset-btn:hover {
-    background-color: #3a69c0; /* un poco más oscuro */
-}
-</style>
 
 @code {
     private List<DatasetDto> datasets = new();
-    private string searchText = string.Empty;
+    private List<DatasetDto> filteredDatasets = new();
 
+    // Propiedad con setter que dispara el filtrado
+    private string _searchText = string.Empty;
+    private string searchText
+    {
+        get => _searchText;
+        set
+        {
+            _searchText = value ?? string.Empty;
+            FilterDatasets();
+        }
+    }
+
+    private async Task EditarDataset(DatasetDto dataset)
+    {
+        if (dataset is null) return;
+        var url = $"/editarDataset/{dataset.Id}";
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+
+    private async Task ConfirmEliminar(DatasetDto dataset)
+    {
+        if (dataset is null) return;
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirmación",
+            (MarkupString)$"¿Eliminar '<b>{dataset.Nombre}</b>' Dataset?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (result == true)
+        {
+            datasets.RemoveAll(d => d.Id == dataset.Id);
+            filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
+            await GuardarDatasetsLocalStorage();
+            Snackbar.Add($"Dataset '{dataset.Nombre}' eliminado", Severity.Success, config =>
+            {
+                config.SnackbarVariant = Variant.Filled;
+            });
+            StateHasChanged();
+        }
+    }
+
+    private async Task GuardarDatasetsLocalStorage()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(datasets);
+        await JS.InvokeVoidAsync("localStorage.setItem", "datasets", json);
+    }
     protected override async Task OnInitializedAsync()
     {
         // Cargar datasets de ejemplo
@@ -81,6 +132,9 @@
             if (locales != null)
                 datasets.AddRange(locales);
         }
+
+        // Inicializar la lista filtrada
+        filteredDatasets = datasets.ToList();
 
         // Mostrar snackbar si viene mensaje por query string (parseo manual)
         var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
@@ -104,7 +158,65 @@
         }
     }
 
+    private void FilterDatasets()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredDatasets = datasets.ToList();
+            return;
+        }
+
+        var normalizedSearch = NormalizeText(searchText);
+
+        filteredDatasets = datasets
+            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
+            .OrderByDescending(d => NormalizeText(d.Nombre) == normalizedSearch) // exactos primero
+            .ThenByDescending(d => NormalizeText(d.Nombre).StartsWith(normalizedSearch)) // luego prefijo
+            .ThenBy(d => NormalizeText(d.Nombre).IndexOf(normalizedSearch)) // luego por posición de coincidencia
+            .ThenBy(d => d.Nombre) // estable
+            .ToList();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        // 1) Normalizar a FormD y remover diacríticos (acentos)
+        var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+
+        // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
+        withoutDiacritics = withoutDiacritics
+            .Replace(" ", string.Empty)
+            .Replace("ñ", "n")
+            .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
+            .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
+
+        // 3) Normalizar de vuelta a FormC
+        return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
+    }
+
     private void VerDetalle(int id) { }
+
+    private async Task ShowCreateDatasetModal()
+    {
+        var parameters = new DialogParameters<CreateDatasetModal>();
+        var options = new DialogOptions()
+        {
+            MaxWidth = MaxWidth.Small,
+            CloseOnEscapeKey = true,
+            CloseButton = false
+        };
+
+        var dialog = await DialogService.ShowAsync<CreateDatasetModal>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            NavigationManager.NavigateTo("/crearDataset");
+        }
+    }
 
     private string GetDatasetIcon(int id) => id switch
     {
