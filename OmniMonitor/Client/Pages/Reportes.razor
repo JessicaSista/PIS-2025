@@ -3,33 +3,31 @@
 @using MudBlazor
 @using OmniMonitor.Client.Shared
 @using System.Text.Json
-@inject NavigationManager Navigation
+@using Microsoft.Extensions.Localization
+@inject NavigationManager NavigationManager
 @inject Microsoft.JSInterop.IJSRuntime JSRuntime
+@inject IStringLocalizer<Reportes> Localizer
 
-<PageTitle>Reportes</PageTitle>
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-0 pt-2">
     <!-- Fila 1: Título y botón -->
-    <MudGrid>
+    <MudGrid Class="mb-2">
         <MudItem xs="12" sm="6" Class="d-flex align-center">
-            <MudText Typo="Typo.h4" Style="color: #e1e6e7; font-weight: 500; font-family: Inter, Roboto, sans-serif; margin: 0;">
-                Reportes
+            <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
+                @Localizer["Title"]
             </MudText>
         </MudItem>
         <MudItem xs="12" sm="6" Class="d-flex justify-sm-end mt-sm-0 mt-2">
-            <MudButton Variant="Variant.Filled" 
-                    StartIcon="@Icons.Material.Filled.Add"
-                    OnClick="@(() => Navigation.NavigateTo("/crearReporte"))"
-                    DisableElevation="true"
-                    Style="background-color: #C2C2C3; color: #3A3A42; border-radius: 7px; text-transform: none;">
-                Nuevo Reporte
-            </MudButton>
+            <AddButton OnClick="CrearReporte">
+                @Localizer["NewReportButton"]
+            </AddButton>
         </MudItem>
     </MudGrid>
 
     <!-- Fila 2: Descripción -->
-    <MudText Typo="Typo.body1" Class="mb-4 mt-2" Style="color: #a5a8b5; font-family: Inter, Roboto, sans-serif;">
-        Gestiona y visualiza tus reportes de datos
+    <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
+        @Localizer["Description"]
     </MudText>
 
     <!-- Fila 3: Barra de búsqueda -->
@@ -37,14 +35,13 @@
         <MudItem xs="12" sm="8" md="6" lg="5" xl="4">
             <MudTextField @bind-Value="_searchText"
                         Immediate="true"
-                        Placeholder="Buscar reportes..."
+                        Placeholder="@Localizer["SearchPlaceholder"]"
                         Variant="Variant.Outlined"
                         Adornment="Adornment.Start"
                         AdornmentIcon="@Icons.Material.Filled.Search"
-                        Class="w-100"
-                        Style="height:50px; background-color: #020817; border: 1px solid #1D283A; border-radius: 4px;"
-                        InputStyle="color: white; background-color: #020817; padding-left: 8px;"
-                        PlaceholderStyle="color: #94a3b8"
+                        Class="w-100 search-field"
+                        Style="height: 40px;"
+                        InputStyle="padding-left: 8px;"
                         AdornmentColor="MudBlazor.Color.Default"
                         IconColor="MudBlazor.Color.Default"
                         AdornmentMargin="Margin.Dense" />
@@ -80,9 +77,9 @@
         {
             _reportes = new List<ReporteDto>
             {
-                new() { Id = 1, Nombre = "Reporte de ventas", Descripcion = "Resumen de ventas mensuales", RecordCount = 120, FechaCreacion = DateTime.Now.AddDays(-2) },
-                new() { Id = 2, Nombre = "Reporte de usuarios", Descripcion = "Usuarios activos en la plataforma", RecordCount = 56, FechaCreacion = DateTime.Now.AddDays(-7) },
-                new() { Id = 3, Nombre = "Reporte de errores", Descripcion = "Errores registrados en el sistema", RecordCount = 15, FechaCreacion = DateTime.Now.AddDays(-1) }
+                new() { Id = 1, Nombre = Localizer["DefaultReport1"].Value, Descripcion = Localizer["DefaultReport1Desc"].Value, RecordCount = 120, FechaCreacion = DateTime.Now.AddDays(-2) },
+                new() { Id = 2, Nombre = Localizer["DefaultReport2"].Value, Descripcion = Localizer["DefaultReport2Desc"].Value, RecordCount = 56, FechaCreacion = DateTime.Now.AddDays(-7) },
+                new() { Id = 3, Nombre = Localizer["DefaultReport3"].Value, Descripcion = Localizer["DefaultReport3Desc"].Value, RecordCount = 15, FechaCreacion = DateTime.Now.AddDays(-1) }
             };
             await GuardarReportes();
         }
@@ -113,7 +110,7 @@
     // Cambié Guid -> int porque Reporte.Id es int
     private void VerReporte(int id)
     {
-        Navigation.NavigateTo($"/reporte/{id}");
+        NavigationManager.NavigateTo($"/reporte/{id}");
     }
     
     private async Task GuardarReportes()
@@ -144,5 +141,10 @@
             Console.WriteLine($"Error al cargar reportes: {ex.Message}");
             _reportes = new List<ReporteDto>();
         }
+    }
+
+    private void CrearReporte()
+    {
+        NavigationManager.NavigateTo("/crearReporte");
     }
 }
