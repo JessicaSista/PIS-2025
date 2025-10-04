@@ -96,8 +96,6 @@ builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
-builder.Services.AddScoped<ISondaAMService, SondaAMService>();
-builder.Services.AddScoped<ISondaEMService, SondaEMService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
