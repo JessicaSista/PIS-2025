@@ -117,7 +117,8 @@ else
                        Clearable
                        FullWidth="true"
                        Label="@Localizer["SeleccionarDispositivo"]"
-                       Class="dark-field">
+                       Class="dark-field"
+                       ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
                 @foreach (var device in devices)
                 {
                     <MudSelectItem T="int" Value="@device.Id">@device.Name</MudSelectItem>
