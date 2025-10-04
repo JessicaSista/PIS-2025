@@ -375,4 +375,39 @@ public class SondaMainController : ControllerBase
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
+    [HttpGet("kpi/deviceCount")]
+    [ProducesResponseType(typeof(int), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<int>> GetDeviceCount()
+    {
+        try
+        {
+            var count = await _sondaIMApiService.GetSSDeviceCount("admin", "admin");
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+
+    [HttpGet("kpi/dataStatus")]
+    [ProducesResponseType(typeof(DeviceDataStatusResponse), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<DeviceDataStatusResponse>> GetDataStatus()
+    {
+        try
+        {
+            var count = await _sondaIMApiService.GetSSDataStatus("admin", "admin");
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+
 }
