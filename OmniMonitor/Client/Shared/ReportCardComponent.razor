@@ -1,0 +1,77 @@
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+
+<MudCard Class="@($"h-100 {Class}")"
+         Style="display:flex; flex-direction:column; background-color: #030A16; height: 100%;">
+    <MudCardHeader Style="padding-bottom:0; align-items:center;">
+        <div class="d-flex align-center mr-3"
+             style="width: 44px; height: 44px; background-color: #2D3748; border-radius: 6px; justify-content: center;">
+            <MudIcon Icon="@Icons.Material.Filled.Article" 
+                     Size="MudBlazor.Size.Large" 
+                     Color="MudBlazor.Color.Inherit"
+                     Style="font-size: 24px; color: #E2E8F0;" />
+        </div>
+
+        <MudText Typo="Typo.h6">@Reporte?.Nombre</MudText>
+        <MudSpacer />
+
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                Dense="true"
+                Class="ml-auto"
+                AnchorOrigin="Origin.TopRight"
+                TransformOrigin="Origin.TopRight"
+                Style="color: #cbd5e1;">
+            <MudMenuItem OnClick="@(() => OnEdit.InvokeAsync(Reporte?.Id ?? 0))" 
+                        Class="menu-item-edit"
+                        Style="color: #949FD0 !important; padding: 8px 16px !important;">
+                <span style="font-weight: 800 !important; font-family: 'Inter', 'Roboto', sans-serif !important;">Editar</span>
+            </MudMenuItem>
+
+            <MudMenuItem OnClick="@(() => OnDelete.InvokeAsync(Reporte?.Id ?? 0))" 
+                        Class="menu-item-delete"
+                        Style="color: #F47F7F !important; padding: 8px 16px !important;">
+                <span style="font-weight: 800 !important; font-family: 'Inter', 'Roboto', sans-serif !important;">Eliminar</span>
+            </MudMenuItem>
+        </MudMenu>
+
+    </MudCardHeader>
+
+    <MudCardContent Style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 16px;">
+        @if (!string.IsNullOrEmpty(Reporte?.Descripcion))
+        {
+            <MudText Typo="Typo.body2" Class="mb-4"
+                     Style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis;
+                            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                @Reporte.Descripcion
+            </MudText>
+        }
+        else
+        {
+            <div style="flex-grow: 1;"></div>
+        }
+
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.caption" Class="mt-2">
+                @(Reporte?.FechaCreacion.ToShortDateString() ?? string.Empty)
+            </MudText>
+            <MudText Typo="Typo.caption">
+                @if (Reporte != null)
+                {
+                    <text>Registros: @Reporte.RecordCount</text>
+                }
+            </MudText>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public ReporteDto? Reporte { get; set; }
+    [Parameter] public EventCallback<int> OnEdit { get; set; }
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+
+    protected override void OnInitialized()
+    {
+        Reporte ??= new ReporteDto();
+    }
+}
