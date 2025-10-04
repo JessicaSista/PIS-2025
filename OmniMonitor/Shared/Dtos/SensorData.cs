@@ -6,7 +6,7 @@ namespace OmniMonitor.Shared.Dtos
     public class SensorData
     {
         [JsonPropertyName("data")]
-        public decimal Data { get; set; }
+        public string Data { get; set; }
 
         [JsonPropertyName("time")]
         public DateTime Time { get; set; }
