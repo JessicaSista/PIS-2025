@@ -2,17 +2,17 @@
 @using MudBlazor
 
 <MudCard Class="@($"h-100 {Class}")"
-         Style="display:flex; flex-direction:column; background-color: #030A16; height: 100%;">
-    <MudCardHeader Style="padding-bottom:0; align-items:center;">
+         Style="display:flex; flex-direction:column; background-color: var(--card); color: var(--mud-palette-text-primary); height: 100%; border: 1px solid var(--mud-palette-lines-inputs); border-radius: 8px;">
+    <MudCardHeader Style="padding: 16px 16px 0 16px; align-items:center;">
         <div class="d-flex align-center mr-3"
-             style="width: 44px; height: 44px; background-color: #2D3748; border-radius: 6px; justify-content: center;">
+             style="width: 44px; height: 44px; background-color: var(--mud-palette-primary); border-radius: 6px; justify-content: center;">
             <MudIcon Icon="@Icons.Material.Filled.Article" 
                      Size="MudBlazor.Size.Large" 
                      Color="MudBlazor.Color.Inherit"
-                     Style="font-size: 24px; color: #E2E8F0;" />
+                     Style="font-size: 24px; color: var(--mud-palette-primary-text);" />
         </div>
 
-        <MudText Typo="Typo.h6">@Reporte?.Nombre</MudText>
+        <MudText Typo="Typo.h6" Style="color: var(--mud-palette-text-primary);">@Reporte?.Nombre</MudText>
         <MudSpacer />
 
         <MudMenu Icon="@Icons.Material.Filled.MoreVert"
@@ -20,7 +20,7 @@
                 Class="ml-auto"
                 AnchorOrigin="Origin.TopRight"
                 TransformOrigin="Origin.TopRight"
-                Style="color: #cbd5e1;">
+                Style="color: var(--mud-palette-text-secondary);">
             <MudMenuItem OnClick="@(() => OnEdit.InvokeAsync(Reporte?.Id ?? 0))" 
                         Class="menu-item-edit"
                         Style="color: #949FD0 !important; padding: 8px 16px !important;">
@@ -41,7 +41,8 @@
         {
             <MudText Typo="Typo.body2" Class="mb-4"
                      Style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis;
-                            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;">
+                            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+                            color: var(--mud-palette-text-secondary);">
                 @Reporte.Descripcion
             </MudText>
         }
@@ -50,11 +51,11 @@
             <div style="flex-grow: 1;"></div>
         }
 
-        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.caption" Class="mt-2">
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="margin-top: auto;">
+            <MudText Typo="Typo.caption" Class="mt-2" Style="color: var(--mud-palette-text-secondary);">
                 @(Reporte?.FechaCreacion.ToShortDateString() ?? string.Empty)
             </MudText>
-            <MudText Typo="Typo.caption">
+            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
                 @if (Reporte != null)
                 {
                     <text>Registros: @Reporte.RecordCount</text>
