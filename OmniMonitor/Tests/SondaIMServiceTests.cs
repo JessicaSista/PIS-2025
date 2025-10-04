@@ -17,8 +17,9 @@ public class SondaIMServiceTests
 {
     private SondaIMService CreateService(HttpResponseMessage response, string token = "test-token")
     {
-        var mockAuthService = new Mock<ISondaAuthService>();
-        mockAuthService.Setup(x => x.GetUserTokenAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(token);
+
+    var mockAuthService = new Mock<ISondaAuthService>();
+    mockAuthService.Setup(x => x.GetUserTokenIMAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(token);
 
         var handlerMock = new Mock<HttpMessageHandler>();
         handlerMock.Protected()
@@ -33,10 +34,11 @@ public class SondaIMServiceTests
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();
         httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
 
-    var apiConfig = new ApiConfig
+
+        var apiConfig = new ApiConfig
         {
-            BaseUrl = "http://localhost/api/",
-            Endpoints = new Dictionary<string, Dictionary<string, string>>
+            BaseUrl = new BaseUrlConfig { UrlIM = "http://localhost/api/" },
+            EndpointsIM = new Dictionary<string, Dictionary<string, string>>
             {
                 ["Source"] = new Dictionary<string, string>
                 {
@@ -51,50 +53,48 @@ public class SondaIMServiceTests
                 ["Device"] = new Dictionary<string, string>
                 {
                     ["GetAll"] = "devices",
-                    ["GetById"] = "devices/get"
+                    ["GetById"] = "devices/get",
+                    ["DevicesOfSource"] = "devices/source",
+                    ["DevicesOfGroup"] = "devices/group"
                 }
             }
         };
-    var options = Options.Create<ApiConfig>(apiConfig);
+        var options = Options.Create<ApiConfig>(apiConfig);
 
         return new SondaIMService(httpClientFactoryMock.Object, mockAuthService.Object, options);
     }
 
     [Fact]
-    async Task GetAllDevicesByPage_ReturnsDevicesList()
+    async Task GetAllDevices_ReturnsDevicesList()
     {
-        var pagedResponse = new PagedDeviceResponse
+        var devices = new List<Device>
         {
-            PagedData = new List<Device>
-            {
-                new Device { Id = 1, Name = "Device1" },
-                new Device { Id = 2, Name = "Device2" }
-            }
+            new Device { Id = 1, Name = "Device1" },
+            new Device { Id = 2, Name = "Device2" }
         };
-        var json = System.Text.Json.JsonSerializer.Serialize(pagedResponse);
+        var json = System.Text.Json.JsonSerializer.Serialize(devices);
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json)
         };
         var service = CreateService(response);
-        var result = await service.GetAllDevicesByPage(1, "user", "pass");
+        var result = await service.GetAllDevices("user", "pass");
         Assert.NotNull(result);
         Assert.Equal(2, result.Count);
         Assert.Equal("Device1", result[0].Name);
     }
 
     [Fact]
-    async Task GetAllDevicesByPage_ReturnsNull_WhenNotFound()
+    async Task GetAllDevices_ReturnsNull_WhenEmpty()
     {
-        // Simula respuesta vacía (sin datos paginados)
-        var pagedResponse = new PagedDeviceResponse { PagedData = null };
-        var json = System.Text.Json.JsonSerializer.Serialize(pagedResponse);
+        // Simula respuesta nula
+        var json = "null";
         var response = new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(json)
         };
         var service = CreateService(response);
-        var result = await service.GetAllDevicesByPage(1, "user", "pass");
+        var result = await service.GetAllDevices("user", "pass");
         Assert.Null(result);
     }
 
@@ -231,5 +231,46 @@ public class SondaIMServiceTests
         var service = CreateService(response);
         var result = await service.GetDeviceGroupById(99, "user", "pass");
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetDeviceOfSource_ReturnsDevicesList()
+    {
+        var devices = new List<Device>
+        {
+            new Device { Id = 1, Name = "Device1", SourceId = 5 },
+            new Device { Id = 2, Name = "Device2", SourceId = 5 }
+        };
+        var json = System.Text.Json.JsonSerializer.Serialize(devices);
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json)
+        };
+        var service = CreateService(response);
+        var result = await service.GetDeviceOfSource(5, "user", "pass");
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Device1", result[0].Name);
+        Assert.Equal(5, result[0].SourceId);
+    }
+
+    [Fact]
+    public async Task GetDeviceOfGroup_ReturnsDevicesList()
+    {
+        var devices = new List<Device>
+        {
+            new Device { Id = 1, Name = "Device1" },
+            new Device { Id = 2, Name = "Device2" }
+        };
+        var json = System.Text.Json.JsonSerializer.Serialize(devices);
+        var response = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(json)
+        };
+        var service = CreateService(response);
+        var result = await service.GetDeviceOfGroup(10, "user", "pass");
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Device1", result[0].Name);
     }
 }

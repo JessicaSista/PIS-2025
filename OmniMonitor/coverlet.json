@@ -1,0 +1,26 @@
+{
+  "configurations": {
+    "default": {
+      "include": [
+        "[OmniMonitor.*]*"
+      ],
+      "exclude": [
+        "[*.Tests]*",
+        "[*]*Migration*",
+        "[*]*Program*",
+        "[*]*Startup*"
+      ],
+      "excludeByAttribute": [
+        "Obsolete",
+        "GeneratedCodeAttribute",
+        "CompilerGeneratedAttribute",
+        "ExcludeFromCodeCoverageAttribute"
+      ],
+      "excludeByFile": [
+        "**/Migrations/**/*.cs",
+        "**/bin/**/*.cs",
+        "**/obj/**/*.cs"
+      ]
+    }
+  }
+}

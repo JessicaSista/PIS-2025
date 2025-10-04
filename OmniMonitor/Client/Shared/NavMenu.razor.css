@@ -8,36 +8,36 @@
 
 .navmenu-container ::deep .mud-text-secondary,
 .navmenu-container ::deep .mud-paper p {
-    color: var(--mud-palette-text-secondary, rgba(255, 255, 255, 0.7)) !important;
+    color: var(--text-secondary) !important;
 }
 
 .navmenu-container ::deep .mud-nav-link {
-    color: var(--mud-palette-text-primary, #FFFFFF) !important;
+    color: var(--text-primary) !important;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .navmenu-container ::deep .mud-nav-link .mud-icon-root {
-    color: var(--mud-palette-text-secondary, rgba(255, 255, 255, 0.7)) !important;
+    color: var(--text-secondary) !important;
 }
 
 .navmenu-container ::deep .mud-nav-link.active {
-    background-color: var(--seleccion, rgba(255, 255, 255, 0.15)) !important;
-    color: var(--mud-palette-primary, #90CAF9) !important;
+    background-color: var(--seleccion) !important;
+    color: var(--mud-palette-primary) !important;
 }
 
 .navmenu-container ::deep .mud-nav-link:hover:not(.active) {
-    background-color: var(--hover, rgba(255, 255, 255, 0.08)) !important;
+    background-color: var(--hover) !important;
 }
 
 .navmenu-container ::deep .mud-nav-group {
-    border-bottom: 1px solid var(--borde-drawer, rgba(255, 255, 255, 0.12));
+    border-bottom: 1px solid var(--borde-drawer);
 }
 
 .navmenu-container ::deep .mud-nav-group .mud-nav-link {
     font-weight: 500;
-    color: var(--mud-palette-text-primary, #FFFFFF) !important;
+    color: var(--text-primary) !important;
 }
 
 .navmenu-container ::deep .mud-nav-group .mud-nav-link .mud-nav-link-icon {
-    color: var(--mud-palette-text-secondary, rgba(255, 255, 255, 0.7)) !important;
+    color: var(--text-secondary) !important;
 }

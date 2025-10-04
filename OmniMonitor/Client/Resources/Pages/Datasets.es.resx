@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Cancelar" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Descripcion" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Modulo" xml:space="preserve">
+    <value>Módulo</value>
+  </data>
+  <data name="Nombre" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="SeleccionarDispositivo" xml:space="preserve">
+    <value>Seleccionar Dispositivo(s)</value>
+  </data>
+  <data name="SeleccionarFuente" xml:space="preserve">
+    <value>Seleccionar Fuente</value>
+  </data>
+  <data name="SeleccionarGrupo" xml:space="preserve">
+    <value>Seleccionar Grupo</value>
+  </data>
+  <data name="EditarDataset" xml:space="preserve">
+    <value>Editar Dataset</value>
+  </data>
+  <data name="GuardarCambios" xml:space="preserve">
+    <value>Guardar Cambios</value>
+  </data>
+  <data name="CrearDataset" xml:space="preserve">
+    <value>Crear Dataset</value>
+  </data>
+  <data name="SeleccionarSensor" xml:space="preserve">
+    <value>Seleccionar Sensor</value>
+  </data>
+  <data name="GuardarDataset" xml:space="preserve">
+    <value>Guardar Dataset</value>
+  </data>
+  <data name="AgregarNombre" xml:space="preserve">
+    <value>Agregar Nombre</value>
+  </data>
+  <data name="AgregarDescripcion" xml:space="preserve">
+    <value>Agregar Descripción</value>
+  </data>
+  <data name="Gestiona" xml:space="preserve">
+    <value>Gestiona tus fuentes de datos y conexiones</value>
+  </data>
+  <data name="Buscar" xml:space="preserve">
+    <value>Buscar datasets...</value>
+  </data>
+  <data name="Filtros" xml:space="preserve">
+    <value>Filtros</value>
+  </data>
+  <data name="Editar" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Eliminar" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Confirmación" xml:space="preserve">
+    <value>Confirmación</value>
+  </data>
+  <data name="PreguntaEliminar1" xml:space="preserve">
+    <value>¿Desea eliminar {0}?</value>
+  </data>
+  <data name="ErrorUsuario" xml:space="preserve">
+    <value>No se pudo obtener el usuario actual</value>
+  </data>
+  <data name="ErrorEliminar" xml:space="preserve">
+    <value>Error al eliminar:</value>
+  </data>
+  <data name="Eliminado" xml:space="preserve">
+    <value>Eliminado</value>
+  </data>
+  <data name="ErrorCarga" xml:space="preserve">
+    <value>Error al cargar los datasets:</value>
+  </data>
+  <data name="ErrorInicializar" xml:space="preserve">
+    <value>Error al inicializar:</value>
+  </data>
+  <data name="DebeFuente" xml:space="preserve">
+    <value>Debe seleccionar una fuente</value>
+  </data>
+  <data name="DatasetCreadoExito" xml:space="preserve">
+    <value>creado con éxito</value>
+  </data>
+  <data name="NoSePudoCrear" xml:space="preserve">
+    <value>No se pudo crear: </value>
+  </data>
+  <data name="ErrorCargaDispositivos" xml:space="preserve">
+    <value>Error al cargar dispositivos:</value>
+  </data>
+  <data name="ErrorCargaFuentes" xml:space="preserve">
+    <value>Error al cargar fuentes y grupos:</value>
+  </data>
+  <data name="ErrorCargaSensores" xml:space="preserve">
+    <value>Error al cargar sensores:</value>
+  </data>
+  <data name="NosePudoActualizar" xml:space="preserve">
+    <value>No se pudo actualizar:</value>
+  </data>
+  <data name="Actualizado" xml:space="preserve">
+    <value>actualizado</value>
+  </data>
+</root>

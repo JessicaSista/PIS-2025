@@ -1,0 +1,163 @@
+@using MudBlazor
+@* removed MudBlazor.Dialog namespace *@
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-6">
+            <MudText Typo="Typo.h5" Class="mb-4" Style="color: #ffffff; font-weight: 600;">
+                Crear Nuevo Dataset
+            </MudText>
+            
+            <MudText Typo="Typo.body1" Class="mb-4" Style="color: #a5a8b5;">
+                Selecciona el módulo que utilizarás para crear tu dataset
+            </MudText>
+
+            <MudSelect T="int?" @bind-Value="selectedModule" 
+                      Label="Seleccionar Módulo" 
+                      Variant="Variant.Outlined"
+                      Class="mb-4">
+                <MudSelectItem T="int?" Value="@( (int?)1 )">Módulo 1</MudSelectItem>
+                <MudSelectItem T="int?" Value="@( (int?)2 )">Módulo 2</MudSelectItem>
+                <MudSelectItem T="int?" Value="@( (int?)3 )">Módulo 3</MudSelectItem>
+            </MudSelect>
+
+            @if (selectedModule.HasValue)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4" Style="background-color: #2a2e45; border-color: #3b82f6;">
+                    <MudText Typo="Typo.body2" Style="color: #a5a8b5;">
+                        @GetModuleDescription(selectedModule.Value)
+                    </MudText>
+                </MudAlert>
+            }
+        </MudContainer>
+    </DialogContent>
+    
+    <DialogActions>
+        <MudButton OnClick="Cancel" 
+                   Variant="Variant.Text" 
+                   Style="color: #a5a8b5;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="Next" 
+                   Variant="Variant.Filled"
+                   Disabled="@(!selectedModule.HasValue)"
+                   Style="background-color: #3b82f6; color: #ffffff;">
+            Siguiente
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    ::deep .mud-dialog {
+        background-color: #1f2233 !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.3) !important;
+        font-family: Inter, Roboto, sans-serif !important;
+    }
+
+    ::deep .mud-dialog-content {
+        background-color: #1f2233 !important;
+    }
+
+    ::deep .mud-dialog-actions {
+        background-color: #1f2233 !important;
+        border-top: 1px solid #2c2f3f !important;
+        padding: 24px !important;
+        padding-top: 0 !important;
+    }
+
+    ::deep .mud-input-control .mud-input-root {
+        background-color: #1f2233 !important;
+        color: #ffffff !important;
+        border-radius: 0.5rem !important;
+    }
+
+    ::deep .mud-input-root::before {
+        border-color: #2c2f3f !important;
+    }
+
+    ::deep .mud-input-root:hover::before {
+        border-color: #3b82f6 !important;
+    }
+
+    ::deep .mud-input-root.mud-input-root-focused::before {
+        border-color: #3b82f6 !important;
+    }
+
+    ::deep .mud-input-root::after {
+        border-color: #3b82f6 !important;
+    }
+
+    ::deep .mud-input-root .mud-input-root-text {
+        color: #ffffff !important;
+    }
+
+    ::deep .mud-input-root .mud-input-root-placeholder {
+        color: #6c6f7e !important;
+    }
+
+    ::deep .mud-select .mud-input-root {
+        background-color: #1f2233 !important;
+    }
+
+    ::deep .mud-popover-provider .mud-popover {
+        background-color: #1f2233 !important;
+        border: 1px solid #2c2f3f !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.3) !important;
+    }
+
+    ::deep .mud-list-item:hover {
+        background-color: #2a2e45 !important;
+    }
+
+    ::deep .mud-list-item.mud-selected {
+        background-color: #3b82f6 !important;
+    }
+
+    ::deep .mud-button-root {
+        font-family: Inter, Roboto, sans-serif !important;
+        font-weight: 500 !important;
+        border-radius: 0.5rem !important;
+    }
+</style>
+
+@code {
+    [CascadingParameter(Name="MudDialog")] IDialogReference? MudDialog { get; set; }
+    [Parameter] public EventCallback<int> OnModuleSelected { get; set; }
+
+    private int? selectedModule;
+
+    private async Task Cancel()
+    {
+        MudDialog?.Close(DialogResult.Cancel());
+        // Fallback por si el cascaded dialog no está disponible en esta versión
+        if (MudDialog is null)
+        {
+            NavigationManager.NavigateTo(NavigationManager.Uri, false);
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task Next()
+    {
+        if (selectedModule.HasValue)
+        {
+            await OnModuleSelected.InvokeAsync(selectedModule.Value);
+            NavigationManager.NavigateTo("/crearDataset");
+            MudDialog?.Close(DialogResult.Ok(selectedModule.Value));
+        }
+    }
+
+    private string GetModuleDescription(int module)
+    {
+        return module switch
+        {
+            1 => "Módulo 1: Ideal para datos de sensores y IoT. Incluye conectores para dispositivos de temperatura, humedad y otros sensores.",
+            2 => "Módulo 2: Diseñado para datos empresariales y transaccionales. Perfecto para bases de datos relacionales y APIs corporativas.",
+            3 => "Módulo 3: Optimizado para análisis de big data y machine learning. Compatible con fuentes de datos masivos y streaming.",
+            _ => "Selecciona un módulo para ver su descripción."
+        };
+    }
+}
