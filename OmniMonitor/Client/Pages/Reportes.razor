@@ -1,0 +1,150 @@
+@page "/reportes"
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+@using OmniMonitor.Client.Shared
+@using System.Text.Json
+@using Microsoft.Extensions.Localization
+@inject NavigationManager NavigationManager
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
+@inject IStringLocalizer<Reportes> Localizer
+
+<PageTitle>@Localizer["PageTitle"]</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-0 pt-2">
+    <!-- Fila 1: Título y botón -->
+    <MudGrid Class="mb-2">
+        <MudItem xs="12" sm="6" Class="d-flex align-center">
+            <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
+                @Localizer["Title"]
+            </MudText>
+        </MudItem>
+        <MudItem xs="12" sm="6" Class="d-flex justify-sm-end mt-sm-0 mt-2">
+            <AddButton OnClick="CrearReporte">
+                @Localizer["NewReportButton"]
+            </AddButton>
+        </MudItem>
+    </MudGrid>
+
+    <!-- Fila 2: Descripción -->
+    <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
+        @Localizer["Description"]
+    </MudText>
+
+    <!-- Fila 3: Barra de búsqueda -->
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="8" md="6" lg="5" xl="4">
+            <MudTextField @bind-Value="_searchText"
+                        Immediate="true"
+                        Placeholder="@Localizer["SearchPlaceholder"]"
+                        Variant="Variant.Outlined"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Search"
+                        Class="w-100 search-field"
+                        Style="height: 40px;"
+                        InputStyle="padding-left: 8px;"
+                        AdornmentColor="MudBlazor.Color.Default"
+                        IconColor="MudBlazor.Color.Default"
+                        AdornmentMargin="Margin.Dense" />
+        </MudItem>
+    </MudGrid>
+
+    <!-- Fila 4: Grid de tarjetas -->
+    <MudGrid Spacing="2">
+
+        @foreach (var reporte in _reportesFiltrados)
+        {
+            <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
+                <ReportCardComponent Reporte="reporte"
+                                   OnEdit="@EditarReporte"
+                                   OnDelete="@EliminarReporte" 
+                                   Class="flex-grow-1" />
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private string _searchText = "";
+
+    private List<ReporteDto> _reportes = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarReportes();
+        
+        // Si no hay reportes guardados, crea los predeterminados
+        if (!_reportes.Any())
+        {
+            _reportes = new List<ReporteDto>
+            {
+                new() { Id = 1, Nombre = Localizer["DefaultReport1"].Value, Descripcion = Localizer["DefaultReport1Desc"].Value, RecordCount = 120, FechaCreacion = DateTime.Now.AddDays(-2) },
+                new() { Id = 2, Nombre = Localizer["DefaultReport2"].Value, Descripcion = Localizer["DefaultReport2Desc"].Value, RecordCount = 56, FechaCreacion = DateTime.Now.AddDays(-7) },
+                new() { Id = 3, Nombre = Localizer["DefaultReport3"].Value, Descripcion = Localizer["DefaultReport3Desc"].Value, RecordCount = 15, FechaCreacion = DateTime.Now.AddDays(-1) }
+            };
+            await GuardarReportes();
+        }
+    }
+
+    private IEnumerable<ReporteDto> _reportesFiltrados =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? _reportes
+            : _reportes.Where(r => r.Nombre.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    private void EditarReporte(int id)
+    {
+        Console.WriteLine($"Editar reporte: {id}");
+        // Navigation.NavigateTo($"/editarReporte/{id}");
+    }
+
+    private async Task EliminarReporte(int id)
+    {
+        var reporteAEliminar = _reportes.FirstOrDefault(r => r.Id == id);
+        if (reporteAEliminar != null)
+        {
+            _reportes.Remove(reporteAEliminar);
+            await GuardarReportes();
+            StateHasChanged();
+        }
+    }
+
+    // Cambié Guid -> int porque Reporte.Id es int
+    private void VerReporte(int id)
+    {
+        NavigationManager.NavigateTo($"/reporte/{id}");
+    }
+    
+    private async Task GuardarReportes()
+    {
+        try
+        {
+            var reportesJson = JsonSerializer.Serialize(_reportes);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "reportes", reportesJson);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar reportes: {ex.Message}");
+        }
+    }
+    
+    private async Task CargarReportes()
+    {
+        try
+        {
+            var reportesJson = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "reportes");
+            if (!string.IsNullOrEmpty(reportesJson))
+            {
+                _reportes = JsonSerializer.Deserialize<List<ReporteDto>>(reportesJson) ?? new List<ReporteDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar reportes: {ex.Message}");
+            _reportes = new List<ReporteDto>();
+        }
+    }
+
+    private void CrearReporte()
+    {
+        NavigationManager.NavigateTo("/crearReporte");
+    }
+}

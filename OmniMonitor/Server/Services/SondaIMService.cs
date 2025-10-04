@@ -17,7 +17,6 @@ public interface ISondaIMService
     // GET device by ID
     Task<Device?> GetDeviceById(int id, string username, string password);
 
-
     // Obtener todos los devices pertenecientes a una source
     Task<List<Device>?> GetDeviceOfSource(int id, string username, string password);
 
@@ -46,6 +45,11 @@ public interface ISondaIMService
     //****************SENSORS*****************
     Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username, string password);
     //*****************************************
+
+
+    //****************SYSTEM STATUS*****************
+    Task<int> GetSSDeviceCount(string username, string password);
+    Task<DeviceDataStatusResponse?> GetSSDataStatus(string username, string password);
 
 }
 
@@ -346,4 +350,69 @@ public class SondaIMService : ISondaIMService
 
         return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
+    public async Task<int> GetSSDeviceCount(string username, string password)
+    {
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["SystemStatus"]["DeviceCount"];
+
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+
+        string getDataUrl = baseUrl + endpoint;
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await client.GetAsync(getDataUrl);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return 0;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        Console.WriteLine($"Response Body (DeviceCount): {responseBody}");
+
+
+        var parsed = JsonSerializer.Deserialize<int>(responseBody);
+
+        return parsed;
+    }
+
+    public async Task<DeviceDataStatusResponse?> GetSSDataStatus(string username, string password)
+    {
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["SystemStatus"]["DataStatus"];
+
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+
+        string getDataUrl = baseUrl + endpoint;
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await client.GetAsync(getDataUrl);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        Console.WriteLine($"Response Body (DataStatus): {responseBody}");
+
+        var parsed = JsonSerializer.Deserialize<DeviceDataStatusResponse>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        return parsed;
+    }
+
+
+
+
+
+
 }
