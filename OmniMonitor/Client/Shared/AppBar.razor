@@ -1,6 +1,8 @@
 @using MudBlazor
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> SharedLocalizer
 
 
 <div class="appbar-container">
@@ -11,7 +13,7 @@
             </Authorized>
         </AuthorizeView>
         <MudNavLink OnClick="@(() => Navigation.NavigateTo("/dashboards"))" Class="logo-link">
-            <div class="logo-container">
+            <div class="logo-container" >
                 <MudImage Src="LogoSonda.jpg" Alt="LogoS" Style="width:40px; height:40px;" Class="rounded-lg logo-image" />
                 <MudText Typo="Typo.h6" Class="logo-text">OmniMonitor</MudText>
             </div>
@@ -25,7 +27,7 @@
 
         <AuthorizeView>
             <Authorized>
-                <MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
+                <MudMenu Direction="Direction.Bottom" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">
                     <ActivatorContent>
                         <MudButton Variant="Variant.Text" Class="user-selector">
                             <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Class="icon-account" />
@@ -35,7 +37,7 @@
                     <ChildContent>
                         <MudMenuItem OnClick="Logout">
                             <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
-                            <span>Cerrar Sesion</span>
+                            <span>@SharedLocalizer["Logout"]</span>
                         </MudMenuItem>
                     </ChildContent>
                 </MudMenu>

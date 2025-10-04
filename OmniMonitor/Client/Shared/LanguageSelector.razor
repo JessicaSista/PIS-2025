@@ -5,8 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject ILocalStorageService LocalStorage
 
-<MudMenu Direction="Direction.Left" OffsetX="true" Dense="true">
-    <ActivatorContent>
+<MudMenu Direction="Direction.Bottom" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">    <ActivatorContent>
         <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowDropDown" Class="language-selector">
             @(CurrentCulture?.TwoLetterISOLanguageName.ToUpper())
         </MudButton>
