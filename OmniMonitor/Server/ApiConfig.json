@@ -114,14 +114,60 @@
         }
     },
     "EndpointsAM": {
-      "Login": {
-        "Login": "/api/account/login"
-      }
+        "Login":{
+            "Login": "/api/Account/Login"
+        },
+        "Asset": {
+            "GetById": "/api/Asset",
+            "GetAssets": "/api/Asset/assets",
+            "GetAssetsBasicData": "/api/Asset/assetsBasicData",
+            "History": "/api/Asset/history"
+        },
+        "Stock": {
+            "GetAll": "/api/stock/stocks",
+            "GetById": "/api/stock/{stockId}"
+        },
+        "Bundle": {
+            "GetByBundleId": "/api/Bundle",
+            "GetBundles": "/api/Bundle/bundles"
+        },
+        "Relation": {
+            "GetAssetRelations": "/api/Relation/asset/{assetId}"
+        },
+        "EventTaskInstance": {
+            "GetById": "/api/eventTaskInstance/{eventTaskInstanceId}",
+            "GetAll": "/api/eventTaskInstance/eventTaskInstances",
+            "GetActions": "/api/eventTaskInstance/actions/{taskInstanceId}",
+            "GetStock": "/api/eventTaskInstance/stock/{taskInstanceId}"
+        }
+
     },
     "EndpointsEM": {
-      "Login": {
-        "Login": "/api/Account/login"
-      }
+        "Login": {
+            "Login": "/api/Account/Login"
+        },
+        "Event": {
+            "GetById": "/api/Event/{eventId}",
+            "GetEvents": "/api/Event/events",
+            "GetPending": "/api/event/events/pending"
+
+        },
+        "Alert": {
+            "GetById": "/api/Alert/{alertId}",
+            "GetAll": "/api/Alert",
+            "GetStored": "/api/Alert/stored"
+        },
+        "EventType": {
+            "GetEventTypes": "/api/EventType/eventTypes"
+        },
+        "Extension": {
+            "GetById": "/api/Extensions/{extensionId}",
+            "GetAll": "/api/Extensions",
+            "GetAttachedItems": "/api/extensions/{extensionId}/attachedItems"
+        },
+        "ResourceType": {
+            "GetById": "/api/Resources/{id}"
+        }
     },
     "EndpointsUM": {
       "Login": {

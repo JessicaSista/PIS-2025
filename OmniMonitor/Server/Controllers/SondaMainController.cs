@@ -52,7 +52,7 @@ public class SondaMainController : ControllerBase
         }
     }
 
-    [HttpGet("devices/data")]
+    [HttpGet("data")]
     [ProducesResponseType(typeof(List<DeviceData>), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]

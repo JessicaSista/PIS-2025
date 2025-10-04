@@ -246,19 +246,21 @@ public class SondaIMService : ISondaIMService
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["DeviceData"];
 
+        // 1. Formatear las fechas al formato específico que requiere la API externa
         string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
         string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
 
+        // 2. Unir con coma y luego codificar para la URL
         string datesParameter = $"{formattedDateFrom},{formattedDateTo}";
-
         string encodedDates = Uri.EscapeDataString(datesParameter);
 
+        // 3. Construir la URL final para la API externa
         string url = $"{baseUrl}{endpoint}?deviceId={deviceId}&dates={encodedDates}";
 
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        Console.WriteLine($"URL GetDeviceDataByDate: {url}");
+        Console.WriteLine($"URL de la API Externa (GetDeviceDataByDate): {url}");
 
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
