@@ -1,0 +1,118 @@
+﻿@page "/sensor-data-test"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using System.Net.Http.Json
+@using System.Text.Json
+@using System.Globalization
+
+<PageTitle>Página de Prueba de Datos de Sensor</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Prueba de Endpoint de Datos de Sensor</MudText>
+
+<MudPaper Class="pa-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudNumericField @bind-Value="request.DeviceId" Label="ID de Dispositivo" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="request.SensorName" Label="Nombre del Sensor" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="request.User" Label="Usuario" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="request.Password" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudDateRangePicker @bind-DateRange="dateRange" Label="Rango de Fechas" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex align-center">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="GetSensorData" Disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                    <span class="ms-2">Consultando...</span>
+                }
+                else
+                {
+                    <span>Obtener Datos</span>
+                }
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (sensorData != null)
+{
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h6">Resultados (@sensorData.Count)</MudText>
+        <MudTable Items="sensorData" Hover="true" Striped="true">
+            <HeaderContent>
+                <MudTh>Fecha y Hora</MudTh>
+                <MudTh>Dato</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha y Hora">@context.Time.ToString("g")</MudTd>
+                <MudTd DataLabel="Dato">@context.Data</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private class SensorDataRequest
+    {
+        public int DeviceId { get; set; } = 52726; // Valor de ejemplo
+        public string SensorName { get; set; } = "temperature"; // Valor de ejemplo
+        public string User { get; set; } = "admin";
+        public string Password { get; set; } = "admin";
+    }
+
+    private SensorDataRequest request = new();
+    private DateRange dateRange = new DateRange(DateTime.Now.Date.AddDays(-1), DateTime.Now.Date);
+    private bool isLoading = false;
+    private List<SensorData>? sensorData;
+
+    private async Task GetSensorData()
+    {
+        if (dateRange == null || !dateRange.Start.HasValue || !dateRange.End.HasValue)
+        {
+            Snackbar.Add("Por favor, selecciona un rango de fechas válido.", Severity.Warning);
+            return;
+        }
+
+        isLoading = true;
+        sensorData = null;
+
+        try
+        {
+            // Formatear las fechas en un formato que el backend pueda interpretar (ISO 8601 round-trip)
+            var culture = new CultureInfo("en-US");
+            string from = dateRange.Start.Value.ToString("o", culture);
+            string to = dateRange.End.Value.ToString("o", culture);
+
+            string url = $"api/SondaMain/sensors/data?deviceId={request.DeviceId}&sensorName={request.SensorName}&dateFrom={from}&dateTo={to}&user={request.User}&password={request.Password}";
+
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                sensorData = await response.Content.ReadFromJsonAsync<List<SensorData>>();
+                Snackbar.Add($"Se encontraron {sensorData?.Count ?? 0} registros.", Severity.Success);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error de la API: {response.StatusCode} - {errorContent}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error en la solicitud: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
