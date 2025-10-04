@@ -17,7 +17,6 @@ public interface ISondaIMService
     // GET device by ID
     Task<Device?> GetDeviceById(int id, string username, string password);
 
-
     // Obtener todos los devices pertenecientes a una source
     Task<List<Device>?> GetDeviceOfSource(int id, string username, string password);
 
