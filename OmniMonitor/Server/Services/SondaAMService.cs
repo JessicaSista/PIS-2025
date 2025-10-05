@@ -14,7 +14,7 @@ public interface ISondaAMService
 
     //****************DEVICES***************
     // GET all devices
-    Task<AssetDto> GetAssetById(int id, string username, string password);
+    Task<AssetDto?> GetAssetById(int id, string username, string password);
 
     // GET all stock
     Task<List<StockDto>> GetAllStock(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username, string password);
@@ -23,7 +23,7 @@ public interface ISondaAMService
     Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username, string password);
 
     // GET stock by id
-    Task<StockDto> GetStockById(int stockId, string username, string password);
+    Task<StockDto?> GetStockById(int stockId, string username, string password);
 
         // GET assets paginados y filtrados
     Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username, string password);
@@ -44,7 +44,7 @@ public interface ISondaAMService
     Task<List<AssetDto>> GetAssetHistory(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username, string password);
 
         // GET event task instance by id
-    Task<EventTaskInstanceDto> GetEventTaskInstanceById(int eventTaskInstanceId, string username, string password);
+    Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username, string password);
 
     // GET event tasks filtrados y paginados
     Task<List<EventTaskInstanceDto>> GetEventTaskInstances(string dates, int? page, string queryString, int? bundleId, string state, string sort, int? taskTypeId, int? groupId, int? pageSize, bool tasksAssignedToMe, bool tasksPendingApproval, string username, string password);
@@ -71,7 +71,7 @@ public class SondaAMService : ISondaAMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<AssetDto> GetAssetById(int id, string username, string password)
+    public async Task<AssetDto?> GetAssetById(int id, string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["GetById"];
@@ -88,6 +88,19 @@ public class SondaAMService : ISondaAMService
 
         // Respuesta de la API
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Traducir 404 de la API externa a null para que el Controller devuelva NotFound
+            return null;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        }
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -149,6 +162,10 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return new List<StockDto>();
+        }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -158,7 +175,7 @@ public class SondaAMService : ISondaAMService
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
-            throw new Exception("La respuesta de la API está vacía.");
+            return new List<StockDto>();
 
         // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
@@ -178,7 +195,7 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-    public async Task<StockDto> GetStockById(int stockId, string username, string password)
+    public async Task<StockDto?> GetStockById(int stockId, string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Stock"]["GetById"].Replace("{stockId}", stockId.ToString());
@@ -191,19 +208,22 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
-        //response.EnsureSuccessStatusCode();
+
+        response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
 
-        response.EnsureSuccessStatusCode();
-
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
-            throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
+            return null;
         return JsonSerializer.Deserialize<StockDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
@@ -364,13 +384,17 @@ public class SondaAMService : ISondaAMService
     
     public async Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username, string password)
     {
+        if (assetId <= 0)
+        {
+            throw new ArgumentException("El assetId debe ser mayor que cero.", nameof(assetId));
+        }
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Relation"]["GetAssetRelations"];
         string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
 
         var queryParams = new List<string>();
-        if (page.HasValue) queryParams.Add($"page={page.Value}");
-        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value}");
+        if (page.HasValue) queryParams.Add($"page={page.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         string query = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
 
         string getDataUrl = baseUrl + endpoint.Replace("{assetId}", assetId.ToString()) + query;
@@ -380,6 +404,10 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            throw new Exception("AssetNotFound");
+        }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
@@ -393,7 +421,16 @@ public class SondaAMService : ISondaAMService
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
-            throw new Exception("La respuesta de la API está vacía.");
+        {
+            // No hay relaciones, pero el asset existe
+            return new List<RelatedAssetDto>();
+        }
+
+        var trimmedBody = responseBody.Trim();
+        if (string.Equals(trimmedBody, "AssetNotFound", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new Exception("AssetNotFound");
+        }
 
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
@@ -518,7 +555,7 @@ public class SondaAMService : ISondaAMService
         return apiResponse?.Results ?? new List<AssetDto>();
     }
 
-    public async Task<EventTaskInstanceDto> GetEventTaskInstanceById(int eventTaskInstanceId, string username, string password)
+    public async Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetById"].Replace("{eventTaskInstanceId}", eventTaskInstanceId.ToString());
@@ -531,6 +568,10 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -540,7 +581,7 @@ public class SondaAMService : ISondaAMService
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
-            throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
+            return null;
         return System.Text.Json.JsonSerializer.Deserialize<EventTaskInstanceDto>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
