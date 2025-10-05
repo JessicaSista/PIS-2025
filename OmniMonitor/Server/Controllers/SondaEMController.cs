@@ -42,7 +42,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var alertDto = await _sondaEMService.GetAlertById(alertId, user, pass);
-            if (alertDto == null) return NotFound("No se encontró el evento.");
+            if (alertDto == null) return NotFound("No se encontró la alerta.");
             return Ok(alertDto);
         }
         catch (Exception ex)
@@ -70,6 +70,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var alerts = await _sondaEMService.GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, user, pass);
+              if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
             return Ok(alerts);
         }
         catch (Exception ex)
@@ -96,6 +97,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var alerts = await _sondaEMService.GetStoredAlerts(page, pageSize, query, stateList, x, y, r, sort, user, pass);
+              if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
             return Ok(alerts);
         }
         catch (Exception ex)
@@ -104,7 +106,7 @@ public class SondaEMController : ControllerBase
         }
     }
 
-        [HttpGet("event/events")]
+    [HttpGet("event/events")]
     [ProducesResponseType(typeof(List<EventDto>), 200)]
     [ProducesResponseType(500)]
     public async Task<ActionResult<List<EventDto>>> GetEvents(
@@ -118,6 +120,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var events = await _sondaEMService.GetEvents(page, pageSize, sort, query, user, pass);
+              if (events == null || events.Count == 0) return NotFound("No se han encontrado eventos.");
             return Ok(events);
         }
         catch (Exception ex)
@@ -126,7 +129,7 @@ public class SondaEMController : ControllerBase
         }
     }
 
-        [HttpGet("eventtype/eventtypes")]
+    [HttpGet("eventtype/eventtypes")]
     [ProducesResponseType(typeof(List<EventTypeDto>), 200)]
     [ProducesResponseType(500)]
     public async Task<ActionResult<List<EventTypeDto>>> GetEventTypes(
@@ -136,6 +139,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var eventTypes = await _sondaEMService.GetEventTypes(user, pass);
+            if (eventTypes == null || eventTypes.Count == 0) return NotFound("No se han encontrado tipos de evento.");
             return Ok(eventTypes);
         }
         catch (Exception ex)
@@ -181,6 +185,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var extensions = await _sondaEMService.GetExtensions(page, pageSize, sort, query, states, dates, priorities, categories, zones, user, pass);
+            if (extensions == null || extensions.Count == 0) return NotFound("No se han encontrado extensiones.");
             return Ok(extensions);
         }
         catch (Exception ex)
