@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Globalization;
 
 public interface ISondaEMService
 {
@@ -80,12 +81,24 @@ public class SondaEMService : ISondaEMService
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.GetAsync(getDataUrl);
-        //response.EnsureSuccessStatusCode();
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Traducir 404 a null para que el Controller devuelva NotFound
+            return null;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        }
+
+        response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
-
-        response.EnsureSuccessStatusCode();
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             return null;
@@ -111,6 +124,18 @@ public class SondaEMService : ISondaEMService
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        }
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -135,21 +160,33 @@ public class SondaEMService : ISondaEMService
         string username,
         string password)
     {
-        if (page.HasValue && page.Value <= 0)
+        if (!page.HasValue)
         {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor que cero.");
+            throw new ArgumentException("El parámetro 'page' es requerido.", nameof(page));
+        }
+        if (!pageSize.HasValue)
+        {
+            throw new ArgumentException("El parámetro 'pageSize' es requerido.", nameof(pageSize));
+        }
+        if (page.Value <= 0)
+        {
+            throw new ArgumentException("El parámetro 'page' debe ser mayor que cero.", nameof(page));
+        }
+        if (pageSize.Value <= 0)
+        {
+            throw new ArgumentException("El parámetro 'pageSize' debe ser mayor que cero.", nameof(pageSize));
         }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Alert"]["GetAll"];
         var queryParams = new List<string>();
-        if (page.HasValue) queryParams.Add($"page={page.Value}");
-        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value}");
+    if (page.HasValue) queryParams.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value.ToString(CultureInfo.InvariantCulture)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
         if (!string.IsNullOrEmpty(stateList)) queryParams.Add($"stateList={Uri.EscapeDataString(stateList)}");
-        if (x.HasValue) queryParams.Add($"x={x.Value}");
-        if (y.HasValue) queryParams.Add($"y={y.Value}");
-        if (r.HasValue) queryParams.Add($"r={r.Value}");
-        if (forceGps.HasValue) queryParams.Add($"forceGps={forceGps.Value.ToString().ToLower()}");
+    if (x.HasValue) queryParams.Add($"x={x.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (y.HasValue) queryParams.Add($"y={y.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (r.HasValue) queryParams.Add($"r={r.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (forceGps.HasValue) queryParams.Add($"forceGps={forceGps.Value.ToString().ToLowerInvariant()}");
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
@@ -188,31 +225,43 @@ public class SondaEMService : ISondaEMService
     }
 
         public async Task<List<AlertDto>> GetStoredAlerts(
-        int? page,
-        int? pageSize,
-        string? query,
-        string? stateList,
-        double? x,
-        double? y,
-        double? r,
-        string? sort,
-        string username,
-        string password)
+            int? page,
+            int? pageSize,
+            string? query,
+            string? stateList,
+            double? x,
+            double? y,
+            double? r,
+            string? sort,
+            string username,
+            string password)
     {
-        if (page.HasValue && page.Value <= 0)
-        {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor que cero.");
-        }
+            if (!page.HasValue)
+            {
+                throw new ArgumentException("El parámetro 'page' es requerido.", nameof(page));
+            }
+            if (!pageSize.HasValue)
+            {
+                throw new ArgumentException("El parámetro 'pageSize' es requerido.", nameof(pageSize));
+            }
+            if (page.Value <= 0)
+            {
+                throw new ArgumentException("El parámetro 'page' debe ser mayor que cero.", nameof(page));
+            }
+            if (pageSize.Value <= 0)
+            {
+                throw new ArgumentException("El parámetro 'pageSize' debe ser mayor que cero.", nameof(pageSize));
+            }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Alert"]["GetStored"];
         var queryParams = new List<string>();
-        if (page.HasValue) queryParams.Add($"page={page.Value}");
-        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value}");
+    if (page.HasValue) queryParams.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value.ToString(CultureInfo.InvariantCulture)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
         if (!string.IsNullOrEmpty(stateList)) queryParams.Add($"stateList={Uri.EscapeDataString(stateList)}");
-        if (x.HasValue) queryParams.Add($"x={x.Value}");
-        if (y.HasValue) queryParams.Add($"y={y.Value}");
-        if (r.HasValue) queryParams.Add($"r={r.Value}");
+    if (x.HasValue) queryParams.Add($"x={x.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (y.HasValue) queryParams.Add($"y={y.Value.ToString(CultureInfo.InvariantCulture)}");
+    if (r.HasValue) queryParams.Add($"r={r.Value.ToString(CultureInfo.InvariantCulture)}");
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
@@ -328,6 +377,10 @@ public class SondaEMService : ISondaEMService
 
     public async Task<ExtensionDtoDup?> GetExtensionById(int extensionId, string username, string password)
     {
+        if (extensionId <= 0)
+        {
+            throw new ArgumentException("El extensionId debe ser mayor que cero.", nameof(extensionId));
+        }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Extension"]["GetById"].Replace("{extensionId}", extensionId.ToString());
         string getDataUrl = baseUrl + endpoint;
@@ -337,6 +390,18 @@ public class SondaEMService : ISondaEMService
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
@@ -418,6 +483,10 @@ public class SondaEMService : ISondaEMService
 
     public async Task<ResourceDto?> GetResourceById(int id, string username, string password)
     {
+        if (id <= 0)
+        {
+            throw new ArgumentException("El id debe ser mayor que cero.", nameof(id));
+        }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint =  _apiConfig.EndpointsEM["ResourceType"]["GetById"].Replace("{id}", id.ToString());
         string getDataUrl = baseUrl + endpoint;
@@ -427,6 +496,18 @@ public class SondaEMService : ISondaEMService
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
