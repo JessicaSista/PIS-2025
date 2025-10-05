@@ -117,13 +117,13 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AgregarDataset" xml:space="preserve">
+  <data name="AddDataset" xml:space="preserve">
     <value>Add Dataset</value>
   </data>
-  <data name="AgregarSensor" xml:space="preserve">
+  <data name="AddSensor" xml:space="preserve">
     <value>Add Sensor</value>
   </data>
-  <data name="Cancelar" xml:space="preserve">
+  <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
   <data name="Color" xml:space="preserve">
@@ -132,34 +132,34 @@
   <data name="Dataset" xml:space="preserve">
     <value>Dataset</value>
   </data>
-  <data name="Desde" xml:space="preserve">
+  <data name="From" xml:space="preserve">
     <value>From</value>
   </data>
-  <data name="Fecha" xml:space="preserve">
+  <data name="Date" xml:space="preserve">
     <value>Date</value>
   </data>
-  <data name="Guardar" xml:space="preserve">
+  <data name="Save" xml:space="preserve">
     <value>Save</value>
   </data>
-  <data name="Hasta" xml:space="preserve">
+  <data name="To" xml:space="preserve">
     <value>To</value>
   </data>
-  <data name="Hora" xml:space="preserve">
+  <data name="Time" xml:space="preserve">
     <value>Time</value>
   </data>
-  <data name="Multiplicador" xml:space="preserve">
+  <data name="Multiplier" xml:space="preserve">
     <value>Multiplier</value>
   </data>
-  <data name="Nombre" xml:space="preserve">
+  <data name="Name" xml:space="preserve">
     <value>Name</value>
   </data>
-  <data name="NombreVisualizacion" xml:space="preserve">
+  <data name="VisualisationName" xml:space="preserve">
     <value>Visualisation Name</value>
   </data>
-  <data name="NuevaVisualizacion" xml:space="preserve">
+  <data name="AddVisualisationTitle" xml:space="preserve">
     <value>New Visualisation</value>
   </data>
-  <data name="TipoGrafica" xml:space="preserve">
+  <data name="ChartType" xml:space="preserve">
     <value>Chart Type</value>
   </data>
 </root>
