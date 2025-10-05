@@ -24,7 +24,8 @@
 }
 
 ::deep .logo-link {
-    display: inline-block;
+    display: flex;
+    align-items: center;
     height: 100%;
     text-decoration: none;
     max-width: 210px;
@@ -66,7 +67,7 @@
 ::deep .user-selector {
     display: flex;
     align-items: center;
-    gap: 2px; /* controla la separación exacta entre los dos íconos */
+    gap: 2px;
     color: var(--text-secondary) !important;
     text-transform: none;
     font-weight: 500;
@@ -87,4 +88,32 @@
 
 ::deep .user-selector:hover .mud-icon-root {
     color: var(--text-primary) !important;
+}
+
+/* --- CÓDIGO PARA OCULTAR TEXTO EN MOVILES --- */
+@media (max-width: 599.98px) {
+    ::deep .logo-text {
+        display: none;
+    }
+}
+
+/* --- AJUSTES FINOS PARA MOVILES MUY ESTRECHOS --- */
+@media (max-width: 390px) {
+    /* Reduce el padding de la barra al mínimo */
+    .appbar-container ::deep .mud-appbar {
+        padding: 0 2px;
+    }
+
+    /* Elimina el ancho mínimo y reduce el padding de los botones */
+    ::deep .language-selector,
+    ::deep .user-selector {
+        min-width: 0;
+        padding: 0 2px;
+    }
+
+    /* Reduce un poco más el ícono de usuario si es necesario */
+    ::deep .user-selector .mud-icon-root {
+        font-size: 30px !important;
+    }
+
 }
