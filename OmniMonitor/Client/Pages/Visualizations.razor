@@ -1,5 +1,11 @@
-@page "/visualizations"
+@page "/visualizaciones"
+@attribute [Authorize]
 @inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient Http
+@using OmniMonitor.Shared.Dtos
+@using System.Text.Json
+@using System.Globalization
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudItem Class="d-flex justify-space-between mb-10">
@@ -8,61 +14,278 @@
             <MudText Typo="Typo.body1" Style="color: #667d8a">Crea y gestiona gráficos y visualizaciones de datos</MudText>
         </MudItem>
         <MudItem>
-            <MudButton onclick="OpenDialogCreateVisualization" Variant="Variant.Filled" Style="background-color: #c2c2c3">
+            <MudButton OnClick="OpenDialogCreateVisualization" Variant="Variant.Filled" Style="background-color: #c2c2c3">
                 <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Small" />
                 Nueva Visualización
             </MudButton>
         </MudItem>
     </MudItem>
+    
     <MudItem Style="width: 500px">
-        <MudTextField @bind-Value="searchQuery" Label="Nueva visualización" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
+        <MudTextField @bind-Value="_searchQuery" Placeholder="Buscar visualización" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
     </MudItem>
 </MudContainer>
 
 <MudContainer Class="pt-5" MaxWidth="MaxWidth.ExtraExtraLarge">
-    <MudGrid Spacing="4" Justify="Justify.Center">
-        <MudItem xs="12" sm="6" md="4">
-            <VisualizationCard Title="Ventas por Mes"
-                            SubType="Barras"
-                            Icon="@Icons.Material.Filled.BarChart"
-                            Dataset="Ventas Mensuales"
-                            LastUpdated="2024-01-0714:30" />
-        </MudItem>
+    @if (_isLoading)
+    {
+        <MudGrid Spacing="4">
+            @for (int i = 0; i < 3; i++)
+            {
+                <MudItem xs="12" sm="12" md="6" lg="4">
+                    <MudPaper Class="pa-4" Style="height: 400px;">
+                        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100%" />
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <MudGrid Spacing="4">
+            @if (_visualizations != null && _visualizations.Any())
+            {
+                @foreach (var visualization in _visualizations.Where(v => string.IsNullOrWhiteSpace(_searchQuery) || v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
+                {
+                    JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+                    var chartType = design.RootElement.GetProperty("ChartType").ToString();
+                    var datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
+                    
+                    var visualizationData = GetVisualizationData(visualization.IdVisualizacion);
 
-        <MudItem xs="12" sm="6" md="4">
-            <VisualizationCard Title="Tendencia Trimestral"
-                            SubType="Líneas"
-                            Icon="@Icons.Material.Filled.ShowChart"
-                            Dataset="Ventas Mensuales"
-                            LastUpdated="2024-01-0714:30" />
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="4">
-            <VisualizationCard Title="Análisis Radar KPIs"
-                            SubType="Radar"
-                            Icon="@Icons.Material.Filled.Radar"
-                            Dataset="Ventas Mensuales"
-                            LastUpdated="2024-01-0714:30">
-                <Actions>
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Dense="true" IconColor="MudBlazor.Color.Inherit">
-                        <MudMenuItem>Ver Detalles</MudMenuItem>
-                        <MudMenuItem>Exportar</MudMenuItem>
-                    </MudMenu>
-                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">Editar</MudButton>
-                </Actions>
-            </VisualizationCard>
-        </MudItem>
-    </MudGrid>
+                    <MudItem xs="12" sm="12" md="6" lg="4">
+                        <VisualizationCard visualizationTitle="@visualization.Nombre"
+                                    visualizationDatasets="@datasetNames"
+                                    lastUpdated="@DateTime.Now.ToString("g")" 
+                                    dataCharts="@visualizationData"
+                                    chartType="@chartType"/>
+                    </MudItem>
+                }
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
+                        No hay visualizaciones disponibles.
+                    </MudText>
+                </MudItem>
+            }
+        </MudGrid>
+    }
 </MudContainer>
 
-@code{
-    public string searchQuery {get; set;}  = "";
-
+@code {
+    public string _searchQuery { get; set; } = "";
+    private List<Visualizacion> _visualizations = new List<Visualizacion>();
+    private string _authenticatedUser = string.Empty;
+    private bool _isLoading = true;
+    private Dictionary<int, List<object>> _visualizationDataCache = new();
 
     private Task OpenDialogCreateVisualization()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true , MaxWidth = MaxWidth.Medium};
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        return DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
+    }
 
-        return DialogService.ShowAsync<CreateVisualizationCard>("Simple Dialog", options);
+    private List<object> GetVisualizationData(int visualizationId)
+    {
+        if (_visualizationDataCache.ContainsKey(visualizationId))
+        {
+            return _visualizationDataCache[visualizationId];
+        }
+        return new List<object>();
+    }
+
+    private async Task CargarDatosVisualizacionesAsync()
+    {
+        foreach (var visualization in _visualizations)
+        {
+            var allData = new List<object>();
+
+            try
+            {
+                var dateFrom = visualization.FechaDesde;
+                var dateTo = visualization.FechaHasta;
+
+                foreach (var grupoDataset in visualization.GrupoDatasets)
+                {
+                    try
+                    {
+                        decimal multiplier = 1.0M;
+                        string color = "#00FFE7";
+                        
+                        if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
+                        {
+                            try
+                            {
+                                var designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
+                                if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
+                                {
+                                    multiplier = multProp.GetDecimal();
+                                }
+                                if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
+                                {
+                                    color = colorProp.GetString() ?? "#00FFE7";
+                                }
+                            }
+                            catch { }
+                        }
+
+                        var response = await Http.GetAsync($"api/Dataset/{grupoDataset.Dataset.Id}/{_authenticatedUser}");
+                        
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var dataset = await response.Content.ReadFromJsonAsync<Dataset>();
+                            
+                            if (dataset != null)
+                            {
+                                if (dataset.DatasetDevices.Any())
+                                {
+                                    foreach (var datasetDevice in dataset.DatasetDevices)
+                                    {
+                                        try
+                                        {
+                                            var sensorDataResponse = await Http.GetAsync(
+                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&user=admin&password=admin"
+                                            );
+
+                                            if (sensorDataResponse.IsSuccessStatusCode)
+                                            {
+                                                var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
+                                                
+                                                if (sensorData != null && sensorData.Any())
+                                                {
+                                                    foreach (var data in sensorData)
+                                                    {
+                                                        decimal numericValue;
+
+                                                        if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
+                                                        {
+                                                            numericValue = parsedDecimal;
+                                                        }
+                                                        else
+                                                        {
+                                                            numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+                                                        }
+
+                                                        allData.Add(new
+                                                        {
+                                                            Timestamp = data.Time,
+                                                            Value = numericValue * multiplier,
+                                                            Color = color,
+                                                            DatasetName = dataset.Name,
+                                                            SensorName = dataset.SensorName,
+                                                            DeviceId = datasetDevice.Id_device
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Caigo");
+                                    try
+                                    {
+                                        var sensorDataResponse = await Http.GetAsync(
+                                            $"api/SondaMain/sensors/data?sensorName={dataset.SensorName}&dateFrom={dateFrom:yyyy-MM-ddTHH:mm:ss}&dateTo={dateTo:yyyy-MM-ddTHH:mm:ss}&user=admin&password=admin"
+                                        );
+                                        if (sensorDataResponse.IsSuccessStatusCode)
+                                        {
+                                            var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<DeviceData>>();
+                                            
+                                            if (sensorData != null && sensorData.Any())
+                                            {
+                                                foreach (var data in sensorData)
+                                                {
+
+                                                    decimal numericValue;
+
+                                                    if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
+                                                    {
+                                                        numericValue = parsedDecimal;
+                                                    }
+                                                    else
+                                                    {
+                                                        numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+                                                    }
+
+                                                    allData.Add(new
+                                                    {
+                                                        Timestamp = data.TimeStamp,
+                                                        Value = numericValue * multiplier,
+                                                        Color = color,
+                                                        DatasetName = dataset.Name,
+                                                        SensorName = dataset.SensorName,
+                                                        DeviceId = -1
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"Error cargando datos del sensor {dataset.SensorName}: {ex.Message}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error procesando visualización {visualization.IdVisualizacion}: {ex.Message}");
+            }
+
+            _visualizationDataCache[visualization.IdVisualizacion] = allData
+                .OrderBy(d => 
+                {
+                    var type = d.GetType();
+                    var timestampProp = type.GetProperty("Timestamp");
+                    return timestampProp?.GetValue(d);
+                })
+                .ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
+
+            var response = await Http.GetAsync($"api/Visualizacion/user/{_authenticatedUser}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
+                if (visualizacionesFromApi != null)
+                {
+                    _visualizations = visualizacionesFromApi;
+                    await CargarDatosVisualizacionesAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 }

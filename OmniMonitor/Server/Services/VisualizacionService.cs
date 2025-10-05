@@ -71,9 +71,11 @@ namespace OmniMonitor.Server.Services
         public async Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username)
         {
             return await _context.Visualizaciones
-                .Where(v => v.Username == username)
-                .OrderByDescending(v => v.IdVisualizacion)
-                .ToListAsync();
+            .Include(v => v.GrupoDatasets)           // ← Incluye los GrupoDatasets
+                .ThenInclude(gd => gd.Dataset)       // ← Incluye los Datasets dentro de cada GrupoDataset
+            .Where(v => v.Username == username)
+            .OrderByDescending(v => v.IdVisualizacion)
+            .ToListAsync();
         }
 
         /// <summary>
