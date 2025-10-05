@@ -17,7 +17,7 @@
         <MudStack Spacing="3">
             @foreach (DatasetSelection dsItem in _selectedDatasets)
             {
-                <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background: #030a16" Spacing="3">
+                <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: " Spacing="3">
                     <MudItem Lg="6" Sm="6" Xs="12" Class="pl-0 pt-0">
                         <MudText Typo="Typo.h6">Dataset</MudText>
                         <MudSelect T="int" @bind-Value="dsItem.DatasetId" Variant="Variant.Outlined" Dense="true">
@@ -52,7 +52,7 @@
                 </MudGrid>
             }
         </MudStack>
-        <MudGrid Style="background: #0f1522" Class="mt-0 mb-5">
+        <MudGrid Class="mt-0 mb-5">
             <MudItem xs="6">
                 <MudButton FullWidth="true"
                         Variant="Variant.Outlined" 

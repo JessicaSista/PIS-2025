@@ -6,23 +6,26 @@
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using System.Globalization
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Visualizations> Localizer
+
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudItem Class="d-flex justify-space-between mb-10">
         <MudItem>
-            <MudText Typo="Typo.h4">Visualizaciones</MudText>
-            <MudText Typo="Typo.body1">Crea y gestiona gráficos y visualizaciones de datos</MudText>
+            <MudText Typo="Typo.h4">@Localizer["Titulo"]</MudText>
+            <MudText Typo="Typo.body1">@Localizer["Descripcion"]</MudText>
         </MudItem>
         <MudItem>
             <MudButton OnClick="OpenDialogCreateVisualization" Variant="Variant.Filled" Style="background-color: #c2c2c3">
                 <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Small" />
-                Nueva Visualización
+                @Localizer["AgregarVisualizacion"]
             </MudButton>
         </MudItem>
     </MudItem>
     
     <MudItem Style="width: 500px">
-        <MudTextField @bind-Value="_searchQuery" Placeholder="Buscar visualización" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
+        <MudTextField @bind-Value="_searchQuery" Placeholder="@Localizer["BuscarPlaceholder"]" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
     </MudItem>
 </MudContainer>
 

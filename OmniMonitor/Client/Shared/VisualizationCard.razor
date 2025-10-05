@@ -2,6 +2,8 @@
 @using System.Text.Json
 @using MudBlazor
 @inherits ComponentBase
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<VisualizationCard> Localizer
 
 <MudPaper Class="pa-4" Style="background-color: var(--card);">
     <MudCard Elevation="0" Style="background-color: transparent;">
@@ -41,8 +43,8 @@
         </MudCardContent>
 
         <MudCardActions Class="d-block">
-            <MudText Typo="Typo.body2">Datasets: @visualizationDatasets</MudText>
-            <MudText Typo="Typo.caption">Actualizado: @lastUpdated</MudText>
+            <MudText Typo="Typo.body2">@Localizer["Datasets"]: @visualizationDatasets</MudText>
+            <MudText Typo="Typo.caption">@Localizer["Actualizado"]: @lastUpdated</MudText>
         </MudCardActions>
     </MudCard>
 </MudPaper>

@@ -118,13 +118,13 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Titulo" xml:space="preserve">
-    <value>Visulisaciones</value>
+    <value>Visualizaciones</value>
   </data>
   <data name="Descripcion" xml:space="preserve">
     <value>Crea y gestiona gráficos y visualizaciones de datos</value>
   </data>
   <data name="BuscarPlaceholder" xml:space="preserve">
-    <value>Buscar visulización</value>
+    <value>Buscar visualización</value>
   </data>
   <data name="AgregarVisualizacion" xml:space="preserve">
     <value>Nueva Visualización</value>

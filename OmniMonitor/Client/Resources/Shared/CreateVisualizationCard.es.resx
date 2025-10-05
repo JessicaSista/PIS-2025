@@ -154,12 +154,12 @@
     <value>Nombre</value>
   </data>
   <data name="NombreVisualizacion" xml:space="preserve">
-    <value>Nombre de la Visualización</value>
+    <value>Nombre de la Visualizacion</value>
   </data>
   <data name="NuevaVisualizacion" xml:space="preserve">
     <value>Nueva Visulizacion</value>
   </data>
   <data name="TipoGrafica" xml:space="preserve">
-    <value>Tipo de Gráfica</value>
+    <value>Tipo de Grï¿½fica</value>
   </data>
 </root>
