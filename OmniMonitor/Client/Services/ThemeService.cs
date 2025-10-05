@@ -33,6 +33,7 @@ namespace OmniMonitor.Client.Services
 
 
             --fondo: #E3F2FD;
+            --fondo-dialog: #E3F2FD; 
             --card-color-1: #BBDEFB;
             --textField-color-1: #E3F2FD;
             --textColor-1: #E1E6E7;
@@ -79,6 +80,7 @@ namespace OmniMonitor.Client.Services
             //Para llamar las variables en CSS: var(--nombre-variable) ejemplo: color: var(--textColor1);
 
             --fondo: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
+            --fondo-dialog: #171d28;
             --card-color-1: #030A16;
             --textField-color-1: #020817;
             --textColor-1: #E1E6E7;
