@@ -5,21 +5,22 @@
 @using System.Text.Json;
 @using MudBlazor.Extensions;
 @using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
 
-<MudDialog>
+<MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
-        <MudText Typo="Typo.h6">
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
             <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
-            Nueva Visualización
+            @Localizer["AddVisualisationTitle"]
         </MudText>
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
             @foreach (DatasetSelection dsItem in _selectedDatasets)
             {
-                <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: " Spacing="3">
+                <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: var(--card); border-radius: 3px; " Spacing="3">
                     <MudItem Lg="6" Sm="6" Xs="12" Class="pl-0 pt-0">
-                        <MudText Typo="Typo.h6">Dataset</MudText>
+                        <MudText Typo="Typo.h6">@Localizer["Dataset"]</MudText>
                         <MudSelect T="int" @bind-Value="dsItem.DatasetId" Variant="Variant.Outlined" Dense="true">
                             @foreach (var ds in _datasets)
                             {
@@ -31,7 +32,7 @@
                     </MudItem>
 
                     <MudItem Lg="3" Sm="3" Xs="5" Class="pt-0">
-                        <MudText Typo="Typo.h6">Multiplicador</MudText>
+                        <MudText Typo="Typo.h6">@Localizer["Multiplier"]</MudText>
                         <MudNumericField HideSpinButtons="true" 
                                          @bind-Value="dsItem.Multiplier" 
                                          Variant="Variant.Outlined" 
@@ -40,7 +41,7 @@
                     </MudItem>
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
-                        <MudText Typo="Typo.h6">Color</MudText>
+                        <MudText Typo="Typo.h6">@Localizer["Color"]</MudText>
                         <MudColorPicker @bind-Text="dsItem.Color" Style="@($"color: {dsItem.Color};")" Placeholder="Seleccionar color" Variant="Variant.Outlined"/>
                     </MudItem>
                     <MudItem Lg="1" Sm="1" Xs="2" Class="d-flex align-items-center">
@@ -59,8 +60,8 @@
                         StartIcon="@Icons.Material.Filled.AddCircleOutline" 
                         Color="MudBlazor.Color.Inherit"
                         Size="MudBlazor.Size.Large"
-                        Style="padding: 20px 10px">
-                    Agregar Sensor
+                        Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)">
+                    @Localizer["AddSensor"]
                 </MudButton>
             </MudItem>
             <MudItem xs="6">
@@ -70,26 +71,28 @@
                         StartIcon="@Icons.Material.Filled.AddCircleOutline" 
                         Color="MudBlazor.Color.Inherit"
                         Size="MudBlazor.Size.Large"
-                        Style="padding: 20px 10px"
+                        Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
                         Disabled="@(_datasets.Count == 0 || _selectedDatasets.Count >= _datasets.Count)">
-                    Agregar Dataset
+                    @Localizer["AddDataset"]
                 </MudButton>
             </MudItem>
         </MudGrid>
 
-        <MudText Typo="Typo.h6">Nombre de la visualización</MudText>
-        <MudTextField @bind-Value="_visualizationName" T="string"  
-                      Label="Nombre"
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["VisualisationName"]</MudText>
+        <MudTextField Class="mb-2" @bind-Value="_visualizationName" T="string"  
+                      Label="@Localizer["Name"]"
                       Variant="Variant.Outlined"
                       Required="true" 
-                      RequiredError="El nombre es obligatorio." />
+                      RequiredError="El nombre es obligatorio." 
+                      Style="background: var(--card);"/>
 
-        <MudText Typo="Typo.h6">Tipo de gráfica</MudText>
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["ChartType"]</MudText>
         <MudSelect T="string" 
                    @bind-Value="_selectedChartType" 
                    Variant="Variant.Outlined"
                    Margin="Margin.Normal"
-                   Dense="true">
+                   Dense="true"
+                   Style="background: var(--card);">
             @foreach (var tipo in _chartTypes)
             {
                 <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
@@ -100,32 +103,32 @@
 
         <MudGrid>
             <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.subtitle1">Desde</MudText>
+                <MudText Typo="Typo.subtitle1" Style="color: var(--text-primary);">@Localizer["From"]</MudText>
                 <MudGrid>
                     <MudItem xs="6">
-                        <MudDatePicker Label="Fecha" @bind-Date="_beginDate" DateFormat="dd/MM/yyyy" Required="true" />
+                        <MudDatePicker Label="@Localizer["Date"]" @bind-Date="_beginDate" DateFormat="dd/MM/yyyy" Required="true" />
                     </MudItem>
                     <MudItem xs="6">
-                        <MudTimePicker Label="Hora" @bind-Time="_beginHour" Required="true" />
+                        <MudTimePicker Label="@Localizer["Time"]" @bind-Time="_beginHour" Required="true" />
                     </MudItem>
                 </MudGrid>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudText Typo="Typo.subtitle1">Hasta</MudText>
+                <MudText Typo="Typo.subtitle1" Style="color: var(--text-primary);">@Localizer["To"]</MudText>
                 <MudGrid>
                     <MudItem xs="6">
-                        <MudDatePicker Label="Fecha" @bind-Date="_endDate" DateFormat="dd/MM/yyyy" Required="true" />
+                        <MudDatePicker Label="@Localizer["Date"]" @bind-Date="_endDate" DateFormat="dd/MM/yyyy" Required="true" />
                     </MudItem>
                     <MudItem xs="6">
-                        <MudTimePicker Label="Hora" @bind-Time="_endHour" Required="true" />
+                        <MudTimePicker Label="@Localizer["Time"]" @bind-Time="_endHour" Required="true" />
                     </MudItem>
                 </MudGrid>
             </MudItem>
         </MudGrid>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">Guardar</MudButton>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">@Localizer["Save"]</MudButton>
     </DialogActions>
 </MudDialog>
 

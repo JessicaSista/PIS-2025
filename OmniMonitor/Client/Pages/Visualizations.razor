@@ -13,14 +13,13 @@
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudItem Class="d-flex justify-space-between mb-10">
         <MudItem>
-            <MudText Typo="Typo.h4">@Localizer["Titulo"]</MudText>
-            <MudText Typo="Typo.body1">@Localizer["Descripcion"]</MudText>
+            <MudText Typo="Typo.h4" Style="color: var(--text-primary);">@Localizer["Titulo"]</MudText>
+            <MudText Typo="Typo.body1" Style="color: var(--textColor-2);">@Localizer["Descripcion"]</MudText>
         </MudItem>
         <MudItem>
-            <MudButton OnClick="OpenDialogCreateVisualization" Variant="Variant.Filled" Style="background-color: #c2c2c3">
-                <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Small" />
+            <AddButton OnClick="OpenDialogCreateVisualization">
                 @Localizer["AgregarVisualizacion"]
-            </MudButton>
+            </AddButton>
         </MudItem>
     </MudItem>
     
