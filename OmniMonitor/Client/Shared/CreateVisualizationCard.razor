@@ -55,23 +55,23 @@
         <MudGrid Style="background: #0f1522" Class="mt-0 mb-5">
             <MudItem xs="6">
                 <MudButton FullWidth="true"
-                           Variant="Variant.Outlined" 
-                           StartIcon="@Icons.Material.Filled.AddCircleOutline" 
-                           Color="MudBlazor.Color.Inherit"
-                           Size="MudBlazor.Size.Large"
-                           Style="padding: 20px 10px">
+                        Variant="Variant.Outlined" 
+                        StartIcon="@Icons.Material.Filled.AddCircleOutline" 
+                        Color="MudBlazor.Color.Inherit"
+                        Size="MudBlazor.Size.Large"
+                        Style="padding: 20px 10px">
                     Agregar Sensor
                 </MudButton>
             </MudItem>
             <MudItem xs="6">
                 <MudButton OnClick="AddDataset" 
-                           FullWidth="true"
-                           Variant="Variant.Outlined" 
-                           StartIcon="@Icons.Material.Filled.AddCircleOutline" 
-                           Color="MudBlazor.Color.Inherit"
-                           Size="MudBlazor.Size.Large"
-                           Style="padding: 20px 10px"
-                           Disabled="@(_datasets.Count == 0 || _selectedDatasets.Count >= _datasets.Count)">
+                        FullWidth="true"
+                        Variant="Variant.Outlined" 
+                        StartIcon="@Icons.Material.Filled.AddCircleOutline" 
+                        Color="MudBlazor.Color.Inherit"
+                        Size="MudBlazor.Size.Large"
+                        Style="padding: 20px 10px"
+                        Disabled="@(_datasets.Count == 0 || _selectedDatasets.Count >= _datasets.Count)">
                     Agregar Dataset
                 </MudButton>
             </MudItem>
@@ -209,7 +209,7 @@
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.DatasetId,
-                    JsonDiseño =  "{ \"Multiplier\": " + ds.Multiplier.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", \"Color\": \"" + ds.Color + "\" }"
+                    JsonDiseño =  "{ \"Multiplier\": " + ((double)ds.Multiplier).ToString(System.Globalization.CultureInfo.InvariantCulture) + ", \"Color\": \"" + ds.Color + "\" }"
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
                 FechaHasta = _endDate.Value.Date + _endHour.Value

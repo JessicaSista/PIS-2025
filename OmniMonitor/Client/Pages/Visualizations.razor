@@ -10,8 +10,8 @@
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudItem Class="d-flex justify-space-between mb-10">
         <MudItem>
-            <MudText Typo="Typo.h4" Style="color: #dde3e1">Visualizaciones</MudText>
-            <MudText Typo="Typo.body1" Style="color: #667d8a">Crea y gestiona gráficos y visualizaciones de datos</MudText>
+            <MudText Typo="Typo.h4">Visualizaciones</MudText>
+            <MudText Typo="Typo.body1">Crea y gestiona gráficos y visualizaciones de datos</MudText>
         </MudItem>
         <MudItem>
             <MudButton OnClick="OpenDialogCreateVisualization" Variant="Variant.Filled" Style="background-color: #c2c2c3">
@@ -122,13 +122,15 @@
                                 if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
                                 {
                                     multiplier = multProp.GetDecimal();
+                                    Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.Name}: {multiplier}");
                                 }
                                 if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
                                 {
                                     color = colorProp.GetString() ?? "#00FFE7";
+                                    Console.WriteLine($"Color for dataset {grupoDataset.Dataset.Name}: {color}");
                                 }
                             }
-                            catch { }
+                            catch {Console.WriteLine("fallo"); }
                         }
 
                         var response = await Http.GetAsync($"api/Dataset/{grupoDataset.Dataset.Id}/{_authenticatedUser}");
@@ -189,49 +191,7 @@
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Caigo");
-                                    try
-                                    {
-                                        var sensorDataResponse = await Http.GetAsync(
-                                            $"api/SondaMain/sensors/data?sensorName={dataset.SensorName}&dateFrom={dateFrom:yyyy-MM-ddTHH:mm:ss}&dateTo={dateTo:yyyy-MM-ddTHH:mm:ss}&user=admin&password=admin"
-                                        );
-                                        if (sensorDataResponse.IsSuccessStatusCode)
-                                        {
-                                            var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<DeviceData>>();
-                                            
-                                            if (sensorData != null && sensorData.Any())
-                                            {
-                                                foreach (var data in sensorData)
-                                                {
-
-                                                    decimal numericValue;
-
-                                                    if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
-                                                    {
-                                                        numericValue = parsedDecimal;
-                                                    }
-                                                    else
-                                                    {
-                                                        numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-                                                    }
-
-                                                    allData.Add(new
-                                                    {
-                                                        Timestamp = data.TimeStamp,
-                                                        Value = numericValue * multiplier,
-                                                        Color = color,
-                                                        DatasetName = dataset.Name,
-                                                        SensorName = dataset.SensorName,
-                                                        DeviceId = -1
-                                                    });
-                                                }
-                                            }
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Console.WriteLine($"Error cargando datos del sensor {dataset.SensorName}: {ex.Message}");
-                                    }
+                                    Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
                                 }
                             }
                         }
