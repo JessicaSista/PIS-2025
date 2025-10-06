@@ -235,6 +235,7 @@
         {
             Snackbar.Add($"Error al crear la visualización: {ex.Message}", Severity.Error);
         }
+        StateHasChanged();
     }
     
     private void Cancel() => _mudDialog.Cancel();

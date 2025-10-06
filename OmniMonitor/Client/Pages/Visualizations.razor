@@ -24,7 +24,7 @@
     </MudItem>
     
     <MudItem Style="width: 500px">
-        <MudTextField @bind-Value="_searchQuery" Placeholder="@Localizer["BuscarPlaceholder"]" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
+        <MudTextField Immediate="true" @bind-Value="_searchQuery" Placeholder="@Localizer["BuscarPlaceholder"]" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"/>
     </MudItem>
 </MudContainer>
 
@@ -83,10 +83,47 @@
     private bool _isLoading = true;
     private Dictionary<int, List<object>> _visualizationDataCache = new();
 
-    private Task OpenDialogCreateVisualization()
+    private async Task OpenDialogCreateVisualization()
     {
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        return DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
+        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
+        DialogResult? result = await dialog.Result;
+        
+        if (!result.Canceled)
+        {
+            await RecargarVisualizacionesAsync();
+        }
+    }
+
+    private async Task RecargarVisualizacionesAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+            
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/user/{_authenticatedUser}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                List<Visualizacion>? visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
+                if (visualizacionesFromApi != null)
+                {
+                    _visualizations = visualizacionesFromApi;
+                    _visualizationDataCache.Clear();
+                    await CargarDatosVisualizacionesAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 
     private List<object> GetVisualizationData(int visualizationId)
