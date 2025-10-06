@@ -1,0 +1,50 @@
+
+
+::deep .page-title {
+    color: var(--mud-palette-text-primary);
+    font-weight: 500;
+    font-family: 'Inter', 'Roboto', sans-serif;
+    margin: 0;
+}
+
+::deep .page-subtitle {
+    color: var(--mud-palette-text-secondary);
+    font-family: 'Inter', 'Roboto', sans-serif;
+    margin: 0.5rem 0 1.5rem 0;
+}
+
+/* Estilos para el campo de búsqueda */
+.search-field .mud-input-control {
+    background-color: var(--mud-palette-background);
+    border-radius: 4px;
+    border: 1px solid var(--mud-palette-lines-inputs);
+    transition: all 0.2s ease-in-out;
+}
+
+.search-field .mud-input-control:hover {
+    border-color: var(--mud-palette-primary);
+}
+
+.search-field .mud-input-control-input-container > div.mud-input.mud-input-text {
+    color: var(--mud-palette-text-primary);
+    padding: 8px 0;
+}
+
+.search-field .mud-input-slot {
+    color: var(--mud-palette-text-secondary);
+}
+
+.search-field .mud-input-underline:before,
+.search-field .mud-input-underline:after {
+    border-bottom: none !important;
+}
+
+/* Ajustes para el botón de búsqueda */
+.search-field .mud-icon-button {
+    color: var(--mud-palette-text-secondary);
+}
+
+.search-field .mud-icon-button:hover {
+    background-color: transparent;
+    color: var(--mud-palette-primary);
+}

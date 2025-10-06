@@ -1,0 +1,60 @@
+﻿@using System.Globalization
+@using MudBlazor
+@using Blazored.LocalStorage
+
+@inject NavigationManager NavigationManager
+@inject ILocalStorageService LocalStorage
+
+<MudMenu Direction="Direction.Bottom" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense="true">    <ActivatorContent>
+        <MudButton Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ArrowDropDown" Class="language-selector">
+            @(CurrentCulture?.TwoLetterISOLanguageName.ToUpper())
+        </MudButton>
+    </ActivatorContent>
+    <ChildContent>
+
+        @foreach (var cultureCode in SupportedCultures)
+        {
+            <MudMenuItem OnClick="(() => ChangeLanguage(cultureCode))">
+                <MudText>@GetCultureDisplayName(cultureCode)</MudText>
+            </MudMenuItem>
+        }
+
+    </ChildContent>
+</MudMenu>
+
+@code {
+    private readonly string[] SupportedCultures = { "es", "en" };
+    private CultureInfo CurrentCulture => CultureInfo.DefaultThreadCurrentUICulture;
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine($"Idioma actual: {CultureInfo.CurrentUICulture.Name}");
+    }
+
+    private async void ChangeLanguage(string newCulture)
+    {
+        if (newCulture != CurrentCulture.Name)
+        {
+            // 1. Establece la nueva cultura globalmente
+            var cultureInfo = new CultureInfo(newCulture);
+            CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
+            CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
+
+            // 2. Guarda la selección en el Local Storage para la próxima vez
+            await LocalStorage.SetItemAsStringAsync("culture", newCulture);
+
+            // 3. Fuerza la recarga de la página.
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+        }
+    }
+
+    private string GetCultureDisplayName(string code)
+    {
+        return code switch
+        {
+            "es" => "Español",
+            "en" => "English",
+            _ => code
+        };
+    }
+}

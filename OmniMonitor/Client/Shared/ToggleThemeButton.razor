@@ -1,0 +1,36 @@
+﻿@using MudBlazor
+@using OmniMonitor.Client.Services
+@inject ThemeService ThemeService
+@implements IDisposable
+
+<MudIconButton Icon="@(ThemeService.IsDarkMode? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+               Color="MudBlazor.Color.Inherit"
+               Variant="Variant.Text"
+               Edge="Edge.End"
+               Size="MudBlazor.Size.Medium"
+               OnClick="ToggleTheme"
+               Class="theme-toggle-button"
+               Title="@(ThemeService.IsDarkMode ? "Light Mode" : "Dark Mode")" />
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        ThemeService.OnThemeChange += ThemeChanged;
+    }
+
+    private async Task ToggleTheme()
+    {
+        await ThemeService.ToggleThemeAsync();
+    }
+
+    private void ThemeChanged()
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChange -= ThemeChanged;
+    }
+}

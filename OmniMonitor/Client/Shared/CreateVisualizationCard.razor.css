@@ -1,0 +1,4 @@
+.mud-dialog {
+    background-color: var(--fondo); 
+    color: var(--text-primary);
+}

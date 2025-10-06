@@ -1,0 +1,24 @@
+
+
+::deep .page-title {
+    color: var(--mud-palette-text-primary); 
+    font-weight: bold;
+}
+
+::deep .page-subtitle {
+    color: var(--mud-palette-text-secondary) !important;
+}
+
+.crear-dataset-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+    background-color: var(--mud-palette-primary);
+    color: white;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.crear-dataset-btn:hover {
+    background-color: var(--seleccion);
+}

@@ -1,6 +1,6 @@
 .appbar-container ::deep .mud-appbar {
-    background-color: var(--mud-palette-appbar-background) !important;
-    color: var(--mud-palette-appbar-text, var(--mud-palette-text-primary)) !important;
+    background-color: var(--appbar-background) !important;
+    color: var(--appbar-text) !important;
     padding: 0 16px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     border-bottom: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12));
@@ -8,12 +8,12 @@
 
 .appbar-container ::deep .mud-icon-button,
 .appbar-container ::deep .mud-appbar .mud-nav-link .mud-nav-link-text {
-    color: var(--mud-palette-appbar-text, var(--mud-palette-text-primary)) !important;
+    color: var(--appbar-text) !important;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.appbar-container ::deep .mud-icon-button .mud-icon-root {
-    color: inherit !important;
+::deep .theme-toggle .mud-icon-root {
+    color: var(--theme-toggle) !important;
 }
 
 ::deep .logo-container {
@@ -24,7 +24,8 @@
 }
 
 ::deep .logo-link {
-    display: inline-block;
+    display: flex;
+    align-items: center;
     height: 100%;
     text-decoration: none;
     max-width: 210px;
@@ -38,7 +39,7 @@
 
 ::deep .logo-text {
     display: inline-block;
-    color: var(--mud-palette-text-primary, #212121);
+    color: var(--text-primary);
     margin: 0 0 0 8px;
     padding: 0;
     vertical-align: middle;
@@ -49,12 +50,8 @@
     transition: color 0.3s ease;
 }
 
-::deep .logo-link:hover .logo-text {
-    color: var(--mud-palette-primary);
-}
-
 ::deep .language-selector {
-    color: var(--mud-palette-text-secondary, rgba(0, 0, 0, 0.6)) !important;
+    color: var(--text-secondary) !important;
     text-transform: none;
     font-weight: 500;
     min-width: 50px;
@@ -63,46 +60,60 @@
 }
 
 ::deep .language-selector:hover {
-    color: var(--mud-palette-text-primary, #212121) !important;
-    background-color: var(--hover, rgba(0, 0, 0, 0.04)) !important;
+    color: var(--text-primary) !important;
+    background-color: var(--hover) !important;
 }
 
-::deep .mud-menu-item {
-    min-height: 36px;
+::deep .user-selector {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--text-secondary) !important;
+    text-transform: none;
+    font-weight: 500;
+    min-width: 70px;
+    padding: 0 8px;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-.appbar-container ::deep .custom-textfield.mud-input-outlined .mud-input-root {
-    width: 100%;
-    color: var(--mud-palette-text-primary, #212121) !important;
-    background-color: var(--hover, rgba(0, 0, 0, 0.04)) !important;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+::deep .user-selector:hover {
+    color: var(--Boton-Usuario) !important;
+    background-color: var(--hover) !important;
 }
 
-.appbar-container ::deep .custom-textfield .mud-input-root:hover {
-    background-color: var(--seleccion, rgba(0, 0, 0, 0.08)) !important;
+::deep .user-selector .mud-icon-root {
+    color: var(--Boton-Usuario) !important;
+    font-size: 40px !important;
 }
 
-.appbar-container ::deep .custom-textfield .mud-input-root:focus-within {
-    background-color: var(--seleccion, rgba(0, 0, 0, 0.08)) !important;
+::deep .user-selector:hover .mud-icon-root {
+    color: var(--text-primary) !important;
 }
 
-.appbar-container ::deep .custom-textfield .mud-input-root input::placeholder {
-    color: var(--mud-palette-text-disabled, rgba(0, 0, 0, 0.38)) !important;
+/* --- CÓDIGO PARA OCULTAR TEXTO EN MOVILES --- */
+@media (max-width: 599.98px) {
+    ::deep .logo-text {
+        display: none;
+    }
 }
 
-.appbar-container ::deep .custom-textfield .mud-input-root input {
-    color: var(--mud-palette-text-primary) !important;
-    padding: 8px 12px !important;
-}
+/* --- AJUSTES FINOS PARA MOVILES MUY ESTRECHOS --- */
+@media (max-width: 390px) {
+    /* Reduce el padding de la barra al mínimo */
+    .appbar-container ::deep .mud-appbar {
+        padding: 0 2px;
+    }
 
-.appbar-container ::deep .custom-textfield .mud-input-root .mud-input-adornment {
-    color: var(--mud-palette-text-secondary, rgba(0, 0, 0, 0.6)) !important;
-}
+    /* Elimina el ancho mínimo y reduce el padding de los botones */
+    ::deep .language-selector,
+    ::deep .user-selector {
+        min-width: 0;
+        padding: 0 2px;
+    }
 
-.appbar-container ::deep .mud-input-underline:before,
-.appbar-container ::deep .mud-input-underline:after,
-.appbar-container ::deep .mud-input-underline:hover:before,
-.appbar-container ::deep .mud-input-underline:hover:not(.Mui-disabled):before {
-    border-bottom: none !important;
+    /* Reduce un poco más el ícono de usuario si es necesario */
+    ::deep .user-selector .mud-icon-root {
+        font-size: 30px !important;
+    }
+
 }

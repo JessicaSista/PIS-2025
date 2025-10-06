@@ -1,0 +1,162 @@
+@using ApexCharts
+@using System.Text.Json
+@using MudBlazor
+@inherits ComponentBase
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<VisualizationCard> Localizer
+
+<MudPaper Class="pa-4" Style="background-color: var(--card);">
+    <MudCard Elevation="0" Style="background-color: transparent;">
+        <MudCardHeader>
+            <CardHeaderAvatar>
+                <MudPaper Square="true" Class="pa-2" Style="background-color: #1d283a !important; color: #f4f8fd; border-radius: 2px">
+                    <MudIcon Icon="@GetIcon(chartType)" />
+                </MudPaper>
+            </CardHeaderAvatar>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">@visualizationTitle</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+
+        <MudCardContent Style="color: #A8C4D0">
+            @if (_seriesData.Any())
+            {
+                <ApexChart TItem="ChartPoint">
+                    @foreach (var serie in _seriesData)
+                    {
+                        <ApexPointSeries TItem="ChartPoint"
+                                         Items="serie.Points"
+                                         Name="@serie.DatasetName"
+                                         SeriesType="@_seriesType"
+                                         XValue="@(p => p.X)"
+                                         YValue="@(p => (decimal)p.Y)"
+                                         Color="@serie.Color" />
+                    }
+                </ApexChart>
+            }
+            else
+            {
+                <MudText Typo="Typo.h6" Align="MudBlazor.Align.Center" Style="padding: 3rem 0; color: #667d8a;">
+                    Sin datos para graficar
+                </MudText>
+            }
+        </MudCardContent>
+
+        <MudCardActions Class="d-block">
+            <MudText Typo="Typo.body2">@Localizer["Datasets"]: @visualizationDatasets</MudText>
+            <MudText Typo="Typo.caption">@Localizer["Actualizado"]: @lastUpdated</MudText>
+        </MudCardActions>
+    </MudCard>
+</MudPaper>
+
+@code {
+    [Parameter] public string visualizationTitle { get; set; } = "Título";
+    [Parameter] public string visualizationDatasets { get; set; } = "N/A";
+    [Parameter] public string lastUpdated { get; set; } = "N/A";
+    [Parameter] public string chartType { get; set; } = "line";
+    [Parameter] public List<object> dataCharts { get; set; } = new();
+
+    private SeriesType _seriesType = SeriesType.Line;
+    private List<DatasetSeries> _seriesData = new();
+
+    protected override void OnParametersSet()
+    {
+        _seriesData = BuildSeriesFromData(dataCharts);
+        _seriesType = MapSeriesType(chartType);
+    }
+
+    private SeriesType MapSeriesType(string type)
+    {
+        if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
+            return SeriesType.Line;
+        return parsed;
+    }
+
+    private List<DatasetSeries> BuildSeriesFromData(List<object> data)
+    {
+        var grouped = new Dictionary<string, DatasetSeries>();
+
+        foreach (var item in data)
+        {
+            try
+            {
+                System.String json = JsonSerializer.Serialize(item);
+                using JsonDocument? doc = JsonDocument.Parse(json);
+                JsonElement root = doc.RootElement;
+
+                System.String datasetName = root.TryGetProperty("DatasetName", out var dnProp)
+                    ? dnProp.GetString() ?? "SinNombre"
+                    : "SinNombre";
+
+                System.String color = root.TryGetProperty("Color", out var colorProp)
+                    ? colorProp.GetString() ?? "#00FFE7"
+                    : "#00FFE7";
+
+                System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
+                    ? tProp.GetDateTime().ToString("yyyy-MM-ddTHH:mm")
+                    : null;
+
+                double value = 0;
+                if (root.TryGetProperty("Value", out var vProp))
+                {
+                    double.TryParse(vProp.ToString(), out value);
+                }
+
+                if (!grouped.ContainsKey(datasetName))
+                {
+                    grouped[datasetName] = new DatasetSeries
+                    {
+                        DatasetName = datasetName,
+                        Color = color
+                    };
+                }
+
+                grouped[datasetName].Points.Add(new ChartPoint
+                {
+                    X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
+                    Y = value
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
+            }
+        }
+
+        return grouped.Values.ToList();
+    }
+
+    private string GetIcon(string chartType)
+    {
+        return chartType switch
+        {
+            "line"         => Icons.Material.Filled.ShowChart,
+            "bar"          => Icons.Material.Filled.BarChart,
+            "area"         => Icons.Material.Filled.StackedLineChart,
+            "pie"          => Icons.Material.Filled.PieChart,
+            "donut"        => Icons.Material.Filled.DonutLarge,
+            "radialBar"    => Icons.Material.Filled.DonutSmall,
+            "scatter"      => Icons.Material.Filled.BubbleChart,
+            "heatmap"      => Icons.Material.Filled.GridOn,
+            "radar"        => Icons.Material.Filled.Radar,
+            "bubble"       => Icons.Material.Filled.BubbleChart,
+            "candlestick"  => Icons.Material.Filled.CandlestickChart,
+            "boxPlot"      => Icons.Material.Filled.Analytics,
+            "treemap"      => Icons.Material.Filled.AccountTree,
+            _              => Icons.Material.Filled.InsertChart
+        };
+    }
+
+    public class DatasetSeries
+    {
+        public System.String DatasetName { get; set; } = String.Empty;
+        public System.String Color { get; set; } = "#00FFE7";
+        public List<ChartPoint> Points { get; set; } = new();
+    }
+
+    public class ChartPoint
+    {
+        public System.String X { get; set; } = string.Empty;
+        public double Y { get; set; }
+    }
+}

@@ -1,59 +1,63 @@
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Dashboard> Localizer
+
 <MudBreakpointProvider>
-<MudGrid Class="pa-10 dashboard" Spacing="6">
-    <MudItem lg=3 md=6 sm=12 xs=12>
-        <MudCard Style="@($"background-color: #14161b; color: #ffffff; border: 1px solid #413a25")" Outlined="true">
-            <MudCardContent>
-                <MudContainer Class="d-flex flex-column gap-2">
-                    <MudText Typo="Typo.body2" Style="color: #6e8290; font-weight: bold;">DATA OUTLINED</MudText>
-                    <MudText Typo="Typo.h4" Style="color: #e6bd48; font-weight: 500;">$2,405.90</MudText>
-                    <MudText Typo="Typo.body2" Style="color: #677e8b">+12.5% desde último mes</MudText>
-                </MudContainer>
-            </MudCardContent>
-        </MudCard>
-    </MudItem>
-    @foreach (var (esKPI, _widget) in Widgets)
-    {
-        List<System.String> _datosWidget = _widget.Split(",").ToList();
-        <DashboardCard Title="@_datosWidget[0]" esKPI=@esKPI  dominio=@Domain Datos=@GetRandomData() GraphType=@GetRandomType()></DashboardCard>
-    }
-    <MudItem xs="12" lg="3" md="6">
-        <MudPaper Class="add-card-widget d-flex flex-column justify-center align-center mud-width-full pa-10" Style="background-color: #010717; cursor: pointer; color: var(--mud-palette-scrollbar-thumb-hover);" Elevation="2">
-            <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Large"/>
-            <MudText Typo="Typo.h6" Class="mt-4" Align="MudBlazor.Align.Center">
-                Agregar Nueva Gráfica
-            </MudText>
-            <MudText Typo="Typo.body2" Class="mt-2" Align="MudBlazor.Align.Center">
-                Haz clic para crear un nuevo gráfico o KPI
-            </MudText>
-        </MudPaper>
-    </MudItem>
-</MudGrid>
+    <MudGrid Class="pa-10 dashboard" Spacing="6">
+        @foreach (var (esKPI, _widget) in Widgets)
+        {
+            List<System.String> _datosWidget = _widget.Split(",").ToList();
+            <DashboardCard Title="@_datosWidget[0]" esKPI=@esKPI dominio=@Domain Datos=@GetRandomData() GraphType=@GetRandomType()></DashboardCard>
+        }
+        <MudItem xs="12" lg="3" md="6">
+            <MudPaper Class="add-card-widget d-flex flex-column justify-center align-center mud-width-full pa-10"
+                      Style="background-color: var(--card);
+                         color: var(--card-text-primary);
+                         cursor: pointer;
+                         border: 1px solid #374151;
+                         border-radius: 7px;"
+                      Elevation="2">
+
+                <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Large" />
+
+                <MudText Typo="Typo.h6" Class="mt-4" Align="MudBlazor.Align.Center"
+                         Style="color: var(--card-text-primary)">
+                    @Localizer["AgregarNuevaGrafica"]
+                </MudText>
+
+                <MudText Typo="Typo.body2" Class="mt-2" Align="MudBlazor.Align.Center"
+                         Style="color: var(--card-text-secondary)">
+                    @Localizer["TextoCrearGraficoKPI"]
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 </MudBreakpointProvider>
+
 @code {
-    [Parameter] public (System.Boolean, System.String)[] Widgets {get; set;} = Array.Empty<(System.Boolean,System.String)>();
-    
-    public System.String[] Domain = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29"};
-    public (System.String, System.String, double, double[])[] GraphData = 
+    [Parameter] public (System.Boolean, System.String)[] Widgets { get; set; } = Array.Empty<(System.Boolean, System.String)>();
+
+    public System.String[] Domain = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29" };
+    public (System.String, System.String, double, double[])[] GraphData =
     {
         ("cos(x)", "#fd23df", 1, new double[] {1.0, 0.54, -0.42, -0.99, -0.65, 0.28, 0.96, 0.75, -0.15, -0.91, -0.84, 0.0, 0.84, 0.91, 0.14, -0.76, -0.96, -0.28, 0.66, 0.99, 0.41, -0.55, -1.0, -0.53, 0.42, 0.99, 0.65, -0.29, -0.96, -0.75}),
         ("sin(x)", "#23dffd", 1, new double[] {0.0, 0.84, 0.91, 0.14, -0.76, -0.96, -0.28, 0.66, 0.99, 0.41, -0.54, -1.0, -0.54, 0.42, 0.99, 0.65, -0.29, -0.96, -0.75, 0.15, 0.91, 0.84, -0.01, -0.85, -0.91, -0.13, 0.76, 0.96, 0.27, -0.66}),
         ("log_e(x)", "#dffd23", 1, new double[] {-1, 0.0, 0.69, 1.1, 1.39, 1.61, 1.79, 1.95, 2.08, 2.2, 2.3, 2.4, 2.48, 2.56, 2.64, 2.71, 2.77, 2.83, 2.89, 2.94, 3.0, 3.04, 3.09, 3.14, 3.18, 3.22, 3.26, 3.3, 3.33, 3.37})
     };
 
-    public System.Int32[] GraphType = {0, 1, 2}; //linea barras area
+    public System.Int32[] GraphType = { 0, 1, 2 }; // linea, barras, área
 
-    public (System.String, System.String, double, double[])[] GetRandomData(){
+    public (System.String, System.String, double, double[])[] GetRandomData()
+    {
         Random rnd = new Random();
         (System.String, System.String, double, double[])[] ret = new (System.String, System.String, double, double[])[1];
-        System.Int32 index = rnd.Next(0,3);
-        Console.WriteLine(index);
+        System.Int32 index = rnd.Next(0, 3);
         ret[0] = GraphData[index];
         return ret;
     }
-    
-    public System.Int32 GetRandomType(){
-        Random rnd = new Random();
-        return GraphType[rnd.Next(0,3)];
-    }
 
+    public System.Int32 GetRandomType()
+    {
+        Random rnd = new Random();
+        return GraphType[rnd.Next(0, 3)];
+    }
 }

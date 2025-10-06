@@ -4,132 +4,305 @@
 @inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Datasets> Localizer
 
 <PageTitle>Datasets</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style="color: #E5EAEB; font-weight: bold;">Datasets</MudText>
-<MudText Typo="Typo.body1" Class="mb-4 mx-4" Style="color: #9ca3af">Gestiona tus fuentes de datos y conexiones</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+        <MudStack>
+            <MudText Typo="Typo.h4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">Datasets</MudText>
+        </MudStack>
+        <AddButton OnClick="CrearDataset">
+            @Localizer["CrearDataset"]
+        </AddButton>
+    </MudStack>
+    <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+        <MudText Typo="Typo.body1" Class="mb-4" Style="color: #a5a8b5; font-family: Inter, Roboto, sans-serif;">@Localizer["Gestiona"]</MudText>
+    </MudStack>
 
-<MudStack Row Justify="Justify.SpaceBetween" Class="mb-15 ml-4 mr-6">
-    <MudTextField @bind-Value="searchText" Placeholder="Buscar datasets..." Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="flex-grow-1 mr-3" />
-    <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary" StartIcon="@Icons.Material.Filled.FilterList">
-        Filtros
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
+    <MudTextField @bind-Value="searchText"
+                  Immediate="true"
+                  Placeholder="@Localizer["Buscar"]"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="flex-grow-1 mr-3" />
+
+    <MudButton Variant="Variant.Outlined"
+               Color="MudBlazor.Color.Secondary"
+               StartIcon="@Icons.Material.Filled.FilterList"
+               Class="filter-button">
+        <span class="button-text-filter">@Localizer["Filtros"]</span>
     </MudButton>
 </MudStack>
 
+<style>
+    @@media (max-width: 768px) {
+        .button-text-filter {
+            display: none !important;
+            width: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+ 
+        .filter-button .mud-button-icon-start,
+        .filter-button .mud-button-icon-start svg {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto !important;
+        }
+    }
+</style>
+
 <MudContainer Fixed="true" Class="pl-4 pr-6">
     <MudGrid GutterSize="3">
-        @foreach (var dataset in datasets)
+        @foreach (var dataset in filteredDatasets)
         {
             <MudItem xs="12" sm="6" md="4">
-                <DatasetCardComponent 
-                    Dataset="dataset" 
-                    Description="@dataset.Descripcion"
-                    RecordCount="@dataset.RecordCount.ToString()" 
-                    OnClick="@(() => VerDetalle(dataset.Id))" />
+                <div style="position: relative;">
+                    <DatasetCardComponent Dataset="dataset"
+                                          Description="@dataset.Descripcion"
+                                          OnClick="@(() => EditarDataset(dataset))" />
+
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                             AnchorOrigin="Origin.TopRight"
+                             TransformOrigin="Origin.TopRight"
+                             Class="position-absolute"
+                             Style="position:absolute; top:8px; right:8px;">
+
+                        <MudMenuItem OnClick="@(() => EditarDataset(dataset))">
+                            @Localizer["Editar"]
+                        </MudMenuItem>
+
+                        <MudMenuItem OnClick="@(() => ConfirmEliminar(dataset))">
+                            @Localizer["Eliminar"]
+                        </MudMenuItem>
+                    </MudMenu>
+                </div>
             </MudItem>
         }
     </MudGrid>
 </MudContainer>
 
-<MudButton 
-    Href="/crearDataset"
-    Variant="Variant.Filled"
-    Class="crear-dataset-btn"
-    StartIcon="@Icons.Material.Filled.Add">
-    Crear Dataset
-</MudButton>
 
-<style>
-.crear-dataset-btn {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 1000;
-    background-color: #4A81E9;
-    color: white;
-    transition: background-color 0.2s ease-in-out;
-}
-
-.crear-dataset-btn:hover {
-    background-color: #3a69c0; /* un poco más oscuro */
-}
-</style>
 
 @code {
     private List<DatasetDto> datasets = new();
-    private string searchText = string.Empty;
+    private List<DatasetDto> filteredDatasets = new();
 
-    protected override async Task OnInitializedAsync()
+    // Propiedad con setter que dispara el filtrado
+    private string _searchText = string.Empty;
+    private string searchText
     {
-        // Cargar datasets de ejemplo
-        datasets = new List<DatasetDto>
+        get => _searchText;
+        set
         {
-            new DatasetDto { Id = 1, Nombre = "Dataset sensores de temperatura Montevideo", FechaCreacion = DateTime.Now.AddDays(-2) },
-            new DatasetDto { Id = 2, Nombre = "Dataset consumo de energía", FechaCreacion = DateTime.Now.AddDays(-5) },
-            new DatasetDto { Id = 3, Nombre = "Dataset Emisiones CO₂", FechaCreacion = DateTime.Now.AddDays(-10) },
-        };
-
-        // Cargar datasets del usuario desde localStorage
-        var json = await JS.InvokeAsync<string>("localStorage.getItem", "datasets");
-        if (!string.IsNullOrEmpty(json))
-        {
-            var locales = System.Text.Json.JsonSerializer.Deserialize<List<DatasetDto>>(json);
-            if (locales != null)
-                datasets.AddRange(locales);
+            _searchText = value ?? string.Empty;
+            FilterDatasets();
         }
+    }
 
-        // Mostrar snackbar si viene mensaje por query string (parseo manual)
-        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-        if (!string.IsNullOrEmpty(uri.Query))
+    private void EditarDataset(DatasetDto dataset)
+    {
+        if (dataset is null) return;
+        NavigationManager.NavigateTo($"/editarDataset/{dataset.Id}");
+    }
+
+    private async Task ConfirmEliminar(DatasetDto dataset)
+    {
+        if (dataset is null) return;
+        var titulo = Localizer["Confirmación"];
+        var mensaje = (MarkupString)string.Format(
+            Localizer["PreguntaEliminar1"],
+            $"<b>{dataset.Nombre}</b>"
+        );
+
+        bool? result = await DialogService.ShowMessageBox(
+            titulo,
+            mensaje,
+            yesText: Localizer["Eliminar"],
+            cancelText: Localizer["Cancelar"],
+            options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (result == true)
         {
-            var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
-            foreach (var q in query)
+            try
             {
-                var kv = q.Split('=', 2);
-                if (kv.Length == 2 && kv[0] == "snackbar")
+                // Obtener el usuario actual
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var username = authState.User.Identity?.Name;
+
+                if (string.IsNullOrEmpty(username))
                 {
-                    var mensaje = Uri.UnescapeDataString(kv[1]);
-                    Snackbar.Add(mensaje, Severity.Success, config =>
+                    Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+                    return;
+                }
+
+                // Eliminar desde el backend
+                var response = await Http.DeleteAsync($"api/Dataset/{dataset.Id}/{username}");
+                if (response.IsSuccessStatusCode)
+                {
+                    datasets.RemoveAll(d => d.Id == dataset.Id);
+                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
+                    Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;
-                        config.Action = "OK";
-                        config.ActionColor = MudBlazor.Color.Primary;
                     });
+                    StateHasChanged();
                 }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"{Localizer["ErrorEliminar"]} {error}", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"{Localizer["ErrorEliminar"]} {ex.Message}", Severity.Error);
             }
         }
     }
 
-    private void VerDetalle(int id) { }
-
-    private string GetDatasetIcon(int id) => id switch
+    protected override async Task OnInitializedAsync()
     {
-        1 => Icons.Material.Filled.Thermostat,
-        2 => Icons.Material.Filled.ElectricalServices,
-        3 => Icons.Material.Filled.Cloud,
-        _ => Icons.Material.Filled.Storage
-    };
+        try
+        {
+            // Obtener el usuario actual de la sesión
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
 
-    private string GetDatasetDescription(int id) => id switch
+            Console.WriteLine($"DEBUG: Username obtenido: '{username}'");
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(@Localizer["ErrorUsuario"] , Severity.Warning);
+                filteredDatasets = new List<DatasetDto>();
+                return;
+            }
+
+            // Cargar datasets desde el backend
+            var response = await Http.GetAsync($"api/Dataset/user/{username}");
+            
+            // ⬇️ AGREGAR AQUÍ
+            Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
+                
+                // ⬇️ AGREGAR AQUÍ
+                Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
+                
+                // Convertir Dataset a DatasetDto
+                datasets = datasetsFromApi?.Select(d => new DatasetDto
+                {
+                    Id = d.Id,
+                    Nombre = d.Name,
+                    Descripcion = d.Description
+                }).ToList() ?? new List<DatasetDto>();
+            }
+            else
+            {
+                // ⬇️ REEMPLAZAR estas 2 líneas
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"DEBUG: Error response: {errorContent}");
+                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
+                // ⬆️ Por esta línea antigua: Snackbar.Add("Error al cargar los datasets", Severity.Error);
+                
+                datasets = new List<DatasetDto>();
+            }
+
+
+            // Inicializar la lista filtrada
+            filteredDatasets = datasets.ToList();
+
+            // Mostrar snackbar si viene mensaje por query string
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            if (!string.IsNullOrEmpty(uri.Query))
+            {
+                var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var q in query)
+                {
+                    var kv = q.Split('=', 2);
+                    if (kv.Length == 2 && kv[0] == "snackbar")
+                    {
+                        var mensaje = Uri.UnescapeDataString(kv[1]);
+                        Snackbar.Add(mensaje, Severity.Success, config =>
+                        {
+                            config.SnackbarVariant = Variant.Filled;
+                            config.Action = "OK";
+                            config.ActionColor = MudBlazor.Color.Primary;
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorInicializar"]} {ex.Message}", Severity.Error);
+            datasets = new List<DatasetDto>();
+            filteredDatasets = new List<DatasetDto>();
+        }
+    }
+
+    private void FilterDatasets()
     {
-        1 => "Datos de sensores de temperatura en tiempo real desde Montevideo.",
-        2 => "Información detallada del consumo energético por sector.",
-        3 => "Métricas de emisiones de CO₂ y gases de efecto invernadero.",
-        _ => "Dataset de información general."
-    };
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredDatasets = datasets.ToList();
+            return;
+        }
 
-    private string GetRecordCount(int id) => id switch
+        var normalizedSearch = NormalizeText(searchText);
+
+        filteredDatasets = datasets
+            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
+            .OrderByDescending(d => NormalizeText(d.Nombre) == normalizedSearch) // exactos primero
+            .ThenByDescending(d => NormalizeText(d.Nombre).StartsWith(normalizedSearch)) // luego prefijo
+            .ThenBy(d => NormalizeText(d.Nombre).IndexOf(normalizedSearch)) // luego por posición de coincidencia
+            .ThenBy(d => d.Nombre) // estable
+            .ToList();
+    }
+
+    private string NormalizeText(string text)
     {
-        1 => "15.420",
-        2 => "8.750",
-        3 => "12.300",
-        _ => "0"
-    };
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
 
+        // 1) Normalizar a FormD y remover diacríticos (acentos)
+        var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+
+        // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
+        withoutDiacritics = withoutDiacritics
+            .Replace(" ", string.Empty)
+            .Replace("ñ", "n")
+            .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
+            .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
+
+        // 3) Normalizar de vuelta a FormC
+        return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+
+    private void CrearDataset()
+    {
+        NavigationManager.NavigateTo("/crearDataset");
+    }
+
+   
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (datasets.Count > 0)
