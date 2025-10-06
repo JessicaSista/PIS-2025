@@ -111,6 +111,8 @@ public class SondaAMService : ISondaAMService
 
     public async Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username, string password)
     {
+        if (bundleId <= 0)
+            throw new ArgumentException("El parámetro 'bundleId' debe ser mayor que cero.", nameof(bundleId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Bundle"]["GetByBundleId"];
         string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
@@ -122,6 +124,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron stocksParameters  (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
@@ -197,6 +202,8 @@ public class SondaAMService : ISondaAMService
 
     public async Task<StockDto?> GetStockById(int stockId, string username, string password)
     {
+        if (stockId <= 0)
+            throw new ArgumentException("El parámetro 'stockId' debe ser mayor que cero.", nameof(stockId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Stock"]["GetById"].Replace("{stockId}", stockId.ToString());
         string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
@@ -223,8 +230,15 @@ public class SondaAMService : ISondaAMService
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
 
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
-            return null;
-        return JsonSerializer.Deserialize<StockDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            throw new Exception("La respuesta de la API es nula, vacía o no es un JSON válido.");
+        try
+        {
+            return JsonSerializer.Deserialize<StockDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException ex)
+        {
+            throw new Exception("Error al deserializar la respuesta de la API: JSON inválido.", ex);
+        }
     }
 
         public async Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username, string password)
@@ -249,6 +263,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron assets (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
@@ -320,6 +337,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontro informacion (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
@@ -361,6 +381,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron linked assets (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
@@ -483,6 +506,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron bundles (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
@@ -541,6 +567,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontro historia para el asset (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -612,6 +641,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron event task instances (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -629,6 +661,8 @@ public class SondaAMService : ISondaAMService
 
     public async Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username, string password)
     {
+        if (taskInstanceId <= 0)
+            throw new ArgumentException("El parámetro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         // Asegúrate que la clave y endpoint existan en tu ApiConfig.json
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetActions"].Replace("{taskInstanceId}", taskInstanceId.ToString());
@@ -641,6 +675,9 @@ public class SondaAMService : ISondaAMService
         client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron EventTaskActions (404 NotFound).");
+            
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
@@ -659,6 +696,8 @@ public class SondaAMService : ISondaAMService
 
         public async Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username, string password)
         {
+            if (taskInstanceId <= 0)
+                throw new ArgumentException("El parámetro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
             string baseUrl = _apiConfig.BaseUrl.UrlAM;
             string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetStock"].Replace("{taskInstanceId}", taskInstanceId.ToString());
             string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
@@ -670,6 +709,8 @@ public class SondaAMService : ISondaAMService
             client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
             var response = await client.GetAsync(getDataUrl);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                throw new Exception("No se encontraron stocks para el taskInstanceId proporcionado (404 NotFound).");
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
             if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
