@@ -242,11 +242,12 @@
     }
 
     // Cuando cambian los dispositivos seleccionados (multi-select)
-    private Task OnSelectedDevicesChanged(IEnumerable<int> values)
+    private async Task OnSelectedDevicesChanged(IEnumerable<int> values)
     {
         selectedDeviceIds = values != null ? new HashSet<int>(values) : new HashSet<int>();
+        // Recargar sensores basados en los dispositivos seleccionados
+        await LoadSensors();
         StateHasChanged();
-        return Task.CompletedTask;
     }
 
     //Cuando cambia el sensor
@@ -316,32 +317,45 @@
         }
     }
 
-    // Cargar sensores de la fuente seleccionada
+    // Cargar sensores de la fuente seleccionada o dispositivos seleccionados
     private async Task LoadSensors()
     {
         try
         {
             // Guardar el sensor actualmente seleccionado
             var currentSelectedSensor = selectedSensor;
-            
+
             sensores.Clear();
 
             if (selectedSourceId.HasValue)
             {
-                var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?user={currentUsername}&password={currentPassword}");
-                if (sensorsResponse.IsSuccessStatusCode)
+                // Si hay dispositivos seleccionados, obtener sensores solo de esos dispositivos
+                if (selectedDeviceIds.Any())
                 {
-                    sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
-                    
-                    // Si el sensor previamente seleccionado existe en la nueva lista, mantenerlo seleccionado
-                    if (!string.IsNullOrEmpty(currentSelectedSensor) && sensores.Contains(currentSelectedSensor))
+                    var sensorsResponse = await Http.PostAsJsonAsync($"api/SondaMain/sensors/devices?user={currentUsername}&password={currentPassword}", selectedDeviceIds.ToList());
+                    if (sensorsResponse.IsSuccessStatusCode)
                     {
-                        selectedSensor = currentSelectedSensor;
+                        sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
                     }
-                    else
+                }
+                else
+                {
+                    // Si no hay dispositivos seleccionados, obtener todos los sensores de la fuente
+                    var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?user={currentUsername}&password={currentPassword}");
+                    if (sensorsResponse.IsSuccessStatusCode)
                     {
-                        selectedSensor = string.Empty;
+                        sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
                     }
+                }
+
+                // Si el sensor previamente seleccionado existe en la nueva lista, mantenerlo seleccionado
+                if (!string.IsNullOrEmpty(currentSelectedSensor) && sensores.Contains(currentSelectedSensor))
+                {
+                    selectedSensor = currentSelectedSensor;
+                }
+                else
+                {
+                    selectedSensor = string.Empty;
                 }
             }
             else

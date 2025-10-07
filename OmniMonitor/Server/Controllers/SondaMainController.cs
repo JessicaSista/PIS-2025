@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
@@ -186,8 +186,57 @@ public class SondaMainController : ControllerBase
         }
     }
 
-    // ---------------- SENSORS ----------------
-    
+    /// <summary>
+    /// Obtiene todos los sensores únicos de los dispositivos seleccionados.
+    /// </summary>
+    [HttpPost("sensors/devices")]
+    [ProducesResponseType(typeof(List<string>), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<string>>> GetSensorsByDevices([FromBody] List<int> deviceIds, string user, string password)
+    {
+        try
+        {
+            if (deviceIds == null || !deviceIds.Any())
+            {
+                return Ok(new List<string>());
+            }
+
+            // Obtener información de todos los dispositivos seleccionados
+            var allSensors = new List<string>();
+            
+            foreach (var deviceId in deviceIds)
+            {
+                var device = await _sondaIMApiService.GetDeviceById(deviceId, user, password);
+                if (device != null && device.Sensors != null && device.Sensors.Any())
+                {
+                    var sensorNames = device.Sensors
+                        .Where(s => !string.IsNullOrEmpty(s.Name))
+                        .Select(s => s.Name!)
+                        .ToList();
+                    allSensors.AddRange(sensorNames);
+                }
+            }
+
+            // Obtener sensores únicos ordenados
+            var uniqueSensors = allSensors
+                .Distinct()
+                .OrderBy(name => name)
+                .ToList();
+
+            if (!uniqueSensors.Any())
+            {
+                return NotFound($"No se encontraron sensores en los dispositivos seleccionados.");
+            }
+
+            return Ok(uniqueSensors);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener los sensores de los dispositivos: {ex.Message}");
+        }
+    }
+
     /// <summary>
     /// Obtiene todos los sensores únicos de los dispositivos pertenecientes a una fuente específica.
     /// </summary>
