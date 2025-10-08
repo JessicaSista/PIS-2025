@@ -1,0 +1,388 @@
+@page "/datasetem-test"
+@using OmniMonitor.Shared.Dtos
+@using System.Text.Json
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Dataset EM - Página de Prueba</PageTitle>
+
+<div class="container mt-4">
+    <h2>🧪 Dataset EM - Página de Prueba</h2>
+    <p class="text-muted">Pantalla temporal para probar los endpoints del módulo EM (Alertas, Eventos, Extensiones, Recursos)</p>
+
+    <div class="row">
+        <!-- Panel de Creación -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📝 Crear Dataset EM</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre del Dataset:</label>
+                        <input type="text" class="form-control" @bind="newDataset.Name" placeholder="Ej: Mi Dataset EM" />
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Descripción:</label>
+                        <textarea class="form-control" @bind="newDataset.Description" rows="2" placeholder="Descripción del dataset"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Dataset:</label>
+                        <select class="form-select" @bind="newDataset.IsDataset">
+                            <option value="S">Formal (búsqueda dinámica)</option>
+                            <option value="N">Individual (entidades específicas)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Username:</label>
+                        <input type="text" class="form-control" @bind="newDataset.Username" placeholder="admin" />
+                    </div>
+
+                    <!-- Filtros para búsqueda dinámica -->
+                    <div class="mb-3" style="display: @(newDataset.IsDataset == "S" ? "block" : "none")">
+                        <h6>🔍 Filtros de Búsqueda:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Alert ID:</label>
+                                    <input type="number" class="form-control" @bind="alertId" placeholder="ID de alerta" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Event ID:</label>
+                                    <input type="number" class="form-control" @bind="eventId" placeholder="ID de evento" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Extension ID:</label>
+                                    <input type="number" class="form-control" @bind="extensionId" placeholder="ID de extensión" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Resource ID:</label>
+                                    <input type="number" class="form-control" @bind="resourceId" placeholder="ID de recurso" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Alert State:</label>
+                                    <input type="text" class="form-control" @bind="alertState" placeholder="Estado de alerta" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Event State:</label>
+                                    <input type="text" class="form-control" @bind="eventState" placeholder="Estado de evento" />
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Extension State:</label>
+                                    <input type="text" class="form-control" @bind="extensionState" placeholder="Estado de extensión" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Resource State:</label>
+                                    <input type="text" class="form-control" @bind="resourceState" placeholder="Estado de recurso" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Entidades específicas -->
+                    <div class="mb-3" style="display: @(newDataset.IsDataset == "N" ? "block" : "none")">
+                        <h6>🎯 Entidades Específicas:</h6>
+                        <div class="mb-2">
+                            <label class="form-label">Alert IDs (separados por coma):</label>
+                            <input type="text" class="form-control" @bind="alertIdsText" placeholder="1,2,3" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Event IDs (separados por coma):</label>
+                            <input type="text" class="form-control" @bind="eventIdsText" placeholder="10,20,30" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Extension IDs (separados por coma):</label>
+                            <input type="text" class="form-control" @bind="extensionIdsText" placeholder="100,200,300" />
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Resource IDs (separados por coma):</label>
+                            <input type="text" class="form-control" @bind="resourceIdsText" placeholder="1000,2000,3000" />
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" @onclick="CreateDataset" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Crear Dataset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Consultas -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📋 Consultar Datasets</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username:</label>
+                        <input type="text" class="form-control" @bind="queryUsername" placeholder="admin" />
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-info me-2" @onclick="GetAllDatasets" disabled="@isLoading">
+                            @if (isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                            }
+                            Listar Todos
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Dataset ID:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" @bind="datasetId" placeholder="ID del dataset" />
+                            <button class="btn btn-success" @onclick="GetDatasetById" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Obtener
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📊 Resultados</h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(resultMessage))
+                    {
+                        <div class="alert @(isError ? "alert-danger" : "alert-success")">
+                            @resultMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(resultData))
+                    {
+                        <div class="mt-3">
+                            <h6>Datos JSON:</h6>
+                            <pre class="bg-light p-3 rounded"><code>@resultData</code></pre>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private CreateDatasetEMRequest newDataset = new();
+    private string queryUsername = "admin";
+    private int? datasetId;
+    private string resultMessage = "";
+    private string resultData = "";
+    private bool isLoading = false;
+    private bool isError = false;
+
+    // Filtros para búsqueda dinámica
+    private int? alertId;
+    private int? eventId;
+    private int? extensionId;
+    private int? resourceId;
+    private string alertState = "";
+    private string eventState = "";
+    private string extensionState = "";
+    private string resourceState = "";
+
+    // Entidades específicas
+    private string alertIdsText = "";
+    private string eventIdsText = "";
+    private string extensionIdsText = "";
+    private string resourceIdsText = "";
+
+    protected override void OnInitialized()
+    {
+        newDataset.Username = "admin";
+        newDataset.IsDataset = "S";
+    }
+
+    private async Task CreateDataset()
+    {
+        isLoading = true;
+        resultMessage = "";
+        resultData = "";
+        isError = false;
+
+        try
+        {
+            // Configurar filtros según el tipo de dataset
+            if (newDataset.IsDataset == "S")
+            {
+                newDataset.AlertId = alertId;
+                newDataset.EventId = eventId;
+                newDataset.ExtensionId = extensionId;
+                newDataset.ResourceId = resourceId;
+                newDataset.AlertState = alertState;
+                newDataset.EventState = eventState;
+                newDataset.ExtensionState = extensionState;
+                newDataset.ResourceState = resourceState;
+            }
+            else
+            {
+                // Parsear IDs de entidades específicas
+                if (!string.IsNullOrEmpty(alertIdsText))
+                {
+                    newDataset.AlertIds = alertIdsText.Split(',')
+                        .Where(x => int.TryParse(x.Trim(), out _))
+                        .Select(x => int.Parse(x.Trim()))
+                        .ToList();
+                }
+
+                if (!string.IsNullOrEmpty(eventIdsText))
+                {
+                    newDataset.EventIds = eventIdsText.Split(',')
+                        .Where(x => int.TryParse(x.Trim(), out _))
+                        .Select(x => int.Parse(x.Trim()))
+                        .ToList();
+                }
+
+                if (!string.IsNullOrEmpty(extensionIdsText))
+                {
+                    newDataset.ExtensionIds = extensionIdsText.Split(',')
+                        .Where(x => int.TryParse(x.Trim(), out _))
+                        .Select(x => int.Parse(x.Trim()))
+                        .ToList();
+                }
+
+                if (!string.IsNullOrEmpty(resourceIdsText))
+                {
+                    newDataset.ResourceIds = resourceIdsText.Split(',')
+                        .Where(x => int.TryParse(x.Trim(), out _))
+                        .Select(x => int.Parse(x.Trim()))
+                        .ToList();
+                }
+            }
+
+            var response = await Http.PostAsJsonAsync("api/datasetem", newDataset);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var createdDataset = await response.Content.ReadFromJsonAsync<DatasetEM>();
+                resultMessage = $"✅ Dataset creado exitosamente con ID: {createdDataset?.Id}";
+                resultData = JsonSerializer.Serialize(createdDataset, new JsonSerializerOptions { WriteIndented = true });
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                resultMessage = $"❌ Error al crear dataset: {response.StatusCode} - {errorContent}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Excepción: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetAllDatasets()
+    {
+        isLoading = true;
+        resultMessage = "";
+        resultData = "";
+        isError = false;
+
+        try
+        {
+            var response = await Http.GetAsync($"api/datasetem/user/{queryUsername}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var datasets = await response.Content.ReadFromJsonAsync<List<DatasetEM>>();
+                resultMessage = $"✅ Se encontraron {datasets?.Count ?? 0} datasets";
+                resultData = JsonSerializer.Serialize(datasets, new JsonSerializerOptions { WriteIndented = true });
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                resultMessage = $"❌ Error al obtener datasets: {response.StatusCode} - {errorContent}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Excepción: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task GetDatasetById()
+    {
+        if (!datasetId.HasValue)
+        {
+            resultMessage = "❌ Por favor ingresa un ID de dataset";
+            isError = true;
+            return;
+        }
+
+        isLoading = true;
+        resultMessage = "";
+        resultData = "";
+        isError = false;
+
+        try
+        {
+            var response = await Http.GetAsync($"api/datasetem/{datasetId.Value}/{queryUsername}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var dataset = await response.Content.ReadFromJsonAsync<DatasetEM>();
+                resultMessage = $"✅ Dataset encontrado: {dataset?.Name}";
+                resultData = JsonSerializer.Serialize(dataset, new JsonSerializerOptions { WriteIndented = true });
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                resultMessage = $"❌ No se encontró el dataset con ID {datasetId.Value}";
+                isError = true;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                resultMessage = $"❌ Error al obtener dataset: {response.StatusCode} - {errorContent}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Excepción: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
