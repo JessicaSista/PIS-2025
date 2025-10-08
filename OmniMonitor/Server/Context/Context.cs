@@ -21,6 +21,9 @@ namespace OmniMonitor.Server.Context
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<DatasetIM> DatasetsIM { get; set; }
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
+        public DbSet<DatasetUM> DatasetsUM { get; set; }
+        public DbSet<DatasetEvent> DatasetEvents { get; set; }
+        public DbSet<DatasetNews> DatasetNews { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
         /// <summary>
@@ -127,7 +130,12 @@ namespace OmniMonitor.Server.Context
                 
                 // Permisos de items
                 new Permission { Id = 9, Name = "Ver Items", Description = "Permite ver la lista de items"},
-                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"}
+                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"},
+                
+                // Permisos de datasets UM
+                new Permission { Id = 11, Name = "Ver Datasets UM", Description = "Permite ver datasets del módulo UM (Zonas, Eventos, Noticias)"},
+                new Permission { Id = 12, Name = "Crear Datasets UM", Description = "Permite crear nuevos datasets del módulo UM"},
+                new Permission { Id = 13, Name = "Eliminar Datasets UM", Description = "Permite eliminar datasets del módulo UM"}
             );
 
             // Asignar permisos a roles
@@ -143,12 +151,16 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 8, RoleId = 1, PermissionId = 8 },
                 new RolePermission { Id = 9, RoleId = 1, PermissionId = 9 },
                 new RolePermission { Id = 10, RoleId = 1, PermissionId = 10 },
+                new RolePermission { Id = 15, RoleId = 1, PermissionId = 11 },
+                new RolePermission { Id = 16, RoleId = 1, PermissionId = 12 },
+                new RolePermission { Id = 17, RoleId = 1, PermissionId = 13 },
                 
                 // Visitante solo tiene permisos de lectura
-                new RolePermission { Id = 11, RoleId = 2, PermissionId = 1 },
-                new RolePermission { Id = 12, RoleId = 2, PermissionId = 5 },
-                new RolePermission { Id = 13, RoleId = 2, PermissionId = 7 },
-                new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 }
+                new RolePermission { Id = 18, RoleId = 2, PermissionId = 1 },
+                new RolePermission { Id = 19, RoleId = 2, PermissionId = 5 },
+                new RolePermission { Id = 20, RoleId = 2, PermissionId = 7 },
+                new RolePermission { Id = 21, RoleId = 2, PermissionId = 9 },
+                new RolePermission { Id = 22, RoleId = 2, PermissionId = 11 }
             );
 
             // Usuarios de prueba

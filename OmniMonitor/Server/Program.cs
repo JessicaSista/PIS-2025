@@ -100,6 +100,7 @@ builder.Services.AddScoped<ISondaEMService, SondaEMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<IDatasetService, DatasetService>();
+builder.Services.AddScoped<IDatasetUMService, DatasetUMService>();
 builder.Services.AddScoped<IVisualizacionService, VisualizacionService>();
 builder.Services.AddHttpClient();
 
