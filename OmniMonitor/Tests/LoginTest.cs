@@ -22,31 +22,7 @@ using System.Net.Http.Json;
 
 public class LoginTest : TestContext
 {
-    private ApplicationDbContext CrearDbContext()
-    {
-        var dbName = $"TestDbLocal_{Guid.NewGuid()}";
-        var inMemorySettings = new Dictionary<string, string> {
-            {"ConnectionStrings:DefaultConnection", $"Server=(localdb)\\mssqllocaldb;Database={dbName};Trusted_Connection=True;"}
-        };
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(inMemorySettings)
-            .Build();
-
-        var context = new ApplicationDbContext(configuration);
-
-        // Elimina y crea la base de datos para evitar conflictos
-        context.Database.EnsureDeleted();
-        context.Database.EnsureCreated();
-
-        // Poblar usuarios solo si la base está vacía
-        if (!context.Users.Any())
-        {
-            context.Users.Add(new User { Id = 1, Username = "admin", Password = "admin" });
-            context.Users.Add(new User { Id = 2, Username = "visitante", Password = "visitante" });
-            context.SaveChanges();
-        }
-        return context;
-    }
+    
 
     public LoginTest()
     {
@@ -106,7 +82,7 @@ public class LoginTest : TestContext
         Services.AddSingleton<IStringLocalizer<SharedResource>>(localizerSharedMock.Object);
 
         // Registrar el contexto en memoria
-        var dbContext = CrearDbContext();
+        var dbContext = CreateDbContext();
         Services.AddSingleton<ApplicationDbContext>(dbContext);
     }
 
@@ -267,19 +243,19 @@ public class LoginTest : TestContext
 
         // Prueba con credenciales válidas
         var usuarioValido = dbContext.Users
-            .FirstOrDefault(u => u.Username == "visitante" && u.Password == "visitante");
+            .FirstOrDefault(u => u.Username == "testuser" && u.Password == "password123");
         Assert.NotNull(usuarioValido);
 
         // Prueba con credenciales inválidas
         var usuarioInvalido = dbContext.Users
             .AsEnumerable()
-            .FirstOrDefault(u => u.Username == "visitante" && u.Password == "viSitante");
+            .FirstOrDefault(u => u.Username == "testuser" && u.Password == "paSsword123");
         Assert.Null(usuarioInvalido);
 
         // Prueba con usuario inexistente
         var usuarioNoExiste = dbContext.Users
             .AsEnumerable()
-            .FirstOrDefault(u => u.Username == "Admin" && u.Password == "admin");
+            .FirstOrDefault(u => u.Username == "nouser" && u.Password == "password123");
         Assert.Null(usuarioNoExiste);
     }
 
@@ -397,5 +373,32 @@ public class LoginTest : TestContext
         // EVENTOS requeridos
         public event EventHandler<Blazored.LocalStorage.ChangedEventArgs>? Changed;
         public event EventHandler<Blazored.LocalStorage.ChangingEventArgs>? Changing;
+    }
+
+    // Agrega este método privado a la clase LoginTest para solucionar CS8801
+    private static ApplicationDbContext CreateDbContext()
+    {
+        var inMemorySettings = new Dictionary<string, string?> {
+            {"ConnectionStrings:DefaultConnection", "Server=localhost;Database=OmniMonitorTest;Trusted_Connection=True;TrustServerCertificate=True;"}
+        };
+
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var context = new ApplicationDbContext(configuration);
+
+        context.Database.Migrate(); // <-- Aplica las migraciones aquí
+
+        // Limpiar o preparar datos de prueba
+        context.Users.RemoveRange(context.Users.ToList());
+        context.Users.Add(new User
+        {
+            Username = "testuser",
+            Password = "password123"
+        });
+        context.SaveChanges();
+
+        return context;
     }
 }
