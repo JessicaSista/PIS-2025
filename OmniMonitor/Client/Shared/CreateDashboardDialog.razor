@@ -1,0 +1,63 @@
+﻿@using OmniMonitor.Shared.Dtos
+@inject MudBlazor.ISnackbar Snackbar
+@using MudBlazor.Extensions;
+@using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<CreateDashboardDialog> Localizer
+
+<MudDialog Style="background-color: var(--fondo-dialog); color: var(--text-primary); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
+            <MudTextField @bind-Value="nuevoDashboard.Name"
+                          Label="Nombre"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          For="@(() => nuevoDashboard.Name)"
+                          Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
+            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
+            <MudTextField @bind-Value="nuevoDashboard.Description"
+                          Label="Descripción"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Required="true"
+                          For="@(() => nuevoDashboard.Description)"
+                          Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancelar">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Confirmar">@Localizer["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+<style>
+    /* Oscurece el fondo cuando el modal está abierto */
+    .mud-overlay {
+        background-color: rgba(0, 0, 0, 0.7) !important;
+    }
+</style>
+
+@code {
+    [CascadingParameter]
+    public IMudDialogInstance _mudDialog { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<DashboardDto> OnConfirm { get; set; }
+
+    private DashboardDto nuevoDashboard = new();
+
+    private bool FormularioValido =>
+        !string.IsNullOrWhiteSpace(nuevoDashboard.Name)
+        && !string.IsNullOrWhiteSpace(nuevoDashboard.Description);
+
+    private async Task Confirmar()
+    {
+        await OnConfirm.InvokeAsync(nuevoDashboard);
+        _mudDialog.Close(DialogResult.Ok(nuevoDashboard));
+    }
+
+    private void Cancelar()
+    {
+        _mudDialog.Cancel();
+    }
+}
