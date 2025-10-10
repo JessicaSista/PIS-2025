@@ -45,16 +45,52 @@
                     <div class="mb-3" style="display: @(newDataset.IsDataset == "S" ? "block" : "none")">
                         <h6>🔍 Filtros de Búsqueda:</h6>
                         <div class="mb-2">
-                            <label class="form-label">Zone ID:</label>
-                            <input type="number" class="form-control" @bind="zoneId" placeholder="ID de zona" />
+                            <label class="form-label">Zona:</label>
+                            <select class="form-select" @bind="selectedZoneId">
+                                <option value="">-- Seleccionar Zona --</option>
+                                @if (zones != null)
+                                {
+                                    @foreach (var zone in zones)
+                                    {
+                                        <option value="@zone.Id">@zone.Name</option>
+                                    }
+                                }
+                            </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label">News ID:</label>
-                            <input type="number" class="form-control" @bind="newsId" placeholder="ID de noticia" />
+                            <label class="form-label">Noticia:</label>
+                            <select class="form-select" @bind="selectedNewsId">
+                                <option value="">-- Seleccionar Noticia --</option>
+                                @if (news != null)
+                                {
+                                    @foreach (var newsItem in news)
+                                    {
+                                        <option value="@newsItem.Id">@newsItem.Title</option>
+                                    }
+                                }
+                            </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label">Event Name:</label>
-                            <input type="text" class="form-control" @bind="eventName" placeholder="Nombre del evento" />
+                            <label class="form-label">Evento:</label>
+                            <select class="form-select" @bind="selectedEventId">
+                                <option value="">-- Seleccionar Evento --</option>
+                                @if (events != null)
+                                {
+                                    @foreach (var eventItem in events)
+                                    {
+                                        <option value="@eventItem.Id">@eventItem.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="LoadDropdownData" disabled="@isLoadingDropdowns">
+                                @if (isLoadingDropdowns)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Cargar Datos
+                            </button>
                         </div>
                     </div>
 
@@ -62,12 +98,34 @@
                     <div class="mb-3" style="display: @(newDataset.IsDataset == "N" ? "block" : "none")">
                         <h6>🎯 Entidades Específicas:</h6>
                         <div class="mb-2">
-                            <label class="form-label">Event IDs (separados por coma):</label>
-                            <input type="text" class="form-control" @bind="eventIdsText" placeholder="1,2,3" />
+                            <label class="form-label">Eventos (mantén Ctrl para seleccionar múltiples):</label>
+                            <select class="form-select" multiple size="4" @onchange="OnEventSelectionChanged" id="eventSelect">
+                                @if (events != null)
+                                {
+                                    @foreach (var eventItem in events)
+                                    {
+                                        <option value="@eventItem.Id">@eventItem.Name</option>
+                                    }
+                                }
+                            </select>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label">News IDs (separados por coma):</label>
-                            <input type="text" class="form-control" @bind="newsIdsText" placeholder="10,20,30" />
+                            <label class="form-label">Noticias (mantén Ctrl para seleccionar múltiples):</label>
+                            <select class="form-select" multiple size="4" @onchange="OnNewsSelectionChanged" id="newsSelect">
+                                @if (news != null)
+                                {
+                                    @foreach (var newsItem in news)
+                                    {
+                                        <option value="@newsItem.Id">@newsItem.Title</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">
+                                Eventos seleccionados: @(selectedEventIds?.Count ?? 0) | 
+                                Noticias seleccionadas: @(selectedNewsIds?.Count ?? 0)
+                            </small>
                         </div>
                     </div>
 
@@ -158,20 +216,106 @@
     private string resultData = "";
     private bool isLoading = false;
     private bool isError = false;
+    private bool isLoadingDropdowns = false;
 
-    // Filtros para búsqueda dinámica
-    private int? zoneId;
-    private int? newsId;
-    private string eventName = "";
+    // Datos para dropdowns
+    private List<Zone>? zones;
+    private List<News>? news;
+    private List<Event>? events;
 
-    // Entidades específicas
-    private string eventIdsText = "";
-    private string newsIdsText = "";
+    // Filtros para búsqueda dinámica (ahora usando dropdowns)
+    private int? selectedZoneId;
+    private int? selectedNewsId;
+    private int? selectedEventId;
+
+    // Entidades específicas (ahora usando selección múltiple)
+    private List<int>? selectedEventIds = new();
+    private List<int>? selectedNewsIds = new();
 
     protected override void OnInitialized()
     {
         newDataset.Username = "admin";
         newDataset.IsDataset = "S";
+    }
+
+    private async Task LoadDropdownData()
+    {
+        isLoadingDropdowns = true;
+        resultMessage = "";
+        isError = false;
+
+        try
+        {
+            // Cargar zonas
+            var zonesResponse = await Http.GetAsync("api/sondamain/zones");
+            if (zonesResponse.IsSuccessStatusCode)
+            {
+                zones = await zonesResponse.Content.ReadFromJsonAsync<List<Zone>>();
+            }
+
+            // Cargar noticias
+            var newsResponse = await Http.GetAsync("api/sondamain/newsUM?count=100");
+            if (newsResponse.IsSuccessStatusCode)
+            {
+                news = await newsResponse.Content.ReadFromJsonAsync<List<News>>();
+            }
+
+            // Cargar eventos
+            var eventsResponse = await Http.GetAsync("api/sondamain/events");
+            if (eventsResponse.IsSuccessStatusCode)
+            {
+                events = await eventsResponse.Content.ReadFromJsonAsync<List<Event>>();
+            }
+
+            resultMessage = $"✅ Datos cargados: {zones?.Count ?? 0} zonas, {news?.Count ?? 0} noticias, {events?.Count ?? 0} eventos";
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Error al cargar datos: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingDropdowns = false;
+        }
+    }
+
+    private async Task OnEventSelectionChanged(ChangeEventArgs e)
+    {
+        await UpdateSelectedEventIds();
+    }
+
+    private async Task OnNewsSelectionChanged(ChangeEventArgs e)
+    {
+        await UpdateSelectedNewsIds();
+    }
+
+    private async Task UpdateSelectedEventIds()
+    {
+        try
+        {
+            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "eventSelect");
+            selectedEventIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating event selection: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateSelectedNewsIds()
+    {
+        try
+        {
+            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "newsSelect");
+            selectedNewsIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating news selection: {ex.Message}");
+        }
     }
 
     private async Task CreateDataset()
@@ -186,28 +330,23 @@
             // Configurar filtros según el tipo de dataset
             if (newDataset.IsDataset == "S")
             {
-                newDataset.ZoneId = zoneId;
-                newDataset.NewsId = newsId;
-                newDataset.EventName = eventName;
+                newDataset.ZoneId = selectedZoneId;
+                newDataset.NewsId = selectedNewsId;
+                // Para eventos, usamos el ID seleccionado para buscar por nombre
+                if (selectedEventId.HasValue && events != null)
+                {
+                    var selectedEvent = events.FirstOrDefault(e => e.Id == selectedEventId.Value);
+                    if (selectedEvent != null)
+                    {
+                        newDataset.EventName = selectedEvent.Name;
+                    }
+                }
             }
             else
             {
-                // Parsear IDs de entidades específicas
-                if (!string.IsNullOrEmpty(eventIdsText))
-                {
-                    newDataset.EventIds = eventIdsText.Split(',')
-                        .Where(x => int.TryParse(x.Trim(), out _))
-                        .Select(x => int.Parse(x.Trim()))
-                        .ToList();
-                }
-
-                if (!string.IsNullOrEmpty(newsIdsText))
-                {
-                    newDataset.NewsIds = newsIdsText.Split(',')
-                        .Where(x => int.TryParse(x.Trim(), out _))
-                        .Select(x => int.Parse(x.Trim()))
-                        .ToList();
-                }
+                // Usar las listas de IDs seleccionados
+                newDataset.EventIds = selectedEventIds?.Any() == true ? selectedEventIds : null;
+                newDataset.NewsIds = selectedNewsIds?.Any() == true ? selectedNewsIds : null;
             }
 
             var response = await Http.PostAsJsonAsync("api/datasetum", newDataset);
@@ -318,3 +457,13 @@
         }
     }
 }
+
+<script>
+    window.getSelectedValues = (selectId) => {
+        const select = document.getElementById(selectId);
+        if (!select) return [];
+        
+        const selectedOptions = Array.from(select.selectedOptions);
+        return selectedOptions.map(option => option.value);
+    };
+</script>

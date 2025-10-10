@@ -1,5 +1,6 @@
 @page "/datasetem-test"
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Shared.Dtos.EM
 @using System.Text.Json
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
@@ -47,22 +48,58 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-2">
-                                    <label class="form-label">Alert ID:</label>
-                                    <input type="number" class="form-control" @bind="alertId" placeholder="ID de alerta" />
+                                    <label class="form-label">Alerta:</label>
+                                    <select class="form-select" @bind="selectedAlertId">
+                                        <option value="">-- Seleccionar Alerta --</option>
+                                        @if (alerts != null)
+                                        {
+                                            @foreach (var alert in alerts)
+                                            {
+                                                <option value="@alert.AlertId">@alert.AlertName</option>
+                                            }
+                                        }
+                                    </select>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Event ID:</label>
-                                    <input type="number" class="form-control" @bind="eventId" placeholder="ID de evento" />
+                                    <label class="form-label">Evento:</label>
+                                    <select class="form-select" @bind="selectedEventId">
+                                        <option value="">-- Seleccionar Evento --</option>
+                                        @if (events != null)
+                                        {
+                                            @foreach (var eventItem in events)
+                                            {
+                                                <option value="@eventItem.Id">@eventItem.Name</option>
+                                            }
+                                        }
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-2">
-                                    <label class="form-label">Extension ID:</label>
-                                    <input type="number" class="form-control" @bind="extensionId" placeholder="ID de extensión" />
+                                    <label class="form-label">Extensión:</label>
+                                    <select class="form-select" @bind="selectedExtensionId">
+                                        <option value="">-- Seleccionar Extensión --</option>
+                                        @if (extensions != null)
+                                        {
+                                            @foreach (var extension in extensions)
+                                            {
+                                                <option value="@extension.ExtensionId">@extension.EventName</option>
+                                            }
+                                        }
+                                    </select>
                                 </div>
                                 <div class="mb-2">
-                                    <label class="form-label">Resource ID:</label>
-                                    <input type="number" class="form-control" @bind="resourceId" placeholder="ID de recurso" />
+                                    <label class="form-label">Recurso:</label>
+                                    <select class="form-select" @bind="selectedResourceId">
+                                        <option value="">-- Seleccionar Recurso --</option>
+                                        @if (resources != null)
+                                        {
+                                            @foreach (var resource in resources)
+                                            {
+                                                <option value="@resource.Id">@resource.Name</option>
+                                            }
+                                        }
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -88,26 +125,81 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="mb-2">
+                            <button class="btn btn-sm btn-outline-primary" @onclick="LoadDropdownData" disabled="@isLoadingDropdowns">
+                                @if (isLoadingDropdowns)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Cargar Datos
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Entidades específicas -->
                     <div class="mb-3" style="display: @(newDataset.IsDataset == "N" ? "block" : "none")">
                         <h6>🎯 Entidades Específicas:</h6>
-                        <div class="mb-2">
-                            <label class="form-label">Alert IDs (separados por coma):</label>
-                            <input type="text" class="form-control" @bind="alertIdsText" placeholder="1,2,3" />
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Alertas (mantén Ctrl para seleccionar múltiples):</label>
+                                    <select class="form-select" multiple size="3" @onchange="OnAlertSelectionChanged" id="alertSelect">
+                                        @if (alerts != null)
+                                        {
+                                            @foreach (var alert in alerts)
+                                            {
+                                                <option value="@alert.AlertId">@alert.AlertName</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Eventos (mantén Ctrl para seleccionar múltiples):</label>
+                                    <select class="form-select" multiple size="3" @onchange="OnEventSelectionChanged" id="eventSelect">
+                                        @if (events != null)
+                                        {
+                                            @foreach (var eventItem in events)
+                                            {
+                                                <option value="@eventItem.Id">@eventItem.Name</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label class="form-label">Extensiones (mantén Ctrl para seleccionar múltiples):</label>
+                                    <select class="form-select" multiple size="3" @onchange="OnExtensionSelectionChanged" id="extensionSelect">
+                                        @if (extensions != null)
+                                        {
+                                            @foreach (var extension in extensions)
+                                            {
+                                                <option value="@extension.ExtensionId">@extension.EventName</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Recursos (mantén Ctrl para seleccionar múltiples):</label>
+                                    <select class="form-select" multiple size="3" @onchange="OnResourceSelectionChanged" id="resourceSelect">
+                                        @if (resources != null)
+                                        {
+                                            @foreach (var resource in resources)
+                                            {
+                                                <option value="@resource.Id">@resource.Name</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-2">
-                            <label class="form-label">Event IDs (separados por coma):</label>
-                            <input type="text" class="form-control" @bind="eventIdsText" placeholder="10,20,30" />
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Extension IDs (separados por coma):</label>
-                            <input type="text" class="form-control" @bind="extensionIdsText" placeholder="100,200,300" />
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Resource IDs (separados por coma):</label>
-                            <input type="text" class="form-control" @bind="resourceIdsText" placeholder="1000,2000,3000" />
+                            <small class="text-muted">
+                                Alertas: @(selectedAlertIds?.Count ?? 0) | 
+                                Eventos: @(selectedEventIds?.Count ?? 0) | 
+                                Extensiones: @(selectedExtensionIds?.Count ?? 0) | 
+                                Recursos: @(selectedResourceIds?.Count ?? 0)
+                            </small>
                         </div>
                     </div>
 
@@ -198,27 +290,156 @@
     private string resultData = "";
     private bool isLoading = false;
     private bool isError = false;
+    private bool isLoadingDropdowns = false;
 
-    // Filtros para búsqueda dinámica
-    private int? alertId;
-    private int? eventId;
-    private int? extensionId;
-    private int? resourceId;
+    // Datos para dropdowns
+    private List<AlertDto>? alerts;
+    private List<EventDto>? events;
+    private List<ExtensionDto>? extensions;
+    private List<ResourceDto>? resources;
+
+    // Filtros para búsqueda dinámica (ahora usando dropdowns)
+    private int? selectedAlertId;
+    private int? selectedEventId;
+    private int? selectedExtensionId;
+    private int? selectedResourceId;
     private string alertState = "";
     private string eventState = "";
     private string extensionState = "";
     private string resourceState = "";
 
-    // Entidades específicas
-    private string alertIdsText = "";
-    private string eventIdsText = "";
-    private string extensionIdsText = "";
-    private string resourceIdsText = "";
+    // Entidades específicas (ahora usando selección múltiple)
+    private List<int>? selectedAlertIds = new();
+    private List<int>? selectedEventIds = new();
+    private List<int>? selectedExtensionIds = new();
+    private List<int>? selectedResourceIds = new();
 
     protected override void OnInitialized()
     {
         newDataset.Username = "admin";
         newDataset.IsDataset = "S";
+    }
+
+    private async Task LoadDropdownData()
+    {
+        isLoadingDropdowns = true;
+        resultMessage = "";
+        isError = false;
+
+        try
+        {
+            // Cargar alertas
+            var alertsResponse = await Http.GetAsync("api/sondaem/alert?pageSize=100&user=admin&pass=admin");
+            if (alertsResponse.IsSuccessStatusCode)
+            {
+                alerts = await alertsResponse.Content.ReadFromJsonAsync<List<AlertDto>>();
+            }
+
+            // Cargar eventos
+            var eventsResponse = await Http.GetAsync("api/sondaem/event/events?pageSize=100&user=admin&pass=admin");
+            if (eventsResponse.IsSuccessStatusCode)
+            {
+                events = await eventsResponse.Content.ReadFromJsonAsync<List<EventDto>>();
+            }
+
+            // Cargar extensiones
+            var extensionsResponse = await Http.GetAsync("api/sondaem/extensions?pageSize=100&user=admin&pass=admin");
+            if (extensionsResponse.IsSuccessStatusCode)
+            {
+                extensions = await extensionsResponse.Content.ReadFromJsonAsync<List<ExtensionDto>>();
+            }
+
+            // Nota: No hay endpoint para obtener todos los recursos, solo por ID individual
+            // Por ahora, inicializamos como lista vacía
+            resources = new List<ResourceDto>();
+
+            resultMessage = $"✅ Datos cargados: {alerts?.Count ?? 0} alertas, {events?.Count ?? 0} eventos, {extensions?.Count ?? 0} extensiones, {resources?.Count ?? 0} recursos";
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Error al cargar datos: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingDropdowns = false;
+        }
+    }
+
+    private async Task OnAlertSelectionChanged(ChangeEventArgs e)
+    {
+        await UpdateSelectedAlertIds();
+    }
+
+    private async Task OnEventSelectionChanged(ChangeEventArgs e)
+    {
+        await UpdateSelectedEventIds();
+    }
+
+    private async Task OnExtensionSelectionChanged(ChangeEventArgs e)
+    {
+        await UpdateSelectedExtensionIds();
+    }
+
+    private async Task OnResourceSelectionChanged(ChangeEventArgs e)
+    {
+        await UpdateSelectedResourceIds();
+    }
+
+    private async Task UpdateSelectedAlertIds()
+    {
+        try
+        {
+            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "alertSelect");
+            selectedAlertIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating alert selection: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateSelectedEventIds()
+    {
+        try
+        {
+            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "eventSelect");
+            selectedEventIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating event selection: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateSelectedExtensionIds()
+    {
+        try
+        {
+            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "extensionSelect");
+            selectedExtensionIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating extension selection: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateSelectedResourceIds()
+    {
+        try
+        {
+            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "resourceSelect");
+            selectedResourceIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating resource selection: {ex.Message}");
+        }
     }
 
     private async Task CreateDataset()
@@ -233,10 +454,10 @@
             // Configurar filtros según el tipo de dataset
             if (newDataset.IsDataset == "S")
             {
-                newDataset.AlertId = alertId;
-                newDataset.EventId = eventId;
-                newDataset.ExtensionId = extensionId;
-                newDataset.ResourceId = resourceId;
+                newDataset.AlertId = selectedAlertId;
+                newDataset.EventId = selectedEventId;
+                newDataset.ExtensionId = selectedExtensionId;
+                newDataset.ResourceId = selectedResourceId;
                 newDataset.AlertState = alertState;
                 newDataset.EventState = eventState;
                 newDataset.ExtensionState = extensionState;
@@ -244,38 +465,11 @@
             }
             else
             {
-                // Parsear IDs de entidades específicas
-                if (!string.IsNullOrEmpty(alertIdsText))
-                {
-                    newDataset.AlertIds = alertIdsText.Split(',')
-                        .Where(x => int.TryParse(x.Trim(), out _))
-                        .Select(x => int.Parse(x.Trim()))
-                        .ToList();
-                }
-
-                if (!string.IsNullOrEmpty(eventIdsText))
-                {
-                    newDataset.EventIds = eventIdsText.Split(',')
-                        .Where(x => int.TryParse(x.Trim(), out _))
-                        .Select(x => int.Parse(x.Trim()))
-                        .ToList();
-                }
-
-                if (!string.IsNullOrEmpty(extensionIdsText))
-                {
-                    newDataset.ExtensionIds = extensionIdsText.Split(',')
-                        .Where(x => int.TryParse(x.Trim(), out _))
-                        .Select(x => int.Parse(x.Trim()))
-                        .ToList();
-                }
-
-                if (!string.IsNullOrEmpty(resourceIdsText))
-                {
-                    newDataset.ResourceIds = resourceIdsText.Split(',')
-                        .Where(x => int.TryParse(x.Trim(), out _))
-                        .Select(x => int.Parse(x.Trim()))
-                        .ToList();
-                }
+                // Usar las listas de IDs seleccionados
+                newDataset.AlertIds = selectedAlertIds?.Any() == true ? selectedAlertIds : null;
+                newDataset.EventIds = selectedEventIds?.Any() == true ? selectedEventIds : null;
+                newDataset.ExtensionIds = selectedExtensionIds?.Any() == true ? selectedExtensionIds : null;
+                newDataset.ResourceIds = selectedResourceIds?.Any() == true ? selectedResourceIds : null;
             }
 
             var response = await Http.PostAsJsonAsync("api/datasetem", newDataset);
@@ -386,3 +580,13 @@
         }
     }
 }
+
+<script>
+    window.getSelectedValues = (selectId) => {
+        const select = document.getElementById(selectId);
+        if (!select) return [];
+        
+        const selectedOptions = Array.from(select.selectedOptions);
+        return selectedOptions.map(option => option.value);
+    };
+</script>
