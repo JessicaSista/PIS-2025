@@ -180,6 +180,36 @@
         </div>
     </div>
 
+    <!-- Panel de Eliminación de Dataset -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5>🗑️ Eliminar Dataset</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username:</label>
+                        <input type="text" class="form-control" @bind="deleteUsername" placeholder="admin" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dataset ID a eliminar:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" @bind="deleteDatasetId" placeholder="ID del dataset" />
+                            <button class="btn btn-danger" @onclick="DeleteDatasetById" disabled="@isLoadingDelete">
+                                @if (isLoadingDelete)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Resultados -->
     <div class="row mt-4">
         <div class="col-12">
@@ -232,10 +262,15 @@
     private List<int>? selectedEventIds = new();
     private List<int>? selectedNewsIds = new();
 
-    protected override void OnInitialized()
+    private int? deleteDatasetId;
+    private string deleteUsername = "admin";
+    private bool isLoadingDelete = false;
+
+    protected override async Task OnInitializedAsync()
     {
         newDataset.Username = "admin";
         newDataset.IsDataset = "S";
+        await LoadDropdownData();
     }
 
     private async Task LoadDropdownData()
@@ -454,6 +489,53 @@
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private async Task DeleteDatasetById()
+    {
+        if (!deleteDatasetId.HasValue)
+        {
+            resultMessage = "❌ Por favor ingresa un ID de dataset para eliminar";
+            isError = true;
+            return;
+        }
+
+        isLoadingDelete = true;
+        resultMessage = "";
+        resultData = "";
+        isError = false;
+
+        try
+        {
+            // Ajusta la URL según tu API (usualmente DELETE api/datasetum/{id}/{username})
+            var response = await Http.DeleteAsync($"api/datasetum/{deleteDatasetId.Value}/{deleteUsername}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                resultMessage = $"✅ Dataset con ID {deleteDatasetId.Value} eliminado correctamente";
+                resultData = "";
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                resultMessage = $"❌ No se encontró el dataset con ID {deleteDatasetId.Value}";
+                isError = true;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                resultMessage = $"❌ Error al eliminar dataset: {response.StatusCode} - {errorContent}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Excepción: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingDelete = false;
         }
     }
 }

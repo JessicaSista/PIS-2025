@@ -314,10 +314,12 @@
     private List<int>? selectedExtensionIds = new();
     private List<int>? selectedResourceIds = new();
 
-    protected override void OnInitialized()
+    
+    protected override async Task OnInitializedAsync()
     {
         newDataset.Username = "admin";
         newDataset.IsDataset = "S";
+        await LoadDropdownData();
     }
 
     private async Task LoadDropdownData()
