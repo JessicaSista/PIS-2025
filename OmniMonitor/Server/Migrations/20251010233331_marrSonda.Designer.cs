@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OmniMonitor.Server.Context;
 
@@ -11,9 +12,11 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251010233331_marrSonda")]
+    partial class marrSonda
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -683,9 +686,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("SondaTokenIM")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("SondaTokenOM")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("SondaTokenUM")
                         .HasColumnType("nvarchar(max)");
 
@@ -696,9 +696,6 @@ namespace OmniMonitor.Server.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("TokenExpirationIM")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("TokenExpirationOM")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("TokenExpirationUM")
