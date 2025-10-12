@@ -103,6 +103,9 @@ builder.Services.AddScoped<IDatasetService, DatasetService>();
 builder.Services.AddScoped<IDatasetUMService, DatasetUMService>();
 builder.Services.AddScoped<IDatasetEMService, DatasetEMService>();
 builder.Services.AddScoped<IVisualizacionService, VisualizacionService>();
+builder.Services.AddScoped<IApiDataService, ApiDataService>();
+builder.Services.AddScoped<IJoinConfigurationService, JoinConfigurationService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();

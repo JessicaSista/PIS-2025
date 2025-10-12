@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251010233331_marrSonda")]
-    partial class marrSonda
+    [Migration("20251012173411_reportsMigraton")]
+    partial class reportsMigraton
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,76 @@ namespace OmniMonitor.Server.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("CrossModuleJoin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("JoinType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LeftOperandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RightOperandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeftOperandId");
+
+                    b.HasIndex("RightOperandId");
+
+                    b.ToTable("CrossModuleJoins");
+                });
+
+            modelBuilder.Entity("JoinOperand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntityName")
+                        .HasMaxLength(100)
+                        .HasColumnType("int");
+
+                    b.Property<string>("JoinPropertyName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ModuleType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("JoinOperands");
+                });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
                 {
@@ -686,6 +756,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("SondaTokenIM")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SondaTokenOM")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SondaTokenUM")
                         .HasColumnType("nvarchar(max)");
 
@@ -696,6 +769,9 @@ namespace OmniMonitor.Server.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("TokenExpirationIM")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenExpirationOM")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("TokenExpirationUM")
@@ -802,6 +878,70 @@ namespace OmniMonitor.Server.Migrations
                     b.HasKey("IdVisualizacion");
 
                     b.ToTable("Visualizaciones");
+                });
+
+            modelBuilder.Entity("Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reports");
+                });
+
+            modelBuilder.Entity("ReportJoin", b =>
+                {
+                    b.Property<int>("ReportId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CrossModuleJoinId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExecutionOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("ReportId", "CrossModuleJoinId");
+
+                    b.HasIndex("CrossModuleJoinId");
+
+                    b.ToTable("ReportJoins");
+                });
+
+            modelBuilder.Entity("CrossModuleJoin", b =>
+                {
+                    b.HasOne("JoinOperand", "LeftOperand")
+                        .WithMany()
+                        .HasForeignKey("LeftOperandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("JoinOperand", "RightOperand")
+                        .WithMany()
+                        .HasForeignKey("RightOperandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LeftOperand");
+
+                    b.Navigation("RightOperand");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
@@ -938,6 +1078,25 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ReportJoin", b =>
+                {
+                    b.HasOne("CrossModuleJoin", "CrossModuleJoin")
+                        .WithMany()
+                        .HasForeignKey("CrossModuleJoinId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Report", "Report")
+                        .WithMany("ReportJoins")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CrossModuleJoin");
+
+                    b.Navigation("Report");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
                 {
                     b.Navigation("DatasetAlerts");
@@ -981,6 +1140,11 @@ namespace OmniMonitor.Server.Migrations
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Visualizacion", b =>
                 {
                     b.Navigation("GrupoDatasets");
+                });
+
+            modelBuilder.Entity("Report", b =>
+                {
+                    b.Navigation("ReportJoins");
                 });
 #pragma warning restore 612, 618
         }
