@@ -101,6 +101,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<IDatasetService, DatasetService>();
 builder.Services.AddScoped<IVisualizacionService, VisualizacionService>();
+
+builder.Services.AddScoped<IKpiService, KpiService>();
+
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
