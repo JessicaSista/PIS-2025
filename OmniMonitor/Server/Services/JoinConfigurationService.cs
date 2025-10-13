@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
+using System.Dynamic;
 using System.Linq.Dynamic.Core;
+using System.Reflection;
 
 public interface IJoinConfigurationService
 {
@@ -89,16 +91,36 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         // 3. Perform the in-memory join using Dynamic LINQ
         string leftJoinKey = joinConfig.LeftOperand.JoinPropertyName;
+        string leftJoinType = joinConfig.LeftOperand.JoinPropertyType;
+
         string rightJoinKey = joinConfig.RightOperand.JoinPropertyName;
+        string rightJoinType = joinConfig.RightOperand.JoinPropertyType;
+
+        string BuildSelector(string key, string type)
+        {
+            switch (type.ToLower())
+            {
+                case "int":
+                case "integer":
+                    return $"int(it.{key})";
+
+                case "guid":
+                    return $"Guid(it.{key})";
+
+                case "string":
+                default:
+                    return $"it.{key}";
+            }
+        }
 
         var joinedResults = leftData.AsQueryable().Join(
             rightData.AsQueryable(),
-            $"it.\"{leftJoinKey}\"",
-            $"it.\"{rightJoinKey}\"",
+            BuildSelector(leftJoinKey, leftJoinType),
+            BuildSelector(rightJoinKey, rightJoinType),
             "new(outer as Left, inner as Right)"
         ).ToDynamicList();
 
-        return joinedResults;
+        return FlattenJoinResults(joinedResults, joinConfig);
     }
 
     public async Task<List<CrossModuleJoinDto>> GetJoinsByUsernameAsync(string username)
@@ -132,5 +154,52 @@ public class JoinConfigurationService : IJoinConfigurationService
         .ToListAsync();
 
         return joins;
+    }
+
+
+    private List<dynamic> FlattenJoinResults(List<dynamic> nestedResults, CrossModuleJoin joinConfig)
+    {
+        if (nestedResults == null || !nestedResults.Any())
+        {
+            return new List<dynamic>();
+        }
+
+        var flattenedList = new List<dynamic>();
+        string leftPrefix = joinConfig.LeftOperand.EntityName.ToString();
+        string rightPrefix = joinConfig.RightOperand.EntityName.ToString();
+
+        foreach (var result in nestedResults)
+        {
+            var expando = new ExpandoObject() as IDictionary<string, object>;
+
+            var leftItem = result.GetType().GetProperty("Left").GetValue(result, null);
+            if (leftItem != null)
+            {
+                foreach (PropertyInfo prop in leftItem.GetType().GetProperties())
+                {
+                    expando[$"{leftPrefix}_{prop.Name}"] = prop.GetValue(leftItem, null);
+                }
+            }
+
+            var rightItem = result.GetType().GetProperty("Right").GetValue(result, null);
+            if (rightItem != null)
+            {
+                string currentRightPrefix = rightPrefix;
+                // Si el prefijo es el mismo, añade un sufijo para evitar colisiones de nombres de columna
+                if (leftPrefix == rightPrefix)
+                {
+                    currentRightPrefix = $"{rightPrefix}_Right";
+                }
+
+                foreach (PropertyInfo prop in rightItem.GetType().GetProperties())
+                {
+                    expando[$"{currentRightPrefix}_{prop.Name}"] = prop.GetValue(rightItem, null);
+                }
+            }
+
+            flattenedList.Add(expando);
+        }
+
+        return flattenedList;
     }
 }

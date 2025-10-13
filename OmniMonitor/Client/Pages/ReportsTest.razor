@@ -283,7 +283,7 @@
         DisplayResult($"Executing join {joinId}...");
         try
         {
-            var result = await Http.GetFromJsonAsync<object>($"{ApiBaseUrl}/joins/{joinId}/execute");
+            var result = await Http.GetFromJsonAsync<object>($"{ApiBaseUrl}/joins/{1}/execute");
             DisplayResult(result);
         }
         catch (Exception ex)
