@@ -30,6 +30,12 @@
                 <span class="ml-2">@SharedLocalizer["VisualizationsTitle"]</span>
             }
         </MudNavLink>
+        <MudNavLink Href="/kpi-test" Icon=@Icons.Material.Filled.Analytics>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">KPIs Test</span>
+            }
+        </MudNavLink>
         <MudNavLink Href="/reportes" Icon=@Icons.Material.Filled.Article>
             @if (_drawerOpen)
             {
