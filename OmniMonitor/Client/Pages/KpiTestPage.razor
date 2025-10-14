@@ -1,0 +1,341 @@
+@page "/kpi-test"
+@using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Shared.Dtos.Kpi
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using System.Net.Http.Json
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Página de Prueba de KPIs</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Panel de Prueba de KPIs</MudText>
+
+<MudGrid>
+    <!-- Columna para Calcular KPI -->
+    <MudItem xs="12" md="6">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Calcular KPI</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (isLoadingDatasets)
+                {
+                    <div class="d-flex justify-center">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText Class="ms-2">Cargando datasets...</MudText>
+                    </div>
+                }
+                else
+                {
+                    <MudStack Spacing="3">
+                        <MudTextField @bind-Value="username" Label="Usuario" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        
+                        <MudSelect T="int" @bind-Value="kpiRequest.DatasetId" Label="Dataset" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var dataset in availableDatasets)
+                            {
+                                <MudSelectItem Value="@dataset.Id">@dataset.Name - @dataset.Description</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string" @bind-Value="kpiRequest.DatasetType" Label="Tipo de Dataset" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="@("IM")">IM - Industrial Monitoring</MudSelectItem>
+                            <MudSelectItem Value="@("EM")">EM - Event Management</MudSelectItem>
+                            <MudSelectItem Value="@("UM")">UM - Urban Management</MudSelectItem>
+                        </MudSelect>
+
+                        <MudSelect T="string" @bind-Value="kpiRequest.MetricType" Label="Tipo de Métrica" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="@("count")">Count - Conteo</MudSelectItem>
+                            <MudSelectItem Value="@("sensor_data_points")">Sensor Data Points (IM)</MudSelectItem>
+                            <MudSelectItem Value="@("active_devices")">Active Devices (IM)</MudSelectItem>
+                            <MudSelectItem Value="@("alert_count")">Alert Count (EM)</MudSelectItem>
+                            <MudSelectItem Value="@("event_count")">Event Count (EM/UM)</MudSelectItem>
+                            <MudSelectItem Value="@("zone_count")">Zone Count (UM)</MudSelectItem>
+                            <MudSelectItem Value="@("news_count")">News Count (UM)</MudSelectItem>
+                        </MudSelect>
+
+                        <MudDatePicker @bind-Date="dateFrom" Label="Fecha Desde" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudDatePicker @bind-Date="dateTo" Label="Fecha Hasta" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+                        <MudTextField @bind-Value="kpiRequest.FieldName" Label="Campo (Opcional)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+
+                        <MudSelect T="string" @bind-Value="kpiRequest.FormatType" Label="Formato" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem Value="@("number")">Número</MudSelectItem>
+                            <MudSelectItem Value="@("percentage")">Porcentaje</MudSelectItem>
+                            <MudSelectItem Value="@("currency")">Moneda</MudSelectItem>
+                        </MudSelect>
+
+                        <MudButton OnClick="CalculateKpi" 
+                                   Variant="Variant.Filled" 
+                                   Color="MudBlazor.Color.Primary" 
+                                   FullWidth="true"
+                                   Disabled="@(string.IsNullOrEmpty(username) || kpiRequest.DatasetId == 0 || string.IsNullOrEmpty(kpiRequest.MetricType))">
+                            Calcular KPI
+                        </MudButton>
+                    </MudStack>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <!-- Columna para Mostrar Resultado -->
+    <MudItem xs="12" md="6">
+        <MudCard>
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Resultado del KPI</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                @if (isCalculating)
+                {
+                    <div class="d-flex justify-center">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText Class="ms-2">Calculando KPI...</MudText>
+                    </div>
+                }
+                else if (kpiResult != null)
+                {
+                    <MudStack Spacing="2">
+                        <MudPaper Class="pa-4" Elevation="2">
+                            <MudText Typo="Typo.h4" Color="MudBlazor.Color.Primary">@kpiResult.FormattedValue</MudText>
+                            <MudText Typo="Typo.subtitle1">@kpiResult.MetricType</MudText>
+                        </MudPaper>
+
+                        <MudExpansionPanels MultiExpansion="true">
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="Icons.Material.Filled.Info" class="mr-3"></MudIcon>
+                                        <MudText>Detalles del KPI</MudText>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudStack Spacing="1">
+                                        <MudText><strong>Valor:</strong> @kpiResult.Value</MudText>
+                                        <MudText><strong>Formato:</strong> @kpiResult.FormatType</MudText>
+                                        <MudText><strong>Campo:</strong> @(kpiResult.FieldName ?? "N/A")</MudText>
+                                        <MudText><strong>Calculado:</strong> @kpiResult.CalculatedAt.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+                                    </MudStack>
+                                </ChildContent>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="Icons.Material.Filled.Dataset" class="mr-3"></MudIcon>
+                                        <MudText>Información del Dataset</MudText>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudStack Spacing="1">
+                                        <MudText><strong>ID:</strong> @kpiResult.DatasetInfo.DatasetId</MudText>
+                                        <MudText><strong>Nombre:</strong> @kpiResult.DatasetInfo.DatasetName</MudText>
+                                        <MudText><strong>Tipo:</strong> @kpiResult.DatasetInfo.DatasetType</MudText>
+                                        <MudText><strong>Usuario:</strong> @kpiResult.DatasetInfo.Username</MudText>
+                                        <MudText><strong>Descripción:</strong> @(kpiResult.DatasetInfo.Description ?? "N/A")</MudText>
+                                    </MudStack>
+                                </ChildContent>
+                            </MudExpansionPanel>
+
+                            <MudExpansionPanel>
+                                <TitleContent>
+                                    <div style="display: flex; align-items: center;">
+                                        <MudIcon Icon="Icons.Material.Filled.TrendingUp" class="mr-3"></MudIcon>
+                                        <MudText>Comparación</MudText>
+                                    </div>
+                                </TitleContent>
+                                <ChildContent>
+                                    <MudStack Spacing="1">
+                                        <MudText><strong>Valor Anterior:</strong> @(kpiResult.Comparison?.PreviousValue ?? "N/A")</MudText>
+                                        <MudText><strong>Diferencia %:</strong> @(kpiResult.Comparison?.PercentageDifference.ToString("F2") ?? "N/A")%</MudText>
+                                        <MudText><strong>Diferencia Absoluta:</strong> @(kpiResult.Comparison?.AbsoluteDifference.ToString() ?? "N/A")</MudText>
+                                    </MudStack>
+                                </ChildContent>
+                            </MudExpansionPanel>
+                        </MudExpansionPanels>
+
+                        <MudDivider />
+
+                        <MudButton OnClick="ClearResult" 
+                                   Variant="Variant.Outlined" 
+                                   Color="MudBlazor.Color.Secondary" 
+                                   StartIcon="Icons.Material.Filled.Clear">
+                            Limpiar Resultado
+                        </MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Info">
+                        Selecciona los parámetros y haz clic en "Calcular KPI" para ver el resultado aquí.
+                    </MudAlert>
+                }
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mt-4">
+                        <strong>Error:</strong> @errorMessage
+                    </MudAlert>
+                }
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+<!-- Sección de Datasets Disponibles -->
+<MudCard Class="mt-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Datasets Disponibles</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudButton OnClick="LoadDatasets" 
+                       Variant="Variant.Text" 
+                       Color="MudBlazor.Color.Primary" 
+                       StartIcon="Icons.Material.Filled.Refresh">
+                Recargar
+            </MudButton>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (availableDatasets.Any())
+        {
+            <MudTable Items="@availableDatasets" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Tipo</MudTh>
+                    <MudTh>Descripción</MudTh>
+                    <MudTh>Usuario</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.Id</MudTd>
+                    <MudTd DataLabel="Nombre">@context.Name</MudTd>
+                    <MudTd DataLabel="Tipo">@(context.ContentType ?? "N/A")</MudTd>
+                    <MudTd DataLabel="Descripción">@(context.Description ?? "N/A")</MudTd>
+                    <MudTd DataLabel="Usuario">@context.Username</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">
+                No hay datasets disponibles o aún no se han cargado.
+            </MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private string username = "admin";
+    private CalculateKpiRequest kpiRequest = new();
+    private KpiResponse? kpiResult;
+    private List<Dataset> availableDatasets = new();
+    private bool isCalculating = false;
+    private bool isLoadingDatasets = true;
+    private string errorMessage = string.Empty;
+    private DateTime? dateFrom = DateTime.Now.AddDays(-7);
+    private DateTime? dateTo = DateTime.Now;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Configurar valores por defecto
+        kpiRequest.DatasetType = "IM";
+        kpiRequest.MetricType = "count";
+        kpiRequest.FormatType = "number";
+        
+        // Obtener usuario autenticado
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.Name is not null)
+            {
+                username = authState.User.Identity.Name;
+            }
+        }
+        catch
+        {
+            // Si falla, usar "admin" por defecto
+        }
+
+        await LoadDatasets();
+    }
+
+    private async Task LoadDatasets()
+    {
+        isLoadingDatasets = true;
+        errorMessage = string.Empty;
+        
+        try
+        {
+            var response = await Http.GetAsync($"api/Dataset/user/{username}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                availableDatasets = await response.Content.ReadFromJsonAsync<List<Dataset>>() ?? new List<Dataset>();
+                Snackbar.Add($"Cargados {availableDatasets.Count} datasets", Severity.Success);
+            }
+            else
+            {
+                errorMessage = $"Error al cargar datasets: {response.StatusCode}";
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar datasets: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally
+        {
+            isLoadingDatasets = false;
+        }
+    }
+
+    private async Task CalculateKpi()
+    {
+        isCalculating = true;
+        errorMessage = string.Empty;
+        kpiResult = null;
+
+        try
+        {
+            // Configurar fechas
+            kpiRequest.DateFrom = dateFrom ?? DateTime.Now.AddDays(-7);
+            kpiRequest.DateTo = dateTo ?? DateTime.Now;
+
+            var response = await Http.PostAsJsonAsync($"api/Kpi/calculate/{username}", kpiRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                kpiResult = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                Snackbar.Add("KPI calculado exitosamente", Severity.Success);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error al calcular KPI: {response.StatusCode} - {errorContent}";
+                Snackbar.Add(errorMessage, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al calcular KPI: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally
+        {
+            isCalculating = false;
+        }
+    }
+
+    private void ClearResult()
+    {
+        kpiResult = null;
+        errorMessage = string.Empty;
+    }
+}
