@@ -1,0 +1,76 @@
+@inject IDialogService DialogService
+
+<MudDialog Style="background-color: var(--fondo-dialog)">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
+            Nueva Visualizacion
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+    <MudButton FullWidth="true"
+               Variant="MudBlazor.Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.AddCircleOutline"
+               Color="MudBlazor.Color.Inherit"
+               Size="MudBlazor.Size.Large"
+               Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)">
+        Nueva visualización
+    </MudButton>
+
+    <MudDivider DividerType="MudBlazor.DividerType.Middle" Class="mt-5 mb-6" />
+
+    <MudText Typo="MudBlazor.Typo.h6" Class="mb-2" Style="color: var(--text-primary);">Visualizaciones existentes</MudText>
+
+    <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
+        @* Visualización 1: Ventas por Mes *@
+        <MudButton FullWidth="true"
+                   Variant="MudBlazor.Variant.Outlined"
+                   OnClick="@(() => HandleVisualizationClick("VentasMes"))"
+                   Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
+                   Class="pa-0">
+            <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/>
+                <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">Ventas por Mes</MudText>
+            </MudStack>
+        </MudButton>
+
+        @* Visualización 2: Tendencia Trimestral *@
+        <MudButton FullWidth="true"
+                   Variant="MudBlazor.Variant.Outlined"
+                   OnClick="@(() => HandleVisualizationClick("TendenciaTrimestral"))"
+                   Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
+                   Class="pa-0">
+            <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/>
+                <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">Tendencia Trimestral</MudText>
+            </MudStack>
+        </MudButton>
+
+        @* Visualización 3: Análisis Radar KPIs *@
+        <MudButton FullWidth="true"
+                   Variant="MudBlazor.Variant.Outlined"
+                   OnClick="@(() => HandleVisualizationClick("AnalisisRadar"))"
+                   Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
+                   Class="pa-0">
+            <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
+                <MudIcon Icon="@Icons.Material.Filled.Radar" Size="MudBlazor.Size.Large" />
+                <MudText Typo="MudBlazor.Typo.body1"  Style="color: var(--text-primary)">Análisis Radar KPIs</MudText>
+            </MudStack>
+        </MudButton>
+    </MudStack>
+</DialogContent>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void HandleVisualizationClick(System.String visualisationName){
+
+    }
+}
