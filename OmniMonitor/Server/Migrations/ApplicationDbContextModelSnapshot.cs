@@ -22,7 +22,241 @@ namespace OmniMonitor.Server.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dataset", b =>
+            modelBuilder.Entity("CrossModuleJoin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("JoinType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LeftOperandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RightOperandId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LeftOperandId");
+
+                    b.HasIndex("RightOperandId");
+
+                    b.ToTable("CrossModuleJoins");
+                });
+
+            modelBuilder.Entity("JoinOperand", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntityName")
+                        .HasMaxLength(100)
+                        .HasColumnType("int");
+
+                    b.Property<string>("JoinPropertyName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ModuleType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("JoinOperands");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_alert")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetAlerts");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_device")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetDevices");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AlertState")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EventState")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExtensionState")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Id_Alert")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Event")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Extension")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Resource")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Is_Dataset")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ResourceState")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DatasetsEM");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_event")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetEvents");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventEM", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_event")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetEventsEM");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetExtension", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_extension")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetExtensions");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetIM", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -63,10 +297,10 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Datasets");
+                    b.ToTable("DatasetsIM");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetNews", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -77,14 +311,79 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<int>("DatasetId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Id_device")
+                    b.Property<int>("Id_news")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetDevices");
+                    b.ToTable("DatasetNews");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_resource")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetResources");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("EventName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Id_News")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Zone")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Is_Dataset")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DatasetsUM");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
@@ -200,6 +499,42 @@ namespace OmniMonitor.Server.Migrations
                             Id = 10,
                             Description = "Permite crear, editar y eliminar items",
                             Name = "Gestionar Items"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Description = "Permite ver datasets del módulo UM (Zonas, Eventos, Noticias)",
+                            Name = "Ver Datasets UM"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Description = "Permite crear nuevos datasets del módulo UM",
+                            Name = "Crear Datasets UM"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Description = "Permite eliminar datasets del módulo UM",
+                            Name = "Eliminar Datasets UM"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Description = "Permite ver datasets del módulo EM (Alertas, Eventos, Extensiones, Recursos)",
+                            Name = "Ver Datasets EM"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Description = "Permite crear nuevos datasets del módulo EM",
+                            Name = "Crear Datasets EM"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Description = "Permite eliminar datasets del módulo EM",
+                            Name = "Eliminar Datasets EM"
                         });
                 });
 
@@ -325,26 +660,74 @@ namespace OmniMonitor.Server.Migrations
                         },
                         new
                         {
-                            Id = 11,
+                            Id = 15,
+                            PermissionId = 11,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 16,
+                            PermissionId = 12,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 17,
+                            PermissionId = 13,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 18,
+                            PermissionId = 14,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 19,
+                            PermissionId = 15,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 20,
+                            PermissionId = 16,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 21,
                             PermissionId = 1,
                             RoleId = 2
                         },
                         new
                         {
-                            Id = 12,
+                            Id = 22,
                             PermissionId = 5,
                             RoleId = 2
                         },
                         new
                         {
-                            Id = 13,
+                            Id = 23,
                             PermissionId = 7,
                             RoleId = 2
                         },
                         new
                         {
-                            Id = 14,
+                            Id = 24,
                             PermissionId = 9,
+                            RoleId = 2
+                        },
+                        new
+                        {
+                            Id = 25,
+                            PermissionId = 11,
+                            RoleId = 2
+                        },
+                        new
+                        {
+                            Id = 26,
+                            PermissionId = 14,
                             RoleId = 2
                         });
                 });
@@ -370,6 +753,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("SondaTokenIM")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("SondaTokenOM")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("SondaTokenUM")
                         .HasColumnType("nvarchar(max)");
 
@@ -380,6 +766,9 @@ namespace OmniMonitor.Server.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("TokenExpirationIM")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TokenExpirationOM")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("TokenExpirationUM")
@@ -488,10 +877,140 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("Visualizaciones");
                 });
 
+            modelBuilder.Entity("Report", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reports");
+                });
+
+            modelBuilder.Entity("ReportJoin", b =>
+                {
+                    b.Property<int>("ReportId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CrossModuleJoinId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExecutionOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("ReportId", "CrossModuleJoinId");
+
+                    b.HasIndex("CrossModuleJoinId");
+
+                    b.ToTable("ReportJoins");
+                });
+
+            modelBuilder.Entity("CrossModuleJoin", b =>
+                {
+                    b.HasOne("JoinOperand", "LeftOperand")
+                        .WithMany()
+                        .HasForeignKey("LeftOperandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("JoinOperand", "RightOperand")
+                        .WithMany()
+                        .HasForeignKey("RightOperandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LeftOperand");
+
+                    b.Navigation("RightOperand");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
+                        .WithMany("DatasetAlerts")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Dataset", "Dataset")
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
                         .WithMany("DatasetDevices")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEvent", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetUM", "Dataset")
+                        .WithMany("DatasetEvents")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventEM", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
+                        .WithMany("DatasetEvents")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetExtension", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
+                        .WithMany("DatasetExtensions")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetNews", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetUM", "Dataset")
+                        .WithMany("DatasetNews")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetResource", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
+                        .WithMany("DatasetResources")
                         .HasForeignKey("DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -501,7 +1020,7 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Dataset", "Dataset")
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
                         .WithMany()
                         .HasForeignKey("DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -556,9 +1075,46 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dataset", b =>
+            modelBuilder.Entity("ReportJoin", b =>
+                {
+                    b.HasOne("CrossModuleJoin", "CrossModuleJoin")
+                        .WithMany()
+                        .HasForeignKey("CrossModuleJoinId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Report", "Report")
+                        .WithMany("ReportJoins")
+                        .HasForeignKey("ReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CrossModuleJoin");
+
+                    b.Navigation("Report");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
+                {
+                    b.Navigation("DatasetAlerts");
+
+                    b.Navigation("DatasetEvents");
+
+                    b.Navigation("DatasetExtensions");
+
+                    b.Navigation("DatasetResources");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetIM", b =>
                 {
                     b.Navigation("DatasetDevices");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
+                {
+                    b.Navigation("DatasetEvents");
+
+                    b.Navigation("DatasetNews");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
@@ -581,6 +1137,11 @@ namespace OmniMonitor.Server.Migrations
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Visualizacion", b =>
                 {
                     b.Navigation("GrupoDatasets");
+                });
+
+            modelBuilder.Entity("Report", b =>
+                {
+                    b.Navigation("ReportJoins");
                 });
 #pragma warning restore 612, 618
         }
