@@ -21,14 +21,26 @@ namespace OmniMonitor.Server.Context
         public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Permission> Permissions { get; set; }
-        public DbSet<Dataset> Datasets { get; set; }
+        public DbSet<DatasetIM> DatasetsIM { get; set; }
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
+        public DbSet<DatasetUM> DatasetsUM { get; set; }
+        public DbSet<DatasetEvent> DatasetEvents { get; set; }
+        public DbSet<DatasetNews> DatasetNews { get; set; }
+        public DbSet<DatasetEM> DatasetsEM { get; set; }
+        public DbSet<DatasetAlert> DatasetAlerts { get; set; }
+        public DbSet<DatasetEventEM> DatasetEventsEM { get; set; }
+        public DbSet<DatasetExtension> DatasetExtensions { get; set; }
+        public DbSet<DatasetResource> DatasetResources { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
     public DbSet<DatasetAM> DatasetAM { get; set; }
     public DbSet<DatasetEventTaskInstance> DatasetEventTaskInstance { get; set; }
     public DbSet<DatasetStock> DatasetStock { get; set; }
     public DbSet<DatasetAsset> DatasetAsset { get; set; }
+        public DbSet<CrossModuleJoin> CrossModuleJoins { get; set; }
+        public DbSet<JoinOperand> JoinOperands { get; set; }
+        public DbSet<Report> Reports { get; set; }
+        public DbSet<ReportJoin> ReportJoins { get; set; }
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
@@ -51,9 +63,64 @@ namespace OmniMonitor.Server.Context
             
             // Configurar relaciones del sistema de roles y permisos
             ConfigureRolePermissionRelationships(builder);
-            
+            ConfigureCrossModuleJoins(builder);
+            ConfigureReports(builder);
+
             // Seed default data
             Seed(builder);
+        }
+
+        private void ConfigureReports(ModelBuilder builder)
+        {
+            builder.Entity<ReportJoin>(entity =>
+            {
+                // 1. Define the composite primary key for the linking table.
+                // This is necessary and ensures a join can only be added to a report once.
+                entity.HasKey(rj => new { rj.ReportId, rj.CrossModuleJoinId });
+
+                // 2. Configure the relationship to the Report entity.
+                // This sets up the foreign key from ReportJoin -> Report.
+                entity.HasOne(rj => rj.Report)
+                      .WithMany(r => r.ReportJoins) // A Report has many ReportJoin entries
+                      .HasForeignKey(rj => rj.ReportId);
+
+                // 3. Configure the relationship to the CrossModuleJoin entity.
+                // This sets up the foreign key from ReportJoin -> CrossModuleJoin.
+                entity.HasOne(rj => rj.CrossModuleJoin)
+                      .WithMany() // A CrossModuleJoin can be part of many reports
+                      .HasForeignKey(rj => rj.CrossModuleJoinId);
+            });
+        }
+
+        private void ConfigureCrossModuleJoins(ModelBuilder builder)
+        {
+            // Configure the relationships for CrossModuleJoin
+            builder.Entity<CrossModuleJoin>(entity =>
+            {
+                // Define the relationship for the LeftOperand
+                entity.HasOne(j => j.LeftOperand)
+                      .WithMany() // A JoinOperand can be the left side of many joins
+                      .HasForeignKey(j => j.LeftOperandId)
+                      .OnDelete(DeleteBehavior.Restrict); // Prevent deleting an operand if it's in use
+
+                // Define the relationship for the RightOperand
+                entity.HasOne(j => j.RightOperand)
+                      .WithMany() // A JoinOperand can be the right side of many joins
+                      .HasForeignKey(j => j.RightOperandId)
+                      .OnDelete(DeleteBehavior.Restrict); // Prevent deleting an operand if it's in use
+
+                // Store the JoinType enum as a string (e.g., "Inner", "LeftOuter") in the database
+                entity.Property(j => j.JoinType)
+                      .HasConversion<string>();
+            });
+
+            // Configure the JoinOperand entity
+            builder.Entity<JoinOperand>(entity =>
+            {
+                // Store the ModuleType enum as a string (e.g., "InsightMonitor") in the database
+                entity.Property(o => o.ModuleType)
+                      .HasConversion<string>();
+            });
         }
 
         /// <summary>
@@ -133,7 +200,17 @@ namespace OmniMonitor.Server.Context
                 
                 // Permisos de items
                 new Permission { Id = 9, Name = "Ver Items", Description = "Permite ver la lista de items"},
-                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"}
+                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items"},
+                
+                // Permisos de datasets UM
+                new Permission { Id = 11, Name = "Ver Datasets UM", Description = "Permite ver datasets del módulo UM (Zonas, Eventos, Noticias)"},
+                new Permission { Id = 12, Name = "Crear Datasets UM", Description = "Permite crear nuevos datasets del módulo UM"},
+                new Permission { Id = 13, Name = "Eliminar Datasets UM", Description = "Permite eliminar datasets del módulo UM"},
+                
+                // Permisos de datasets EM
+                new Permission { Id = 14, Name = "Ver Datasets EM", Description = "Permite ver datasets del módulo EM (Alertas, Eventos, Extensiones, Recursos)"},
+                new Permission { Id = 15, Name = "Crear Datasets EM", Description = "Permite crear nuevos datasets del módulo EM"},
+                new Permission { Id = 16, Name = "Eliminar Datasets EM", Description = "Permite eliminar datasets del módulo EM"}
             );
 
             // Asignar permisos a roles
@@ -149,12 +226,20 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 8, RoleId = 1, PermissionId = 8 },
                 new RolePermission { Id = 9, RoleId = 1, PermissionId = 9 },
                 new RolePermission { Id = 10, RoleId = 1, PermissionId = 10 },
+                new RolePermission { Id = 15, RoleId = 1, PermissionId = 11 },
+                new RolePermission { Id = 16, RoleId = 1, PermissionId = 12 },
+                new RolePermission { Id = 17, RoleId = 1, PermissionId = 13 },
+                new RolePermission { Id = 18, RoleId = 1, PermissionId = 14 },
+                new RolePermission { Id = 19, RoleId = 1, PermissionId = 15 },
+                new RolePermission { Id = 20, RoleId = 1, PermissionId = 16 },
                 
                 // Visitante solo tiene permisos de lectura
-                new RolePermission { Id = 11, RoleId = 2, PermissionId = 1 },
-                new RolePermission { Id = 12, RoleId = 2, PermissionId = 5 },
-                new RolePermission { Id = 13, RoleId = 2, PermissionId = 7 },
-                new RolePermission { Id = 14, RoleId = 2, PermissionId = 9 }
+                new RolePermission { Id = 21, RoleId = 2, PermissionId = 1 },
+                new RolePermission { Id = 22, RoleId = 2, PermissionId = 5 },
+                new RolePermission { Id = 23, RoleId = 2, PermissionId = 7 },
+                new RolePermission { Id = 24, RoleId = 2, PermissionId = 9 },
+                new RolePermission { Id = 25, RoleId = 2, PermissionId = 11 },
+                new RolePermission { Id = 26, RoleId = 2, PermissionId = 14 }
             );
 
             // Usuarios de prueba

@@ -254,7 +254,7 @@
             HttpResponseMessage response = await Http.GetAsync($"api/Dataset/user/{username}");
             
             if (response.IsSuccessStatusCode) {
-                List<Dataset>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
+                List<DatasetIM>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
                 
                 _datasets = _datasetsFromApi?.Select(d => new DatasetDto
                 {
