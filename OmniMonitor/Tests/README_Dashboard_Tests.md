@@ -16,6 +16,7 @@ Crea un nuevo dashboard personalizable.
 ```json
 {
   "nombre": "Mi Dashboard Personalizado",
+  "username": "admin",
   "descripcion": "Dashboard para monitoreo de KPIs",
   "tema": "dark",
   "layout": {
@@ -110,7 +111,7 @@ Crea un nuevo dashboard personalizable.
   }
   ```
 
-### 2. GET /api/dashboards/{id} - Obtener Dashboard por ID
+### 2. GET /api/dashboards/{id}/{username} - Obtener Dashboard por ID
 
 Obtiene un dashboard específico con su layout completo.
 
@@ -138,9 +139,9 @@ Obtiene un dashboard específico con su layout completo.
   }
   ```
 
-### 3. GET /api/dashboards - Obtener todos los Dashboards
+### 3. GET /api/dashboards/user/{username} - Obtener todos los Dashboards
 
-Obtiene la lista de todos los dashboards del usuario autenticado.
+Obtiene la lista de todos los dashboards de un usuario específico.
 
 #### Response (200 OK)
 ```json
@@ -239,6 +240,7 @@ curl -X POST "https://api.omnimonitor.com/api/dashboards" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
     "nombre": "Dashboard Básico",
+    "username": "admin",
     "descripcion": "Mi primer dashboard"
   }'
 ```
@@ -250,6 +252,7 @@ curl -X POST "https://api.omnimonitor.com/api/dashboards" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
     "nombre": "Dashboard Completo",
+    "username": "admin",
     "descripcion": "Dashboard con múltiples visualizaciones",
     "layout": {
       "tarjetas": [
@@ -276,6 +279,7 @@ curl -X POST "https://api.omnimonitor.com/api/dashboards/validate-cards" \
 ## Notas Técnicas
 
 - Los dashboards son específicos por usuario (username)
+- El username se pasa en el request body y como parámetro de ruta
 - El layout se almacena como JSON en la base de datos
 - Las tarjetas pueden tener propiedades personalizadas (props)
 - El sistema valida automáticamente superposiciones y rangos

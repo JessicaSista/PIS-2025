@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -10,6 +11,10 @@ namespace OmniMonitor.Shared.Dtos
         [Required(ErrorMessage = "El nombre del dashboard es obligatorio")]
         [MaxLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres")]
         public string Nombre { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El nombre de usuario es obligatorio")]
+        [MaxLength(256, ErrorMessage = "El nombre de usuario no puede exceder los 256 caracteres")]
+        public string Username { get; set; } = string.Empty;
 
         [MaxLength(500, ErrorMessage = "La descripción no puede exceder los 500 caracteres")]
         public string? Descripcion { get; set; }
@@ -70,26 +75,14 @@ namespace OmniMonitor.Shared.Dtos
     }
 
     /// <summary>
-    /// Configuración general del layout
+    /// Configuración general del layout - acepta cualquier JSON desde el frontend
     /// </summary>
     public class LayoutConfig
     {
         /// <summary>
-        /// Número de columnas en el grid
+        /// Configuración flexible como JSON - puede contener cualquier estructura
+        /// que envíe el frontend sin importar su contenido
         /// </summary>
-        [Range(1, 12, ErrorMessage = "El número de columnas debe estar entre 1 y 12")]
-        public int Columnas { get; set; } = 12;
-
-        /// <summary>
-        /// Densidad del layout (compacto, normal, espacioso)
-        /// </summary>
-        [MaxLength(20)]
-        public string Densidad { get; set; } = "normal";
-
-        /// <summary>
-        /// Tema visual del dashboard
-        /// </summary>
-        [MaxLength(50)]
-        public string? Tema { get; set; }
+        public JsonElement? Configuracion { get; set; }
     }
 }
