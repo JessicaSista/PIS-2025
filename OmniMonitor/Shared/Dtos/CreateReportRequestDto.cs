@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 /// <summary>
 /// DTO for creating a new report. Contains report metadata and a list of included joins.
-/// </summary>
+/// </summary>////
 public class CreateReportRequestDto
 {
     [Required]
