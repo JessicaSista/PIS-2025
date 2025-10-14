@@ -87,7 +87,8 @@ public class ApiDataService : IApiDataService
                         return resultingSensors;
 
                     case EntityName.Source:
-                        var source = _sondaIMService.GetSourceById(datasetIM.Id_Source.Value, username, password);
+                        var source = await _sondaIMService.GetSourceById(datasetIM.Id_Source.Value, username, password);
+                        
                         if (source != null)
                         {
                             return new List<dynamic> { source };
@@ -98,7 +99,7 @@ public class ApiDataService : IApiDataService
                         }
 
                     case EntityName.Group:
-                        var group = _sondaIMService.GetDeviceGroupById(datasetIM.Id_Group.Value, username, password);
+                        var group = await _sondaIMService.GetDeviceGroupById(datasetIM.Id_Group.Value, username, password);
                         if (group != null)
                         {
                             return new List<dynamic> { group };

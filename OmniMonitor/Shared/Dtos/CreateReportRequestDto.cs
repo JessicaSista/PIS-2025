@@ -16,7 +16,4 @@ public class CreateReportRequestDto
     [Required]
     [MaxLength(256)]
     public string Username { get; set; } = string.Empty;
-
-    // This property holds the collection of joins for the new report.
-    public ICollection<ReportJoinItemDto> ReportJoins { get; set; } = new List<ReportJoinItemDto>();
 }

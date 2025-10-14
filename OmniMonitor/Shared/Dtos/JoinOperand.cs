@@ -20,7 +20,4 @@ public class JoinOperand
     [Required]
     [MaxLength(100)]
     public string JoinPropertyName { get; set; } = string.Empty;
-    [Required]
-    [MaxLength(100)]
-    public string JoinPropertyType { get; set; } = "string";
 }

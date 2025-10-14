@@ -4,6 +4,7 @@ using OmniMonitor.Server.Context;
 public interface IReportService
 {
     Task<Report> CreateReportAsync(CreateReportRequestDto request);
+    Task<ReportJoin> AddJoinToReportAsync(int reportId, ReportJoinItemDto joinRequest, string username);
     Task<List<Report>> GetAllReportsByUsernameAsync(string username);
     Task<Report?> GetReportByIdAsync(int reportId, string username);
 }
@@ -22,41 +23,49 @@ public class ReportService : IReportService
     /// </summary>
     public async Task<Report> CreateReportAsync(CreateReportRequestDto request)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var report = new Report
         {
-            var report = new Report
-            {
-                Name = request.Name,
-                Description = request.Description,
-                Username = request.Username
-            };
-            _context.Reports.Add(report);
-            await _context.SaveChangesAsync();
+            Name = request.Name,
+            Description = request.Description,
+            Username = request.Username
+        };
+        _context.Reports.Add(report);
+        await _context.SaveChangesAsync();
 
-            if (request.ReportJoins != null && request.ReportJoins.Any())
-            {
-                foreach (var joinItemDto in request.ReportJoins)
-                {
-                    var reportJoin = new ReportJoin
-                    {
-                        ReportId = report.Id,
-                        CrossModuleJoinId = joinItemDto.CrossModuleJoinId,
-                        ExecutionOrder = joinItemDto.ExecutionOrder
-                    };
-                    _context.ReportJoins.Add(reportJoin);
-                }
-                await _context.SaveChangesAsync();
-            }
+        return report;
+    }
 
-            await transaction.CommitAsync();
-            return report;
-        }
-        catch (Exception)
+    public async Task<ReportJoin> AddJoinToReportAsync(int reportId, ReportJoinItemDto joinRequest, string username)
+    {
+        // 1. Verificar que el reporte existe y pertenece al usuario.
+        var report = await _context.Reports
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        if (report == null)
         {
-            await transaction.RollbackAsync();
-            throw;
+            // Si el reporte no se encuentra o no pertenece al usuario, lanzamos una excepción.
+            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado para este usuario.");
         }
+
+        // 2. (Opcional pero recomendado) Verificar que el Join existe.
+        var joinExists = await _context.CrossModuleJoins.AnyAsync(j => j.Id == joinRequest.CrossModuleJoinId);
+        if (!joinExists)
+        {
+            throw new KeyNotFoundException($"La configuración de Join con ID {joinRequest.CrossModuleJoinId} no existe.");
+        }
+
+        // 3. Crear y añadir la nueva entrada en la tabla de enlace.
+        var newReportJoin = new ReportJoin
+        {
+            ReportId = reportId,
+            CrossModuleJoinId = joinRequest.CrossModuleJoinId,
+            ExecutionOrder = joinRequest.ExecutionOrder
+        };
+
+        _context.ReportJoins.Add(newReportJoin);
+        await _context.SaveChangesAsync();
+
+        return newReportJoin;
     }
 
     /// <summary>

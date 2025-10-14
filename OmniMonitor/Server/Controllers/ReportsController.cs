@@ -39,14 +39,38 @@ public class ReportsController : ControllerBase
         return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
     }
 
+    [HttpPost("{reportId}/joins")]
+    [ProducesResponseType(typeof(ReportJoin), 200)]
+    [ProducesResponseType(404)] // Not Found
+    public async Task<IActionResult> AddJoinToReport(int reportId, [FromBody] ReportJoinItemDto joinRequest, [FromQuery] string token)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var createdLink = await _reportService.AddJoinToReportAsync(reportId, joinRequest, username);
+            return Ok(createdLink);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            // Esto se activará si el reporte o el join no existen.
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     /// <summary>
     /// Gets a list of all reports for a specific user.
     /// Route: GET /api/reports/user/{username}
     /// </summary>
-    [HttpGet("user/{username}")]
+    [HttpGet("by-user")]
     [ProducesResponseType(typeof(List<Report>), 200)]
-    public async Task<IActionResult> GetAllReportsByUsername(string username)
+    public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
     {
+        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var reports = await _reportService.GetAllReportsByUsernameAsync(username);
         return Ok(reports);
     }
@@ -95,10 +119,11 @@ public class ReportsController : ControllerBase
     /// Gets a list of all join configurations for a specific user.
     /// Route: GET /api/reports/joins/user/{username}
     /// </summary>
-    [HttpGet("joins/user/{username}")]
+    [HttpGet("joins/by-user")]
     [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
-    public async Task<IActionResult> GetJoinsByUsername(string username)
+    public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
     {
+        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
         return Ok(joins);
     }

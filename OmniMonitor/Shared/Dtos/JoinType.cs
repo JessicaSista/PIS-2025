@@ -1,5 +1,6 @@
 ﻿public enum JoinType
 {
     Inner,
-    LeftOuter
+    LeftOuter,
+    RightOuter,
 }
