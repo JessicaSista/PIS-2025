@@ -52,26 +52,15 @@ namespace OmniMonitor.Shared.Dtos
         [Required(ErrorMessage = "El ID de la visualización es obligatorio")]
         public int CardId { get; set; }
 
-        [Required(ErrorMessage = "La posición X es obligatoria")]
-        [Range(0, 12, ErrorMessage = "La posición X debe estar entre 0 y 12")]
-        public int PosicionX { get; set; }
-
-        [Required(ErrorMessage = "La posición Y es obligatoria")]
-        [Range(0, 100, ErrorMessage = "La posición Y debe estar entre 0 y 100")]
-        public int PosicionY { get; set; }
-
-        [Required(ErrorMessage = "El ancho es obligatorio")]
-        [Range(1, 12, ErrorMessage = "El ancho debe estar entre 1 y 12")]
-        public int Ancho { get; set; }
-
-        [Required(ErrorMessage = "La altura es obligatoria")]
-        [Range(1, 20, ErrorMessage = "La altura debe estar entre 1 y 20")]
-        public int Alto { get; set; }
+        /// <summary>
+        /// Tipo de tarjeta: 1=gráfica, 2=KPI, etc.
+        /// </summary>
+        public int TipoCard { get; set; }
 
         /// <summary>
         /// Propiedades de configuración específicas de la visualización en el dashboard
         /// </summary>
-        public Dictionary<string, object>? Props { get; set; }
+        public JsonElement? Props { get; set; }
     }
 
     /// <summary>

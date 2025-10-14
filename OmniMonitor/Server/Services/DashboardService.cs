@@ -19,6 +19,11 @@ namespace OmniMonitor.Server.Services
         Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username);
         Task<bool> ValidateCardIdsAsync(List<int> cardIds);
         Task<bool> ValidateLayoutAsync(DashboardLayout layout);
+        Task<bool> DeleteDashboardAsync(int idDashboard, string username);
+        Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno);
+        Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard);
+        Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards);
+        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion);
     }
 
     /// <summary>
@@ -56,11 +61,6 @@ namespace OmniMonitor.Server.Services
                     throw new ArgumentException("Uno o más IdVisualizacion no existen en el sistema.");
                 }
 
-                // Validar layout
-                if (!await ValidateLayoutAsync(request.Layout))
-                {
-                    throw new ArgumentException("El layout contiene superposiciones inválidas o configuraciones fuera de rango.");
-                }
             }
 
             // Crear el dashboard
@@ -69,7 +69,7 @@ namespace OmniMonitor.Server.Services
                 Username = username,
                 Nombre = request.Nombre,
                 Descripcion = request.Descripcion,
-                JsonDiseno = request.Layout != null ? JsonSerializer.Serialize(request.Layout) : null,
+                JsonDiseno = request.Layout?.Configuracion != null ? JsonSerializer.Serialize(request.Layout.Configuracion) : null,
                 FechaCreacion = DateTime.UtcNow,
                 FechaModificacion = DateTime.UtcNow
             };
@@ -80,18 +80,16 @@ namespace OmniMonitor.Server.Services
             // Agregar las tarjetas si se proporcionan
             if (request.Layout?.Tarjetas != null && request.Layout.Tarjetas.Any())
             {
-                foreach (var tarjeta in request.Layout.Tarjetas)
+                foreach (var tarjeta in request.Layout.Tarjetas.Select((t, idx) => new { t, idx }))
                 {
                     var grupoVisualizacion = new GrupoVisualizacion
                     {
                         GrupoVisualizacionId = nuevoDashboard.IdDashboard,
-                        IdVisualizacion = tarjeta.CardId,
-                        PosicionX = tarjeta.PosicionX,
-                        PosicionY = tarjeta.PosicionY,
-                        Ancho = tarjeta.Ancho,
-                        Alto = tarjeta.Alto,
-                        PropsConfiguracion = tarjeta.Props != null ? JsonSerializer.Serialize(tarjeta.Props) : null,
-                        FechaAgregado = DateTime.UtcNow
+                        IdVisualizacion = tarjeta.t.CardId,
+                        PropsConfiguracion = tarjeta.t.Props.HasValue ? JsonSerializer.Serialize(tarjeta.t.Props.Value) : null,
+                        FechaAgregado = DateTime.UtcNow,
+                        TipoCard = tarjeta.t.TipoCard,
+                        Orden = tarjeta.idx + 1
                     };
 
                     _context.GrupoVisualizaciones.Add(grupoVisualizacion);
@@ -131,7 +129,7 @@ namespace OmniMonitor.Server.Services
             };
 
             // Deserializar el layout si existe
-            if (!string.IsNullOrEmpty(dashboard.JsonDiseno))
+            /*if (!string.IsNullOrEmpty(dashboard.JsonDiseno))
             {
                 try
                 {
@@ -142,28 +140,27 @@ namespace OmniMonitor.Server.Services
                     // Si hay error en la deserialización, se deja como null
                     response.Layout = null;
                 }
-            }
+            }*/
 
             // Mapear las tarjetas
-            response.Tarjetas = dashboard.GrupoVisualizaciones.Select(gv => new DashboardCardResponse
-            {
-                IdGrupoVisualizacion = gv.IdGrupoVisualizacion,
-                CardId = gv.IdVisualizacion,
-                PosicionX = gv.PosicionX,
-                PosicionY = gv.PosicionY,
-                Ancho = gv.Ancho,
-                Alto = gv.Alto,
-                PropsConfiguracion = gv.PropsConfiguracion,
-                FechaAgregado = gv.FechaAgregado,
-                Visualizacion = gv.Visualizacion != null ? new VisualizacionInfo
+            response.Tarjetas = dashboard.GrupoVisualizaciones
+                .OrderBy(gv => gv.Orden)
+                .Select(gv => new DashboardCardResponse
                 {
-                    IdVisualizacion = gv.Visualizacion.IdVisualizacion,
-                    Nombre = gv.Visualizacion.Nombre,
-                    FechaDesde = gv.Visualizacion.FechaDesde,
-                    FechaHasta = gv.Visualizacion.FechaHasta,
-                    JsonDesign = gv.Visualizacion.JsonDesign
-                } : null
-            }).ToList();
+                    IdGrupoVisualizacion = gv.IdGrupoVisualizacion,
+                    CardId = gv.IdVisualizacion,
+                    TipoCard = gv.TipoCard,
+                    PropsConfiguracion = gv.PropsConfiguracion,
+                    FechaAgregado = gv.FechaAgregado,
+                    Visualizacion = gv.Visualizacion != null ? new VisualizacionInfo
+                    {
+                        IdVisualizacion = gv.Visualizacion.IdVisualizacion,
+                        Nombre = gv.Visualizacion.Nombre,
+                        FechaDesde = gv.Visualizacion.FechaDesde,
+                        FechaHasta = gv.Visualizacion.FechaHasta,
+                        JsonDesign = gv.Visualizacion.JsonDesign
+                    } : null
+                }).ToList();
 
             return response;
         }
@@ -214,7 +211,7 @@ namespace OmniMonitor.Server.Services
 
             // Validar que no haya superposiciones
             var tarjetas = layout.Tarjetas.ToList();
-            for (int i = 0; i < tarjetas.Count; i++)
+            /*for (int i = 0; i < tarjetas.Count; i++)
             {
                 for (int j = i + 1; j < tarjetas.Count; j++)
                 {
@@ -223,7 +220,7 @@ namespace OmniMonitor.Server.Services
                         return false;
                     }
                 }
-            }
+            }*/
 
             return true;
         }
@@ -231,7 +228,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Verifica si dos tarjetas se superponen
         /// </summary>
-        private bool TarjetasSeSuperponen(DashboardCard tarjeta1, DashboardCard tarjeta2)
+        /*private bool TarjetasSeSuperponen(DashboardCard tarjeta1, DashboardCard tarjeta2)
         {
             var x1 = tarjeta1.PosicionX;
             var y1 = tarjeta1.PosicionY;
@@ -244,6 +241,131 @@ namespace OmniMonitor.Server.Services
             var h2 = tarjeta2.Alto;
 
             return !(x1 + w1 <= x2 || x2 + w2 <= x1 || y1 + h1 <= y2 || y2 + h2 <= y1);
+        }*/
+
+        /// <summary>
+        /// Elimina un dashboard y todos sus GrupoVisualizaciones asociados (no elimina visualizaciones/KPIs)
+        /// </summary>
+        public async Task<bool> DeleteDashboardAsync(int idDashboard, string username)
+        {
+            // Buscar el dashboard del usuario
+            var dashboard = await _context.Dashboards
+                .Include(d => d.GrupoVisualizaciones)
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+
+            if (dashboard == null)
+                return false;
+
+            // Eliminar los GrupoVisualizaciones asociados
+            _context.GrupoVisualizaciones.RemoveRange(dashboard.GrupoVisualizaciones);
+            // Eliminar el dashboard
+            _context.Dashboards.Remove(dashboard);
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Actualiza el JSON de configuración (JsonDiseno) de un dashboard
+        /// </summary>
+        public async Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno)
+        {
+            var dashboard = await _context.Dashboards
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+            if (dashboard == null)
+                return false;
+
+            dashboard.JsonDiseno = nuevoJsonDiseno;
+            dashboard.FechaModificacion = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Agrega una tarjeta (DashboardCard) a un dashboard existente
+        /// </summary>
+        public async Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard)
+        {
+            var dashboard = await _context.Dashboards
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+            if (dashboard == null)
+                return false;
+
+            // Calcular el orden para la nueva tarjeta
+            int orden = _context.GrupoVisualizaciones
+                .Where(gv => gv.GrupoVisualizacionId == idDashboard)
+                .Select(gv => (int?)gv.Orden)
+                .Max() ?? 0;
+            orden++;
+
+            var grupoVisualizacion = new GrupoVisualizacion
+            {
+                GrupoVisualizacionId = idDashboard,
+                IdVisualizacion = nuevaCard.CardId,
+                TipoCard = nuevaCard.TipoCard,
+                PropsConfiguracion = nuevaCard.Props.HasValue ? JsonSerializer.Serialize(nuevaCard.Props.Value) : null,
+                FechaAgregado = DateTime.UtcNow,
+                Orden = orden
+            };
+            _context.GrupoVisualizaciones.Add(grupoVisualizacion);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Reordena las tarjetas (GrupoVisualizaciones) de un dashboard según el orden de la lista recibida
+        /// </summary>
+        public async Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards)
+        {
+            var dashboard = await _context.Dashboards
+                .Include(d => d.GrupoVisualizaciones)
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+            if (dashboard == null)
+                return false;
+
+            for (int i = 0; i < orderedCards.Count; i++)
+            {
+                var card = orderedCards[i];
+                var grupo = dashboard.GrupoVisualizaciones.FirstOrDefault(gv =>
+                    gv.GrupoVisualizacionId == idDashboard &&
+                    gv.IdVisualizacion == card.CardId &&
+                    gv.TipoCard == card.TipoCard);
+                if (grupo != null)
+                {
+                    grupo.Orden = i + 1;
+                }
+            }
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        /// <summary>
+        /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
+        /// </summary>
+        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion)
+        {
+            var dashboard = await _context.Dashboards
+                .Include(d => d.GrupoVisualizaciones)
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+            if (dashboard == null)
+                return false;
+
+            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdGrupoVisualizacion == idGrupoVisualizacion);
+            if (cardToRemove == null)
+                return false;
+
+            int ordenEliminado = cardToRemove.Orden;
+            _context.GrupoVisualizaciones.Remove(cardToRemove);
+
+            // Actualizar el orden de las tarjetas que estaban después
+            var cardsToUpdate = dashboard.GrupoVisualizaciones.Where(gv => gv.Orden > ordenEliminado).ToList();
+            foreach (var card in cardsToUpdate)
+            {
+                card.Orden--;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

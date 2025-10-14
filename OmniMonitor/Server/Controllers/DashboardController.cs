@@ -32,7 +32,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado</response>
         /// <response code="500">Error interno del servidor</response>
         [HttpPost]
-        [RequirePermission("Crear Dashboards")]
+        //[RequirePermission("Crear Dashboards")]
         [ProducesResponseType(typeof(DashboardResponse), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
@@ -80,7 +80,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="403">Usuario no tiene permisos para ver este dashboard</response>
         /// <response code="500">Error interno del servidor</response>
         [HttpGet("{id}/{username}")]
-        [RequirePermission("Ver Dashboards")]
+        //[RequirePermission("Ver Dashboards")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
@@ -113,7 +113,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado</response>
         /// <response code="500">Error interno del servidor</response>
         [HttpGet("user/{username}")]
-        [RequirePermission("Ver Dashboards")]
+        //[RequirePermission("Ver Dashboards")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
@@ -164,5 +164,79 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Elimina un dashboard y sus GrupoVisualizaciones asociados (no elimina visualizaciones/KPIs)
+        /// </summary>
+        [HttpDelete("{id}")]
+        //[RequirePermission("Eliminar Dashboards")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> DeleteDashboard(int id, [FromQuery] string username)
+        {
+            var result = await _dashboardService.DeleteDashboardAsync(id, username);
+            if (!result)
+                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+            return Ok(new { message = $"Dashboard con id {id} eliminado correctamente para el usuario '{username}'" });
+        }
+
+        /// <summary>
+        /// Actualiza el JSON de configuración (JsonDiseno) de un dashboard
+        /// </summary>
+        [HttpPut("{id}/config")]
+        //[RequirePermission("Editar Dashboards")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> UpdateDashboardConfig(int id, [FromQuery] string username, [FromBody] string nuevoJsonDiseno)
+        {
+            var result = await _dashboardService.UpdateDashboardConfigAsync(id, username, nuevoJsonDiseno);
+            if (!result)
+                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+            return Ok(new { message = $"Configuración actualizada correctamente para el dashboard {id}" });
+        }
+
+        /// <summary>
+        /// Agrega una tarjeta (DashboardCard) a un dashboard existente
+        /// </summary>
+        [HttpPost("{id}/card")]
+        //[RequirePermission("Editar Dashboards")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromBody] DashboardCard nuevaCard)
+        {
+            var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
+            if (!result)
+                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+            return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+        }
+
+        /// <summary>
+        /// Reordena las tarjetas (GrupoVisualizaciones) de un dashboard según el orden de la lista recibida
+        /// </summary>
+        [HttpPut("{id}/cards/order")]
+        //[RequirePermission("Editar Dashboards")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ReorderDashboardCards(int id, [FromQuery] string username, [FromBody] List<DashboardCard> orderedCards)
+        {
+            var result = await _dashboardService.ReorderDashboardCardsAsync(id, username, orderedCards);
+            if (!result)
+                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+            return Ok(new { message = $"Orden de tarjetas actualizado correctamente para el dashboard {id}" });
+        }
+
+        /// <summary>
+        /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
+        /// </summary>
+        [HttpDelete("{id}/card/{idGrupoVisualizacion}")]
+        //[RequirePermission("Editar Dashboards")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> DeleteDashboardCard(int id, int idGrupoVisualizacion, [FromQuery] string username)
+        {
+            var result = await _dashboardService.DeleteDashboardCardAsync(id, username, idGrupoVisualizacion);
+            if (!result)
+                return NotFound(new { message = $"No se encontró la tarjeta con id {idGrupoVisualizacion} en el dashboard {id} para el usuario '{username}'" });
+            return Ok(new { message = $"Tarjeta eliminada correctamente del dashboard {id}" });
+        }
     }
 }

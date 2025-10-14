@@ -12,6 +12,7 @@ namespace OmniMonitor.Shared.Dtos
         [Column("id_grupo_visualizacion")]
         public int IdGrupoVisualizacion { get; set; }
 
+        
         [Required]
         [Column("grupo_visualizacion")]
         public int GrupoVisualizacionId { get; set; }
@@ -20,17 +21,9 @@ namespace OmniMonitor.Shared.Dtos
         [Column("id_visualizacion")]
         public int IdVisualizacion { get; set; }
 
-        [Column("posicion_x")]
-        public int PosicionX { get; set; } = 0;
-
-        [Column("posicion_y")]
-        public int PosicionY { get; set; } = 0;
-
-        [Column("ancho")]
-        public int Ancho { get; set; } = 1;
-
-        [Column("alto")]
-        public int Alto { get; set; } = 1;
+        [Required]
+        [Column("tipo_card")]
+        public int TipoCard { get; set; } // 1=gráfica, 2=KPI, etc.
 
         [Column("props_configuracion")]
         [MaxLength(2000)]
@@ -39,8 +32,12 @@ namespace OmniMonitor.Shared.Dtos
         [Column("fecha_agregado")]
         public DateTime FechaAgregado { get; set; } = DateTime.UtcNow;
 
+        [Column("orden")]
+        public int Orden { get; set; } // Orden de la tarjeta en el dashboard
+
         // Propiedades de navegación
         public virtual Dashboard? Dashboard { get; set; }
         public virtual Visualizacion? Visualizacion { get; set; }
+        //public virtual KPI? KPI { get; set; }
     }
 }

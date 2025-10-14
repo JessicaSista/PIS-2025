@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OmniMonitor.Server.Context;
 
@@ -11,9 +12,11 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251014203441_table")]
+    partial class table
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -421,10 +424,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<int>("IdVisualizacion")
                         .HasColumnType("int")
                         .HasColumnName("id_visualizacion");
-
-                    b.Property<int>("Orden")
-                        .HasColumnType("int")
-                        .HasColumnName("orden");
 
                     b.Property<string>("PropsConfiguracion")
                         .HasMaxLength(2000)
