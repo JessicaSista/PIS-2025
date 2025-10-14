@@ -110,6 +110,7 @@
                        FullWidth="true"
                        Label="@Localizer["SeleccionarDispositivo"]"
                        Class="dark-field"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
                 @foreach (var device in devices)
                 {
@@ -128,6 +129,7 @@
                        FullWidth="true"
                        Label="@Localizer["SeleccionarSensor"]"
                        Class="@($"dark-field")"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        Required="true">
                 @foreach (var sensor in sensores)
                 {
@@ -235,8 +237,14 @@
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
+        
+        // Limpiar dispositivos y sensor seleccionados
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        
         //se recargan los dispositivos porque se borra el "filtro" de grupo
         await LoadDevices();
+        await LoadSensors();
 
         StateHasChanged();
     }
