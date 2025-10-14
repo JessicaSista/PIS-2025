@@ -12,7 +12,6 @@ namespace OmniMonitor.Server.Controllers
     public class DatasetEMController : ControllerBase
     {
         private readonly IDatasetEMService _datasetEMService;
-
         public DatasetEMController(IDatasetEMService datasetEMService)
         {
             _datasetEMService = datasetEMService;
@@ -93,7 +92,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId, string username)
+        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId ,string username)
         {
             try
             {

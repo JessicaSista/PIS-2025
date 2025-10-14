@@ -9,6 +9,8 @@ namespace OmniMonitor.Server.Context
     // Using a primary constructor to inject IConfiguration.
     public class ApplicationDbContext(IConfiguration configuration) : DbContext
     {
+        
+
         // No longer need a private field, the 'configuration' parameter is available throughout the class.
 
         // Add this line inside your ApplicationDbContext.cs
@@ -33,6 +35,10 @@ namespace OmniMonitor.Server.Context
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
         public DbSet<Dashboard> Dashboards { get; set; }
         public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
+        public DbSet<CrossModuleJoin> CrossModuleJoins { get; set; }
+        public DbSet<JoinOperand> JoinOperands { get; set; }
+        public DbSet<Report> Reports { get; set; }
+        public DbSet<ReportJoin> ReportJoins { get; set; }
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
@@ -59,8 +65,64 @@ namespace OmniMonitor.Server.Context
             // Configurar relaciones de dashboards
             ConfigureDashboardRelationships(builder);
             
+            ConfigureCrossModuleJoins(builder);
+            ConfigureReports(builder);
+
             // Seed default data
             Seed(builder);
+        }
+
+        private void ConfigureReports(ModelBuilder builder)
+        {
+            builder.Entity<ReportJoin>(entity =>
+            {
+                // 1. Define the composite primary key for the linking table.
+                // This is necessary and ensures a join can only be added to a report once.
+                entity.HasKey(rj => new { rj.ReportId, rj.CrossModuleJoinId });
+
+                // 2. Configure the relationship to the Report entity.
+                // This sets up the foreign key from ReportJoin -> Report.
+                entity.HasOne(rj => rj.Report)
+                      .WithMany(r => r.ReportJoins) // A Report has many ReportJoin entries
+                      .HasForeignKey(rj => rj.ReportId);
+
+                // 3. Configure the relationship to the CrossModuleJoin entity.
+                // This sets up the foreign key from ReportJoin -> CrossModuleJoin.
+                entity.HasOne(rj => rj.CrossModuleJoin)
+                      .WithMany() // A CrossModuleJoin can be part of many reports
+                      .HasForeignKey(rj => rj.CrossModuleJoinId);
+            });
+        }
+
+        private void ConfigureCrossModuleJoins(ModelBuilder builder)
+        {
+            // Configure the relationships for CrossModuleJoin
+            builder.Entity<CrossModuleJoin>(entity =>
+            {
+                // Define the relationship for the LeftOperand
+                entity.HasOne(j => j.LeftOperand)
+                      .WithMany() // A JoinOperand can be the left side of many joins
+                      .HasForeignKey(j => j.LeftOperandId)
+                      .OnDelete(DeleteBehavior.Restrict); // Prevent deleting an operand if it's in use
+
+                // Define the relationship for the RightOperand
+                entity.HasOne(j => j.RightOperand)
+                      .WithMany() // A JoinOperand can be the right side of many joins
+                      .HasForeignKey(j => j.RightOperandId)
+                      .OnDelete(DeleteBehavior.Restrict); // Prevent deleting an operand if it's in use
+
+                // Store the JoinType enum as a string (e.g., "Inner", "LeftOuter") in the database
+                entity.Property(j => j.JoinType)
+                      .HasConversion<string>();
+            });
+
+            // Configure the JoinOperand entity
+            builder.Entity<JoinOperand>(entity =>
+            {
+                // Store the ModuleType enum as a string (e.g., "InsightMonitor") in the database
+                entity.Property(o => o.ModuleType)
+                      .HasConversion<string>();
+            });
         }
 
         /// <summary>

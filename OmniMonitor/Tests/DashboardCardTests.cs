@@ -1,9 +1,9 @@
-﻿
-using ApexCharts;
+﻿using ApexCharts;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 using Microsoft.JSInterop;
 using Moq;
 using MudBlazor;
@@ -19,6 +19,10 @@ public class DashboardCardTests : TestContext
     {
         Services.AddMudServices();
         JSInterop.Mode = JSRuntimeMode.Loose;
+
+        // Mock para IStringLocalizer<DashboardCard>
+        var localizerMock = new Mock<IStringLocalizer<DashboardCard>>();
+        Services.AddSingleton(localizerMock.Object);
     }
 
 

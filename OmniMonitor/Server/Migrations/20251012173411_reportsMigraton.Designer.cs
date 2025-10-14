@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OmniMonitor.Server.Context;
 
@@ -11,9 +12,11 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251012173411_reportsMigraton")]
+    partial class reportsMigraton
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,42 +25,6 @@ namespace OmniMonitor.Server.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
-                {
-                    b.Property<int>("IdDashboard")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id_dashboard");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdDashboard"));
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("descripcion");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("fecha_creacion");
-
-                    b.Property<DateTime>("FechaModificacion")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("fecha_modificacion");
-
-                    b.Property<int?>("GrupoVisualizacion")
-                        .HasColumnType("int")
-                        .HasColumnName("grupo_visualizacion");
-
-                    b.Property<string>("JsonDiseno")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
-                        .HasColumnName("JSON_diseño");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("nombre");
             modelBuilder.Entity("CrossModuleJoin", b =>
                 {
                     b.Property<int>("Id")
@@ -88,17 +55,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
-                        .HasColumnName("username");
-
-                    b.HasKey("IdDashboard");
-
-                    b.HasIndex("Username");
-
-                    b.HasIndex("Username", "Nombre")
-                        .IsUnique();
-
-                    b.ToTable("Dashboards");
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
@@ -465,49 +421,6 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("GrupoDatasets");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoVisualizacion", b =>
-                {
-                    b.Property<int>("IdGrupoVisualizacion")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id_grupo_visualizacion");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdGrupoVisualizacion"));
-
-                    b.Property<DateTime>("FechaAgregado")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("fecha_agregado");
-
-                    b.Property<int>("GrupoVisualizacionId")
-                        .HasColumnType("int")
-                        .HasColumnName("grupo_visualizacion");
-
-                    b.Property<int>("IdVisualizacion")
-                        .HasColumnType("int")
-                        .HasColumnName("id_visualizacion");
-
-                    b.Property<int>("Orden")
-                        .HasColumnType("int")
-                        .HasColumnName("orden");
-
-                    b.Property<string>("PropsConfiguracion")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)")
-                        .HasColumnName("props_configuracion");
-
-                    b.Property<int>("TipoCard")
-                        .HasColumnType("int")
-                        .HasColumnName("tipo_card");
-
-                    b.HasKey("IdGrupoVisualizacion");
-
-                    b.HasIndex("GrupoVisualizacionId");
-
-                    b.HasIndex("IdVisualizacion");
-
-                    b.ToTable("GrupoVisualizaciones");
-                });
-
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -625,30 +538,6 @@ namespace OmniMonitor.Server.Migrations
                             Id = 16,
                             Description = "Permite eliminar datasets del módulo EM",
                             Name = "Eliminar Datasets EM"
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Description = "Permite ver dashboards personalizables",
-                            Name = "Ver Dashboards"
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Description = "Permite crear nuevos dashboards personalizables",
-                            Name = "Crear Dashboards"
-                        },
-                        new
-                        {
-                            Id = 19,
-                            Description = "Permite editar dashboards existentes",
-                            Name = "Editar Dashboards"
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Description = "Permite eliminar dashboards",
-                            Name = "Eliminar Dashboards"
                         });
                 });
 
@@ -810,30 +699,6 @@ namespace OmniMonitor.Server.Migrations
                         },
                         new
                         {
-                            Id = 27,
-                            PermissionId = 17,
-                            RoleId = 1
-                        },
-                        new
-                        {
-                            Id = 28,
-                            PermissionId = 18,
-                            RoleId = 1
-                        },
-                        new
-                        {
-                            Id = 29,
-                            PermissionId = 19,
-                            RoleId = 1
-                        },
-                        new
-                        {
-                            Id = 30,
-                            PermissionId = 20,
-                            RoleId = 1
-                        },
-                        new
-                        {
                             Id = 21,
                             PermissionId = 1,
                             RoleId = 2
@@ -866,12 +731,6 @@ namespace OmniMonitor.Server.Migrations
                         {
                             Id = 26,
                             PermissionId = 14,
-                            RoleId = 2
-                        },
-                        new
-                        {
-                            Id = 31,
-                            PermissionId = 17,
                             RoleId = 2
                         });
                 });
@@ -1181,25 +1040,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Visualizacion");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoVisualizacion", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Dashboard", "Dashboard")
-                        .WithMany("GrupoVisualizaciones")
-                        .HasForeignKey("GrupoVisualizacionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("OmniMonitor.Shared.Dtos.Visualizacion", "Visualizacion")
-                        .WithMany()
-                        .HasForeignKey("IdVisualizacion")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Dashboard");
-
-                    b.Navigation("Visualizacion");
-                });
-
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.RolePermission", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.Permission", "Permission")
@@ -1238,9 +1078,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
-                {
-                    b.Navigation("GrupoVisualizaciones");
             modelBuilder.Entity("ReportJoin", b =>
                 {
                     b.HasOne("CrossModuleJoin", "CrossModuleJoin")

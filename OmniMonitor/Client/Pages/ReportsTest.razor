@@ -1,0 +1,336 @@
+﻿@page "/join-creator-test"
+@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@using System.Text.Json
+@using System.ComponentModel.DataAnnotations
+
+<div class="container mx-auto p-4 md:p-8">
+    <header class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800">Join Test Page</h1>
+        <p class="text-gray-600 mt-2">A page to create, list, and execute your Join configurations.</p>
+    </header>
+
+    <!-- Session Token Card -->
+    <div class="card mb-8 max-w-xl mx-auto">
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Authentication</h2>
+        <div class="flex items-end space-x-2">
+            <div class="flex-grow">
+                <label for="session-token" class="form-label">Session Token (from Local Storage)</label>
+                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="Token will be loaded here..." readonly />
+            </div>
+            <button class="btn btn-secondary" @onclick="LoadTokenFromLocalStorage">Load/Refresh Token</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-1">This token is automatically loaded from local storage ('authToken').</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        <!-- List and Create Column -->
+        <div class="md:col-span-2 space-y-6">
+            <!-- New: Join Configurations List -->
+            <div class="card">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Join Configurations</h2>
+                <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                    @if (joins.Any())
+                    {
+                        @foreach (var join in joins)
+                        {
+                            <div class="p-3 border rounded-md bg-gray-50 flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold">@join.Name (ID: @join.Id)</p>
+                                    <p class="text-sm text-gray-600">@join.LeftOperand.EntityName -> @join.RightOperand.EntityName</p>
+                                </div>
+                                <button class="btn btn-sm btn-success" @onclick="() => ExecuteJoin(join.Id)">Execute</button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-gray-500">No joins found for user '@TestUsername'. Click 'Load/Refresh' to fetch.</p>
+                    }
+                </div>
+                <button class="btn btn-secondary w-full mt-4" @onclick="LoadJoins">Load/Refresh Joins</button>
+            </div>
+
+            <div class="card">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">Create New Join</h3>
+                <EditForm Model="@newJoin" OnValidSubmit="HandleCreateJoin" class="space-y-4">
+                    <DataAnnotationsValidator />
+                    <div>
+                        <label class="form-label">Join Name</label>
+                        <InputText @bind-Value="newJoin.Name" class="form-input" placeholder="e.g., Devices to Events" />
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-medium text-gray-600">Left Operand</h4>
+                            <label class="form-label mt-2">Module</label>
+                            <InputSelect @bind-Value="newJoin.LeftOperand.ModuleType" class="form-input">
+                                @foreach (var val in Enum.GetValues(typeof(ModuleType)))
+                                {
+                                    <option value="@val">@val</option>
+                                }
+                            </InputSelect>
+                            <label class="form-label mt-2">Dataset ID</label>
+                            <InputNumber @bind-Value="newJoin.LeftOperand.DatasetId" class="form-input" placeholder="e.g., 4" />
+                            <label class="form-label mt-2">Entity Name</label>
+                            <InputSelect @bind-Value="newJoin.LeftOperand.EntityName" class="form-input">
+                                @foreach (var val in Enum.GetValues(typeof(EntityName)))
+                                {
+                                    <option value="@val">@val</option>
+                                }
+                            </InputSelect>
+                            <label class="form-label mt-2">Join Property</label>
+                            <InputText @bind-Value="newJoin.LeftOperand.JoinPropertyName" class="form-input" placeholder="e.g., Id" />
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-600">Right Operand</h4>
+                            <label class="form-label mt-2">Module</label>
+                            <InputSelect @bind-Value="newJoin.RightOperand.ModuleType" class="form-input">
+                                @foreach (var val in Enum.GetValues(typeof(ModuleType)))
+                                {
+                                    <option value="@val">@val</option>
+                                }
+                            </InputSelect>
+                            <label class="form-label mt-2">Dataset ID</label>
+                            <InputNumber @bind-Value="newJoin.RightOperand.DatasetId" class="form-input" placeholder="e.g., 5" />
+                            <label class="form-label mt-2">Entity Name</label>
+                            <InputSelect @bind-Value="newJoin.RightOperand.EntityName" class="form-input">
+                                @foreach (var val in Enum.GetValues(typeof(EntityName)))
+                                {
+                                    <option value="@val">@val</option>
+                                }
+                            </InputSelect>
+                            <label class="form-label mt-2">Join Property</label>
+                            <InputText @bind-Value="newJoin.RightOperand.JoinPropertyName" class="form-input" placeholder="e.g., Id_device" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full mt-4">Create Join</button>
+                </EditForm>
+            </div>
+        </div>
+
+        <!-- Results Column -->
+        <div class="md:col-span-1">
+            <div class="card sticky top-8">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Results Panel</h2>
+                <div class="bg-gray-800 text-white rounded-md p-4 h-96 overflow-y-auto font-mono text-sm">
+                    <pre><code>@resultJson</code></pre>
+                </div>
+                <button class="btn btn-secondary w-full mt-4" @onclick="ClearResults">Clear Results</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Copied from original HTML for consistency */
+    .card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        padding: 1.5rem;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        color: white;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 200ms;
+    }
+
+    .btn-primary {
+        background-color: #2563eb;
+    }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+    .btn-secondary {
+        background-color: #6b7280;
+    }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+    .btn-success {
+        background-color: #16a34a;
+    }
+
+        .btn-success:hover {
+            background-color: #15803d;
+        }
+
+    .btn-sm {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .form-input {
+        margin-top: 0.25rem;
+        display: block;
+        width: 100%;
+        border-radius: 0.375rem;
+        border-color: #d1d5db;
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    #results-panel pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+</style>
+
+
+@code {
+    private const string ApiBaseUrl = "api/reports";
+    private const string TestUsername = "admin";
+
+    // --- State Variables ---
+    private List<CrossModuleJoinDto> joins = new();
+    private CreateJoinRequestDto newJoin = new();
+    private string resultJson = "Fill out the form and click 'Create Join' to test the endpoint.";
+    private string sessionToken = ""; // Variable to hold the auth token
+
+    // --- Lifecycle Method ---
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTokenFromLocalStorage();
+        await LoadJoins(); // Load joins on initial page load
+    }
+
+    // --- Method to load token ---
+    private async Task LoadTokenFromLocalStorage()
+    {
+        try
+        {
+            sessionToken = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
+            if (string.IsNullOrWhiteSpace(sessionToken))
+            {
+                DisplayResult(new { Warning = "Auth token not found in local storage. Some API calls may fail." });
+            }
+        }
+        catch (Exception ex)
+        {
+            DisplayResult(new { Error = "Could not access local storage.", Message = ex.Message });
+        }
+    }
+
+    // --- New Data Loading Method for Joins ---
+    private async Task LoadJoins()
+    {
+        try
+        {
+            var fetchedJoins = await Http.GetFromJsonAsync<List<CrossModuleJoinDto>>($"{ApiBaseUrl}/joins/user/{TestUsername}");
+            if (fetchedJoins != null)
+            {
+                joins = fetchedJoins;
+            }
+        }
+        catch (Exception ex)
+        {
+            DisplayResult(new { Error = "Failed to load joins.", Message = ex.Message });
+        }
+        StateHasChanged();
+    }
+
+    // --- Event Handlers ---
+    private async Task HandleCreateJoin()
+    {
+        if (string.IsNullOrWhiteSpace(sessionToken))
+        {
+            DisplayResult(new { Error = "Authentication token is required to create a join." });
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"{ApiBaseUrl}/joins?token={sessionToken}", newJoin);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var createdJoin = await response.Content.ReadFromJsonAsync<object>();
+                DisplayResult(new { Success = "Join created successfully!", Response = createdJoin });
+                newJoin = new(); // Reset form
+                await LoadJoins(); // Refresh the list after creating a new one
+            }
+            else
+            {
+                DisplayResult(new { Error = $"Failed to create join. Status: {response.StatusCode}", Details = await response.Content.ReadAsStringAsync() });
+            }
+        }
+        catch (Exception ex)
+        {
+            DisplayResult(new { Error = "An exception occurred.", ex.Message });
+        }
+    }
+
+    // --- New Method to Execute a Join ---
+    private async Task ExecuteJoin(int joinId)
+    {
+        DisplayResult($"Executing join {joinId}...");
+        try
+        {
+            var result = await Http.GetFromJsonAsync<object>($"{ApiBaseUrl}/joins/{1}/execute");
+            DisplayResult(result);
+        }
+        catch (Exception ex)
+        {
+            DisplayResult(new { Error = "An error occurred while executing the join.", ex.Message });
+        }
+    }
+
+    private void ClearResults()
+    {
+        resultJson = "Results cleared.";
+    }
+
+    private void DisplayResult(object data)
+    {
+        resultJson = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    // --- DTOs and Enums (mirroring your backend) ---
+    public class JoinOperandDto
+    {
+        public ModuleType ModuleType { get; set; }
+        public int DatasetId { get; set; }
+        public EntityName EntityName { get; set; }
+        public string JoinPropertyName { get; set; } = "";
+    }
+
+    public class CreateJoinRequestDto
+    {
+        public string Name { get; set; } = "";
+        public JoinType JoinType { get; set; } = JoinType.Inner;
+        public JoinOperandDto LeftOperand { get; set; } = new();
+        public JoinOperandDto RightOperand { get; set; } = new();
+    }
+
+    // DTO for listing joins
+    public class CrossModuleJoinDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public JoinType JoinType { get; set; }
+        public JoinOperandDto LeftOperand { get; set; }
+        public JoinOperandDto RightOperand { get; set; }
+    }
+
+    public enum ModuleType { InsightMonitor, UrbanMonitor, EventManager, AssetManager }
+    public enum EntityName { Device, Sensor, Source, Group, Event, News, Alert, Resource, Asset, Stock }
+    public enum JoinType { Inner, LeftOuter }
+}
+
