@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace OmniMonitor.Shared.Dtos
 {
-    public class Dataset
+    public class DatasetIM
     {
         [Key]
         public int Id { get; set; }

@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 public class DatasetController : ControllerBase
 {
     private readonly IDatasetService _datasetService;
-
     public DatasetController(IDatasetService datasetService)
     {
         _datasetService = datasetService;
@@ -20,10 +19,10 @@ public class DatasetController : ControllerBase
     /// Crea un nuevo dataset.
     /// </summary>
     [HttpPost]
-    [ProducesResponseType(typeof(Dataset), 201)] // 201 Created
+    [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
     [ProducesResponseType(400)] // Bad Request
     [ProducesResponseType(500)]
-    public async Task<ActionResult<Dataset>> CreateDataset([FromBody] CreateDatasetRequest request)
+    public async Task<ActionResult<DatasetIM>> CreateDataset([FromBody] CreateDatasetRequest request)
     {
         try
         {
@@ -32,7 +31,7 @@ public class DatasetController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            var newDataset = await _datasetService.CreateDatasetAsync(request);
+            var newDataset = await _datasetService.CreateDatasetIMAsync(request);
             // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
             return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
         }
@@ -54,7 +53,7 @@ public class DatasetController : ControllerBase
     /// Obtiene todos los datasets para un usuario específico.
     /// </summary>
     [HttpGet("user/{username}")]
-    [ProducesResponseType(typeof(List<Dataset>), 200)]
+    [ProducesResponseType(typeof(List<DatasetIM>), 200)]
     [ProducesResponseType(500)]
     public async Task<ActionResult<List<Dataset>>> GetAllDatasets(string username, [FromQuery] string? search = null)
     {
@@ -76,14 +75,14 @@ public class DatasetController : ControllerBase
     /// Obtiene un dataset específico por su ID y nombre de usuario.
     /// </summary>
     [HttpGet("{datasetId}/{username}")]
-    [ProducesResponseType(typeof(Dataset), 200)]
+    [ProducesResponseType(typeof(DatasetIM), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<Dataset>> GetDatasetById(int datasetId, string username)
+    public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId, string username)
     {
         try
         {
-            var dataset = await _datasetService.GetDatasetByIdForEditAsync(datasetId, username);
+            var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
@@ -100,11 +99,11 @@ public class DatasetController : ControllerBase
     /// Actualiza un dataset existente.
     /// </summary>
     [HttpPut("{datasetId}")]
-    [ProducesResponseType(typeof(Dataset), 200)]
+    [ProducesResponseType(typeof(DatasetIM), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<Dataset>> UpdateDataset(int datasetId, [FromBody] CreateDatasetRequest request)
+    public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetRequest request)
     {
         try
         {
@@ -113,14 +112,14 @@ public class DatasetController : ControllerBase
                 return BadRequest(ModelState);
             }
 
-            var existingDataset = await _datasetService.GetDatasetByIdForEditAsync(datasetId, request.Username);
+            var existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, request.Username);
             if (existingDataset == null)
             {
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
             }
 
             // Crear un dataset temporal con los nuevos valores para la validación
-            var datasetToUpdate = new Dataset
+            var datasetToUpdate = new DatasetIM
             {
                 Id = existingDataset.Id,
                 Name = request.Name,
@@ -152,7 +151,7 @@ public class DatasetController : ControllerBase
             }
 
             // Llamar al servicio que incluye la validación de nombres únicos
-            var updatedDataset = await _datasetService.UpdateDatasetAsync(datasetToUpdate);
+            var updatedDataset = await _datasetService.UpdateDatasetIMAsync(datasetToUpdate);
             return Ok(updatedDataset);
         }
         catch (ArgumentException ex)
@@ -180,13 +179,13 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            var dataset = await _datasetService.GetDatasetByIdForEditAsync(datasetId, username);
+            var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
             }
 
-            await _datasetService.DeleteDatasetAsync(datasetId, username);
+            await _datasetService.DeleteDatasetIMAsync(datasetId, username);
             return NoContent();
         }
         catch (Exception ex)

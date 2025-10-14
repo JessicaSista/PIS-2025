@@ -46,7 +46,7 @@ public interface ISondaEMService
         string username,
         string password);
     Task<List<AttachmentDto>> GetAttachedItems(int extensionId, string username, string password);
-        Task<ResourceDto?> GetResourceById(int id, string username, string password);
+    Task<ResourceDto?> GetResourceById(int id, string username, string password);
 }
 
 

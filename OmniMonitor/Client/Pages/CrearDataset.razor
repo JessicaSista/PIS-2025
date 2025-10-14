@@ -433,7 +433,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                var newDataset = await response.Content.ReadFromJsonAsync<Dataset>();
+                var newDataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
                 ShowSuccess($"'{newDataset.Name}' {Localizer["DatasetCreadoExito"]}");
                 Nav.NavigateTo("/datasets");
             }

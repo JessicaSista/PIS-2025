@@ -24,6 +24,7 @@ namespace OmniMonitor.Server.Services
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
 
+
         // Inject IConfiguration to access appsettings.json for JWT settings
         public AuthService(ApplicationDbContext context, IConfiguration configuration)
         {
@@ -85,6 +86,11 @@ namespace OmniMonitor.Server.Services
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
 
+                user.SondaTokenOM = tokenString;
+                user.TokenExpirationOM = tokenDescriptor.Expires;
+
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
                 // 5. Return the successful response with the token included
                 return new LoginResponse
                 {

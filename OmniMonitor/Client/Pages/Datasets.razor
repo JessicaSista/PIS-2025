@@ -245,7 +245,7 @@
             
             if (response.IsSuccessStatusCode)
             {
-                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
+                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
                 
                 Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
                 
