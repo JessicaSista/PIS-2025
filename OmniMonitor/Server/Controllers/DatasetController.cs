@@ -56,11 +56,14 @@ public class DatasetController : ControllerBase
     [HttpGet("user/{username}")]
     [ProducesResponseType(typeof(List<Dataset>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<Dataset>>> GetAllDatasets(string username)
+    public async Task<ActionResult<List<Dataset>>> GetAllDatasets(string username, [FromQuery] string? search = null)
     {
         try
         {
-            var datasets = await _datasetService.GetAllDatasetsAsync(username);
+            var datasets = string.IsNullOrWhiteSpace(search) 
+                ? await _datasetService.GetAllDatasetsAsync(username)
+                : await _datasetService.GetAllDatasetsAsync(username, search);
+            
             return Ok(datasets);
         }
         catch (Exception ex)

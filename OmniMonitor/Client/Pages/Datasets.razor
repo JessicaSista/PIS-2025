@@ -101,7 +101,7 @@
     private List<DatasetDto> datasets = new();
     private List<DatasetDto> filteredDatasets = new();
 
-    // Propiedad con setter que dispara el filtrado
+    // Propiedad con setter que dispara la búsqueda en el backend
     private string _searchText = string.Empty;
     private string searchText
     {
@@ -109,7 +109,7 @@
         set
         {
             _searchText = value ?? string.Empty;
-            FilterDatasets();
+            _ = Task.Run(async () => await SearchDatasets());
         }
     }
 
@@ -154,13 +154,12 @@
                 var response = await Http.DeleteAsync($"api/Dataset/{dataset.Id}/{username}");
                 if (response.IsSuccessStatusCode)
                 {
-                    datasets.RemoveAll(d => d.Id == dataset.Id);
-                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
+                    // Recargar la lista de datasets desde el backend
+                    await LoadDatasets();
                     Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;
                     });
-                    StateHasChanged();
                 }
                 else
                 {
@@ -192,41 +191,8 @@
                 return;
             }
 
-            // Cargar datasets desde el backend
-            var response = await Http.GetAsync($"api/Dataset/user/{username}");
-            
-            // ⬇️ AGREGAR AQUÍ
-            Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");
-            
-            if (response.IsSuccessStatusCode)
-            {
-                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
-                
-                // ⬇️ AGREGAR AQUÍ
-                Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
-                
-                // Convertir Dataset a DatasetDto
-                datasets = datasetsFromApi?.Select(d => new DatasetDto
-                {
-                    Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description
-                }).ToList() ?? new List<DatasetDto>();
-            }
-            else
-            {
-                // ⬇️ REEMPLAZAR estas 2 líneas
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"DEBUG: Error response: {errorContent}");
-                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
-                // ⬆️ Por esta línea antigua: Snackbar.Add("Error al cargar los datasets", Severity.Error);
-                
-                datasets = new List<DatasetDto>();
-            }
-
-
-            // Inicializar la lista filtrada
-            filteredDatasets = datasets.ToList();
+            // Cargar datasets iniciales desde el backend (sin filtro)
+            await LoadDatasets();
 
             // Mostrar snackbar si viene mensaje por query string
             var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
@@ -257,43 +223,110 @@
         }
     }
 
-    private void FilterDatasets()
+    private async Task LoadDatasets()
     {
-        if (string.IsNullOrWhiteSpace(searchText))
+        try
         {
-            filteredDatasets = datasets.ToList();
-            return;
+            // Obtener el usuario actual de la sesión
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(@Localizer["ErrorUsuario"], Severity.Warning);
+                filteredDatasets = new List<DatasetDto>();
+                return;
+            }
+
+            // Cargar datasets desde el backend
+            var response = await Http.GetAsync($"api/Dataset/user/{username}");
+            
+            Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
+                
+                Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
+                
+                // Convertir Dataset a DatasetDto
+                datasets = datasetsFromApi?.Select(d => new DatasetDto
+                {
+                    Id = d.Id,
+                    Nombre = d.Name,
+                    Descripcion = d.Description
+                }).ToList() ?? new List<DatasetDto>();
+
+                filteredDatasets = datasets.ToList();
+                StateHasChanged();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"DEBUG: Error response: {errorContent}");
+                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
+                
+                datasets = new List<DatasetDto>();
+                filteredDatasets = new List<DatasetDto>();
+            }
         }
-
-        var normalizedSearch = NormalizeText(searchText);
-
-        filteredDatasets = datasets
-            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
-            .OrderByDescending(d => NormalizeText(d.Nombre) == normalizedSearch) // exactos primero
-            .ThenByDescending(d => NormalizeText(d.Nombre).StartsWith(normalizedSearch)) // luego prefijo
-            .ThenBy(d => NormalizeText(d.Nombre).IndexOf(normalizedSearch)) // luego por posición de coincidencia
-            .ThenBy(d => d.Nombre) // estable
-            .ToList();
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorCarga"]} {ex.Message}", Severity.Error);
+            datasets = new List<DatasetDto>();
+            filteredDatasets = new List<DatasetDto>();
+        }
     }
 
-    private string NormalizeText(string text)
+    private async Task SearchDatasets()
     {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
+        try
+        {
+            // Obtener el usuario actual de la sesión
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
 
-        // 1) Normalizar a FormD y remover diacríticos (acentos)
-        var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
-        var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+            if (string.IsNullOrEmpty(username))
+            {
+                return;
+            }
 
-        // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
-        withoutDiacritics = withoutDiacritics
-            .Replace(" ", string.Empty)
-            .Replace("ñ", "n")
-            .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
-            .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
+            // Construir URL con parámetro de búsqueda
+            var url = $"api/Dataset/user/{username}";
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                url += $"?search={Uri.EscapeDataString(searchText)}";
+            }
 
-        // 3) Normalizar de vuelta a FormC
-        return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
+            // Realizar búsqueda en el backend
+            var response = await Http.GetAsync(url);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
+                
+                // Convertir Dataset a DatasetDto
+                filteredDatasets = datasetsFromApi?.Select(d => new DatasetDto
+                {
+                    Id = d.Id,
+                    Nombre = d.Name,
+                    Descripcion = d.Description
+                }).ToList() ?? new List<DatasetDto>();
+
+                // Invocar StateHasChanged en el contexto de la UI
+                await InvokeAsync(StateHasChanged);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"DEBUG: Error en búsqueda: {errorContent}");
+                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorCarga"]} {ex.Message}", Severity.Error);
+        }
     }
 
 
