@@ -9,6 +9,8 @@ namespace OmniMonitor.Server.Context
     // Using a primary constructor to inject IConfiguration.
     public class ApplicationDbContext(IConfiguration configuration) : DbContext
     {
+        
+
         // No longer need a private field, the 'configuration' parameter is available throughout the class.
 
         // Add this line inside your ApplicationDbContext.cs
