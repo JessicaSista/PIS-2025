@@ -46,19 +46,16 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Obtener el username del contexto de autenticación
-                // Por ahora usamos un valor por defecto, pero debería venir del token JWT
-                var username = GetCurrentUsername();
-                if (string.IsNullOrEmpty(username))
+                if (string.IsNullOrWhiteSpace(request.Username))
                 {
-                    return Unauthorized("Usuario no autenticado");
+                    return BadRequest("El nombre de usuario es requerido.");
                 }
 
-                var nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, username);
+                var nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, request.Username);
                 
                 return CreatedAtAction(
                     nameof(GetDashboard), 
-                    new { id = nuevoDashboard.IdDashboard }, 
+                    new { id = nuevoDashboard.IdDashboard, username = nuevoDashboard.Username }, 
                     nuevoDashboard);
             }
             catch (ArgumentException ex)
@@ -72,32 +69,27 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene un dashboard específico por su ID
+        /// Obtiene un dashboard específico por su ID y nombre de usuario
         /// </summary>
         /// <param name="id">ID del dashboard</param>
+        /// <param name="username">Nombre de usuario</param>
         /// <returns>Dashboard completo con su layout y tarjetas</returns>
         /// <response code="200">Dashboard encontrado</response>
         /// <response code="404">Dashboard no encontrado</response>
         /// <response code="401">Usuario no autenticado</response>
         /// <response code="403">Usuario no tiene permisos para ver este dashboard</response>
         /// <response code="500">Error interno del servidor</response>
-        [HttpGet("{id}")]
+        [HttpGet("{id}/{username}")]
         [RequirePermission("Ver Dashboards")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id)
+        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id, string username)
         {
             try
             {
-                var username = GetCurrentUsername();
-                if (string.IsNullOrEmpty(username))
-                {
-                    return Unauthorized("Usuario no autenticado");
-                }
-
                 var dashboard = await _dashboardService.GetDashboardByIdAsync(id, username);
                 if (dashboard == null)
                 {
@@ -113,27 +105,22 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene todos los dashboards del usuario autenticado
+        /// Obtiene todos los dashboards de un usuario específico
         /// </summary>
+        /// <param name="username">Nombre de usuario</param>
         /// <returns>Lista de dashboards del usuario</returns>
         /// <response code="200">Lista de dashboards obtenida exitosamente</response>
         /// <response code="401">Usuario no autenticado</response>
         /// <response code="500">Error interno del servidor</response>
-        [HttpGet]
+        [HttpGet("user/{username}")]
         [RequirePermission("Ver Dashboards")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards()
+        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string username)
         {
             try
             {
-                var username = GetCurrentUsername();
-                if (string.IsNullOrEmpty(username))
-                {
-                    return Unauthorized("Usuario no autenticado");
-                }
-
                 var dashboards = await _dashboardService.GetAllDashboardsAsync(username);
                 return Ok(dashboards);
             }
@@ -177,20 +164,5 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        /// <summary>
-        /// Obtiene el username del usuario autenticado
-        /// TODO: Implementar extracción del token JWT
-        /// </summary>
-        /// <returns>Username del usuario autenticado</returns>
-        private string? GetCurrentUsername()
-        {
-            // Por ahora retornamos un usuario por defecto para pruebas
-            // En producción, esto debería extraerse del token JWT
-            return "admin"; // TODO: Implementar autenticación real
-            
-            // Ejemplo de implementación con JWT:
-            // var claims = User.Claims;
-            // return claims.FirstOrDefault(c => c.Type == "username")?.Value;
-        }
     }
 }
