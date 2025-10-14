@@ -14,11 +14,11 @@ namespace OmniMonitor.Tests
 {
     /// <summary>
     /// Tests para SondaEMService que verifican:
-    /// 1. Comunicación correcta con la API externa EM
+    /// 1. ComunicaciÃ³n correcta con la API externa EM
     /// 2. Manejo de errores HTTP (400, 401, 403, 404, 500)
-    /// 3. Autenticación y autorización
-    /// 4. Serialización/deserialización de datos
-    /// 5. Parámetros de consulta correctos
+    /// 3. AutenticaciÃ³n y autorizaciÃ³n
+    /// 4. SerializaciÃ³n/deserializaciÃ³n de datos
+    /// 5. ParÃ¡metros de consulta correctos
     /// </summary>
     public class SondaEMServiceTests
     {
@@ -38,7 +38,7 @@ namespace OmniMonitor.Tests
             _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
             _mockHttpClientFactory.Setup(f => f.CreateClient()).Returns(_httpClient);
 
-            // Configuración de API
+            // ConfiguraciÃ³n de API
             _apiConfig = new ApiConfig
             {
                 BaseUrl = new BaseUrls { UrlEM = "https://api.em.test/" },
@@ -74,7 +74,7 @@ namespace OmniMonitor.Tests
             var options = Options.Create(_apiConfig);
             _service = new SondaEMService(_mockHttpClientFactory.Object, _mockAuthService.Object, options);
 
-            // Mock del token de autenticación
+            // Mock del token de autenticaciÃ³n
             _mockAuthService.Setup(a => a.GetUserTokenEMAsync("testuser", "testpass"))
                           .ReturnsAsync("test-token-123");
         }
@@ -117,7 +117,7 @@ namespace OmniMonitor.Tests
             Assert.Equal("Alert 1", result[0].AlertName);
             Assert.Equal("Alert 2", result[1].AlertName);
 
-            // Verificar que se llamó al servicio de autenticación
+            // Verificar que se llamÃ³ al servicio de autenticaciÃ³n
             _mockAuthService.Verify(a => a.GetUserTokenEMAsync("testuser", "testpass"), Times.Once);
         }
 
@@ -150,7 +150,7 @@ namespace OmniMonitor.Tests
                 () => _service.GetAlerts(null, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
 
             Assert.Equal("page", exception.ParamName);
-            Assert.Contains("El parámetro 'page' es requerido", exception.Message);
+            Assert.Contains("El parÃ¡metro 'page' es requerido", exception.Message);
         }
 
         [Fact]
@@ -161,7 +161,7 @@ namespace OmniMonitor.Tests
                 () => _service.GetAlerts(1, null, null, null, null, null, null, null, null, "testuser", "testpass"));
 
             Assert.Equal("pageSize", exception.ParamName);
-            Assert.Contains("El parámetro 'pageSize' es requerido", exception.Message);
+            Assert.Contains("El parÃ¡metro 'pageSize' es requerido", exception.Message);
         }
 
         [Fact]
@@ -172,7 +172,7 @@ namespace OmniMonitor.Tests
                 () => _service.GetAlerts(0, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
 
             Assert.Equal("page", exception.ParamName);
-            Assert.Contains("El parámetro 'page' debe ser mayor que cero", exception.Message);
+            Assert.Contains("El parÃ¡metro 'page' debe ser mayor que cero", exception.Message);
         }
 
         [Fact]
@@ -243,7 +243,7 @@ namespace OmniMonitor.Tests
             var exception = await Assert.ThrowsAsync<Exception>(
                 () => _service.GetAlertById(1, "testuser", "testpass"));
 
-            Assert.Contains("No tienes permisos: token inválido o expirado (401 Unauthorized)", exception.Message);
+            Assert.Contains("No tienes permisos: token invÃ¡lido o expirado (401 Unauthorized)", exception.Message);
         }
 
         [Fact]
@@ -318,7 +318,7 @@ namespace OmniMonitor.Tests
             var exception = await Assert.ThrowsAsync<ArgumentException>(
                 () => _service.GetEvents(-1, 10, null, null, "testuser", "testpass"));
 
-            Assert.Contains("El parámetro 'page' debe ser mayor o igual que cero", exception.Message);
+            Assert.Contains("El parÃ¡metro 'page' debe ser mayor o igual que cero", exception.Message);
         }
 
         [Fact]
@@ -423,7 +423,7 @@ namespace OmniMonitor.Tests
             var exception = await Assert.ThrowsAsync<ArgumentException>(
                 () => _service.GetExtensions(-1, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
 
-            Assert.Contains("El parámetro 'page' debe ser mayor o igual que cero", exception.Message);
+            Assert.Contains("El parÃ¡metro 'page' debe ser mayor o igual que cero", exception.Message);
         }
 
         #endregion
@@ -536,7 +536,7 @@ namespace OmniMonitor.Tests
             var exception = await Assert.ThrowsAsync<Exception>(
                 () => _service.GetResourceById(1, "testuser", "testpass"));
 
-            Assert.Contains("No tienes permisos: token inválido o expirado (401 Unauthorized)", exception.Message);
+            Assert.Contains("No tienes permisos: token invÃ¡lido o expirado (401 Unauthorized)", exception.Message);
         }
 
         [Fact]
