@@ -1,0 +1,42 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace OmniMonitor.Shared.Dtos
+{
+    public class DatasetAM
+    {
+        [Key]
+        public int Id_Dataset { get; set; }
+
+        [Required]
+        [MaxLength(1)] // 'S' o 'N'
+        public string Is_Dataset { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(256)]
+        public string Username { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string Nombre { get; set; } = string.Empty;
+
+        [MaxLength(200)]
+        public string? Descripcion { get; set; }
+
+        [MaxLength(10)]
+        public string? ContentType { get; set; }
+
+        [Required]
+        public int Type_Dataset { get; set; }
+
+        public int? Id_Event_Task { get; set; }
+
+        // Referencia a un datasetEvent (EventTaskInstanceDto)
+        public ICollection<DatasetEventTaskInstance> Grupo_Event_Task_Instance { get; set; } = new List<DatasetEventTaskInstance>();
+
+        public int? Id_Asset_Type { get; set; }
+
+        public ICollection<DatasetAsset> Grupo_Asset { get; set; } = new List<DatasetAsset>();
+    }
+}

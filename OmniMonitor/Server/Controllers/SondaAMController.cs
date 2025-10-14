@@ -237,17 +237,17 @@ public class SondaAMController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
-    /*[HttpGet("eventTaskInstances")]
+    [HttpGet("eventTaskInstances")]
     [ProducesResponseType(typeof(List<EventTaskInstanceDto>), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
     public async Task<ActionResult<List<EventTaskInstanceDto>>> GetEventTasks(
         [FromQuery] string dates,
         [FromQuery] int? page,
-        [FromQuery] string queryString,
+        [FromQuery] string? queryString,
         [FromQuery] int? bundleId,
-        [FromQuery] string state,
-        [FromQuery] string sort,
+        [FromQuery] string? state,
+        [FromQuery] string? sort,
         [FromQuery] int? taskTypeId,
         [FromQuery] int? groupId,
         [FromQuery] int? pageSize,
@@ -265,7 +265,7 @@ public class SondaAMController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
-    }*/
+    }
 
         [HttpGet("eventTaskInstance/actions/{taskInstanceId}")]
     [ProducesResponseType(typeof(List<EventTaskActionDto>), 200)]
@@ -296,6 +296,34 @@ public class SondaAMController : ControllerBase
             var stocks = await _sondaAMService.GetEventTaskInstanceStock(taskInstanceId, username, password);
             if (stocks == null || stocks.Count == 0) return NotFound("No se encontró stock para esa instancia de tarea.");
             return Ok(stocks);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
+    /// </summary>
+    [HttpGet("typeDtos")]
+    public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string username, [FromQuery] string password)
+    {
+        var typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username, password);
+        return Ok(typeDtos);
+    }
+
+    [HttpGet("asset/types")]
+    [ProducesResponseType(typeof(List<AssetTypeDto>), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes([FromQuery] string username, [FromQuery] string password)
+    {
+        try
+        {
+            var types = await _sondaAMService.GetAllAssetTypes(username, password);
+            if (types == null || types.Count == 0) return NotFound("No se encontraron tipos de asset.");
+            return Ok(types);
         }
         catch (Exception ex)
         {

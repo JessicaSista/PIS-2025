@@ -25,6 +25,10 @@ namespace OmniMonitor.Server.Context
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
+    public DbSet<DatasetAM> DatasetAM { get; set; }
+    public DbSet<DatasetEventTaskInstance> DatasetEventTaskInstance { get; set; }
+    public DbSet<DatasetStock> DatasetStock { get; set; }
+    public DbSet<DatasetAsset> DatasetAsset { get; set; }
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
