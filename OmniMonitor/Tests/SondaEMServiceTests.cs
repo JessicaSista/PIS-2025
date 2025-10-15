@@ -542,4 +542,6 @@ public class SondaEMServiceTests
         var (service, _) = SetupService((HttpStatusCode)418);
         await Assert.ThrowsAsync<HttpRequestException>(() => service.GetResourceById(1, "user", "pass"));
     }
+
+   
 }

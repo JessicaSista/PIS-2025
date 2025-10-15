@@ -212,22 +212,48 @@ public class SondaEMController : ControllerBase
         }
     }
 
-        [HttpGet("Resource/{id}")]
-    [ProducesResponseType(typeof(ResourceDto), 200)]
-    [ProducesResponseType(404)]
+
+    [HttpGet("Event/{eventId}/extensions")]
+    [ProducesResponseType(typeof(List<ExtensionDto>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<ResourceDto>> GetResourceById(int id, [FromQuery] string user, [FromQuery] string pass)
+    public async Task<ActionResult<List<ExtensionDto>>> GetextensionsByEventId(
+        int eventId,
+       [FromQuery] string user,
+       [FromQuery] string pass)
     {
         try
         {
-            var resourceType = await _sondaEMService.GetResourceById(id, user, pass);
-            if (resourceType == null) return NotFound("No se encontró el tipo de recurso.");
-            return Ok(resourceType);
+            var events = await _sondaEMService.GetExtensionByEventId(eventId, user, pass);
+            if (events == null || events.Count == 0) return NotFound("No se han encontrado eventos.");
+            return Ok(events);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
+    [HttpGet("category")]
+    [ProducesResponseType(typeof(List<CategoryDto>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<EventDto>>> GetCategory(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? sort,
+        [FromQuery] string? query,
+        [FromQuery] string user,
+        [FromQuery] string pass)
+    {
+        try
+        {
+            var category = await _sondaEMService.GetCategory(page, pageSize, sort, query, user, pass);
+            if (category == null || category.Count == 0) return NotFound("No se han encontrado Categorias.");
+            return Ok(category);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
 }
-    

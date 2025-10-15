@@ -110,10 +110,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        public IDatasetEMService Get_datasetEMService()
-        {
-            return _datasetEMService;
-        }
 
         /// <summary>
         /// Actualiza un dataset EM existente.

@@ -1,0 +1,97 @@
+﻿@page "/event-extensions"
+@inject HttpClient Http
+
+<h3>Extensiones de Evento</h3>
+
+<div class="mb-3">
+    <label>Id de Evento:</label>
+    <input @bind="EventId" type="number" class="form-control" />
+</div>
+<div class="mb-3">
+    <label>Usuario:</label>
+    <input @bind="User" class="form-control" />
+</div>
+<div class="mb-3">
+    <label>Contraseña:</label>
+    <input @bind="Pass" type="password" class="form-control" />
+</div>
+<button class="btn btn-primary" @onclick="GetExtensions">Buscar extensiones</button>
+
+@if (IsLoading)
+{
+    <p>Cargando...</p>
+}
+else if (ErrorMessage != null)
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
+else if (Extensions != null)
+{
+    @if (Extensions.Count == 0)
+    {
+        <p>No se encontraron extensiones.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ExtensionId</th>
+                    <th>Estado</th>
+                    <th>Nombre Evento</th>
+                    <th>Fuente</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ext in Extensions)
+                {
+                    <tr>
+                        <td>@ext.ExtensionId</td>
+                        <td>@ext.ExtensionState</td>
+                        <td>@ext.EventName</td>
+                        <td>@ext.ExtensionSource</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    public class ExtensionDto
+    {
+        public int ExtensionId { get; set; }
+        public string ExtensionState { get; set; }
+        public int WorkZoneId { get; set; }
+        public int EventId { get; set; }
+        public string EventName { get; set; }
+        public string? ExtensionSource { get; set; }
+    }
+
+    int EventId { get; set; }
+    string User { get; set; } = "";
+    string Pass { get; set; } = "";
+    List<ExtensionDto>? Extensions { get; set; }
+    bool IsLoading { get; set; }
+    string? ErrorMessage { get; set; }
+
+    async Task GetExtensions()
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        Extensions = null;
+        try
+        {
+            var url = $"api/SondaEM/Event/{EventId}/extensions?user={Uri.EscapeDataString(User)}&pass={Uri.EscapeDataString(Pass)}";
+            Extensions = await Http.GetFromJsonAsync<List<ExtensionDto>>(url);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

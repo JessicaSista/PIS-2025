@@ -42,11 +42,9 @@ namespace OmniMonitor.Server.Services
                 Id_Alert = request.AlertId,
                 Id_Event = request.EventId,
                 Id_Extension = request.ExtensionId,
-                Id_Resource = request.ResourceId,
                 AlertState = request.AlertState,
                 EventState = request.EventState,
                 ExtensionState = request.ExtensionState,
-                ResourceState = request.ResourceState,
                 ContentType = GetContentType(request).ToString()
             };
 
@@ -78,7 +76,6 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetResources)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
@@ -88,8 +85,7 @@ namespace OmniMonitor.Server.Services
             if (dataset.Is_Dataset == "S" &&
                 !dataset.DatasetAlerts.Any() &&
                 !dataset.DatasetEvents.Any() &&
-                !dataset.DatasetExtensions.Any() &&
-                !dataset.DatasetResources.Any())
+                !dataset.DatasetExtensions.Any())
             {
                 // Obtener usuario y credenciales
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
@@ -130,18 +126,6 @@ namespace OmniMonitor.Server.Services
                     foreach (var extension in extensions)
                         dataset.DatasetExtensions.Add(new DatasetExtension { Id_extension = extension.ExtensionId });
                 }
-
-                // 4. Resources dinámicos
-                if (dataset.Id_Resource.HasValue || !string.IsNullOrEmpty(dataset.ResourceState))
-                {
-                    // Solo soportado por ID específico
-                    if (dataset.Id_Resource.HasValue)
-                    {
-                        var resource = await _sondaEMService.GetResourceById(dataset.Id_Resource.Value, user.Username, user.Password);
-                        if (resource != null)
-                            dataset.DatasetResources.Add(new DatasetResource { Id_resource = resource.Id });
-                    }
-                }
             }
 
             return dataset;
@@ -156,7 +140,6 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetResources)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
         }
 
@@ -169,7 +152,6 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetResources)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
@@ -185,29 +167,24 @@ namespace OmniMonitor.Server.Services
             existingDataset.Id_Alert = request.AlertId;
             existingDataset.Id_Event = request.EventId;
             existingDataset.Id_Extension = request.ExtensionId;
-            existingDataset.Id_Resource = request.ResourceId;
             existingDataset.AlertState = request.AlertState;
             existingDataset.EventState = request.EventState;
             existingDataset.ExtensionState = request.ExtensionState;
-            existingDataset.ResourceState = request.ResourceState;
 
             // Marcar campos nullable como modificados si es necesario
             _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Resource).IsModified = true;
 
             // Eliminar relaciones existentes de la base de datos
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
-            _context.DatasetResources.RemoveRange(existingDataset.DatasetResources);
 
             // Limpiar colecciones
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();
-            existingDataset.DatasetResources.Clear();
 
             // Agregar nuevas relaciones
             UpdateRelationsFromRequest(existingDataset, request);
@@ -238,7 +215,6 @@ namespace OmniMonitor.Server.Services
             dataset.DatasetAlerts = request.AlertIds?.Select(id => new DatasetAlert { DatasetId = dataset.Id, Id_alert = id }).ToList() ?? new();
             dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEventEM { DatasetId = dataset.Id, Id_event = id }).ToList() ?? new();
             dataset.DatasetExtensions = request.ExtensionIds?.Select(id => new DatasetExtension { DatasetId = dataset.Id, Id_extension = id }).ToList() ?? new();
-            dataset.DatasetResources = request.ResourceIds?.Select(id => new DatasetResource { DatasetId = dataset.Id, Id_resource = id }).ToList() ?? new();
         }
 
         private static DatasetContentType GetContentType(CreateDatasetEMRequest r)
@@ -247,7 +223,6 @@ namespace OmniMonitor.Server.Services
             if (r.AlertIds?.Any() == true) type |= DatasetContentType.Alerts;
             if (r.EventIds?.Any() == true) type |= DatasetContentType.Events;
             if (r.ExtensionIds?.Any() == true) type |= DatasetContentType.Extensions;
-            if (r.ResourceIds?.Any() == true) type |= DatasetContentType.Resources;
             return type;
         }
 

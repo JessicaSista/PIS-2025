@@ -9,7 +9,7 @@
 
 <div class="container mt-4">
     <h2>🧪 Dataset EM - Página de Prueba</h2>
-    <p class="text-muted">Pantalla temporal para probar los endpoints del módulo EM (Alertas, Eventos, Extensiones, Recursos)</p>
+    <p class="text-muted">Pantalla temporal para probar los endpoints del módulo EM (Alertas, Eventos, Extensiones)</p>
 
     <div class="row">
         <!-- Panel de Creación -->
@@ -62,7 +62,7 @@
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label">Evento:</label>
-                                    <select class="form-select" @bind="selectedEventId">
+                                    <select class="form-select" @onchange="OnEventChanged">
                                         <option value="">-- Seleccionar Evento --</option>
                                         @if (events != null)
                                         {
@@ -88,19 +88,6 @@
                                         }
                                     </select>
                                 </div>
-                                <div class="mb-2">
-                                    <label class="form-label">Recurso:</label>
-                                    <select class="form-select" @bind="selectedResourceId">
-                                        <option value="">-- Seleccionar Recurso --</option>
-                                        @if (resources != null)
-                                        {
-                                            @foreach (var resource in resources)
-                                            {
-                                                <option value="@resource.Id">@resource.Name</option>
-                                            }
-                                        }
-                                    </select>
-                                </div>
                             </div>
                         </div>
                         <div class="row">
@@ -118,10 +105,6 @@
                                 <div class="mb-2">
                                     <label class="form-label">Extension State:</label>
                                     <input type="text" class="form-control" @bind="extensionState" placeholder="Estado de extensión" />
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label">Resource State:</label>
-                                    <input type="text" class="form-control" @bind="resourceState" placeholder="Estado de recurso" />
                                 </div>
                             </div>
                         </div>
@@ -179,26 +162,13 @@
                                         }
                                     </select>
                                 </div>
-                                <div class="mb-2">
-                                    <label class="form-label">Recursos (mantén Ctrl para seleccionar múltiples):</label>
-                                    <select class="form-select" multiple size="3" @onchange="OnResourceSelectionChanged" id="resourceSelect">
-                                        @if (resources != null)
-                                        {
-                                            @foreach (var resource in resources)
-                                            {
-                                                <option value="@resource.Id">@resource.Name</option>
-                                            }
-                                        }
-                                    </select>
-                                </div>
                             </div>
                         </div>
                         <div class="mb-2">
                             <small class="text-muted">
                                 Alertas: @(selectedAlertIds?.Count ?? 0) | 
                                 Eventos: @(selectedEventIds?.Count ?? 0) | 
-                                Extensiones: @(selectedExtensionIds?.Count ?? 0) | 
-                                Recursos: @(selectedResourceIds?.Count ?? 0)
+                                Extensiones: @(selectedExtensionIds?.Count ?? 0)
                             </small>
                         </div>
                     </div>
@@ -254,6 +224,36 @@
         </div>
     </div>
 
+    <!-- Panel de Eliminación de Dataset -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5>🗑️ Eliminar Dataset</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Username:</label>
+                        <input type="text" class="form-control" @bind="deleteUsername" placeholder="admin" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Dataset ID a eliminar:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" @bind="deleteDatasetId" placeholder="ID del dataset" />
+                            <button class="btn btn-danger" @onclick="DeleteDatasetById" disabled="@isLoadingDelete">
+                                @if (isLoadingDelete)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Resultados -->
     <div class="row mt-4">
         <div class="col-12">
@@ -291,30 +291,31 @@
     private bool isLoading = false;
     private bool isError = false;
     private bool isLoadingDropdowns = false;
+    private bool isLoadingDelete = false;
 
     // Datos para dropdowns
     private List<AlertDto>? alerts;
     private List<EventDto>? events;
     private List<ExtensionDto>? extensions;
-    private List<ResourceDto>? resources;
 
     // Filtros para búsqueda dinámica (ahora usando dropdowns)
     private int? selectedAlertId;
     private int? selectedEventId;
     private int? selectedExtensionId;
-    private int? selectedResourceId;
     private string alertState = "";
     private string eventState = "";
     private string extensionState = "";
-    private string resourceState = "";
 
     // Entidades específicas (ahora usando selección múltiple)
     private List<int>? selectedAlertIds = new();
     private List<int>? selectedEventIds = new();
     private List<int>? selectedExtensionIds = new();
-    private List<int>? selectedResourceIds = new();
 
-    
+    private string deleteUsername = "admin";
+    private int? deleteDatasetId;
+
+    private string rawExtensionsResponse = "";
+
     protected override async Task OnInitializedAsync()
     {
         newDataset.Username = "admin";
@@ -331,7 +332,7 @@
         try
         {
             // Cargar alertas
-            var alertsResponse = await Http.GetAsync("api/sondaem/alert?pageSize=100&user=admin&pass=admin");
+            var alertsResponse = await Http.GetAsync("api/sondaem/alert?page=1&pageSize=100&user=admin&pass=admin");
             if (alertsResponse.IsSuccessStatusCode)
             {
                 alerts = await alertsResponse.Content.ReadFromJsonAsync<List<AlertDto>>();
@@ -344,18 +345,7 @@
                 events = await eventsResponse.Content.ReadFromJsonAsync<List<EventDto>>();
             }
 
-            // Cargar extensiones
-            var extensionsResponse = await Http.GetAsync("api/sondaem/extensions?pageSize=100&user=admin&pass=admin");
-            if (extensionsResponse.IsSuccessStatusCode)
-            {
-                extensions = await extensionsResponse.Content.ReadFromJsonAsync<List<ExtensionDto>>();
-            }
-
-            // Nota: No hay endpoint para obtener todos los recursos, solo por ID individual
-            // Por ahora, inicializamos como lista vacía
-            resources = new List<ResourceDto>();
-
-            resultMessage = $"✅ Datos cargados: {alerts?.Count ?? 0} alertas, {events?.Count ?? 0} eventos, {extensions?.Count ?? 0} extensiones, {resources?.Count ?? 0} recursos";
+            resultMessage = $"✅ Datos cargados: {alerts?.Count ?? 0} alertas, {events?.Count ?? 0} eventos, {extensions?.Count ?? 0} extensiones";
         }
         catch (Exception ex)
         {
@@ -376,16 +366,41 @@
     private async Task OnEventSelectionChanged(ChangeEventArgs e)
     {
         await UpdateSelectedEventIds();
+        await LoadExtensionsByEvent(selectedEventId);
+    }
+    private async Task OnEventChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var eventId) && eventId > 0)
+        {
+            selectedEventId = eventId;
+            await LoadExtensionsByEvent(selectedEventId);
+        }
+        else
+        {
+            selectedEventId = null;
+        }
+    }
+    private async Task LoadExtensionsByEvent(int? selectEventId)
+    {
+        extensions = new List<ExtensionDto>();
+        if (selectEventId.HasValue && selectEventId.Value > 0)
+        {
+            var url = $"api/sondaem/event/{selectEventId.Value}/extensions?user=admin&pass=admin";
+            var response = await Http.GetAsync(url);
+            var raw = await response.Content.ReadAsStringAsync();
+            rawExtensionsResponse = raw;
+            Console.WriteLine($"Respuesta cruda extensiones: {raw}");
+            if (response.IsSuccessStatusCode)
+            {
+                extensions = await response.Content.ReadFromJsonAsync<List<ExtensionDto>>();
+            }
+        }
+        StateHasChanged();
     }
 
     private async Task OnExtensionSelectionChanged(ChangeEventArgs e)
     {
         await UpdateSelectedExtensionIds();
-    }
-
-    private async Task OnResourceSelectionChanged(ChangeEventArgs e)
-    {
-        await UpdateSelectedResourceIds();
     }
 
     private async Task UpdateSelectedAlertIds()
@@ -430,20 +445,6 @@
         }
     }
 
-    private async Task UpdateSelectedResourceIds()
-    {
-        try
-        {
-            var selectedValues = await JSRuntime.InvokeAsync<string[]>("getSelectedValues", "resourceSelect");
-            selectedResourceIds = selectedValues?.Select(v => int.Parse(v)).ToList() ?? new List<int>();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating resource selection: {ex.Message}");
-        }
-    }
-
     private async Task CreateDataset()
     {
         isLoading = true;
@@ -459,11 +460,9 @@
                 newDataset.AlertId = selectedAlertId;
                 newDataset.EventId = selectedEventId;
                 newDataset.ExtensionId = selectedExtensionId;
-                newDataset.ResourceId = selectedResourceId;
                 newDataset.AlertState = alertState;
                 newDataset.EventState = eventState;
                 newDataset.ExtensionState = extensionState;
-                newDataset.ResourceState = resourceState;
             }
             else
             {
@@ -471,7 +470,6 @@
                 newDataset.AlertIds = selectedAlertIds?.Any() == true ? selectedAlertIds : null;
                 newDataset.EventIds = selectedEventIds?.Any() == true ? selectedEventIds : null;
                 newDataset.ExtensionIds = selectedExtensionIds?.Any() == true ? selectedExtensionIds : null;
-                newDataset.ResourceIds = selectedResourceIds?.Any() == true ? selectedResourceIds : null;
             }
 
             var response = await Http.PostAsJsonAsync("api/datasetem", newDataset);
@@ -581,6 +579,53 @@
             isLoading = false;
         }
     }
+
+    private async Task DeleteDatasetById()
+    {
+        if (!deleteDatasetId.HasValue)
+        {
+            resultMessage = "❌ Por favor ingresa un ID de dataset para eliminar";
+            isError = true;
+            return;
+        }
+
+        isLoadingDelete = true;
+        resultMessage = "";
+        resultData = "";
+        isError = false;
+
+        try
+        {
+            // Ajusta la URL según tu API (usualmente DELETE api/datasetem/{id}/{username})
+            var response = await Http.DeleteAsync($"api/datasetem/{deleteDatasetId.Value}/{deleteUsername}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                resultMessage = $"✅ Dataset con ID {deleteDatasetId.Value} eliminado correctamente";
+                resultData = "";
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                resultMessage = $"❌ No se encontró el dataset con ID {deleteDatasetId.Value}";
+                isError = true;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                resultMessage = $"❌ Error al eliminar dataset: {response.StatusCode} - {errorContent}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            resultMessage = $"❌ Excepción: {ex.Message}";
+            isError = true;
+        }
+        finally
+        {
+            isLoadingDelete = false;
+        }
+    }
 }
 
 <script>
@@ -592,3 +637,6 @@
         return selectedOptions.map(option => option.value);
     };
 </script>
+<div>
+       <small>Evento seleccionado: @selectedEventId</small>
+   </div>

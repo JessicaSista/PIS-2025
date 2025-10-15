@@ -25,5 +25,11 @@
     <ProjectReference Include="..\Shared\OmniMonitor.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="ApiConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 
 </Project>

@@ -134,7 +134,7 @@ public class SondaUMService : ISondaUMService
         {
             PropertyNameCaseInsensitive = true
         });
-
+        
         return parsed?.results ?? new List<News>();
     }
 
