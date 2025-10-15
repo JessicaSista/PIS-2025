@@ -22,42 +22,6 @@ namespace OmniMonitor.Server.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
-                {
-                    b.Property<int>("IdDashboard")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id_dashboard");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdDashboard"));
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("descripcion");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("fecha_creacion");
-
-                    b.Property<DateTime>("FechaModificacion")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("fecha_modificacion");
-
-                    b.Property<int?>("GrupoVisualizacion")
-                        .HasColumnType("int")
-                        .HasColumnName("grupo_visualizacion");
-
-                    b.Property<string>("JsonDiseno")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)")
-                        .HasColumnName("JSON_diseño");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("nombre");
             modelBuilder.Entity("CrossModuleJoin", b =>
                 {
                     b.Property<int>("Id")
@@ -88,17 +52,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)")
-                        .HasColumnName("username");
-
-                    b.HasKey("IdDashboard");
-
-                    b.HasIndex("Username");
-
-                    b.HasIndex("Username", "Nombre")
-                        .IsUnique();
-
-                    b.ToTable("Dashboards");
                         .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
@@ -139,6 +92,104 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("JoinOperands");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
+                {
+                    b.Property<int>("IdDashboard")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id_dashboard");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdDashboard"));
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("descripcion");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime>("FechaModificacion")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<int?>("GrupoVisualizacion")
+                        .HasColumnType("int")
+                        .HasColumnName("grupo_visualizacion");
+
+                    b.Property<string>("JsonDiseno")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("JSON_diseño");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("nombre");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("username");
+
+                    b.HasKey("IdDashboard");
+
+                    b.HasIndex("Username");
+
+                    b.HasIndex("Username", "Nombre")
+                        .IsUnique();
+
+                    b.ToTable("Dashboards");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
+                {
+                    b.Property<int>("Id_Dataset")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id_Dataset"));
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int?>("Id_Asset_Type")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Event_Task")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Is_Dataset")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Type_Dataset")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("Id_Dataset");
+
+                    b.ToTable("DatasetAM");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
                 {
                     b.Property<int>("Id")
@@ -158,6 +209,28 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("DatasetId");
 
                     b.ToTable("DatasetAlerts");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAsset", b =>
+                {
+                    b.Property<int>("Grupo_Asset")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Grupo_Asset"));
+
+                    b.Property<int>("DatasetAMId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Id_Asset")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Grupo_Asset");
+
+                    b.HasIndex("DatasetAMId");
+
+                    b.ToTable("DatasetAsset");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
@@ -282,6 +355,27 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("DatasetEventsEM");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetAMId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Event_Task_Instance")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetAMId");
+
+                    b.ToTable("DatasetEventTaskInstance");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetExtension", b =>
                 {
                     b.Property<int>("Id")
@@ -347,74 +441,6 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("DatasetsIM");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
-                {
-                    b.Property<int>("Id_Dataset")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id_Dataset"));
-
-                    b.Property<string>("ContentType")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Descripcion")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int?>("Id_Asset_Type")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Id_Event_Task")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Is_Dataset")
-                        .IsRequired()
-                        .HasMaxLength(1)
-                        .HasColumnType("nvarchar(1)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("Type_Dataset")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id_Dataset");
-
-                    b.ToTable("DatasetAM");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAsset", b =>
-                {
-                    b.Property<int>("Grupo_Asset")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Grupo_Asset"));
-
-                    b.Property<int>("DatasetAMId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Id_Asset")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Grupo_Asset");
-
-                    b.HasIndex("DatasetAMId");
-
-                    b.ToTable("DatasetAsset");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetNews", b =>
                 {
                     b.Property<int>("Id")
@@ -455,6 +481,27 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("DatasetId");
 
                     b.ToTable("DatasetResources");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
+                {
+                    b.Property<int>("Grupo_Stock")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Grupo_Stock"));
+
+                    b.Property<int>("DatasetEventTaskInstanceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Stock")
+                        .HasColumnType("int");
+
+                    b.HasKey("Grupo_Stock");
+
+                    b.HasIndex("DatasetEventTaskInstanceId");
+
+                    b.ToTable("DatasetStock");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
@@ -499,48 +546,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DatasetsUM");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DatasetAMId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Id_Event_Task_Instance")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetAMId");
-
-                    b.ToTable("DatasetEventTaskInstance");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
-                {
-                    b.Property<int>("Grupo_Stock")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Grupo_Stock"));
-
-                    b.Property<int>("DatasetEventTaskInstanceId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Id_Stock")
-                        .HasColumnType("int");
-
-                    b.HasKey("Grupo_Stock");
-
-                    b.HasIndex("DatasetEventTaskInstanceId");
-
-                    b.ToTable("DatasetStock");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
@@ -1131,15 +1136,6 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("Visualizaciones");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAsset", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetAM", "DatasetAM")
-                        .WithMany("Grupo_Asset")
-                        .HasForeignKey("DatasetAMId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DatasetAM");
             modelBuilder.Entity("Report", b =>
                 {
                     b.Property<int>("Id")
@@ -1215,6 +1211,17 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Dataset");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAsset", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetAM", "DatasetAM")
+                        .WithMany("Grupo_Asset")
+                        .HasForeignKey("DatasetAMId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DatasetAM");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
@@ -1226,26 +1233,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Dataset");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetAM", "DatasetAM")
-                        .WithMany("Grupo_Event_Task_Instance")
-                        .HasForeignKey("DatasetAMId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DatasetAM");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", "DatasetEventTaskInstance")
-                        .WithMany("Grupo_Stock")
-                        .HasForeignKey("DatasetEventTaskInstanceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DatasetEventTaskInstance");
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEvent", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.DatasetUM", "Dataset")
@@ -1266,6 +1253,17 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetAM", "DatasetAM")
+                        .WithMany("Grupo_Event_Task_Instance")
+                        .HasForeignKey("DatasetAMId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DatasetAM");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetExtension", b =>
@@ -1299,6 +1297,17 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", "DatasetEventTaskInstance")
+                        .WithMany("Grupo_Stock")
+                        .HasForeignKey("DatasetEventTaskInstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DatasetEventTaskInstance");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
@@ -1377,9 +1386,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
-                {
-                    b.Navigation("GrupoVisualizaciones");
             modelBuilder.Entity("ReportJoin", b =>
                 {
                     b.HasOne("CrossModuleJoin", "CrossModuleJoin")
@@ -1399,6 +1405,18 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Report");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
+                {
+                    b.Navigation("GrupoVisualizaciones");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
+                {
+                    b.Navigation("Grupo_Asset");
+
+                    b.Navigation("Grupo_Event_Task_Instance");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
                 {
                     b.Navigation("DatasetAlerts");
@@ -1410,21 +1428,16 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("DatasetResources");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
+                {
+                    b.Navigation("Grupo_Stock");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetIM", b =>
                 {
                     b.Navigation("DatasetDevices");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
-                {
-                    b.Navigation("Grupo_Asset");
-
-                    b.Navigation("Grupo_Event_Task_Instance");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
-                {
-                    b.Navigation("Grupo_Stock");
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
                 {
                     b.Navigation("DatasetEvents");
