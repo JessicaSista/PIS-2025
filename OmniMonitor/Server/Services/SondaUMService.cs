@@ -14,9 +14,11 @@ public interface  ISondaUMService
 
     public Task<List<News>> GetAllNews(string username, string password, int page = 1, string? queryString = null, string? sort = null, int pageSize = 10);
     public Task<News?> GetNewsById(int id, string username, string password);
+    public Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10);
 
     public Task<List<Event>> GetAllEvents(string username, string password);
     public Task<Event?> GetEventById(int id, string username, string password);
+    public Task<List<Event>> GetEventsByZoneId(int zoneId, string username, string password);
 
 
     public Task<string> TestUMAPI(string username, string password);
@@ -162,6 +164,45 @@ public class SondaUMService : ISondaUMService
         return parsed;
     }
 
+    public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
+    {
+        string baseUrl = _apiConfig.BaseUrl.UrlUM;
+        string endpoint = _apiConfig.EndpointsUM["News"]["News"];
+
+        // Construir query string con el filtro de zona
+        var queryParams = new List<string>();
+        queryParams.Add($"startIndex={startIndex}");
+        queryParams.Add($"count={count}");
+        queryParams.Add($"zoneId={zoneId}");
+        if (!string.IsNullOrEmpty(queryString))
+            queryParams.Add($"queryString={Uri.EscapeDataString(queryString)}");
+        if (!string.IsNullOrEmpty(sort))
+            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+
+        string getDataUrl = $"{baseUrl}{endpoint}?{string.Join("&", queryParams)}";
+
+        // Obtener token
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        // Llamada HTTP
+        var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return new List<News>();
+
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        // Deserializar
+        var parsed = JsonSerializer.Deserialize<NewsResponse>(responseBody, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        return parsed?.results ?? new List<News>();
+    }
+
     public async Task<List<Event>> GetAllEvents(string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
@@ -207,6 +248,37 @@ public class SondaUMService : ISondaUMService
             PropertyNameCaseInsensitive = true
         });
         return parsed;
+    }
+
+    public async Task<List<Event>> GetEventsByZoneId(int zoneId, string username, string password)
+    {
+        // Primero obtener la zona para obtener sus áreas geográficas
+        var zone = await GetZoneById(zoneId, username, password);
+        if (zone == null)
+        {
+            return new List<Event>();
+        }
+
+        // Obtener todos los eventos
+        var allEvents = await GetAllEvents(username, password);
+        if (allEvents == null || !allEvents.Any())
+        {
+            return new List<Event>();
+        }
+
+        // Filtrar eventos que están dentro de las áreas de la zona
+        var eventsInZone = new List<Event>();
+        
+        foreach (var eventItem in allEvents)
+        {
+            if (eventItem.Location != null && 
+                GeometryHelper.IsPointInZone(eventItem.Location, zone.Areas))
+            {
+                eventsInZone.Add(eventItem);
+            }
+        }
+
+        return eventsInZone;
     }
 }
 
