@@ -42,6 +42,24 @@
                 <span class="ml-2">@SharedLocalizer["QuickViewTitle"]</span>
             }
         </MudNavLink>
+        <!--BORRAR-->
+        @if (_drawerOpen)
+        {
+            <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary mt-3">Pruebas</MudText>
+        }
+        <MudNavLink Href="/datasetum-test" Icon=@Icons.Material.Filled.Science>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Dataset UM Test</span>
+            }
+        </MudNavLink>
+        <!--BORRAR-->
+        <MudNavLink Href="/datasetem-test" Icon=@Icons.Material.Filled.Science>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Dataset EM Test</span>
+            }
+        </MudNavLink>
               
         </MudNavMenu>
     </MudPaper>

@@ -176,7 +176,7 @@
                         
                         if (response.IsSuccessStatusCode)
                         {
-                            var dataset = await response.Content.ReadFromJsonAsync<Dataset>();
+                            var dataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
                             
                             if (dataset != null)
                             {

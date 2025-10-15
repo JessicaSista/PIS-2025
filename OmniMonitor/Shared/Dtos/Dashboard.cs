@@ -1,31 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OmniMonitor.Shared.Dtos
 {
-    public class DashboardDto
+    /// <summary>
+    /// Representa un dashboard personalizable del usuario
+    /// </summary>
+    public class Dashboard
     {
         [Key]
-        public int Id { get; set; }   // Identificador único del dashboard
-
-        [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;  // Nombre del dashboard
-
-        [MaxLength(200)]
-        public string? Description { get; set; }          // Descripción opcional
+        [Column("id_dashboard")]
+        public int IdDashboard { get; set; }
 
         [Required]
         [MaxLength(256)]
-        public string Username { get; set; } = string.Empty;  // Usuario propietario
+        [Column("username")]
+        public string Username { get; set; } = string.Empty;
 
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow; // Fecha de creación
+        [MaxLength(100)]
+        [Column("nombre")]
+        public string Nombre { get; set; } = string.Empty;
 
-        public DateTime? UpdatedAt { get; set; } = null;          // Última modificación opcional
+        [MaxLength(500)]
+        [Column("descripcion")]
+        public string? Descripcion { get; set; }
 
-        // Relación opcional con widgets u otros elementos del dashboard
-        //public virtual ICollection<DashboardWidget>? DashboardWidgets { get; set; } = new List<DashboardWidget>();
+        [Column("grupo_visualizacion")]
+        public int? GrupoVisualizacion { get; set; }
+
+        [Column("JSON_diseño")]
+        [MaxLength(4000)]
+        public string? JsonDiseno { get; set; }
+
+        [Column("fecha_creacion")]
+        public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+        [Column("fecha_modificacion")]
+        public DateTime FechaModificacion { get; set; } = DateTime.UtcNow;
+
+        // Propiedad de navegación para la relación con GrupoVisualizacion
+        public virtual ICollection<GrupoVisualizacion> GrupoVisualizaciones { get; set; } = new List<GrupoVisualizacion>();
     }
 }
