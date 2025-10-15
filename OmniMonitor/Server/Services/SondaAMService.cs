@@ -55,6 +55,11 @@ public interface ISondaAMService
     // GET stock for event task instance
     Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username, string password);
 
+    Task<List<int>> GetTypeDtoIdsFromEventTaskInstances(string username, string password);
+    Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username, string password);
+
+    // GET all asset types
+    Task<List<AssetTypeDto>> GetAllAssetTypes(string username, string password);
 }
 
 
@@ -642,21 +647,36 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron event task instances (404 NotFound).");
-            
+            throw new Exception("No se encontraron event task instances (404 NotFound).");
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
-        //response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         response.EnsureSuccessStatusCode();
-        if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
+        if (string.IsNullOrWhiteSpace(responseBody))
+            throw new Exception("La respuesta de la API está vacía.");
+
+        // Detecta si la respuesta es un array o un objeto
+        var trimmed = responseBody.TrimStart();
+        if (trimmed.StartsWith("["))
+        {
+            // Es un array directo de instancias
+            var list = JsonSerializer.Deserialize<List<EventTaskInstanceDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return list ?? new List<EventTaskInstanceDto>();
+        }
+        else if (trimmed.StartsWith("{"))
+        {
+            // Es un objeto envolvente
+            var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.EventTaskInstanceApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return apiResponse?.Results ?? new List<EventTaskInstanceDto>();
+        }
+        else
+        {
             throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
-        var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.EventTaskInstanceApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        return apiResponse?.Results ?? new List<EventTaskInstanceDto>();
+        }
     }
 
     public async Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username, string password)
@@ -725,4 +745,109 @@ public class SondaAMService : ISondaAMService
             var stocks = System.Text.Json.JsonSerializer.Deserialize<List<EventTaskInstanceStockDto>>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return stocks ?? new List<EventTaskInstanceStockDto>();
         }
+
+        // Devuelve una lista de IDs de los typeDto de cada EventTaskInstanceDto de la lista
+public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string username, string password)
+{
+    var eventTaskInstances = await GetEventTaskInstances(
+        "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
+        null,                                      // page (int?)
+        "",                                        // queryString
+        null,                                      // bundleId
+        "",                                        // state
+        "",                                        // sort
+        null,                                      // taskTypeId
+        null,                                      // groupId
+        null,                                      // pageSize
+        false,                                     // tasksAssignedToMe
+        false,                                     // tasksPendingApproval
+        username,
+        password
+    );
+
+    var ids = new List<int>();
+    if (eventTaskInstances == null)
+        return ids;
+    foreach (var instance in eventTaskInstances)
+    {
+        var typeDtoId = instance?.EventTaskDto?.TypeDto?.Id;
+        if (typeDtoId != null)
+            ids.Add(typeDtoId.Value);
+    }
+    return ids.Distinct().ToList();
+}
+
+public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username, string password)
+{
+    var eventTaskInstances = await GetEventTaskInstances(
+        "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
+        null,                                      // page (int?)
+        "",                                        // queryString
+        null,                                      // bundleId
+        "",                                        // state
+        "",                                        // sort
+        null,                                      // taskTypeId
+        null,                                      // groupId
+        null,                                      // pageSize
+        false,                                     // tasksAssignedToMe
+        false,                                     // tasksPendingApproval
+        username,
+        password
+    );
+
+    var typeDtos = new List<TaskTypeDto>();
+    if (eventTaskInstances == null)
+        return typeDtos;
+    foreach (var instance in eventTaskInstances)
+    {
+        var typeDto = instance?.EventTaskDto?.TypeDto;
+        if (typeDto != null)
+            typeDtos.Add(typeDto);
+    }
+    // Devuelve solo los typeDto únicos por Id
+    return typeDtos.GroupBy(t => t.Id).Select(g => g.First()).ToList();
+}
+
+public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username, string password)
+    {
+        string baseUrl = _apiConfig.BaseUrl.UrlAM;
+        string endpoint = _apiConfig.EndpointsAM["AssetType"]["GetAll"];
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+
+        string getDataUrl = baseUrl + endpoint;
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Accept.Clear();
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return new List<AssetTypeDto>();
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
+        if (string.IsNullOrWhiteSpace(responseBody))
+            return new List<AssetTypeDto>();
+
+        var trimmed = responseBody.TrimStart();
+        if (trimmed.StartsWith("{"))
+        {
+            var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.AssetTypeApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return apiResponse?.Results ?? new List<AssetTypeDto>();
+        }
+        else if (trimmed.StartsWith("["))
+        {
+            var listResponse = JsonSerializer.Deserialize<List<AssetTypeDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return listResponse ?? new List<AssetTypeDto>();
+        }
+        else
+        {
+            throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
+        }
+    }
 }
