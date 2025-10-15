@@ -3,18 +3,14 @@
 
 <MudBreakpointProvider>
     <MudGrid Class="pa-10 dashboard" Spacing="6">
-        @for (int i = 0; i < Widgets.Count; i++)
+        @for (int i = 0; i < CardsData.Count; i++)
         {
-            if (i >= WidgetSizes.Count)
-            {
-                break; // Evita errores si hay más widgets que tamaños definidos
-            }
-            var (esKPI, _widget) = Widgets[i];
-            var (ancho, alto) = WidgetSizes[i];
-            List<System.String> _datosWidget = _widget.Split(",").ToList();
-            <DashboardCard Title="@_datosWidget[0]" esKPI=@esKPI dominio=@Domain Datos=@GetRandomData() GraphType=@GetRandomType() width=@ancho height=@alto></DashboardCard>
+            @* var (esKPI, _widget) = Widgets[i]; *@
+            
+            var (id, ancho, alto) = CardsData[i];
+
+            <DashboardCard Id=@id Width=@ancho Height=@alto></DashboardCard>
         }
-)
         <MudItem xs="12" lg="3" md="6">
             <MudPaper Class="add-card-widget d-flex flex-column justify-center align-center mud-width-full pa-10"
                       Style="background-color: var(--card);
@@ -41,31 +37,32 @@
 </MudBreakpointProvider>
 
 @code {
-    [Parameter] public List<(System.Boolean,System.String)> Widgets { get; set; } = new List<(System.Boolean, System.String)>();
-    [Parameter] public List<(System.Int32, System.Int32)> WidgetSizes { get; set; } = new List<(System.Int32, System.Int32)>();
+    // [Parameter] public List<(System.Int32)> VisualizationIDs { get; set; } = new List<(System.Int32)>();
+    [Parameter] public List<(System.Int32, System.Int32, System.Int32)> CardsData { get; set; } = new List<(System.Int32, System.Int32, System.Int32)>();
 
-    public System.String[] Domain = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29" };
-    public (System.String, System.String, double, double[])[] GraphData =
-    {
-        ("cos(x)", "#fd23df", 1, new double[] {1.0, 0.54, -0.42, -0.99, -0.65, 0.28, 0.96, 0.75, -0.15, -0.91, -0.84, 0.0, 0.84, 0.91, 0.14, -0.76, -0.96, -0.28, 0.66, 0.99, 0.41, -0.55, -1.0, -0.53, 0.42, 0.99, 0.65, -0.29, -0.96, -0.75}),
-        ("sin(x)", "#23dffd", 1, new double[] {0.0, 0.84, 0.91, 0.14, -0.76, -0.96, -0.28, 0.66, 0.99, 0.41, -0.54, -1.0, -0.54, 0.42, 0.99, 0.65, -0.29, -0.96, -0.75, 0.15, 0.91, 0.84, -0.01, -0.85, -0.91, -0.13, 0.76, 0.96, 0.27, -0.66}),
-        ("log_e(x)", "#dffd23", 1, new double[] {-1, 0.0, 0.69, 1.1, 1.39, 1.61, 1.79, 1.95, 2.08, 2.2, 2.3, 2.4, 2.48, 2.56, 2.64, 2.71, 2.77, 2.83, 2.89, 2.94, 3.0, 3.04, 3.09, 3.14, 3.18, 3.22, 3.26, 3.3, 3.33, 3.37})
-    };
+    
+    // public System.String[] Domain = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29" };
+    // public (System.String, System.String, double, double[])[] GraphData =
+    // {
+    //     ("cos(x)", "#fd23df", 1, new double[] {1.0, 0.54, -0.42, -0.99, -0.65, 0.28, 0.96, 0.75, -0.15, -0.91, -0.84, 0.0, 0.84, 0.91, 0.14, -0.76, -0.96, -0.28, 0.66, 0.99, 0.41, -0.55, -1.0, -0.53, 0.42, 0.99, 0.65, -0.29, -0.96, -0.75}),
+    //     ("sin(x)", "#23dffd", 1, new double[] {0.0, 0.84, 0.91, 0.14, -0.76, -0.96, -0.28, 0.66, 0.99, 0.41, -0.54, -1.0, -0.54, 0.42, 0.99, 0.65, -0.29, -0.96, -0.75, 0.15, 0.91, 0.84, -0.01, -0.85, -0.91, -0.13, 0.76, 0.96, 0.27, -0.66}),
+    //     ("log_e(x)", "#dffd23", 1, new double[] {-1, 0.0, 0.69, 1.1, 1.39, 1.61, 1.79, 1.95, 2.08, 2.2, 2.3, 2.4, 2.48, 2.56, 2.64, 2.71, 2.77, 2.83, 2.89, 2.94, 3.0, 3.04, 3.09, 3.14, 3.18, 3.22, 3.26, 3.3, 3.33, 3.37})
+    // };
 
-    public System.Int32[] GraphType = { 0, 1, 2 }; // linea, barras, área
+    // public System.Int32[] GraphType = { 0, 1, 2 }; linea, barras, área
 
-    public (System.String, System.String, double, double[])[] GetRandomData()
-    {
-        Random rnd = new Random();
-        (System.String, System.String, double, double[])[] ret = new (System.String, System.String, double, double[])[1];
-        System.Int32 index = rnd.Next(0, 3);
-        ret[0] = GraphData[index];
-        return ret;
-    }
+    // public (System.String, System.String, double, double[])[] GetRandomData()
+    // {
+    //     Random rnd = new Random();
+    //     (System.String, System.String, double, double[])[] ret = new (System.String, System.String, double, double[])[1];
+    //     System.Int32 index = rnd.Next(0, 3);
+    //     ret[0] = GraphData[index];
+    //     return ret;
+    // }
 
-    public System.Int32 GetRandomType()
-    {
-        Random rnd = new Random();
-        return GraphType[rnd.Next(0, 3)];
-    }
+    // public System.Int32 GetRandomType()
+    // {
+    //     Random rnd = new Random();
+    //     return GraphType[rnd.Next(0, 3)];
+    // }
 }
