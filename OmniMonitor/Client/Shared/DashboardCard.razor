@@ -67,7 +67,8 @@
     [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
 
     //Parametros
-    [Parameter] public int height {get; set;} = 400;
+    [Parameter] public int height {get; set;}
+    [Parameter] public int width { get; set; }
     [Parameter] public int WidthLg { get; set; } = 3;
     [Parameter] public int WidthMd { get; set; } = 6;
     [Parameter] public int WidthXs { get; set; } = 12;

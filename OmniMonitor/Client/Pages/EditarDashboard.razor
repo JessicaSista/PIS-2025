@@ -1,0 +1,232 @@
+﻿@page "/dashboards/edit/{id:int}"
+@attribute [Authorize]
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using MudBlazor
+@using OmniMonitor.Shared
+@using Microsoft.AspNetCore.Components
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Dashboards> Localizer
+@using System.Text.Json;
+
+<PageTitle>Dashboards</PageTitle>
+
+<!-- Encabezado -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@(dashName)</MudText>
+    </MudStack>
+    
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">
+        @Localizer["Gestiona"]
+    </MudText>
+</MudStack>
+
+<Dashboard Widgets=@ternasVisualizacion WidgetSizes=@resultList></Dashboard>
+
+<style>
+    @@media (max-width: 768px) {
+        .button-text-filter {
+            display: none !important;
+        }
+
+        .filter-button .mud-button-icon-start,
+        .filter-button .mud-button-icon-start svg {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto !important;
+        }
+    }
+</style>
+
+
+@code {
+    [Parameter] public int id { get; set; }
+
+    private string dashName = string.Empty;
+    private string dashDesc = string.Empty;
+
+    private List<(bool, string)> ternasVisualizacion = new List<(bool, string)> { };
+    private List<(int,int)> resultList = new List<(int, int)> { };
+
+    // Datos de dos dashboards de ejemplo
+    
+    private List<string> dashboardNames = new List<string> {"dash1","dash2"};
+    private List<string> dashboardDescriptions = new List<string> {"desc1","desc2"};
+    private List<string> jsonLayoutStrings = new List<string>
+    {
+        // Primer string JSON (índice 0)
+        @"{ ""cards"": [ 
+                { ""ancho"": 4, ""alto"": 400 }, 
+                { ""ancho"": 4, ""alto"": 400 } ] 
+        }",
+
+        // Segundo string JSON (índice 1)
+        @"{ ""cards"": [ { ""ancho"": 5, ""alto"": 500 }] }"
+    };
+    private List<(bool, string)> ternasList = new List<(bool, string)>
+    {
+        // TERNAS CON DATOS
+        (true, "DATA1,2999,false"),
+        (true, "DATA2,2343.00,false"),
+        (true, "DATA3,234342.99,true"),
+        (true, "DATA4,484342.99,false"),
+
+        // TERNAS CON DESCRIPCIONES (el false indica que no es un item de datos)
+        (false, "Sensor de Proximidad"),
+        (false, "Dispositivo de Monitoreo"),
+        (false, "Tarjeta de Expansión"),
+        (false, "Módulo Wi-Fi"),
+        (false, "Sensor de Flujo de Agua"),
+        (false, "Medidor de Voltaje"),
+        (false, "Batería de Litio Recargable"),
+        (false, "Cargador de Baterías")
+    };
+    private List<int> indices1 = new List<int>
+    {
+        1, 
+        5, 
+    };
+    private List<int> indices2 = new List<int>
+    {
+        7,  
+    };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
+        dashName = dashboardNames[id];
+        dashDesc = dashboardDescriptions[id];
+        var indices = id == 0 ? indices1 : indices2;
+
+        for (int i = 0; i < indices.Count; i++)
+        {
+            Console.WriteLine($"Índice seleccionado: {indices[i]}");
+            ternasVisualizacion.Add(ternasList[indices[i]]);
+            Console.WriteLine(i);
+        }
+        
+        // Usamos 'using' para asegurar la liberación de memoria del JsonDocument
+        using (JsonDocument design = JsonDocument.Parse(jsonLayoutStrings[id]))
+        {
+            var root = design.RootElement;
+
+            // 1. Obtener la propiedad "cards"
+            if (root.TryGetProperty("cards", out JsonElement cardsElement) && cardsElement.ValueKind == JsonValueKind.Array)
+            {
+                // 2. Iterar sobre cada elemento del array y crear un objeto CardData
+                foreach (var cardElement in cardsElement.EnumerateArray())
+                {
+                    if (cardElement.TryGetProperty("ancho", out JsonElement anchoElement) && 
+                        cardElement.TryGetProperty("alto", out JsonElement altoElement))
+                    {
+                        // Agregar el nuevo objeto CardData a la lista de resultados
+                        resultList.Add((anchoElement.GetInt32(),altoElement.GetInt32()));
+                    }
+                }
+            }
+        }
+
+    }
+
+    // private async Task GuardarLocalAsync()
+    // {
+    //     var json = System.Text.Json.JsonSerializer.Serialize(dashboards);
+    //     await JS.InvokeVoidAsync("localStorage.setItem", "dashboards", json);
+    // }
+
+
+    // private async Task EditarDashboard(DashboardDto dashboard)
+    // {
+    //     if (dashboard is null) return;
+
+    //     var titulo = Localizer["Editar Dashboard"];
+    //     var mensaje = Localizer["Ingrese un nuevo nombre y descripción"];
+
+    //     var parameters = new DialogParameters
+    //     {
+    //         ["OnConfirm"] = EventCallback.Factory.Create<DashboardDto>(this, async (DashboardDto actualizado) =>
+    //         {
+    //             dashboard.Name = actualizado.Name;
+    //             dashboard.Description = actualizado.Description;
+    //             await GuardarLocalAsync();
+
+    //             Snackbar.Add($"'{dashboard.Name}' actualizado", Severity.Success, config =>
+    //             {
+    //                 config.SnackbarVariant = Variant.Filled;
+    //             });
+    //         })
+    //     };
+
+    //     var options = new DialogOptions
+    //     {
+    //         CloseButton = true,
+    //         MaxWidth = MaxWidth.Small,
+    //         FullWidth = true,
+    //         CloseOnEscapeKey = true,
+    //         BackdropClick = false,
+    //         Position = DialogPosition.Center,
+    //         NoHeader = false,
+    //         BackgroundClass = "mud-overlay-dark"
+    //     };
+
+    //     await DialogService.ShowAsync<CreateDashboardDialog>(titulo, parameters, options);
+    // }
+
+    // private async Task ConfirmEliminar(DashboardDto dashboard)
+    // {
+    //     if (dashboard is null) return;
+
+    //     bool? result = await DialogService.ShowMessageBox(
+    //         Localizer["Confirmación"],
+    //         (MarkupString)$"<b>{dashboard.Name}</b> {Localizer["PreguntaEliminar1"]}",
+    //         yesText: Localizer["Eliminar"],
+    //         cancelText: Localizer["Cancelar"],
+    //         options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+    //     );
+
+    //     if (result == true)
+    //     {
+    //         dashboards.RemoveAll(d => d.Id == dashboard.Id);
+    //         filteredDashboards.RemoveAll(d => d.Id == dashboard.Id);
+    //         await GuardarLocalAsync();
+
+    //         Snackbar.Add($"'{dashboard.Name}' eliminado correctamente", Severity.Success, config =>
+    //         {
+    //             config.SnackbarVariant = Variant.Filled;
+    //         });
+    //         StateHasChanged();
+    //     }
+    // }
+
+    // private void FilterDashboards()
+    // {
+    //     if (string.IsNullOrWhiteSpace(searchText))
+    //     {
+    //         filteredDashboards = dashboards.ToList();
+    //         return;
+    //     }
+
+    //     var normalizedSearch = NormalizeText(searchText);
+    //     filteredDashboards = dashboards
+    //         .Where(d => NormalizeText(d.Name).Contains(normalizedSearch))
+    //         .ToList();
+    // }
+
+    // private string NormalizeText(string text)
+    // {
+    //     if (string.IsNullOrEmpty(text)) return string.Empty;
+    //     var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+    //     var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+    //     return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
+    // }
+}

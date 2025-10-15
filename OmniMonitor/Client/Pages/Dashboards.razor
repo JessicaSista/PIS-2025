@@ -1,19 +1,20 @@
 @page "/dashboards"
 @attribute [Authorize]
-<Dashboard Widgets=@Widgets></Dashboard>
+@* <Dashboard Widgets=@Widgets></Dashboard> *@
 @code {
-    (bool, string)[] Widgets = new (bool, string)[] {
-        (true, "DATA1,2999,false"),
-        (true,"DATA2,2343.00,false"),
-        (true,"DATA3,234342.99,true"),
-        (true,"DATA4,484342.99,false"),
-        (false, "Sensor de Proximidad"),
-        (false, "Dispositivo de Monitoreo"),
-        (false, "Tarjeta de Expansión"),
-        (false, "Módulo Wi-Fi"),
-        (false, "Sensor de Flujo de Agua"),
-        (false, "Medidor de Voltaje"),
-        (false, "Batería de Litio Recargable"),
-        (false, "Cargador de Baterías")
-    };
+    private List<(bool, string)> Widgets = new()
+{
+    (true, "DATA1,2999,false"),
+    (true,"DATA2,2343.00,false"),
+    (true,"DATA3,234342.99,true"),
+    (true,"DATA4,484342.99,false"),
+    (false, "Sensor de Proximidad"),
+    (false, "Dispositivo de Monitoreo"),
+    (false, "Tarjeta de Expansión"),
+    (false, "Módulo Wi-Fi"),
+    (false, "Sensor de Flujo de Agua"),
+    (false, "Medidor de Voltaje"),
+    (false, "Batería de Litio Recargable"),
+    (false, "Cargador de Baterías")
+};
 }
