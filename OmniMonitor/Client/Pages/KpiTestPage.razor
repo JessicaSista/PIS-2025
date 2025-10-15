@@ -223,6 +223,73 @@
     </MudCardContent>
 </MudCard>
 
+<MudCard Class="mt-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Todos los KPIs del usuario</MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudButton OnClick="LoadAllKpis" Variant="Variant.Text" Color="MudBlazor.Color.Primary" StartIcon="Icons.Material.Filled.Refresh">
+                Recargar KPIs
+            </MudButton>
+        </CardHeaderActions>
+    </MudCardHeader>
+    <MudCardContent>
+        @if (allKpis.Any())
+        {
+            <MudTable Items="@allKpis" Dense="true" Hover="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>ID</MudTh>
+                    <MudTh>Nombre</MudTh>
+                    <MudTh>Métrica</MudTh>
+                    <MudTh>Valor</MudTh>
+                    <MudTh>Fecha</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="ID">@context.DatasetInfo.DatasetId</MudTd>
+                    <MudTd DataLabel="Nombre">@context.DatasetInfo.DatasetName</MudTd>
+                    <MudTd DataLabel="Métrica">@context.MetricType</MudTd>
+                    <MudTd DataLabel="Valor">@context.FormattedValue</MudTd>
+                    <MudTd DataLabel="Fecha">@context.CalculatedAt.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">No hay KPIs calculados para este usuario.</MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
+<MudCard Class="mt-4">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Buscar KPI por ID</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTextField @bind-Value="searchKpiId" Label="ID del KPI" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        <MudButton OnClick="LoadKpiById" Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Disabled="@(searchKpiId <= 0)">
+            Buscar
+        </MudButton>
+        @if (searchedKpi != null)
+        {
+            <MudPaper Class="pa-4 mt-4" Elevation="2">
+                <MudText Typo="Typo.h6">Resultado</MudText>
+                <MudText><strong>ID:</strong> @searchedKpi.DatasetInfo.DatasetId</MudText>
+                <MudText><strong>Nombre:</strong> @searchedKpi.DatasetInfo.DatasetName</MudText>
+                <MudText><strong>Métrica:</strong> @searchedKpi.MetricType</MudText>
+                <MudText><strong>Valor:</strong> @searchedKpi.FormattedValue</MudText>
+                <MudText><strong>Fecha:</strong> @searchedKpi.CalculatedAt.ToString("yyyy-MM-dd HH:mm:ss")</MudText>
+            </MudPaper>
+        }
+        else if (searchedKpiError != null)
+        {
+            <MudAlert Severity="Severity.Error">@searchedKpiError</MudAlert>
+        }
+    </MudCardContent>
+</MudCard>
+
 @code {
     private string username = "admin";
     private CalculateKpiRequest kpiRequest = new();
@@ -233,6 +300,10 @@
     private string errorMessage = string.Empty;
     private DateTime? dateFrom = DateTime.Now.AddDays(-7);
     private DateTime? dateTo = DateTime.Now;
+    private List<KpiResponse> allKpis = new();
+    private int searchKpiId = 0;
+    private KpiResponse? searchedKpi;
+    private string? searchedKpiError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -330,5 +401,50 @@
     {
         kpiResult = null;
         errorMessage = string.Empty;
+    }
+
+    private async Task LoadAllKpis()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/Kpi/all/{username}");
+            if (response.IsSuccessStatusCode)
+            {
+                allKpis = await response.Content.ReadFromJsonAsync<List<KpiResponse>>() ?? new List<KpiResponse>();
+                Snackbar.Add($"Cargados {allKpis.Count} KPIs", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Error al cargar KPIs: {response.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar KPIs: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadKpiById()
+    {
+        searchedKpi = null;
+        searchedKpiError = null;
+        try
+        {
+            var response = await Http.GetAsync($"api/Kpi/{searchKpiId}/{username}");
+            if (response.IsSuccessStatusCode)
+            {
+                searchedKpi = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                if (searchedKpi == null)
+                    searchedKpiError = "No se encontró el KPI.";
+            }
+            else
+            {
+                searchedKpiError = $"Error al buscar KPI: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            searchedKpiError = $"Error al buscar KPI: {ex.Message}";
+        }
     }
 }
