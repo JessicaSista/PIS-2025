@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Services;
-using OmniMonitor.Shared.Dtos.Kpi;
+using OmniMonitor.Shared.Dtos.KpiDtos;
 
 namespace OmniMonitor.Server.Controllers
 {

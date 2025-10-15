@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
-using OmniMonitor.Shared.Dtos.Kpi;
+using OmniMonitor.Shared.Dtos.KpiDtos;
 
 namespace OmniMonitor.Server.Services
 {

@@ -25,6 +25,7 @@ namespace OmniMonitor.Server.Context
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
+        public DbSet<Kpi> Kpis { get; set; }
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
