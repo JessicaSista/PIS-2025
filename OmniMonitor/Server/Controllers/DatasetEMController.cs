@@ -12,10 +12,11 @@ namespace OmniMonitor.Server.Controllers
     public class DatasetEMController : ControllerBase
     {
         private readonly IDatasetEMService _datasetEMService;
-
-        public DatasetEMController(IDatasetEMService datasetEMService)
+        private readonly ISondaAuthService _sondaAuthService;
+        public DatasetEMController(IDatasetEMService datasetEMService, ISondaAuthService sondaAuthService)
         {
             _datasetEMService = datasetEMService;
+            _sondaAuthService = sondaAuthService;
         }
 
         /// <summary>
@@ -72,10 +73,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetEM>>> GetAllDatasets(string username)
+        public async Task<ActionResult<List<DatasetEM>>> GetAllDatasets(string token)
         {
             try
             {
+                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var datasets = await _datasetEMService.GetAllDatasetsEMAsync(username);
                 return Ok(datasets);
             }
@@ -93,10 +95,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId, string username)
+        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId ,string token)
         {
             try
             {
+                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dataset = await _datasetEMService.GetDatasetEMByIdAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -145,10 +148,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> DeleteDataset(int datasetId, string username)
+        public async Task<IActionResult> DeleteDataset(int datasetId, string token)
         {
             try
             {
+                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 await _datasetEMService.DeleteDatasetEMAsync(datasetId, username);
                 return NoContent();
             }

@@ -12,10 +12,12 @@ using System.Threading.Tasks;
 public class DatasetUMController : ControllerBase
 {
     private readonly IDatasetUMService _datasetUMService;
+    private readonly ISondaAuthService _sondaAuthService;
 
-    public DatasetUMController(IDatasetUMService datasetUMService)
+    public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService)
     {
         _datasetUMService = datasetUMService;
+        _sondaAuthService = sondaAuthService;
     }
 
     private bool IsUserAuthorized(string username)
@@ -67,10 +69,11 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(typeof(List<DatasetUM>), 200)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DatasetUM>>> GetAllDatasets(string username)
+    public async Task<ActionResult<List<DatasetUM>>> GetAllDatasets(string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 
@@ -91,10 +94,11 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId, string username)
+    public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId, string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 
@@ -153,10 +157,11 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult> DeleteDataset(int datasetId, string username)
+    public async Task<ActionResult> DeleteDataset(int datasetId, string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 

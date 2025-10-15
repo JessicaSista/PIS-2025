@@ -48,5 +48,6 @@ namespace OmniMonitor.Shared.Dtos.EM
         public List<SchemaValueDto> WorkZoneSchemaValues { get; set; } = new();
         [JsonPropertyName("dangerous")]
         public bool Dangerous { get; set; }
+        public int Count { get; set; }
     }
 }

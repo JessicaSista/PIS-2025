@@ -123,6 +123,9 @@
             "GetAssetsBasicData": "/api/Asset/assetsBasicData",
             "History": "/api/Asset/history"
         },
+        "AssetType": {
+            "GetAll": "/api/AssetType/assetTypes"
+        },
         "Stock": {
             "GetAll": "/api/stock/stocks",
             "GetById": "/api/stock/{stockId}"
