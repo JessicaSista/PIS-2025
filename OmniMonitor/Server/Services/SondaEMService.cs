@@ -1,12 +1,14 @@
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos.EM;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Globalization;
 
 public interface ISondaEMService
 {
@@ -52,6 +54,27 @@ public interface ISondaEMService
         int? pageSize,
         string? sort,
         string? query,
+        string username,
+        string password);
+    Task<List<AlertDto>> GetAlertsCategory(
+        int categoryId,
+        int? page,
+        int? pageSize,
+        string? query,
+        string? stateList,
+        double? x,
+        double? y,
+        double? r,
+        bool? forceGps,
+        string? sort,
+        string username,
+        string password);
+    Task<List<EventDto>> GetEventsByCategory(
+        int categoryId,
+        int? page,
+        int? pageSize,
+        string? query,
+        string? sort,
         string username,
         string password);
 }
@@ -559,11 +582,74 @@ public class SondaEMService : ISondaEMService
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
-        if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
+        if (string.IsNullOrWhiteSpace(responseBody))
+        {
+            return null;
+        }
+
+        var trimmed = responseBody.TrimStart();
+        if (trimmed.StartsWith("{"))
+        {
+            // Si la respuesta es un objeto con la propiedad "results"
+            var apiResponse = JsonSerializer.Deserialize<CategoryApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return apiResponse?.Results ?? new List<CategoryDto>();
+
+        }
+        else if (trimmed.StartsWith("["))
+        {
+            // Si la respuesta es un array directo (por si acaso)
+            var listResponse = JsonSerializer.Deserialize<List<CategoryDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            return listResponse ?? new List<CategoryDto>();
+        }
+        else
         {
             return new List<CategoryDto>();
         }
-        = JsonSerializer.Deserialize<CategoryApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-        return apiResponse?.Results ?? new List<CategoryDto>();
+    }
+
+    public async Task<List<AlertDto>> GetAlertsCategory(
+        int categoryId,
+        int? page,
+        int? pageSize,
+        string? query,
+        string? stateList,
+        double? x,
+        double? y,
+        double? r,
+        bool? forceGps,
+        string? sort,
+        string username,
+        string password)
+    {
+        // Obtén todas las alertas según los parámetros
+        var allAlerts = await GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
+
+        // Filtra las alertas que tengan la categoría con el id solicitado
+        var filteredAlerts = allAlerts
+            .Where(alert => alert.AlertCategory != null && alert.AlertCategory.Id == categoryId)
+            .ToList();
+
+        return filteredAlerts;
+    }
+
+    public async Task<List<EventDto>> GetEventsByCategory(
+        int categoryId,
+        int? page,
+        int? pageSize,
+        string? query,
+        string? sort,
+        string username,
+        string password)
+    {
+        // Obtén todos los eventos según los parámetros
+        var allEvents = await GetEvents(page, pageSize, sort, query, username, password);
+
+        // Filtra los eventos que tengan la categoría con el id solicitado
+        var filteredEvents = allEvents
+            .Where(ev => ev.Categories != null && ev.Categories.Any(cat => cat.Id == categoryId))
+            .ToList();
+
+        return filteredEvents;
     }
 }
+

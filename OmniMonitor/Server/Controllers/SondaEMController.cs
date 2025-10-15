@@ -256,4 +256,57 @@ public class SondaEMController : ControllerBase
         }
     }
 
+    [HttpGet("Category/alert")]
+    [ProducesResponseType(typeof(List<AlertDto>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<AlertDto>>> GetAlertsCategory(
+        int Categoryid,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? query,
+        [FromQuery] string? stateList,
+        [FromQuery] double? x,
+        [FromQuery] double? y,
+        [FromQuery] double? r,
+        [FromQuery] bool? forceGps,
+        [FromQuery] string? sort,
+        [FromQuery] string user,
+        [FromQuery] string pass)
+    {
+        try
+        {
+            var alerts = await _sondaEMService.GetAlertsCategory(Categoryid,page, pageSize, query, stateList, x, y, r, forceGps, sort, user, pass);
+            if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
+            return Ok(alerts);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("Category/event")]
+    [ProducesResponseType(typeof(List<AlertDto>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<AlertDto>>> GetEventsByIdCategory(
+        int Categoryid,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? query,
+        [FromQuery] string? sort,
+        [FromQuery] string user,
+        [FromQuery] string pass)
+    {
+        try
+        {
+            var events = await _sondaEMService.GetEventsByCategory(Categoryid, page, pageSize, query, sort, user, pass);
+            if (events == null || events.Count == 0) return NotFound("No se han encontrado eventos.");
+            return Ok(events);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
 }
