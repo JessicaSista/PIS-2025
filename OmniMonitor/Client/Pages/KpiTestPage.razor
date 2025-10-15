@@ -33,7 +33,7 @@
                 {
                     <MudStack Spacing="3">
                         
-                        <MudSelect T="int" @bind-Value="kpiRequest.DatasetId" Label="Dataset" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelect T="int" @bind-Value="SelectedDatasetId" Label="Dataset" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var dataset in availableDatasets)
                             {
                                 <MudSelectItem Value="@dataset.Id">@dataset.Name - @dataset.Description</MudSelectItem>
@@ -41,24 +41,25 @@
                         </MudSelect>
 
                         <MudSelect T="string" @bind-Value="kpiRequest.MetricType" Label="Tipo de Métrica" Variant="Variant.Outlined" Margin="Margin.Dense">
-                            <MudSelectItem Value="@("count")">Count - Conteo</MudSelectItem>
-                            <MudSelectItem Value="@("sensor_data_points")">Sensor Data Points (IM)</MudSelectItem>
-                            <MudSelectItem Value="@("active_devices")">Active Devices (IM)</MudSelectItem>
-                            <MudSelectItem Value="@("alert_count")">Alert Count (EM)</MudSelectItem>
-                            <MudSelectItem Value="@("event_count")">Event Count (EM/UM)</MudSelectItem>
-                            <MudSelectItem Value="@("zone_count")">Zone Count (UM)</MudSelectItem>
-                            <MudSelectItem Value="@("news_count")">News Count (UM)</MudSelectItem>
+                            @foreach (var metric in availableMetrics)
+                            {
+                                <MudSelectItem Value="@metric">@GetMetricLabel(metric)</MudSelectItem>
+                            }
                         </MudSelect>
 
                         <MudDatePicker @bind-Date="dateFrom" Label="Fecha Desde" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         <MudDatePicker @bind-Date="dateTo" Label="Fecha Hasta" Variant="Variant.Outlined" Margin="Margin.Dense" />
 
-                        <MudTextField @bind-Value="kpiRequest.FieldName" Label="Campo (Opcional)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudSelect T="string" @bind-Value="kpiRequest.FieldName" Label="Campo (Opcional)" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var field in availableFields)
+                            {
+                                <MudSelectItem Value="@field">@field</MudSelectItem>
+                            }
+                        </MudSelect>
 
                         <MudSelect T="string" @bind-Value="kpiRequest.FormatType" Label="Formato" Variant="Variant.Outlined" Margin="Margin.Dense">
                             <MudSelectItem Value="@("number")">Número</MudSelectItem>
                             <MudSelectItem Value="@("percentage")">Porcentaje</MudSelectItem>
-                            <MudSelectItem Value="@("currency")">Moneda</MudSelectItem>
                         </MudSelect>
 
                         <MudButton OnClick="CalculateKpi" 
@@ -304,6 +305,8 @@
     private int searchKpiId = 0;
     private KpiResponse? searchedKpi;
     private string? searchedKpiError;
+    private List<string> availableFields = new();
+    private List<string> availableMetrics = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -446,5 +449,64 @@
         {
             searchedKpiError = $"Error al buscar KPI: {ex.Message}";
         }
+    }
+
+    private void OnDatasetChanged(int datasetId)
+    {
+        var dataset = availableDatasets.FirstOrDefault(d => d.Id == datasetId);
+        availableFields.Clear();
+        availableMetrics.Clear();
+        if (dataset != null)
+        {
+            var type = (dataset.ContentType ?? "").ToUpper();
+            if (type == "IM")
+            {
+                availableFields.AddRange(new[] { "temperatura", "presion", "humedad" });
+                availableMetrics.AddRange(new[] { "count", "sensor_data_points", "active_devices" });
+            }
+            else if (type == "EM")
+            {
+                availableFields.AddRange(new[] { "estado", "origen", "categoria" });
+                availableMetrics.AddRange(new[] { "alert_count", "event_count", "count" });
+            }
+            else if (type == "UM")
+            {
+                availableFields.AddRange(new[] { "zona", "noticia", "evento" });
+                availableMetrics.AddRange(new[] { "zone_count", "news_count", "event_count", "count" });
+            }
+            else
+            {
+                availableFields.Add("N/A");
+                availableMetrics.Add("count");
+            }
+        }
+    }
+
+    // Actualizar el select de campos cuando cambie el dataset
+    private int _selectedDatasetId;
+    private int SelectedDatasetId
+    {
+        get => _selectedDatasetId;
+        set
+        {
+            _selectedDatasetId = value;
+            kpiRequest.DatasetId = value;
+            OnDatasetChanged(value);
+        }
+    }
+
+    private string GetMetricLabel(string metric)
+    {
+        return metric switch
+        {
+            "count" => "Count - Conteo",
+            "sensor_data_points" => "Sensor Data Points (IM)",
+            "active_devices" => "Active Devices (IM)",
+            "alert_count" => "Alert Count (EM)",
+            "event_count" => "Event Count (EM/UM)",
+            "zone_count" => "Zone Count (UM)",
+            "news_count" => "News Count (UM)",
+            _ => metric
+        };
     }
 }
