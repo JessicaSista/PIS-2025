@@ -33,6 +33,8 @@ namespace OmniMonitor.Server.Context
         public DbSet<DatasetResource> DatasetResources { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
+        public DbSet<Dashboard> Dashboards { get; set; }
+        public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
     public DbSet<DatasetAM> DatasetAM { get; set; }
     public DbSet<DatasetEventTaskInstance> DatasetEventTaskInstance { get; set; }
     public DbSet<DatasetStock> DatasetStock { get; set; }
@@ -63,6 +65,10 @@ namespace OmniMonitor.Server.Context
             
             // Configurar relaciones del sistema de roles y permisos
             ConfigureRolePermissionRelationships(builder);
+            
+            // Configurar relaciones de dashboards
+            ConfigureDashboardRelationships(builder);
+            
             ConfigureCrossModuleJoins(builder);
             ConfigureReports(builder);
 
@@ -171,6 +177,48 @@ namespace OmniMonitor.Server.Context
         }
 
         /// <summary>
+        /// Configura las relaciones entre las entidades de dashboards
+        /// </summary>
+        private void ConfigureDashboardRelationships(ModelBuilder builder)
+        {
+            // Configurar Dashboard
+            builder.Entity<Dashboard>()
+                .HasKey(d => d.IdDashboard);
+
+            builder.Entity<Dashboard>()
+                .HasIndex(d => new { d.Username, d.Nombre })
+                .IsUnique();
+
+            // Configurar GrupoVisualizacion
+            builder.Entity<GrupoVisualizacion>()
+                .HasKey(gv => gv.IdGrupoVisualizacion);
+
+            // Relación Dashboard -> GrupoVisualizacion (uno a muchos)
+            builder.Entity<GrupoVisualizacion>()
+                .HasOne(gv => gv.Dashboard)
+                .WithMany(d => d.GrupoVisualizaciones)
+                .HasForeignKey(gv => gv.GrupoVisualizacionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Relación GrupoVisualizacion -> Visualizacion (muchos a uno)
+            builder.Entity<GrupoVisualizacion>()
+                .HasOne(gv => gv.Visualizacion)
+                .WithMany()
+                .HasForeignKey(gv => gv.IdVisualizacion)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Índices para optimizar consultas
+            builder.Entity<Dashboard>()
+                .HasIndex(d => d.Username);
+
+            builder.Entity<GrupoVisualizacion>()
+                .HasIndex(gv => gv.GrupoVisualizacionId);
+
+            builder.Entity<GrupoVisualizacion>()
+                .HasIndex(gv => gv.IdVisualizacion);
+        }
+
+        /// <summary>
         /// Method to seed default data to the database.
         /// </summary>
         protected void Seed(ModelBuilder builder)
@@ -210,7 +258,13 @@ namespace OmniMonitor.Server.Context
                 // Permisos de datasets EM
                 new Permission { Id = 14, Name = "Ver Datasets EM", Description = "Permite ver datasets del módulo EM (Alertas, Eventos, Extensiones, Recursos)"},
                 new Permission { Id = 15, Name = "Crear Datasets EM", Description = "Permite crear nuevos datasets del módulo EM"},
-                new Permission { Id = 16, Name = "Eliminar Datasets EM", Description = "Permite eliminar datasets del módulo EM"}
+                new Permission { Id = 16, Name = "Eliminar Datasets EM", Description = "Permite eliminar datasets del módulo EM"},
+                
+                // Permisos de dashboards
+                new Permission { Id = 17, Name = "Ver Dashboards", Description = "Permite ver dashboards personalizables"},
+                new Permission { Id = 18, Name = "Crear Dashboards", Description = "Permite crear nuevos dashboards personalizables"},
+                new Permission { Id = 19, Name = "Editar Dashboards", Description = "Permite editar dashboards existentes"},
+                new Permission { Id = 20, Name = "Eliminar Dashboards", Description = "Permite eliminar dashboards"}
             );
 
             // Asignar permisos a roles
@@ -232,6 +286,10 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 18, RoleId = 1, PermissionId = 14 },
                 new RolePermission { Id = 19, RoleId = 1, PermissionId = 15 },
                 new RolePermission { Id = 20, RoleId = 1, PermissionId = 16 },
+                new RolePermission { Id = 27, RoleId = 1, PermissionId = 17 },
+                new RolePermission { Id = 28, RoleId = 1, PermissionId = 18 },
+                new RolePermission { Id = 29, RoleId = 1, PermissionId = 19 },
+                new RolePermission { Id = 30, RoleId = 1, PermissionId = 20 },
                 
                 // Visitante solo tiene permisos de lectura
                 new RolePermission { Id = 21, RoleId = 2, PermissionId = 1 },
@@ -239,7 +297,8 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 23, RoleId = 2, PermissionId = 7 },
                 new RolePermission { Id = 24, RoleId = 2, PermissionId = 9 },
                 new RolePermission { Id = 25, RoleId = 2, PermissionId = 11 },
-                new RolePermission { Id = 26, RoleId = 2, PermissionId = 14 }
+                new RolePermission { Id = 26, RoleId = 2, PermissionId = 14 },
+                new RolePermission { Id = 31, RoleId = 2, PermissionId = 17 }
             );
 
             // Usuarios de prueba
