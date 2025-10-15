@@ -30,19 +30,15 @@ namespace OmniMonitor.Shared.Dtos
     /// </summary>
     public class DashboardCardResponse
     {
-        public int IdGrupoVisualizacion { get; set; }
-        public int CardId { get; set; } // IdVisualizacion
-        public int PosicionX { get; set; }
-        public int PosicionY { get; set; }
-        public int Ancho { get; set; }
-        public int Alto { get; set; }
-        public string? PropsConfiguracion { get; set; }
-        public DateTime FechaAgregado { get; set; }
-        
-        /// <summary>
-        /// Información básica de la visualización asociada
-        /// </summary>
-        public VisualizacionInfo? Visualizacion { get; set; }
+    public int IdGrupoVisualizacion { get; set; }
+    public int CardId { get; set; } // IdVisualizacion
+    public int TipoCard { get; set; }
+    public string? PropsConfiguracion { get; set; }
+    public DateTime FechaAgregado { get; set; }
+    /// <summary>
+    /// Información básica de la visualización asociada
+    /// </summary>
+    public VisualizacionInfo? Visualizacion { get; set; }
     }
 
     /// <summary>
