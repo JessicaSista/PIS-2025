@@ -89,13 +89,24 @@ namespace OmniMonitor.Server.Services
                     Username = dataset.Username,
                     TotalRecords = 0 // Se podría calcular si es necesario
                 },
-                Comparison = new KpiComparison
-                {
-                    PreviousValue = 0, // Se podría implementar
-                    PercentageDifference = 0,
-                    FormattedDifference = "stable"
-                }
             };
+
+            // Crear entidad Kpi para persistencia
+            var kpiEntity = new Kpi
+            {
+                Name = dataset.Name,
+                Description = dataset.Description,
+                MetricType = request.MetricType,
+                FormatType = request.FormatType ?? "number",
+                Unit = request.Unit,
+                Value = value,
+                CalculatedAt = DateTime.UtcNow,
+                Username = username
+            };
+
+            // Insertar en la base de datos
+            _context.Kpis.Add(kpiEntity);
+            await _context.SaveChangesAsync();
 
             return response;
         }
@@ -105,9 +116,29 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<List<KpiResponse>> GetAllKpisAsync(string username)
         {
-            // En una implementación real, esto podría obtener KPIs guardados
-            // Por ahora devolvemos una lista vacía
-            return new List<KpiResponse>();
+            var kpis = await _context.Kpis
+                .Where(k => k.Username == username)
+                .OrderByDescending(k => k.CalculatedAt)
+                .ToListAsync();
+
+            return kpis.Select(k => new KpiResponse
+            {
+                MetricType = k.MetricType,
+                FieldName = null, // No se guarda en la entidad, opcional
+                Value = k.Value,
+                FormatType = k.FormatType,
+                FormattedValue = FormatValue(k.Value, k.FormatType),
+                CalculatedAt = k.CalculatedAt,
+                DatasetInfo = new KpiDatasetInfo
+                {
+                    DatasetId = 0, // No se guarda en la entidad, opcional
+                    DatasetName = k.Name,
+                    DatasetType = "", // No se guarda en la entidad, opcional
+                    Description = k.Description,
+                    Username = k.Username,
+                    TotalRecords = 0
+                }
+            }).ToList();
         }
 
         /// <summary>
@@ -115,8 +146,29 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<KpiResponse?> GetKpiByIdAsync(int kpiId, string username)
         {
-            // En una implementación real, esto obtendría un KPI guardado por su ID
-            return null;
+            var kpi = await _context.Kpis
+                .FirstOrDefaultAsync(k => k.Id == kpiId && k.Username == username);
+            if (kpi == null)
+                return null;
+
+            return new KpiResponse
+            {
+                MetricType = kpi.MetricType,
+                FieldName = null,
+                Value = kpi.Value,
+                FormatType = kpi.FormatType,
+                FormattedValue = FormatValue(kpi.Value, kpi.FormatType),
+                CalculatedAt = kpi.CalculatedAt,
+                DatasetInfo = new KpiDatasetInfo
+                {
+                    DatasetId = 0,
+                    DatasetName = kpi.Name,
+                    DatasetType = "",
+                    Description = kpi.Description,
+                    Username = kpi.Username,
+                    TotalRecords = 0
+                }
+            };
         }
 
         /// <summary>

@@ -32,19 +32,12 @@
                 else
                 {
                     <MudStack Spacing="3">
-                        <MudTextField @bind-Value="username" Label="Usuario" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         
                         <MudSelect T="int" @bind-Value="kpiRequest.DatasetId" Label="Dataset" Variant="Variant.Outlined" Margin="Margin.Dense">
                             @foreach (var dataset in availableDatasets)
                             {
                                 <MudSelectItem Value="@dataset.Id">@dataset.Name - @dataset.Description</MudSelectItem>
                             }
-                        </MudSelect>
-
-                        <MudSelect T="string" @bind-Value="kpiRequest.DatasetType" Label="Tipo de Dataset" Variant="Variant.Outlined" Margin="Margin.Dense">
-                            <MudSelectItem Value="@("IM")">IM - Industrial Monitoring</MudSelectItem>
-                            <MudSelectItem Value="@("EM")">EM - Event Management</MudSelectItem>
-                            <MudSelectItem Value="@("UM")">UM - Urban Management</MudSelectItem>
                         </MudSelect>
 
                         <MudSelect T="string" @bind-Value="kpiRequest.MetricType" Label="Tipo de Métrica" Variant="Variant.Outlined" Margin="Margin.Dense">
