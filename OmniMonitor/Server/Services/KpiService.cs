@@ -99,7 +99,6 @@ namespace OmniMonitor.Server.Services
                 MetricType = request.MetricType,
                 FormatType = request.FormatType ?? "number",
                 Unit = request.Unit,
-                Value = value,
                 CalculatedAt = DateTime.UtcNow,
                 Username = username
             };

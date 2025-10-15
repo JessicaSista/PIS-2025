@@ -134,22 +134,6 @@
                                     </MudStack>
                                 </ChildContent>
                             </MudExpansionPanel>
-
-                            <MudExpansionPanel>
-                                <TitleContent>
-                                    <div style="display: flex; align-items: center;">
-                                        <MudIcon Icon="Icons.Material.Filled.TrendingUp" class="mr-3"></MudIcon>
-                                        <MudText>Comparación</MudText>
-                                    </div>
-                                </TitleContent>
-                                <ChildContent>
-                                    <MudStack Spacing="1">
-                                        <MudText><strong>Valor Anterior:</strong> @(kpiResult.Comparison?.PreviousValue ?? "N/A")</MudText>
-                                        <MudText><strong>Diferencia %:</strong> @(kpiResult.Comparison?.PercentageDifference.ToString("F2") ?? "N/A")%</MudText>
-                                        <MudText><strong>Diferencia Absoluta:</strong> @(kpiResult.Comparison?.AbsoluteDifference.ToString() ?? "N/A")</MudText>
-                                    </MudStack>
-                                </ChildContent>
-                            </MudExpansionPanel>
                         </MudExpansionPanels>
 
                         <MudDivider />
