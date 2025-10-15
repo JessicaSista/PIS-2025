@@ -64,7 +64,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // Crear el dashboard
-            var nuevoDashboard = new Dashboard
+            var nuevoDashboard = new DashboardDto
             {
                 Username = username,
                 Nombre = request.Nombre,

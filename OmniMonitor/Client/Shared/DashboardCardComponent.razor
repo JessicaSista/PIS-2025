@@ -12,21 +12,20 @@
         <!-- Título y descripción -->
         <MudStack Row AlignItems="AlignItems.Start" Spacing="0" Style="width:100%;">
             <MudStack Style="width:100%;" Spacing="0">
-                <MudText Style="color:var(--card-text-primary);font-weight:600;font-size:1.2rem;">@Dashboard.Name</MudText>
+                <MudText Style="color:var(--card-text-primary);font-weight:600;font-size:1.2rem;">@Dashboard.Nombre</MudText>
                 <MudText Style="color:var(--card-text-secondary);font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">
-                    @Description
+                    @Dashboard.Descripcion
                 </MudText>
             </MudStack>
         </MudStack>
         <!-- Footer -->
         <MudStack Row Justify="Justify.FlexEnd" Style="width:100%; margin-top:auto;">
-            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@SharedLocalizer["Actualizado"] @Dashboard.CreatedAt.ToString("yyyy-MM-dd HH:mm")</MudText>
+            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@SharedLocalizer["Actualizado"] @Dashboard.FechaModificacion.ToString("yyyy-MM-dd HH:mm")</MudText>
         </MudStack>
     </MudCardContent>
 </MudCard>
 
 @code {
-    [Parameter] public DashboardDto Dashboard { get; set; } = new();
-    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public DashboardSummaryResponse Dashboard { get; set; } = new();
     [Parameter] public EventCallback OnClick { get; set; }
 }

@@ -8,19 +8,18 @@
     <DialogContent>
         <MudStack Spacing="3">
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
-            <MudTextField @bind-Value="nuevoDashboard.Name"
+            <MudTextField @bind-Value="nuevoDashboard.Nombre"
                           Label="Nombre"
                           Variant="Variant.Outlined"
                           Required="true"
-                          For="@(() => nuevoDashboard.Name)"
+                          For="@(() => nuevoDashboard.Nombre)"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
-            <MudTextField @bind-Value="nuevoDashboard.Description"
+            <MudTextField @bind-Value="nuevoDashboard.Descripcion"
                           Label="Descripción"
                           Variant="Variant.Outlined"
                           Lines="2"
-                          Required="true"
-                          For="@(() => nuevoDashboard.Description)"
+                          For="@(() => nuevoDashboard.Descripcion)"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
         </MudStack>
     </DialogContent>
@@ -46,9 +45,7 @@
 
     private DashboardDto nuevoDashboard = new();
 
-    private bool FormularioValido =>
-        !string.IsNullOrWhiteSpace(nuevoDashboard.Name)
-        && !string.IsNullOrWhiteSpace(nuevoDashboard.Description);
+    private bool FormularioValido => !string.IsNullOrWhiteSpace(nuevoDashboard.Nombre);
 
     private async Task Confirmar()
     {
