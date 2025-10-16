@@ -174,7 +174,7 @@ else
     private int? selectedSourceId = null;
     private int? selectedGroupId = null;
     private HashSet<int> selectedDeviceIds = new();
-    
+
     private string selectedSensor = string.Empty;
     private List<string> sensores = new();
 
@@ -224,6 +224,7 @@ else
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -232,7 +233,7 @@ else
             }
 
             // Cargar el dataset desde el backend
-            var response = await Http.GetAsync($"api/Dataset/{id}/{username}");
+            var response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={id}&token={token}");
             if (!response.IsSuccessStatusCode)
             {
                 noEncontrado = true;

@@ -3,6 +3,7 @@
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @using MudBlazor
+@using Blazored.LocalStorage
 @using OmniMonitor.Shared
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
@@ -13,6 +14,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
+@inject ILocalStorageService LocalStorage
 
 <PageTitle>Datasets</PageTitle>
 
@@ -143,6 +145,7 @@
                 // Obtener el usuario actual
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 var username = authState.User.Identity?.Name;
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
 
                 if (string.IsNullOrEmpty(username))
                 {
@@ -151,7 +154,7 @@
                 }
 
                 // Eliminar desde el backend
-                var response = await Http.DeleteAsync($"api/Dataset/{dataset.Id}/{username}");
+                var response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={token}");
                 if (response.IsSuccessStatusCode)
                 {
                     datasets.RemoveAll(d => d.Id == dataset.Id);
@@ -177,11 +180,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        
         try
         {
             // Obtener el usuario actual de la sesión
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             Console.WriteLine($"DEBUG: Username obtenido: '{username}'");
 
@@ -193,7 +198,7 @@
             }
 
             // Cargar datasets desde el backend
-            var response = await Http.GetAsync($"api/Dataset/user/{username}");
+            var response = await Http.GetAsync($"api/Dataset/user?token=" + token);
             
             // ⬇️ AGREGAR AQUÍ
             Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");

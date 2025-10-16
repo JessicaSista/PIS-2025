@@ -54,7 +54,7 @@ public class DatasetController : ControllerBase
     /// <summary>
     /// Obtiene todos los datasets para un usuario específico.
     /// </summary>
-    [HttpGet("user/{username}")]
+    [HttpGet("user")]
     [ProducesResponseType(typeof(List<DatasetIM>), 200)]
     [ProducesResponseType(500)]
     public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets(string token)
@@ -74,7 +74,7 @@ public class DatasetController : ControllerBase
     /// <summary>
     /// Obtiene un dataset específico por su ID y nombre de usuario.
     /// </summary>
-    [HttpGet("{datasetId}/{username}")]
+    [HttpGet("GetDataset")]
     [ProducesResponseType(typeof(DatasetIM), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
@@ -172,7 +172,7 @@ public class DatasetController : ControllerBase
     /// <summary>
     /// Elimina un dataset.
     /// </summary>
-    [HttpDelete("{datasetId}/{username}")]
+    [HttpDelete("DeleteDataset")]
     [ProducesResponseType(204)] // No Content
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]

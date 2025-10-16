@@ -92,7 +92,7 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("JoinOperands");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
                 {
                     b.Property<int>("IdDashboard")
                         .ValueGeneratedOnAdd()
@@ -1331,7 +1331,7 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoVisualizacion", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Dashboard", "Dashboard")
+                    b.HasOne("OmniMonitor.Shared.Dtos.DashboardDto", "Dashboard")
                         .WithMany("GrupoVisualizaciones")
                         .HasForeignKey("GrupoVisualizacionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1405,7 +1405,7 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
                 {
                     b.Navigation("GrupoVisualizaciones");
                 });
