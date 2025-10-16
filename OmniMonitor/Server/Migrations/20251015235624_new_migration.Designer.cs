@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251015010902_fix")]
-    partial class fix
+    [Migration("20251015235624_new_migration")]
+    partial class new_migration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

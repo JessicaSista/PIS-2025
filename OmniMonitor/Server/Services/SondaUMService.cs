@@ -166,41 +166,32 @@ public class SondaUMService : ISondaUMService
 
     public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
     {
-        string baseUrl = _apiConfig.BaseUrl.UrlUM;
-        string endpoint = _apiConfig.EndpointsUM["News"]["News"];
+        // 1. Traer todos los news (sin filtrar por zona)
+        // Validar parámetros de entrada
+        if (startIndex <= 0)
+            throw new ArgumentException("startIndex debe ser mayor a 0");
+        if (count <= 0)
+            throw new ArgumentException("count debe ser mayor a 0");
 
-        // Construir query string con el filtro de zona
-        var queryParams = new List<string>();
-        queryParams.Add($"startIndex={startIndex}");
-        queryParams.Add($"count={count}");
-        queryParams.Add($"zoneId={zoneId}");
-        if (!string.IsNullOrEmpty(queryString))
-            queryParams.Add($"queryString={Uri.EscapeDataString(queryString)}");
-        if (!string.IsNullOrEmpty(sort))
-            queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        // Validar que zoneId exista
+        var zone = await GetZoneById(zoneId, username, password);
+        if (zone == null)
+            throw new ArgumentException($"No existe una zona con id {zoneId}");
 
-        string getDataUrl = $"{baseUrl}{endpoint}?{string.Join("&", queryParams)}";
+        var allNews = await GetAllNews(username, password, startIndex, queryString, sort, count);
+        var filteredNews = new List<News>();
 
-        // Obtener token
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
-        var client = _httpClientFactory.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        // Llamada HTTP
-        var response = await client.GetAsync(getDataUrl);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return new List<News>();
-
-        response.EnsureSuccessStatusCode();
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        // Deserializar
-        var parsed = JsonSerializer.Deserialize<NewsResponse>(responseBody, new JsonSerializerOptions
+        // 2. Para cada news, obtener el detalle y filtrar por zone.Id
+        foreach (var news in allNews)
         {
-            PropertyNameCaseInsensitive = true
-        });
+            var newsDetail = await GetNewsById(news.Id, username, password);
+            if (newsDetail != null && newsDetail.Zone != null && newsDetail.Zone.Id == zoneId)
+            {
+                filteredNews.Add(newsDetail);
+            }
+        }
 
-        return parsed?.results ?? new List<News>();
+        return filteredNews;
     }
 
     public async Task<List<Event>> GetAllEvents(string username, string password)
