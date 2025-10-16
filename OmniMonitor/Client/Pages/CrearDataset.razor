@@ -9,6 +9,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
 
 
 <PageTitle>Crear Dataset</PageTitle>
@@ -167,7 +169,9 @@
     private string addDesc = string.Empty;
 
     private string currentUsername = string.Empty;
-    private string currentPassword = string.Empty;
+    private string authToken = string.Empty;
+
+    private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
 
     protected override async Task OnInitializedAsync()
     {
@@ -175,9 +179,9 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUsername = authState.User.Identity?.Name ?? "";
-            currentPassword = "admin"; 
+            authToken = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
 
-            if (string.IsNullOrEmpty(currentUsername))
+            if (string.IsNullOrEmpty(currentUsername) || string.IsNullOrEmpty(authToken))
             {
                 ShowError(@Localizer["ErrorUsuario"]);
                 return;
@@ -196,20 +200,46 @@
     {
         try
         {
-            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?user={currentUsername}&password={currentPassword}");
+            Console.WriteLine($"[DEBUG] Token length: {authToken?.Length ?? 0}");
+            Console.WriteLine($"[DEBUG] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
+            
+            // Codificar el token para URL por si tiene caracteres especiales
+            var encodedToken = GetEncodedToken();
+            
+            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={encodedToken}");
+            Console.WriteLine($"[DEBUG] Sources response status: {sourcesResponse.StatusCode}");
+            
             if (sourcesResponse.IsSuccessStatusCode)
             {
                 sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
+                Console.WriteLine($"[DEBUG] Loaded {sources.Count} sources");
+            }
+            else
+            {
+                var error = await sourcesResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG] Sources error: {error}");
+                ShowError($"Error al cargar fuentes: {error}");
             }
 
-            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?user={currentUsername}&password={currentPassword}");
+            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={encodedToken}");
+            Console.WriteLine($"[DEBUG] Groups response status: {groupsResponse.StatusCode}");
+            
             if (groupsResponse.IsSuccessStatusCode)
             {
                 deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
+                Console.WriteLine($"[DEBUG] Loaded {deviceGroups.Count} groups");
+            }
+            else
+            {
+                var error = await groupsResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG] Groups error: {error}");
+                ShowError($"Error al cargar grupos: {error}");
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[DEBUG] Exception in LoadSourcesAndGroups: {ex.Message}");
+            Console.WriteLine($"[DEBUG] Stack trace: {ex.StackTrace}");
             ShowError($"{Localizer["ErrorCargaFuentes"]} {ex.Message}");
         }
     }
@@ -267,7 +297,7 @@
             // Si hay source seleccionado, obtener sus devices
             if (selectedSourceId.HasValue)
             {
-                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}?user={currentUsername}&password={currentPassword}");
+                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
                 if (sourceResponse.IsSuccessStatusCode)
                 {
                     devicesFromSource = await sourceResponse.Content.ReadFromJsonAsync<List<Device>>();
@@ -277,7 +307,7 @@
             // Si hay group seleccionado, obtener sus devices
             if (selectedGroupId.HasValue)
             {
-                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}?user={currentUsername}&password={currentPassword}");
+                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}?token={GetEncodedToken()}");
                 if (groupResponse.IsSuccessStatusCode)
                 {
                     devicesFromGroup = await groupResponse.Content.ReadFromJsonAsync<List<Device>>();
@@ -301,7 +331,7 @@
             else
             {
                 // Si no hay filtros, mostrar todos los devices
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&user={currentUsername}&password={currentPassword}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={GetEncodedToken()}");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -332,7 +362,7 @@
                 // Si hay dispositivos seleccionados, obtener sensores solo de esos dispositivos
                 if (selectedDeviceIds.Any())
                 {
-                    var sensorsResponse = await Http.PostAsJsonAsync($"api/SondaMain/sensors/devices?user={currentUsername}&password={currentPassword}", selectedDeviceIds.ToList());
+                    var sensorsResponse = await Http.PostAsJsonAsync($"api/SondaMain/sensors/devices?token={GetEncodedToken()}", selectedDeviceIds.ToList());
                     if (sensorsResponse.IsSuccessStatusCode)
                     {
                         sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
@@ -341,7 +371,7 @@
                 else
                 {
                     // Si no hay dispositivos seleccionados, obtener todos los sensores de la fuente
-                    var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?user={currentUsername}&password={currentPassword}");
+                    var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
                     if (sensorsResponse.IsSuccessStatusCode)
                     {
                         sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
