@@ -287,9 +287,32 @@ namespace OmniMonitor.Server.Services
         public async Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard)
         {
             var dashboard = await _context.Dashboards
+                .Include(d => d.GrupoVisualizaciones)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
             if (dashboard == null)
                 return false;
+
+            // Validar según el tipo de tarjeta
+            if (nuevaCard.TipoCard == 1)
+            {
+                // Validar que el CardId exista en Visualizaciones
+                bool visualizacionExiste = await _context.Visualizaciones.AnyAsync(v => v.IdVisualizacion == nuevaCard.CardId);
+                if (!visualizacionExiste)
+                    throw new ArgumentException($"No existe una visualización con Id {nuevaCard.CardId}");
+            }
+            else if (nuevaCard.TipoCard == 2)
+            {
+                // TODO: Validar que el KPI exista cuando se implemente la entidad correspondiente
+                // bool kpiExiste = await _context.KPIs.AnyAsync(k => k.IdKPI == nuevaCard.CardId);
+                // if (!kpiExiste) return false;
+            }
+
+            // Chequear si la tarjeta ya existe en el dashboard (por IdVisualizacion y TipoCard)
+            bool cardExists = dashboard.GrupoVisualizaciones.Any(gv =>
+                gv.IdVisualizacion == nuevaCard.CardId &&
+                gv.TipoCard == nuevaCard.TipoCard);
+            if (cardExists)
+                throw new ArgumentException("Tarjeta duplicada: ya existe una tarjeta con ese IdVisualizacion y TipoCard en el dashboard.");
 
             // Calcular el orden para la nueva tarjeta
             int orden = _context.GrupoVisualizaciones
