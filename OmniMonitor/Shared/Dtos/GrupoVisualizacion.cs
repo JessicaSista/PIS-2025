@@ -36,7 +36,7 @@ namespace OmniMonitor.Shared.Dtos
         public int Orden { get; set; } // Orden de la tarjeta en el dashboard
 
         // Propiedades de navegación
-        public virtual Dashboard? Dashboard { get; set; }
+        public virtual DashboardDto? Dashboard { get; set; }
         public virtual Visualizacion? Visualizacion { get; set; }
         //public virtual KPI? KPI { get; set; }
     }

@@ -33,7 +33,7 @@ namespace OmniMonitor.Server.Context
         public DbSet<DatasetResource> DatasetResources { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
-        public DbSet<Dashboard> Dashboards { get; set; }
+        public DbSet<DashboardDto> Dashboards { get; set; }
         public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
     public DbSet<DatasetAM> DatasetAM { get; set; }
     public DbSet<DatasetEventTaskInstance> DatasetEventTaskInstance { get; set; }
@@ -182,10 +182,10 @@ namespace OmniMonitor.Server.Context
         private void ConfigureDashboardRelationships(ModelBuilder builder)
         {
             // Configurar Dashboard
-            builder.Entity<Dashboard>()
+            builder.Entity<DashboardDto>()
                 .HasKey(d => d.IdDashboard);
 
-            builder.Entity<Dashboard>()
+            builder.Entity<DashboardDto>()
                 .HasIndex(d => new { d.Username, d.Nombre })
                 .IsUnique();
 
@@ -208,7 +208,7 @@ namespace OmniMonitor.Server.Context
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Índices para optimizar consultas
-            builder.Entity<Dashboard>()
+            builder.Entity<DashboardDto>()
                 .HasIndex(d => d.Username);
 
             builder.Entity<GrupoVisualizacion>()
