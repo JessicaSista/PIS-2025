@@ -14,9 +14,11 @@ public interface  ISondaUMService
 
     public Task<List<News>> GetAllNews(string username, string password, int page = 1, string? queryString = null, string? sort = null, int pageSize = 10);
     public Task<News?> GetNewsById(int id, string username, string password);
+    public Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10);
 
     public Task<List<Event>> GetAllEvents(string username, string password);
     public Task<Event?> GetEventById(int id, string username, string password);
+    public Task<List<Event>> GetEventsByZoneId(int zoneId, string username, string password);
 
 
     public Task<string> TestUMAPI(string username, string password);
@@ -162,6 +164,36 @@ public class SondaUMService : ISondaUMService
         return parsed;
     }
 
+    public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
+    {
+        // 1. Traer todos los news (sin filtrar por zona)
+        // Validar parámetros de entrada
+        if (startIndex <= 0)
+            throw new ArgumentException("startIndex debe ser mayor a 0");
+        if (count <= 0)
+            throw new ArgumentException("count debe ser mayor a 0");
+
+        // Validar que zoneId exista
+        var zone = await GetZoneById(zoneId, username, password);
+        if (zone == null)
+            throw new ArgumentException($"No existe una zona con id {zoneId}");
+
+        var allNews = await GetAllNews(username, password, startIndex, queryString, sort, count);
+        var filteredNews = new List<News>();
+
+        // 2. Para cada news, obtener el detalle y filtrar por zone.Id
+        foreach (var news in allNews)
+        {
+            var newsDetail = await GetNewsById(news.Id, username, password);
+            if (newsDetail != null && newsDetail.Zone != null && newsDetail.Zone.Id == zoneId)
+            {
+                filteredNews.Add(newsDetail);
+            }
+        }
+
+        return filteredNews;
+    }
+
     public async Task<List<Event>> GetAllEvents(string username, string password)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
@@ -207,6 +239,37 @@ public class SondaUMService : ISondaUMService
             PropertyNameCaseInsensitive = true
         });
         return parsed;
+    }
+
+    public async Task<List<Event>> GetEventsByZoneId(int zoneId, string username, string password)
+    {
+        // Primero obtener la zona para obtener sus áreas geográficas
+        var zone = await GetZoneById(zoneId, username, password);
+        if (zone == null)
+        {
+            return new List<Event>();
+        }
+
+        // Obtener todos los eventos
+        var allEvents = await GetAllEvents(username, password);
+        if (allEvents == null || !allEvents.Any())
+        {
+            return new List<Event>();
+        }
+
+        // Filtrar eventos que están dentro de las áreas de la zona
+        var eventsInZone = new List<Event>();
+        
+        foreach (var eventItem in allEvents)
+        {
+            if (eventItem.Location != null && 
+                GeometryHelper.IsPointInZone(eventItem.Location, zone.Areas))
+            {
+                eventsInZone.Add(eventItem);
+            }
+        }
+
+        return eventsInZone;
     }
 }
 
