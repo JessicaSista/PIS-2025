@@ -25,6 +25,7 @@ public interface ISondaAuthService
     //Para obtener el token de usuario del módulo EM
     Task<string> GetUserTokenEMAsync(string username, string password);
 
+    Task<(string Username, string Password)> GetUserByTokenOMAsync(string token);
 
 }
 
@@ -324,7 +325,25 @@ public class SondaAuthService : ISondaAuthService
         return user.SondaTokenEM;
     }
 
-   
+      public async Task<(string Username, string Password)> GetUserByTokenOMAsync(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            throw new ArgumentException("Token must be provided.", nameof(token));
+
+        // Buscar el usuario que tenga ese token OM
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.SondaTokenOM == token);
+        if (user == null)
+            throw new InvalidOperationException("No se encontró ningún usuario con ese token OM.");
+
+        // Verificar expiración si la guardás
+        if (user.TokenExpirationOM.HasValue && user.TokenExpirationOM.Value < DateTime.UtcNow)
+            throw new InvalidOperationException("El token OM está expirado.");
+
+        // Devolver username y password (normalmente hash)
+        return (user.Username, user.Password);
+    }
+
+
 
 }
 

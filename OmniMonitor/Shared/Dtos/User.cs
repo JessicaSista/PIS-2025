@@ -36,6 +36,10 @@ namespace OmniMonitor.Shared.Dtos
 
         public DateTime? TokenExpirationEM { get; set; }
 
+        public string? SondaTokenOM { get; set; }
+
+        public DateTime? TokenExpirationOM { get; set; }
+
         // Relación con roles
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     }
