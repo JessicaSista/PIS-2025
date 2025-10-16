@@ -203,10 +203,21 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromBody] DashboardCard nuevaCard)
         {
-            var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
-            if (!result)
-                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
-            return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+            try
+            {
+                var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
+                if (!result)
+                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error interno al agregar la tarjeta: {ex.Message}" });
+            }
         }
 
         /// <summary>
@@ -238,5 +249,41 @@ namespace OmniMonitor.Server.Controllers
                 return NotFound(new { message = $"No se encontró la tarjeta con id {idGrupoVisualizacion} en el dashboard {id} para el usuario '{username}'" });
             return Ok(new { message = $"Tarjeta eliminada correctamente del dashboard {id}" });
         }
+
+        /// <summary>
+        /// Actualiza el nombre y/o la descripción de un dashboard (pasa ambos como strings por query)
+        /// </summary>
+        [HttpPut("{id}/info")]
+        //[RequirePermission("Editar Dashboards")]
+        [ProducesResponseType(typeof(DashboardResponse), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> UpdateDashboardInfo(int id, [FromQuery] string username, [FromQuery] string? nombre, [FromQuery] string? descripcion)
+        {
+            try
+            {
+               
+                var updated = await _dashboardService.UpdateDashboardInfoAsync(id, username, nombre, descripcion);
+                if (updated == null)
+                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+
+
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar la información del dashboard: {ex.Message}");
+            }
+        }
+
+
+
+
     }
+
+
 }
