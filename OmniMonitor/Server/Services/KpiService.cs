@@ -178,12 +178,11 @@ namespace OmniMonitor.Server.Services
             try
             {
                 var contentType = dataset.ContentType?.ToUpper();
-                
                 return contentType switch
                 {
                     "IM" => await CalculateIMMetricAsync(dataset, request, username),
-                    "EM" => await CalculateEMMetricAsync(dataset, request, username),
-                    "UM" => await CalculateUMMetricAsync(dataset, request, username),
+                    // "EM" => await CalculateEMMetricAsync(dataset, request, username),
+                    // "UM" => await CalculateUMMetricAsync(dataset, request, username),
                     _ => await CalculateGenericMetricAsync(dataset, request)
                 };
             }
@@ -205,8 +204,8 @@ namespace OmniMonitor.Server.Services
             return request.MetricType.ToLower() switch
             {
                 "count" => await GetDeviceCountAsync(username, password),
-                "sensor_data_points" => await GetSensorDataPointsAsync(username, password),
-                "active_devices" => await GetActiveDevicesAsync(username, password),
+                "sensor_data_points" => await GetSensorDataPointsAsync(username, password, dataset, request),
+                "active_devices" => await GetActiveDevicesAsync(username, password, dataset),
                 _ => 0
             };
         }
@@ -214,35 +213,35 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Calcula métricas para datasets de tipo EM (Event Management)
         /// </summary>
-        private async Task<double> CalculateEMMetricAsync(Dataset dataset, CalculateKpiRequest request, string username)
-        {
-            var password = "admin"; // En producción esto vendría de contexto seguro
+        // private async Task<double> CalculateEMMetricAsync(Dataset dataset, CalculateKpiRequest request, string username)
+        // {
+        //     var password = "admin"; // En producción esto vendría de contexto seguro
 
-            return request.MetricType.ToLower() switch
-            {
-                "alert_count" => await GetAlertCountAsync(username, password),
-                "event_count" => await GetEventCountAsync(username, password),
-                "count" => await GetTotalEMCountAsync(username, password),
-                _ => 0
-            };
-        }
+        //     return request.MetricType.ToLower() switch
+        //     {
+        //         "alert_count" => await GetAlertCountAsync(username, password),
+        //         "event_count" => await GetEventCountAsync(username, password),
+        //         "count" => await GetTotalEMCountAsync(username, password),
+        //         _ => 0
+        //     };
+        // }
 
-        /// <summary>
-        /// Calcula métricas para datasets de tipo UM (Urban Management)
-        /// </summary>
-        private async Task<double> CalculateUMMetricAsync(Dataset dataset, CalculateKpiRequest request, string username)
-        {
-            var password = "admin"; // En producción esto vendría de contexto seguro
+        // /// <summary>
+        // /// Calcula métricas para datasets de tipo UM (Urban Management)
+        // /// </summary>
+        // private async Task<double> CalculateUMMetricAsync(Dataset dataset, CalculateKpiRequest request, string username)
+        // {
+        //     var password = "admin"; // En producción esto vendría de contexto seguro
 
-            return request.MetricType.ToLower() switch
-            {
-                "zone_count" => await GetZoneCountAsync(username, password),
-                "news_count" => await GetNewsCountAsync(username, password),
-                "event_count" => await GetUMEventCountAsync(username, password),
-                "count" => await GetTotalUMCountAsync(username, password),
-                _ => 0
-            };
-        }
+        //     return request.MetricType.ToLower() switch
+        //     {
+        //         "zone_count" => await GetZoneCountAsync(username, password),
+        //         "news_count" => await GetNewsCountAsync(username, password),
+        //         "event_count" => await GetUMEventCountAsync(username, password),
+        //         "count" => await GetTotalUMCountAsync(username, password),
+        //         _ => 0
+        //     };
+        // }
 
         /// <summary>
         /// Calcula métricas genéricas
@@ -271,10 +270,29 @@ namespace OmniMonitor.Server.Services
             }
         }
 
-        private async Task<double> GetSensorDataPointsAsync(string username, string password)
+        private async Task<double> GetSensorDataPointsAsync(string username, string password, Dataset dataset, CalculateKpiRequest request)
         {
-            // Implementación simplificada
-            return 100; // Valor por defecto
+            int totalPoints = 0;
+            var devices = dataset.DatasetDevices?.ToList();
+            if (devices == null || devices.Count == 0)
+            {
+                // Si no hay dispositivos, obtener todos los dispositivos del usuario ??
+                devices = (await _sondaIMService.GetAllDevices(username, password))?.Select(d => new DatasetDevice { Id_device = d.Id }).ToList() ?? new List<DatasetDevice>();
+            }
+
+            var sensorName = request.FieldName ?? "";
+            var dateFrom = request.DateFrom != default(DateTime) ? request.DateFrom : DateTime.Now.AddDays(-7);
+            var dateTo = request.DateTo != default(DateTime) ? request.DateTo : DateTime.Now;
+
+            foreach (var device in devices)
+            {
+                if (!string.IsNullOrEmpty(sensorName))
+                {
+                    var sensorData = await _sondaIMService.GetSensorDataByDate(device.Id_device, sensorName, dateFrom, dateTo, username, password);
+                    totalPoints += sensorData?.Count ?? 0;
+                }
+            }
+            return totalPoints;
         }
 
         private async Task<double> GetActiveDevicesAsync(string username, string password)
@@ -290,12 +308,30 @@ namespace OmniMonitor.Server.Services
             }
         }
 
-        private async Task<double> GetAlertCountAsync(string username, string password)
+        private async Task<double> GetActiveDevicesAsync(string username, string password, Dataset dataset)
         {
             try
             {
-                var alerts = await _sondaEMService.GetAlerts(1, 1000, null, null, null, null, null, null, null, username, password);
-                return alerts?.Count ?? 0;
+                // Obtener los dispositivos asociados al dataset
+                List<int> deviceIds = dataset.DatasetDevices?.Select(dd => dd.Id_device).ToList() ?? new List<int>();
+                List<Device> devices;
+                if (deviceIds.Count > 0)
+                {
+                    // Obtener solo los dispositivos del dataset
+                    devices = new List<Device>();
+                    foreach (var id in deviceIds)
+                    {
+                        var device = await _sondaIMService.GetDeviceById(id, username, password);
+                        if (device != null)
+                            devices.Add(device);
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+                // Contar los dispositivos activos
+                return devices.Count(d => d.IsActive);
             }
             catch
             {
@@ -303,72 +339,85 @@ namespace OmniMonitor.Server.Services
             }
         }
 
-        private async Task<double> GetEventCountAsync(string username, string password)
-        {
-            try
-            {
-                var events = await _sondaEMService.GetEvents(1, 1000, null, null, username, password);
-                return events?.Count ?? 0;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
+        // private async Task<double> GetAlertCountAsync(string username, string password)
+        // {
+        //     try
+        //     {
+        //         var alerts = await _sondaEMService.GetAlerts(1, 1000, null, null, null, null, null, null, null, username, password);
+        //         return alerts?.Count ?? 0;
+        //     }
+        //     catch
+        //     {
+        //         return 0;
+        //     }
+        // }
 
-        private async Task<double> GetTotalEMCountAsync(string username, string password)
-        {
-            var alerts = await GetAlertCountAsync(username, password);
-            var events = await GetEventCountAsync(username, password);
-            return alerts + events;
-        }
+        // private async Task<double> GetEventCountAsync(string username, string password)
+        // {
+        //     try
+        //     {
+        //         var events = await _sondaEMService.GetEvents(1, 1000, null, null, username, password);
+        //         return events?.Count ?? 0;
+        //     }
+        //     catch
+        //     {
+        //         return 0;
+        //     }
+        // }
 
-        private async Task<double> GetZoneCountAsync(string username, string password)
-        {
-            try
-            {
-                var zones = await _sondaUMService.GetAllZones(username, password);
-                return zones?.Count ?? 0;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
+        // private async Task<double> GetTotalEMCountAsync(string username, string password)
+        // {
+        //     var alerts = await GetAlertCountAsync(username, password);
+        //     var events = await GetEventCountAsync(username, password);
+        //     return alerts + events;
+        // }
 
-        private async Task<double> GetNewsCountAsync(string username, string password)
-        {
-            try
-            {
-                var news = await _sondaUMService.GetAllNews(username, password);
-                return news?.Count ?? 0;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
+        // private async Task<double> GetZoneCountAsync(string username, string password)
+        // {
+        //     try
+        //     {
+        //         var zones = await _sondaUMService.GetAllZones(username, password);
+        //         return zones?.Count ?? 0;
+        //     }
+        //     catch
+        //     {
+        //         return 0;
+        //     }
+        // }
 
-        private async Task<double> GetUMEventCountAsync(string username, string password)
-        {
-            try
-            {
-                var events = await _sondaUMService.GetAllEvents(username, password);
-                return events?.Count ?? 0;
-            }
-            catch
-            {
-                return 0;
-            }
-        }
+        // private async Task<double> GetNewsCountAsync(string username, string password)
+        // {
+        //     try
+        //     {
+        //         var news = await _sondaUMService.GetAllNews(username, password);
+        //         return news?.Count ?? 0;
+        //     }
+        //     catch
+        //     {
+        //         return 0;
+        //     }
+        // }
 
-        private async Task<double> GetTotalUMCountAsync(string username, string password)
-        {
-            var zones = await GetZoneCountAsync(username, password);
-            var news = await GetNewsCountAsync(username, password);
-            var events = await GetUMEventCountAsync(username, password);
-            return zones + news + events;
-        }
+        // private async Task<double> GetUMEventCountAsync(string username, string password)
+        // {
+        //     try
+        //     {
+        //         var events = await _sondaUMService.GetAllEvents(username, password);
+        //         return events?.Count ?? 0;
+        //     }
+        //     catch
+        //     {
+        //         return 0;
+        //     }
+        // }
+
+        // private async Task<double> GetTotalUMCountAsync(string username, string password)
+        // {
+        //     var zones = await GetZoneCountAsync(username, password);
+        //     var news = await GetNewsCountAsync(username, password);
+        //     var events = await GetUMEventCountAsync(username, password);
+        //     return zones + news + events;
+        // }
 
         private static string FormatValue(double value, string formatType)
         {
