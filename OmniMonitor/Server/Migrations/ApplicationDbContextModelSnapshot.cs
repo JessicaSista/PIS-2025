@@ -1438,6 +1438,34 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("DatasetDevices");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
+                {
+                    b.Navigation("Grupo_Asset");
+
+                    b.Navigation("Grupo_Event_Task_Instance");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
+                {
+                    b.Navigation("DatasetAlerts");
+
+                    b.Navigation("DatasetEvents");
+
+                    b.Navigation("DatasetExtensions");
+
+                    b.Navigation("DatasetResources");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
+                {
+                    b.Navigation("Grupo_Stock");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetIM", b =>
+                {
+                    b.Navigation("DatasetDevices");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
                 {
                     b.Navigation("DatasetEvents");
