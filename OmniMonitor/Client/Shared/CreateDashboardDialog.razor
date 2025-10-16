@@ -8,52 +8,54 @@
     <DialogContent>
         <MudStack Spacing="3">
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
-            <MudTextField @bind-Value="nuevoDashboard.Nombre"
-                          Label="Nombre"
+            <MudTextField @bind-Value="newDashboard.Nombre"
+                          Label="Name"
                           Variant="Variant.Outlined"
                           Required="true"
-                          For="@(() => nuevoDashboard.Nombre)"
+                          For="@(() => newDashboard.Nombre)"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
-            <MudTextField @bind-Value="nuevoDashboard.Descripcion"
-                          Label="Descripción"
+            <MudTextField @bind-Value="newDashboard.Descripcion"
+                          Label="Description"
                           Variant="Variant.Outlined"
                           Lines="2"
-                          For="@(() => nuevoDashboard.Descripcion)"
+                          For="@(() => newDashboard.Descripcion)"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancelar">@Localizer["Cancel"]</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" OnClick="Confirmar">@Localizer["Save"]</MudButton>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Confirm">@Localizer["Save"]</MudButton>
     </DialogActions>
 </MudDialog>
 
-<style>
-    /* Oscurece el fondo cuando el modal está abierto */
-    .mud-overlay {
-        background-color: rgba(0, 0, 0, 0.7) !important;
-    }
-</style>
 
 @code {
-    [CascadingParameter]
-    public IMudDialogInstance _mudDialog { get; set; } = default!;
+    [CascadingParameter] public IMudDialogInstance _mudDialog { get; set; } = default!;
+    [Parameter] public EventCallback<DashboardDto> OnConfirm { get; set; }
+    [Parameter] public string? InitialName { get; set; }
+    [Parameter] public string? InitialDescription { get; set; }
 
-    [Parameter]
-    public EventCallback<DashboardDto> OnConfirm { get; set; }
+    private DashboardDto newDashboard = new();
 
-    private DashboardDto nuevoDashboard = new();
+    private bool IsFormValid => !string.IsNullOrWhiteSpace(newDashboard.Nombre);
 
-    private bool FormularioValido => !string.IsNullOrWhiteSpace(nuevoDashboard.Nombre);
-
-    private async Task Confirmar()
+    protected override void OnInitialized()
     {
-        await OnConfirm.InvokeAsync(nuevoDashboard);
-        _mudDialog.Close(DialogResult.Ok(nuevoDashboard));
+        newDashboard = new DashboardDto
+        {
+            Nombre = InitialName ?? string.Empty,
+            Descripcion = InitialDescription ?? string.Empty
+        };
     }
 
-    private void Cancelar()
+    private async Task Confirm()
+    {
+        await OnConfirm.InvokeAsync(newDashboard);
+        _mudDialog.Close(DialogResult.Ok(newDashboard));
+    }
+
+    private void Cancel()
     {
         _mudDialog.Cancel();
     }
