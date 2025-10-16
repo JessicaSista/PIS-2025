@@ -24,6 +24,7 @@ namespace OmniMonitor.Server.Services
         Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard);
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards);
         Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion);
+        Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
     }
 
     /// <summary>
@@ -367,5 +368,61 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
             return true;
         }
+
+        
+
+        /// <summary>
+        /// Actualiza el nombre y/o la descripción de un dashboard
+        /// </summary>
+        public async Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion)
+        {
+            var dashboard = await _context.Dashboards
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+
+
+            if (dashboard == null)
+                return null;
+
+
+            bool hasChanges = false;
+
+
+            if (!string.IsNullOrWhiteSpace(nuevoNombre) && !string.Equals(dashboard.Nombre, nuevoNombre, StringComparison.Ordinal))
+            {
+                // Validar nombre único por usuario
+                var exists = await _context.Dashboards
+                    .AnyAsync(d => d.Username == username && d.Nombre == nuevoNombre && d.IdDashboard != idDashboard);
+                if (exists)
+                {
+                    throw new ArgumentException($"Ya existe un dashboard con el nombre '{nuevoNombre}' para el usuario '{username}'.");
+                }
+
+
+                dashboard.Nombre = nuevoNombre.Trim();
+                hasChanges = true;
+            }
+
+
+            if (nuevaDescripcion != null && !string.Equals(dashboard.Descripcion, nuevaDescripcion, StringComparison.Ordinal))
+            {
+                dashboard.Descripcion = string.IsNullOrWhiteSpace(nuevaDescripcion) ? null : nuevaDescripcion.Trim();
+                hasChanges = true;
+            }
+
+
+            if (!hasChanges)
+            {
+                // No hay cambios que aplicar; devolver el dashboard actual
+                return await GetDashboardByIdAsync(idDashboard, username);
+            }
+
+
+            dashboard.FechaModificacion = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+
+            return await GetDashboardByIdAsync(idDashboard, username);
+        }
+
     }
 }
