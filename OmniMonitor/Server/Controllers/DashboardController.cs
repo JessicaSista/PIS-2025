@@ -203,10 +203,21 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromBody] DashboardCard nuevaCard)
         {
-            var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
-            if (!result)
-                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
-            return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+            try
+            {
+                var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
+                if (!result)
+                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error interno al agregar la tarjeta: {ex.Message}" });
+            }
         }
 
         /// <summary>
