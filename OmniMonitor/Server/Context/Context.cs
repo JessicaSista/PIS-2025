@@ -183,10 +183,10 @@ namespace OmniMonitor.Server.Context
         private void ConfigureDashboardRelationships(ModelBuilder builder)
         {
             // Configurar Dashboard
-            builder.Entity<Dashboard>()
+            builder.Entity<DashboardDto>()
                 .HasKey(d => d.IdDashboard);
 
-            builder.Entity<Dashboard>()
+            builder.Entity<DashboardDto>()
                 .HasIndex(d => new { d.Username, d.Nombre })
                 .IsUnique();
 
@@ -209,7 +209,7 @@ namespace OmniMonitor.Server.Context
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Índices para optimizar consultas
-            builder.Entity<Dashboard>()
+            builder.Entity<DashboardDto>()
                 .HasIndex(d => d.Username);
 
             builder.Entity<GrupoVisualizacion>()

@@ -6,7 +6,7 @@ namespace OmniMonitor.Shared.Dtos
     /// <summary>
     /// Representa un dashboard personalizable del usuario
     /// </summary>
-    public class Dashboard
+    public class DashboardDto
     {
         [Key]
         [Column("id_dashboard")]
