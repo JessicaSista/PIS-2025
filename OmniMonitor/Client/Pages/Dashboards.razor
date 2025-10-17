@@ -1,19 +1,381 @@
 @page "/dashboards"
 @attribute [Authorize]
-<Dashboard Widgets=@Widgets></Dashboard>
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@using MudBlazor
+@using OmniMonitor.Shared
+@using Microsoft.AspNetCore.Components
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Dashboards> Localizer
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider AuthenticationStateProvider
+<PageTitle>Dashboards</PageTitle>
+
+<!-- Header -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">Dashboards</MudText>
+    </MudStack>
+    <AddButton OnClick="OpenCreateDashboardDialog">
+        @Localizer["CrearDashboard"]
+    </AddButton>
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">
+        @Localizer["Gestiona"]
+    </MudText>
+</MudStack>
+
+<!-- Search bar -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
+    <MudTextField @bind-Value="searchText"
+                  Immediate="true"
+                  Placeholder="@Localizer["Buscar"]"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="flex-grow-1 mr-3" />
+
+    <MudButton Variant="Variant.Outlined"
+               Color="MudBlazor.Color.Secondary"
+               StartIcon="@Icons.Material.Filled.FilterList"
+               Class="filter-button">
+        <span class="button-text-filter">@Localizer["Filtros"]</span>
+    </MudButton>
+</MudStack>
+
+<style>
+    @@media (max-width: 768px) {
+        .button-text-filter {
+            display: none !important;
+        }
+
+        .filter-button .mud-button-icon-start,
+        .filter-button .mud-button-icon-start svg {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto !important;
+        }
+    }
+</style>
+
+<!-- Dashboard grid -->
+<MudContainer Fixed="true" Class="pl-4 pr-6">
+    <MudGrid GutterSize="3">
+        @foreach (var dashboard in filteredDashboards)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <div style="position:relative;">
+                    <DashboardCardComponent Dashboard="dashboard"
+                                            OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
+
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                             AnchorOrigin="Origin.TopRight"
+                             TransformOrigin="Origin.TopRight"
+                             Class="position-absolute"
+                             Style="position:absolute; top:8px; right:8px;">
+
+                        <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
+                            @Localizer["Editar"]
+                        </MudMenuItem>
+
+                        <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
+                            @Localizer["Eliminar"]
+                        </MudMenuItem>
+                    </MudMenu>
+                </div>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
 @code {
-    (bool, string)[] Widgets = new (bool, string)[] {
-        (true, "DATA1,2999,false"),
-        (true,"DATA2,2343.00,false"),
-        (true,"DATA3,234342.99,true"),
-        (true,"DATA4,484342.99,false"),
-        (false, "Sensor de Proximidad"),
-        (false, "Dispositivo de Monitoreo"),
-        (false, "Tarjeta de Expansión"),
-        (false, "Módulo Wi-Fi"),
-        (false, "Sensor de Flujo de Agua"),
-        (false, "Medidor de Voltaje"),
-        (false, "Batería de Litio Recargable"),
-        (false, "Cargador de Baterías")
-    };
+    private List<DashboardSummaryResponse> dashboards = new();
+    private List<DashboardSummaryResponse> filteredDashboards = new();
+    private string _searchText = string.Empty;
+
+    private string searchText
+    {
+        get => _searchText;
+        set
+        {
+            _searchText = value ?? string.Empty;
+            FilterDashboards();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+                filteredDashboards = new List<DashboardSummaryResponse>();
+                return;
+            }
+
+            dashboards = await Http.GetFromJsonAsync<List<DashboardSummaryResponse>>(
+                $"api/Dashboard/user/{username}"
+            ) ?? new();
+
+            filteredDashboards = dashboards.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading dashboards: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenCreateDashboardDialog()
+    {
+        var parameters = new DialogParameters
+        {
+            ["OnConfirm"] = EventCallback.Factory.Create<DashboardDto>(this, CreateDashboard)
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = true,
+            BackdropClick = false,
+            Position = DialogPosition.Center,
+            NoHeader = false,
+            BackgroundClass = "mud-overlay-dark"
+        };
+
+        await DialogService.ShowAsync<CreateDashboardDialog>("Create Dashboard", parameters, options);
+    }
+
+    private async void CreateDashboard(DashboardDto newDashboard)
+    {
+        if (newDashboard == null) return;
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+                filteredDashboards = new List<DashboardSummaryResponse>();
+                return;
+            }
+
+            var request = new CreateDashboardRequest
+            {
+                Username = username,
+                Nombre = newDashboard.Nombre,
+                Descripcion = newDashboard.Descripcion
+            };
+
+            var response = await Http.PostAsJsonAsync("api/Dashboard", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<DashboardResponse>();
+                if (created != null)
+                {
+                    dashboards.Add(new DashboardSummaryResponse
+                    {
+                        IdDashboard = created.IdDashboard,
+                        Nombre = created.Nombre,
+                        Descripcion = created.Descripcion,
+                        FechaCreacion = created.FechaCreacion,
+                        FechaModificacion = created.FechaModificacion,
+                        CantidadTarjetas = created.Tarjetas?.Count ?? 0
+                    });
+                    filteredDashboards = dashboards.ToList();
+                    StateHasChanged();
+                    await JS.InvokeVoidAsync("equalizeCardHeights");
+                    Snackbar.Add($"'{created.Nombre}' created successfully", Severity.Success);
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error creating dashboard: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OpenDashboard(int id)
+    {
+        NavigationManager.NavigateTo($"/dashboard/{id}");
+    }
+
+    private async Task EditDashboard(DashboardSummaryResponse dashboard)
+    {
+        if (dashboard is null) return;
+
+        var title = Localizer["Editar Dashboard"];
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var username = authState.User.Identity?.Name;
+
+        if (string.IsNullOrEmpty(username))
+        {
+            Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            ["OnConfirm"] = EventCallback.Factory.Create<DashboardDto>(this, async (DashboardDto updated) =>
+            {
+                try
+                {
+                    var url = $"api/Dashboard/{dashboard.IdDashboard}/info?username={username}";
+                    if (!string.IsNullOrWhiteSpace(updated.Nombre))
+                        url += $"&nombre={Uri.EscapeDataString(updated.Nombre)}";
+                    if (!string.IsNullOrWhiteSpace(updated.Descripcion))
+                        url += $"&descripcion={Uri.EscapeDataString(updated.Descripcion)}";
+
+                    var response = await Http.PutAsync(url, null);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        dashboard.Nombre = updated.Nombre;
+                        dashboard.Descripcion = updated.Descripcion;
+                        dashboard.FechaModificacion = DateTime.UtcNow;
+
+                        Snackbar.Add($"'{dashboard.Nombre}' updated successfully", Severity.Success, config =>
+                        {
+                            config.SnackbarVariant = Variant.Filled;
+                        });
+
+                        StateHasChanged();
+                        await JS.InvokeVoidAsync("equalizeCardHeights");
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        Snackbar.Add($"Error updating dashboard: {errorContent}", Severity.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Unexpected error: {ex.Message}", Severity.Error);
+                }
+            })
+        };
+
+        var options = new DialogOptions
+        {
+            CloseButton = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseOnEscapeKey = true,
+            BackdropClick = false,
+            Position = DialogPosition.Center,
+            NoHeader = false,
+            BackgroundClass = "mud-overlay-dark"
+        };
+
+        parameters.Add("InitialName", dashboard.Nombre);
+        parameters.Add("InitialDescription", dashboard.Descripcion);
+
+        await DialogService.ShowAsync<CreateDashboardDialog>(title, parameters, options);
+    }
+
+    private async Task ConfirmDelete(DashboardSummaryResponse dashboard)
+    {
+        if (dashboard is null) return;
+
+        bool? result = await DialogService.ShowMessageBox(
+            Localizer["Confirmación"],
+            (MarkupString)string.Format(
+                Localizer["PreguntaEliminar1"],
+                $"<b>{dashboard.Nombre}</b>"
+            ),
+            yesText: Localizer["Eliminar"],
+            cancelText: Localizer["Cancelar"],
+            options: new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.ExtraSmall
+            }
+        );
+
+        if (result == true)
+        {
+            try
+            {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var username = authState.User.Identity?.Name;
+
+                if (string.IsNullOrEmpty(username))
+                {
+                    Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+                    filteredDashboards = new List<DashboardSummaryResponse>();
+                    return;
+                }
+
+                var response = await Http.DeleteAsync($"api/Dashboard/{dashboard.IdDashboard}?username={username}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    dashboards.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
+                    filteredDashboards.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
+                    Snackbar.Add($"'{dashboard.Nombre}' deleted successfully", Severity.Success);
+                }
+                else
+                {
+                    Snackbar.Add($"Error deleting dashboard", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void FilterDashboards()
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredDashboards = dashboards.ToList();
+            return;
+        }
+
+        var normalizedSearch = NormalizeText(searchText);
+        filteredDashboards = dashboards
+            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
+            .ToList();
+    }
+
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+        return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (dashboards.Count > 0)
+        {
+            await JS.InvokeVoidAsync("equalizeCardHeights");
+        }
+    }
 }

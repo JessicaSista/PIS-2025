@@ -3,6 +3,7 @@ using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
+using System.Linq.Dynamic.Core.Tokenizer;
 using System.Threading.Tasks;
 
 [ApiController]
@@ -10,10 +11,12 @@ using System.Threading.Tasks;
 public class VisualizacionController : ControllerBase
 {
     private readonly IVisualizacionService _visualizacionService;
+    private readonly ISondaAuthService _sondaAuthService;
 
-    public VisualizacionController(IVisualizacionService visualizacionService)
+    public VisualizacionController(IVisualizacionService visualizacionService, ISondaAuthService sondaAuthService)
     {
         _visualizacionService = visualizacionService;
+        _sondaAuthService = sondaAuthService;
     }
 
     /// <summary>
@@ -49,13 +52,14 @@ public class VisualizacionController : ControllerBase
     /// <summary>
     /// Obtiene todas las visualizaciones para un usuario específico.
     /// </summary>
-    [HttpGet("user/{username}")]
+    [HttpGet("GetAllVisualizaciones")]
     [ProducesResponseType(typeof(List<Visualizacion>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<Visualizacion>>> GetAllVisualizaciones(string username)
+    public async Task<ActionResult<List<Visualizacion>>> GetAllVisualizaciones(string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var visualizaciones = await _visualizacionService.GetAllVisualizacionesAsync(username);
             return Ok(visualizaciones);
         }
@@ -68,14 +72,15 @@ public class VisualizacionController : ControllerBase
     /// <summary>
     /// Obtiene una visualización específica por su ID y nombre de usuario.
     /// </summary>
-    [HttpGet("{idVisualizacion}/{username}")]
+    [HttpGet("GetVisualizacionById")]
     [ProducesResponseType(typeof(Visualizacion), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<Visualizacion>> GetVisualizacionById(int idVisualizacion, string username)
+    public async Task<ActionResult<Visualizacion>> GetVisualizacionById(int idVisualizacion, string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var visualizacion = await _visualizacionService.GetVisualizacionByIdAsync(idVisualizacion, username);
             if (visualizacion == null)
             {
