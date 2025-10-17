@@ -3,6 +3,7 @@ using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 [ApiController]
@@ -57,18 +58,54 @@ public class DatasetController : ControllerBase
     [HttpGet("user")]
     [ProducesResponseType(typeof(List<DatasetIM>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets(string token)
+    public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets(string token, [FromQuery] string? search = null)
     {
         try
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            
+            // Por ahora usamos el método sin búsqueda y filtramos en memoria
+            // TODO: Implementar búsqueda en el servicio cuando sea necesario
             var datasets = await _datasetService.GetAllDatasetsIMAsync(username);
+            
+            // Si hay un término de búsqueda, filtramos en memoria
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var normalizedSearch = NormalizeText(search);
+                datasets = datasets
+                    .Where(d => NormalizeText(d.Name).Contains(normalizedSearch))
+                    .ToList();
+            }
+            
             return Ok(datasets);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
+    /// </summary>
+    private string NormalizeText(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        // 1) Normalizar a FormD y remover diacríticos (acentos)
+        var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+
+        // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
+        withoutDiacritics = withoutDiacritics
+            .Replace(" ", string.Empty)
+            .Replace("ñ", "n")
+            .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
+            .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
+
+        // 3) Normalizar de vuelta a FormC
+        return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
     }
 
     /// <summary>

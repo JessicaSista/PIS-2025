@@ -112,6 +112,7 @@
                        FullWidth="true"
                        Label="@Localizer["SeleccionarDispositivo"]"
                        Class="dark-field"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
                 @foreach (var device in devices)
                 {
@@ -130,6 +131,7 @@
                        FullWidth="true"
                        Label="@Localizer["SeleccionarSensor"]"
                        Class="@($"dark-field")"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        Required="true">
                 @foreach (var sensor in sensores)
                 {
@@ -250,13 +252,19 @@
         // asigno nuevo source
         selectedSourceId = sourceId;
 
-        // limpio dependencias
+        // limpio todas las dependencias
+        selectedGroupId = null;
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
+        devices.Clear();
+        sensores.Clear();
 
-        // recargo listas en base al nuevo source
-        await LoadDevices();
-        await LoadSensors();
+        // solo recargo si hay una fuente seleccionada
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+            await LoadSensors();
+        }
 
         StateHasChanged();
     }
@@ -265,8 +273,16 @@
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
-        //se recargan los dispositivos porque se borra el "filtro" de grupo
-        await LoadDevices();
+        
+        // Resetear dispositivos y sensores seleccionados
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        
+        // Recargar dispositivos según los filtros actuales
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+        }
 
         StateHasChanged();
     }
