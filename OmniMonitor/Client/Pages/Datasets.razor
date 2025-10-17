@@ -1,8 +1,10 @@
 @page "/datasets"
 @attribute [Authorize]
+@implements IDisposable
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @using MudBlazor
+@using Blazored.LocalStorage
 @using OmniMonitor.Shared
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
@@ -13,6 +15,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
+@inject ILocalStorageService LocalStorage
 
 <PageTitle>Datasets</PageTitle>
 
@@ -100,8 +103,9 @@
 @code {
     private List<DatasetDto> datasets = new();
     private List<DatasetDto> filteredDatasets = new();
+    private System.Threading.Timer? _debounceTimer;
 
-    // Propiedad con setter que dispara el filtrado
+    // Propiedad con setter que dispara el filtrado con debounce
     private string _searchText = string.Empty;
     private string searchText
     {
@@ -109,7 +113,15 @@
         set
         {
             _searchText = value ?? string.Empty;
-            FilterDatasets();
+            
+            // Cancelar el timer anterior si existe
+            _debounceTimer?.Dispose();
+            
+            // Crear un nuevo timer que ejecutará la búsqueda después de 500ms
+            _debounceTimer = new System.Threading.Timer(_ =>
+            {
+                InvokeAsync(async () => await LoadDatasetsAsync());
+            }, null, 500, Timeout.Infinite);
         }
     }
 
@@ -143,6 +155,7 @@
                 // Obtener el usuario actual
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 var username = authState.User.Identity?.Name;
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
 
                 if (string.IsNullOrEmpty(username))
                 {
@@ -151,7 +164,7 @@
                 }
 
                 // Eliminar desde el backend
-                var response = await Http.DeleteAsync($"api/Dataset/{dataset.Id}/{username}");
+                var response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={token}");
                 if (response.IsSuccessStatusCode)
                 {
                     datasets.RemoveAll(d => d.Id == dataset.Id);
@@ -177,11 +190,38 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadDatasetsAsync();
+
+        // Mostrar snackbar si viene mensaje por query string
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var q in query)
+            {
+                var kv = q.Split('=', 2);
+                if (kv.Length == 2 && kv[0] == "snackbar")
+                {
+                    var mensaje = Uri.UnescapeDataString(kv[1]);
+                    Snackbar.Add(mensaje, Severity.Success, config =>
+                    {
+                        config.SnackbarVariant = Variant.Filled;
+                        config.Action = "OK";
+                        config.ActionColor = MudBlazor.Color.Primary;
+                    });
+                }
+            }
+        }
+    }
+
+    private async Task LoadDatasetsAsync()
+    {
         try
         {
             // Obtener el usuario actual de la sesión
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             Console.WriteLine($"DEBUG: Username obtenido: '{username}'");
 
@@ -192,17 +232,22 @@
                 return;
             }
 
+            // Construir la URL con el parámetro de búsqueda si existe
+            var url = $"api/Dataset/user?token={Uri.EscapeDataString(token)}";
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                url += $"&search={Uri.EscapeDataString(searchText)}";
+            }
+
             // Cargar datasets desde el backend
-            var response = await Http.GetAsync($"api/Dataset/user/{username}");
+            var response = await Http.GetAsync(url);
             
-            // ⬇️ AGREGAR AQUÍ
             Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");
             
             if (response.IsSuccessStatusCode)
             {
                 var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
                 
-                // ⬇️ AGREGAR AQUÍ
                 Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
                 
                 // Convertir Dataset a DatasetDto
@@ -212,42 +257,21 @@
                     Nombre = d.Name,
                     Descripcion = d.Description
                 }).ToList() ?? new List<DatasetDto>();
+                
+                // Como el filtrado ya se hizo en el backend, asignamos directamente
+                filteredDatasets = datasets.ToList();
             }
             else
             {
-                // ⬇️ REEMPLAZAR estas 2 líneas
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"DEBUG: Error response: {errorContent}");
                 Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
-                // ⬆️ Por esta línea antigua: Snackbar.Add("Error al cargar los datasets", Severity.Error);
                 
                 datasets = new List<DatasetDto>();
+                filteredDatasets = new List<DatasetDto>();
             }
 
-
-            // Inicializar la lista filtrada
-            filteredDatasets = datasets.ToList();
-
-            // Mostrar snackbar si viene mensaje por query string
-            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-            if (!string.IsNullOrEmpty(uri.Query))
-            {
-                var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
-                foreach (var q in query)
-                {
-                    var kv = q.Split('=', 2);
-                    if (kv.Length == 2 && kv[0] == "snackbar")
-                    {
-                        var mensaje = Uri.UnescapeDataString(kv[1]);
-                        Snackbar.Add(mensaje, Severity.Success, config =>
-                        {
-                            config.SnackbarVariant = Variant.Filled;
-                            config.Action = "OK";
-                            config.ActionColor = MudBlazor.Color.Primary;
-                        });
-                    }
-                }
-            }
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -257,42 +281,30 @@
         }
     }
 
+    // Método obsoleto - ahora el filtrado se hace en el backend
+    // Se mantiene por compatibilidad pero ya no se usa
     private void FilterDatasets()
     {
-        if (string.IsNullOrWhiteSpace(searchText))
-        {
-            filteredDatasets = datasets.ToList();
-            return;
-        }
-
-        var normalizedSearch = NormalizeText(searchText);
-
-        filteredDatasets = datasets
-            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
-            .OrderByDescending(d => NormalizeText(d.Nombre) == normalizedSearch) // exactos primero
-            .ThenByDescending(d => NormalizeText(d.Nombre).StartsWith(normalizedSearch)) // luego prefijo
-            .ThenBy(d => NormalizeText(d.Nombre).IndexOf(normalizedSearch)) // luego por posición de coincidencia
-            .ThenBy(d => d.Nombre) // estable
-            .ToList();
+        // Este método ya no se utiliza porque el filtrado se hace en el backend
+        // Se deja vacío para no romper referencias existentes
     }
 
+    // Método de normalización - se mantiene en caso de necesitarse en el futuro
+    // pero ahora la normalización se hace en el backend
     private string NormalizeText(string text)
     {
         if (string.IsNullOrEmpty(text))
             return string.Empty;
 
-        // 1) Normalizar a FormD y remover diacríticos (acentos)
         var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
         var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
 
-        // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
         withoutDiacritics = withoutDiacritics
             .Replace(" ", string.Empty)
             .Replace("ñ", "n")
             .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
             .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
 
-        // 3) Normalizar de vuelta a FormC
         return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
     }
 
@@ -300,6 +312,11 @@
     private void CrearDataset()
     {
         NavigationManager.NavigateTo("/crearDataset");
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
     }
 
    

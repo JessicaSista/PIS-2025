@@ -256,13 +256,13 @@ public class SondaAMController : ControllerBase
         [FromQuery] int? taskTypeId,
         [FromQuery] int? groupId,
         [FromQuery] int? pageSize,
-        [FromQuery] string username,
-        [FromQuery] string password,
+        [FromQuery] string token,
         [FromQuery] bool tasksAssignedToMe = false,
         [FromQuery] bool tasksPendingApproval = false)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString, bundleId, state, sort, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username, password);
             return Ok(result);
         }
@@ -314,8 +314,9 @@ public class SondaAMController : ControllerBase
     /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
     /// </summary>
     [HttpGet("typeDtos")]
-    public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string username, [FromQuery] string password)
+    public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string token)
     {
+        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username, password);
         return Ok(typeDtos);
     }
@@ -324,10 +325,11 @@ public class SondaAMController : ControllerBase
     [ProducesResponseType(typeof(List<AssetTypeDto>), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes([FromQuery] string username, [FromQuery] string password)
+    public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes([FromQuery] string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var types = await _sondaAMService.GetAllAssetTypes(username, password);
             if (types == null || types.Count == 0) return NotFound("No se encontraron tipos de asset.");
             return Ok(types);

@@ -120,6 +120,7 @@ else
                        FullWidth="true"
                        Label="@Localizer["SeleccionarDispositivo"]"
                        Class="dark-field"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
                 @foreach (var device in devices)
                 {
@@ -137,6 +138,7 @@ else
                        FullWidth="true"
                        Label="@Localizer["SeleccionarSensor"]"
                        Class="@($"dark-field")"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        Required="true">
                 @foreach (var sensor in sensores)
                 {
@@ -174,7 +176,7 @@ else
     private int? selectedSourceId = null;
     private int? selectedGroupId = null;
     private HashSet<int> selectedDeviceIds = new();
-    
+
     private string selectedSensor = string.Empty;
     private List<string> sensores = new();
 
@@ -224,6 +226,7 @@ else
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -232,7 +235,7 @@ else
             }
 
             // Cargar el dataset desde el backend
-            var response = await Http.GetAsync($"api/Dataset/{id}/{username}");
+            var response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={id}&token={token}");
             if (!response.IsSuccessStatusCode)
             {
                 noEncontrado = true;
@@ -333,13 +336,19 @@ else
         // asigno nuevo source
         selectedSourceId = sourceId;
 
-        // limpio dependencias
+        // limpio todas las dependencias
+        selectedGroupId = null;
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
+        devices.Clear();
+        sensores.Clear();
 
-        // recargo listas en base al nuevo source
-        await LoadDevices();
-        await LoadSensors();
+        // solo recargo si hay una fuente seleccionada
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+            await LoadSensors();
+        }
 
         StateHasChanged();
     }
@@ -348,8 +357,16 @@ else
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
-        //se recargan los dispositivos porque se borra el "filtro" de grupo
-        await LoadDevices();
+        
+        // Resetear dispositivos y sensores seleccionados
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        
+        // Recargar dispositivos según los filtros actuales
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+        }
 
         StateHasChanged();
     }
