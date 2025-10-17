@@ -25,7 +25,9 @@ namespace OmniMonitor.Server.Services
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards);
         Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
-    }
+        Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard);
+        Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
+    }   
 
     /// <summary>
     /// Implementación del servicio de Dashboards
@@ -392,11 +394,45 @@ namespace OmniMonitor.Server.Services
             return true;
         }
 
-        
-
         /// <summary>
         /// Actualiza el nombre y/o la descripción de un dashboard
         /// </summary>
+        public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard)
+        {
+            // Implementación de otro método si es necesario
+
+            var visualizacion = await _context.Visualizaciones
+                .FirstOrDefaultAsync(v => v.Nombre == nombre && v.Username == username);
+
+            if (visualizacion == null)
+            {
+                return false;
+            }
+
+            // Actualizar configuración de la card en el grupo visualización
+            var grupovisu = await _context.GrupoVisualizaciones
+                .FirstOrDefaultAsync(gv => gv.GrupoVisualizacionId == idDashboard && gv.IdVisualizacion == visualizacion.IdVisualizacion);
+
+            if (grupovisu == null)
+            {
+                return false;
+            }
+
+            // Actualizar los datos de la visualización
+            visualizacion.Nombre = updatedCard.Nombre;
+            visualizacion.FechaDesde = updatedCard.FechaDesde;
+            visualizacion.FechaHasta = updatedCard.FechaHasta;
+            visualizacion.JsonDesign = updatedCard.JsonDiseñoGeneral;
+
+            if (jsonConfig != null)
+            {
+                grupovisu.PropsConfiguracion = jsonConfig;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion)
         {
             var dashboard = await _context.Dashboards
@@ -447,5 +483,30 @@ namespace OmniMonitor.Server.Services
             return await GetDashboardByIdAsync(idDashboard, username);
         }
 
+        /// <summary>
+        /// Busca dashboards por un fragmento de texto en el nombre o descripción
+        /// </summary>
+        public async Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return new List<DashboardSummaryResponse>();
+
+            var lowerQuery = query.ToLower();
+            var dashboards = await _context.Dashboards
+                .Where(d => d.Nombre.ToLower().Contains(lowerQuery) || (d.Descripcion != null && d.Descripcion.ToLower().Contains(lowerQuery)))
+                .Select(d => new DashboardSummaryResponse
+                {
+                    IdDashboard = d.IdDashboard,
+                    Nombre = d.Nombre,
+                    Descripcion = d.Descripcion,
+                    Username = d.Username,
+                    FechaCreacion = d.FechaCreacion,
+                    FechaModificacion = d.FechaModificacion,
+                    CantidadTarjetas = d.GrupoVisualizaciones.Count
+                })
+                .ToListAsync();
+
+            return dashboards;
+        }
     }
 }

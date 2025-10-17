@@ -284,8 +284,34 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Edita una tarjeta (GrupoVisualizacion) y su visualización asociada
+        /// </summary>
+        [HttpPut("{id}/card/edit")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string username, string? JsonConfig, string nombre, [FromBody] CreateVisualizacionRequest request)
+        {
+            if (request == null || request.Nombre == null)
+                return BadRequest(new { message = "Datos inválidos para la edición de la tarjeta." });
 
+            var result = await _dashboardService.EditDashboardCard(id, username, JsonConfig, nombre, request);
+            if (!result)
+                return NotFound(new { message = "No se encontró la tarjeta o la visualización asociada para editar." });
+            return Ok(new { message = "Tarjeta y visualización actualizadas correctamente." });
+        }
 
+        /// <summary>
+        /// Busca dashboards por fragmento de texto en nombre o descripción
+        /// </summary>
+        [HttpGet("search")]
+        [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
+        public async Task<IActionResult> SearchDashboards([FromQuery] string query)
+        {
+            var result = await _dashboardService.SearchDashboardsByTextAsync(query);
+            return Ok(result);
+        }
 
     }
 
