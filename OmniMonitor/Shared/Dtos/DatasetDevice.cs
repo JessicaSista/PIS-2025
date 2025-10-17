@@ -14,6 +14,6 @@ namespace OmniMonitor.Shared.Dtos
         // Relación de clave externa con Dataset
         public int DatasetId { get; set; }
         [ForeignKey("DatasetId")]
-        public virtual Dataset Dataset { get; set; }
+        public virtual DatasetIM Dataset { get; set; }
     }
 }

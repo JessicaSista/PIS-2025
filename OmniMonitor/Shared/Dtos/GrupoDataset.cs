@@ -19,7 +19,7 @@ namespace OmniMonitor.Shared.Dtos
         public int DatasetId { get; set; }
 
         [ForeignKey("DatasetId")]
-        public virtual Dataset Dataset { get; set; }
+        public virtual DatasetIM Dataset { get; set; }
 
         [Column("JSON_design")]
         [MaxLength(1000)]

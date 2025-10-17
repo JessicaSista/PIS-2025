@@ -183,8 +183,8 @@
     private bool isFormalDataset = true;
     private string usernameToFetch = "admin"; // Valor por defecto
 
-    private List<Dataset>? userDatasets;
-    private Dataset? selectedDataset;
+    private List<DatasetIM>? userDatasets;
+    private DatasetIM? selectedDataset;
     
     // Banderas de estado de carga
     private bool isLoadingOptions = true;
@@ -292,12 +292,12 @@
         selectedDataset = null;
         try
         {
-            userDatasets = await GetAndHandleResponse<List<Dataset>>($"api/Dataset/user/{usernameToFetch}");
+            userDatasets = await GetAndHandleResponse<List<DatasetIM>>($"api/Dataset/user/{usernameToFetch}");
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error al procesar la respuesta de datasets: {ex.Message}", Severity.Error);
-            userDatasets = new List<Dataset>(); // Asignar lista vacía en caso de error para evitar que la tabla desaparezca
+            userDatasets = new List<DatasetIM>(); // Asignar lista vacía en caso de error para evitar que la tabla desaparezca
         }
         finally
         {
@@ -309,7 +309,7 @@
     {
         try
         {
-            selectedDataset = await GetAndHandleResponse<Dataset>($"api/Dataset/{datasetId}/{usernameToFetch}");
+            selectedDataset = await GetAndHandleResponse<DatasetIM>($"api/Dataset/{datasetId}/{usernameToFetch}");
         }
         catch (Exception ex)
         {
