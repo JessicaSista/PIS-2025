@@ -149,4 +149,96 @@ public class ReportsController : ControllerBase
             return StatusCode(500, "An error occurred while executing the join.");
         }
     }
+
+    [HttpPut("UpdateReport")]
+    [ProducesResponseType(typeof(Report), 200)]
+    [ProducesResponseType(404)] // Not Found
+    [ProducesResponseType(401)] // Unauthorized
+    public async Task<IActionResult> UpdateReport(int id, string name, string description, [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return Unauthorized(new { message = "Token inválido." });
+            }
+
+            var updatedReport = await _reportService.UpdateReportAsync(id, name, description, username);
+
+            if (updatedReport == null)
+            {
+                return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
+            }
+            return Ok(updatedReport);
+        }
+        catch (Exception ex)
+        {
+            // Opcional: Loggear la excepción 'ex'
+            return StatusCode(500, new { message = "Ocurrió un error interno al actualizar el reporte." });
+        }
+    }
+
+
+    [HttpDelete("DeleteReport")]
+    [ProducesResponseType(204)] // No Content (éxito)
+    [ProducesResponseType(404)] // Not Found
+    [ProducesResponseType(401)] // Unauthorized
+    public async Task<IActionResult> DeleteReport(int id, [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return Unauthorized(new { message = "Token inválido." });
+            }
+
+            var success = await _reportService.DeleteReportAsync(id, username);
+
+            if (!success)
+            {
+                return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
+            }
+
+            // Retorna un 204 No Content, que es el estándar para un DELETE exitoso.
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            // Opcional: Loggear la excepción 'ex'
+            return StatusCode(500, new { message = "Ocurrió un error interno al eliminar el reporte." });
+        }
+    }
+
+
+    [HttpDelete("RemoveJoinFromReport")]
+    [ProducesResponseType(204)] // No Content (éxito)
+    [ProducesResponseType(404)] // Not Found
+    [ProducesResponseType(401)] // Unauthorized
+    public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId, [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return Unauthorized(new { message = "Token inválido." });
+            }
+
+            var success = await _reportService.RemoveJoinFromReportAsync(reportId, joinId, username);
+
+            if (!success)
+            {
+                return NotFound(new { message = $"No se encontró la asociación del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            // Opcional: Loggear la excepción 'ex'
+            return StatusCode(500, new { message = "Ocurrió un error interno al intentar quitar el join del reporte." });
+        }
+    }
 }

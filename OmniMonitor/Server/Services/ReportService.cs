@@ -7,6 +7,9 @@ public interface IReportService
     Task<ReportJoin> AddJoinToReportAsync(int reportId, ReportJoinItemDto joinRequest, string username);
     Task<List<Report>> GetAllReportsByUsernameAsync(string username);
     Task<Report?> GetReportByIdAsync(int reportId, string username);
+    Task<bool> DeleteReportAsync(int reportId, string username);
+    Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username);
+    Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username);
 }
 
 public class ReportService : IReportService
@@ -94,5 +97,65 @@ public class ReportService : IReportService
                 .ThenInclude(rj => rj.CrossModuleJoin)
                     .ThenInclude(j => j.RightOperand) 
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<bool> DeleteReportAsync(int reportId, string username)
+    {
+        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
+        var reportToDelete = await _context.Reports
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        // 2. Si no se encuentra, retorna false.
+        if (reportToDelete == null)
+        {
+            return false;
+        }
+
+        // 3. Elimina el reporte. La base de datos se encargará de eliminar en cascada
+        //    las entradas correspondientes en la tabla 'ReportJoins'.
+        _context.Reports.Remove(reportToDelete);
+        await _context.SaveChangesAsync();
+
+        return true;
+    }
+
+    public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username)
+    {
+        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
+        var reportToUpdate = await _context.Reports
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        // 2. Si no se encuentra, retorna null.
+        if (reportToUpdate == null)
+        {
+            return null;
+        }
+
+        // 3. Actualiza las propiedades y guarda los cambios.
+        reportToUpdate.Name = name;
+        reportToUpdate.Description = descripcion;
+
+        await _context.SaveChangesAsync();
+
+        return reportToUpdate;
+    }
+
+    public async Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username)
+    {
+        var joinLinkToRemove = await _context.ReportJoins
+            .FirstOrDefaultAsync(rj =>
+                rj.ReportId == reportId &&
+                rj.CrossModuleJoinId == joinId &&
+                rj.Report.Username == username);
+
+        if (joinLinkToRemove == null)
+        {
+            return false;
+        }
+
+        _context.ReportJoins.Remove(joinLinkToRemove);
+        await _context.SaveChangesAsync();
+
+        return true;
     }
 }
