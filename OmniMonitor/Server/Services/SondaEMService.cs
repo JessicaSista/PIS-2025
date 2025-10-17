@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using OmniMonitor.Server.Configuration;
+using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.EM;
 using System;
 using System.Collections.Generic;
@@ -57,7 +58,7 @@ public interface ISondaEMService
         string username,
         string password);
     Task<List<AlertDto>> GetAlertsCategory(
-        int categoryId,
+        int? categoryId,
         int? page,
         int? pageSize,
         string? query,
@@ -70,7 +71,7 @@ public interface ISondaEMService
         string username,
         string password);
     Task<List<EventDto>> GetEventsByCategory(
-        int categoryId,
+        int? categoryId,
         int? page,
         int? pageSize,
         string? query,
@@ -608,7 +609,7 @@ public class SondaEMService : ISondaEMService
     }
 
     public async Task<List<AlertDto>> GetAlertsCategory(
-        int categoryId,
+        int? categoryId,
         int? page,
         int? pageSize,
         string? query,
@@ -621,6 +622,11 @@ public class SondaEMService : ISondaEMService
         string username,
         string password)
     {
+        if (!categoryId.HasValue || categoryId.Value <= 0)
+        {
+            throw new ArgumentException("El categoryId debe tener valor y ser mayor que cero.", nameof(categoryId));
+        }
+
         // Obtén todas las alertas según los parámetros
         var allAlerts = await GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
 
@@ -633,7 +639,7 @@ public class SondaEMService : ISondaEMService
     }
 
     public async Task<List<EventDto>> GetEventsByCategory(
-        int categoryId,
+        int? categoryId,
         int? page,
         int? pageSize,
         string? query,
@@ -641,6 +647,10 @@ public class SondaEMService : ISondaEMService
         string username,
         string password)
     {
+        if (!categoryId.HasValue || categoryId.Value <= 0)
+        {
+            throw new ArgumentException("El categoryId debe tener valor y ser mayor que cero.", nameof(categoryId));
+        }
         // Obtén todos los eventos según los parámetros
         var allEvents = await GetEvents(page, pageSize, sort, query, username, password);
 
