@@ -65,7 +65,7 @@ public class DatasetUMController : ControllerBase
     /// <summary>
     /// Obtiene todos los datasets para un usuario específico.
     /// </summary>
-    [HttpGet("user/{username}")]
+    [HttpGet("GetAllDatasets")]
     [ProducesResponseType(typeof(List<DatasetUM>), 200)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
@@ -89,7 +89,7 @@ public class DatasetUMController : ControllerBase
     /// <summary>
     /// Obtiene un dataset específico por su ID y nombre de usuario.
     /// </summary>
-    [HttpGet("{datasetId}/{username}")]
+    [HttpGet("GetDatasetById")]
     [ProducesResponseType(typeof(DatasetUM), 200)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]

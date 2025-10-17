@@ -58,7 +58,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los DatasetAM para un usuario específico.
         /// </summary>
-        [HttpGet("user/{username}")]
+        [HttpGet("GetAllDatasetAMs")]
         [ProducesResponseType(typeof(List<DatasetAM>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<DatasetAM>>> GetAllDatasetAMs(string token)
@@ -78,7 +78,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un DatasetAM específico por su ID y nombre de usuario (con lógica dinámica).
         /// </summary>
-        [HttpGet("{id}/{username}")]
+        [HttpGet("GetDatasetAMById")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -103,7 +103,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un DatasetAM específico por su ID y nombre de usuario para edición (SIN lógica dinámica).
         /// </summary>
-        [HttpGet("edit/{id}/{username}")]
+        [HttpGet("GetDatasetAMByIdForEdit")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

@@ -68,7 +68,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
-        [HttpGet("user/{username}")]
+        [HttpGet("GetAllDatasets")]
         [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
