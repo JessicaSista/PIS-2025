@@ -121,6 +121,7 @@ else if (selectedTipo == "Insight Monitor")
                        FullWidth="true"
                        Label="@Localizer["SeleccionarDispositivo"]"
                        Class="dark-field"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
                 @foreach (var device in devices)
                 {
@@ -138,6 +139,7 @@ else if (selectedTipo == "Insight Monitor")
                        FullWidth="true"
                        Label="@Localizer["SeleccionarSensor"]"
                        Class="@($"dark-field")"
+                       Disabled="@(!selectedSourceId.HasValue)"
                        Required="true">
                 @foreach (var sensor in sensores)
                 {
@@ -326,7 +328,7 @@ else if (selectedTipo == "Insight Monitor")
     private int? selectedSourceId = null;
     private int? selectedGroupId = null;
     private HashSet<int> selectedDeviceIds = new();
-    
+
     private string selectedSensor = string.Empty;
     private List<string> sensores = new();
 
@@ -336,12 +338,12 @@ else if (selectedTipo == "Insight Monitor")
     private bool cargando = true;
     private bool noEncontrado = false;
 
-    // Credenciales del usuario
+    // Credenciales del usuario / token logic from develop
     private string currentUsername = string.Empty;
-    private string currentPassword = string.Empty;
-    private string? authToken = null;
+    private string authToken = string.Empty;
+    private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
 
-    // AM UI State
+    // AM UI State (kept from HEAD)
     // amMode: 1 = Event Task, 2 = Asset
     private int amMode = 2;
 
@@ -381,10 +383,10 @@ else if (selectedTipo == "Insight Monitor")
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUsername = authState.User.Identity?.Name ?? "";
-            currentPassword = "admin";
-            authToken = await LocalStorage.GetItemAsync<string>("authToken");
 
-            if (string.IsNullOrEmpty(currentUsername))
+            authToken = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
+
+            if (string.IsNullOrEmpty(currentUsername) || string.IsNullOrEmpty(authToken))
             {
                 noEncontrado = true;
                 return;
@@ -418,6 +420,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            var token = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
 
             if (string.IsNullOrEmpty(username))
             {
@@ -425,11 +428,11 @@ else if (selectedTipo == "Insight Monitor")
                 return;
             }
 
-            // Primero intentar cargar como Dataset IM
-            var responseIM = await Http.GetAsync($"api/Dataset/{id}/{username}");
-            if (responseIM.IsSuccessStatusCode)
+            // Intentar cargar como Insight Monitor usando endpoint develop (con token)
+            var response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            if (response.IsSuccessStatusCode)
             {
-                var existente = await responseIM.Content.ReadFromJsonAsync<DatasetIM>();
+                var existente = await response.Content.ReadFromJsonAsync<DatasetIM>();
                 if (existente != null)
                 {
                     selectedTipo = "Insight Monitor";
@@ -455,11 +458,13 @@ else if (selectedTipo == "Insight Monitor")
                     
                     // Cargar los sensores de la fuente seleccionada
                     await LoadSensors();
+                    
+                    cargando = false;
                     return;
                 }
             }
 
-            // Si no es IM, intentar cargar como Dataset AM
+            // Si no es IM, intentar cargar como Dataset AM (HEAD logic preserved)
             var responseAM = await Http.GetAsync($"api/DatasetAM/{id}/{username}");
             if (responseAM.IsSuccessStatusCode)
             {
@@ -517,6 +522,8 @@ else if (selectedTipo == "Insight Monitor")
                             }
                         }
                     }
+                    
+                    cargando = false;
                     return;
                 }
             }
@@ -539,21 +546,46 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={authToken}");
+            Console.WriteLine($"[DEBUG EditarDataset] Token length: {authToken?.Length ?? 0}");
+            Console.WriteLine($"[DEBUG EditarDataset] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
+            
+            var encodedToken = GetEncodedToken();
+            
+            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={encodedToken}");
+            Console.WriteLine($"[DEBUG EditarDataset] Sources response status: {sourcesResponse.StatusCode}");
+            
             if (sourcesResponse.IsSuccessStatusCode)
             {
                 sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
+                Console.WriteLine($"[DEBUG EditarDataset] Loaded {sources.Count} sources");
+            }
+            else
+            {
+                var error = await sourcesResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EditarDataset] Sources error: {error}");
+                Snackbar.Add($"Error al cargar fuentes: {error}", Severity.Error);
             }
 
-            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={authToken}");
+            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={encodedToken}");
+            Console.WriteLine($"[DEBUG EditarDataset] Groups response status: {groupsResponse.StatusCode}");
+            
             if (groupsResponse.IsSuccessStatusCode)
             {
                 deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
+                Console.WriteLine($"[DEBUG EditarDataset] Loaded {deviceGroups.Count} groups");
+            }
+            else
+            {
+                var error = await groupsResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EditarDataset] Groups error: {error}");
+                Snackbar.Add($"Error al cargar grupos: {error}", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            ShowError($"{Localizer["ErrorCargaFuentes"]} {ex.Message}");
+            Console.WriteLine($"[DEBUG EditarDataset] Exception in LoadSourcesAndGroups: {ex.Message}");
+            Console.WriteLine($"[DEBUG EditarDataset] Stack trace: {ex.StackTrace}");
+            Snackbar.Add($"{Localizer["ErrorCargaFuentes"]} {ex.Message}", Severity.Error);
         }
     }
 
@@ -563,13 +595,19 @@ else if (selectedTipo == "Insight Monitor")
         // asigno nuevo source
         selectedSourceId = sourceId;
 
-        // limpio dependencias
+        // limpio todas las dependencias
+        selectedGroupId = null;
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
+        devices.Clear();
+        sensores.Clear();
 
-        // recargo listas en base al nuevo source
-        await LoadDevices();
-        await LoadSensors();
+        // solo recargo si hay una fuente seleccionada
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+            await LoadSensors();
+        }
 
         StateHasChanged();
     }
@@ -578,8 +616,16 @@ else if (selectedTipo == "Insight Monitor")
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
-        //se recargan los dispositivos porque se borra el "filtro" de grupo
-        await LoadDevices();
+        
+        // Resetear dispositivos y sensores seleccionados
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        
+        // Recargar dispositivos según los filtros actuales
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+        }
 
         StateHasChanged();
     }
@@ -601,7 +647,7 @@ else if (selectedTipo == "Insight Monitor")
 
             if (selectedSourceId.HasValue)
             {
-                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}?token={authToken}");
+                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
                 if (sourceResponse.IsSuccessStatusCode)
                 {
                     devicesFromSource = await sourceResponse.Content.ReadFromJsonAsync<List<Device>>();
@@ -610,7 +656,7 @@ else if (selectedTipo == "Insight Monitor")
 
             if (selectedGroupId.HasValue)
             {
-                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}?token={authToken}");
+                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}?token={GetEncodedToken()}");
                 if (groupResponse.IsSuccessStatusCode)
                 {
                     devicesFromGroup = await groupResponse.Content.ReadFromJsonAsync<List<Device>>();
@@ -633,7 +679,7 @@ else if (selectedTipo == "Insight Monitor")
             }
             else
             {
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={authToken}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={GetEncodedToken()}");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -661,7 +707,7 @@ else if (selectedTipo == "Insight Monitor")
 
             if (selectedSourceId.HasValue)
             {
-                var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?token={authToken}");
+                var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
                 if (sensorsResponse.IsSuccessStatusCode)
                 {
                     sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
@@ -770,7 +816,7 @@ else if (selectedTipo == "Insight Monitor")
         Nav.NavigateTo("/datasets");
     }
 
-    // ====== Asset Manager Methods ======
+    // ====== Asset Manager Methods (kept from HEAD, token usage updated to develop logic) ======
 
     private void SetAmMode(int mode)
     {
@@ -797,15 +843,17 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
+            var encoded = GetEncodedToken();
+
             // Load Asset Types
-            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?token={authToken}");
+            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?token={encoded}");
             if (respTypes.IsSuccessStatusCode)
             {
                 assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
             }
 
             // Load Task Types
-            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?token={authToken}");
+            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?token={encoded}");
             if (respTaskTypes.IsSuccessStatusCode)
             {
                 taskTypes = await respTaskTypes.Content.ReadFromJsonAsync<List<TaskTypeDto>>() ?? new List<TaskTypeDto>();
@@ -839,7 +887,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var url = $"api/SondaAM/asset/assets?assetTypeId={assetTypeId}&token={authToken}";
+            var url = $"api/SondaAM/asset/assets?assetTypeId={assetTypeId}&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -894,7 +942,7 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var dates = Uri.EscapeDataString("1980-01-01T03:00:00,2050-10-31T03:00:00");
-            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&token={authToken}";
+            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -915,7 +963,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var url = $"api/SondaAM/eventTaskInstance/stock/{eventTaskInstanceId}?token={authToken}";
+            var url = $"api/SondaAM/eventTaskInstance/stock/{eventTaskInstanceId}?token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {

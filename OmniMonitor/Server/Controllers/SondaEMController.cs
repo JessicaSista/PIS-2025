@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.EM;
 using System;
 using System.Threading.Tasks;
@@ -216,23 +218,102 @@ public class SondaEMController : ControllerBase
         }
     }
 
-        [HttpGet("Resource/{id}")]
-    [ProducesResponseType(typeof(ResourceDto), 200)]
-    [ProducesResponseType(404)]
+
+    [HttpGet("Event/{eventId}/extensions")]
+    [ProducesResponseType(typeof(List<ExtensionDto>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<ResourceDto>> GetResourceById(int id, [FromQuery] string token)
+    public async Task<ActionResult<List<ExtensionDto>>> GetextensionsByEventId(
+        int eventId,
+       [FromQuery] string token)
     {
         try
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var resourceType = await _sondaEMService.GetResourceById(id, username, password);
-            if (resourceType == null) return NotFound("No se encontró el tipo de recurso.");
-            return Ok(resourceType);
+            var items = await _sondaEMService.GetExtensionByEventId(eventId, username, password);
+            if (items == null || items.Count == 0) return NotFound("No se han encontrado extensiones.");
+            return Ok(items);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
+    [HttpGet("category")]
+    [ProducesResponseType(typeof(List<CategoryDto>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<EventDto>>> GetCategory(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? sort,
+        [FromQuery] string? query,
+        [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var items = await _sondaEMService.GetCategory(page,pageSize,sort,query,username, password);
+            if (items == null || items.Count == 0) return NotFound("No se han encontrado Categorias.");
+            return Ok(items);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("Category/alert")]
+    [ProducesResponseType(typeof(List<AlertDto>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<AlertDto>>> GetAlertsCategory(
+        int Categoryid,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? query,
+        [FromQuery] string? stateList,
+        [FromQuery] double? x,
+        [FromQuery] double? y,
+        [FromQuery] double? r,
+        [FromQuery] bool? forceGps,
+        [FromQuery] string? sort,
+        [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var alerts = await _sondaEMService.GetAlertsCategory(Categoryid, page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
+            if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
+            return Ok(alerts);
+        
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("Category/event")]
+    [ProducesResponseType(typeof(List<AlertDto>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<AlertDto>>> GetEventsByIdCategory(
+        int Categoryid,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? query,
+        [FromQuery] string? sort,
+        [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var events = await _sondaEMService.GetEventsByCategory(Categoryid, page, pageSize, query, sort, username, password);
+            if (events == null || events.Count == 0) return NotFound("No se han encontrado eventos.");
+            return Ok(events);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
 }
-    

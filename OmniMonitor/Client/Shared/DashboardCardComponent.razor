@@ -1,0 +1,31 @@
+﻿@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<SharedResource> SharedLocalizer
+
+<MudCard Class="dataset-card"
+         @onclick="OnClick"
+         Style="width:100%; background-color:var(--card); border:1px solid #374151; border-radius:12px;
+                cursor:pointer; padding:16px; display:flex; flex-direction:column; height:200px;">
+    <MudCardContent Style="width:100%; display:flex; flex-direction:column; flex-grow:1;">
+
+        <!-- Título y descripción -->
+        <MudStack Row AlignItems="AlignItems.Start" Spacing="0" Style="width:100%;">
+            <MudStack Style="width:100%;" Spacing="0">
+                <MudText Style="color:var(--card-text-primary);font-weight:600;font-size:1.2rem;">@Dashboard.Nombre</MudText>
+                <MudText Style="color:var(--card-text-secondary);font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">
+                    @Dashboard.Descripcion
+                </MudText>
+            </MudStack>
+        </MudStack>
+        <!-- Footer -->
+        <MudStack Row Justify="Justify.FlexEnd" Style="width:100%; margin-top:auto;">
+            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@SharedLocalizer["Actualizado"] @Dashboard.FechaModificacion.ToString("yyyy-MM-dd HH:mm")</MudText>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public DashboardSummaryResponse Dashboard { get; set; } = new();
+    [Parameter] public EventCallback OnClick { get; set; }
+}

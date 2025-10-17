@@ -4,6 +4,7 @@ using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
+using System.Linq.Dynamic.Core.Tokenizer;
 using System.Threading.Tasks;
 
 namespace OmniMonitor.Server.Controllers
@@ -16,10 +17,11 @@ namespace OmniMonitor.Server.Controllers
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;
-
-        public DashboardController(IDashboardService dashboardService)
+        private readonly ISondaAuthService _sondaAuthService;
+        public DashboardController(IDashboardService dashboardService, ISondaAuthService sondaAuthService)
         {
             _dashboardService = dashboardService;
+            _sondaAuthService = sondaAuthService;
         }
 
         /// <summary>
@@ -79,17 +81,18 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado</response>
         /// <response code="403">Usuario no tiene permisos para ver este dashboard</response>
         /// <response code="500">Error interno del servidor</response>
-        [HttpGet("{id}/{username}")]
+        [HttpGet("GetDashboard")]
         //[RequirePermission("Ver Dashboards")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id, string username)
+        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id, string token)
         {
             try
             {
+                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dashboard = await _dashboardService.GetDashboardByIdAsync(id, username);
                 if (dashboard == null)
                 {
@@ -112,15 +115,16 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="200">Lista de dashboards obtenida exitosamente</response>
         /// <response code="401">Usuario no autenticado</response>
         /// <response code="500">Error interno del servidor</response>
-        [HttpGet("user/{username}")]
+        [HttpGet("GetAllDashboards")]
         //[RequirePermission("Ver Dashboards")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string username)
+        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string token)
         {
             try
             {
+                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dashboards = await _dashboardService.GetAllDashboardsAsync(username);
                 return Ok(dashboards);
             }
@@ -203,10 +207,21 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromBody] DashboardCard nuevaCard)
         {
-            var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
-            if (!result)
-                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
-            return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+            try
+            {
+                var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
+                if (!result)
+                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error interno al agregar la tarjeta: {ex.Message}" });
+            }
         }
 
         /// <summary>
@@ -238,5 +253,41 @@ namespace OmniMonitor.Server.Controllers
                 return NotFound(new { message = $"No se encontró la tarjeta con id {idGrupoVisualizacion} en el dashboard {id} para el usuario '{username}'" });
             return Ok(new { message = $"Tarjeta eliminada correctamente del dashboard {id}" });
         }
+
+        /// <summary>
+        /// Actualiza el nombre y/o la descripción de un dashboard (pasa ambos como strings por query)
+        /// </summary>
+        [HttpPut("{id}/info")]
+        //[RequirePermission("Editar Dashboards")]
+        [ProducesResponseType(typeof(DashboardResponse), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> UpdateDashboardInfo(int id, [FromQuery] string username, [FromQuery] string? nombre, [FromQuery] string? descripcion)
+        {
+            try
+            {
+               
+                var updated = await _dashboardService.UpdateDashboardInfoAsync(id, username, nombre, descripcion);
+                if (updated == null)
+                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+
+
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar la información del dashboard: {ex.Message}");
+            }
+        }
+
+
+
+
     }
+
+
 }
