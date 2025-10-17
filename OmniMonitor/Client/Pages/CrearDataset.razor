@@ -37,7 +37,7 @@
     </MudSelect>
 </MudStack>
 
-@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Inside Monitor")
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Insight Monitor")
 {
     <!-- Campo Nombre -->
     <MudText Typo="Typo.h6" Class="mb-1 mx-4" >@Localizer["Nombre"]</MudText>
@@ -302,8 +302,8 @@
 }
 
 @code {
-    private string selectedTipo = "Inside Monitor";
-    private List<string> tiposDataset = new() { "Inside Monitor", "Asset Manager" };
+    private string selectedTipo = "Insight Monitor";
+    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager" };
 
     private List<Source> sources = new();
     private List<DeviceGroup> deviceGroups = new();
@@ -453,14 +453,14 @@
         try
         {
             // Load Asset Types
-            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?username={currentUsername}&password={currentPassword}");
+            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?token={authToken}");
             if (respTypes.IsSuccessStatusCode)
             {
                 assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
             }
 
             // Load Task Types
-            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?username={currentUsername}&password={currentPassword}");
+            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?token={authToken}");
             if (respTaskTypes.IsSuccessStatusCode)
             {
                 taskTypes = await respTaskTypes.Content.ReadFromJsonAsync<List<TaskTypeDto>>() ?? new List<TaskTypeDto>();
@@ -549,7 +549,7 @@
         try
         {
             var dates = Uri.EscapeDataString("1980-01-01T03:00:00,2050-10-31T03:00:00");
-            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&username={currentUsername}&password={currentPassword}";
+            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&token={authToken}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
