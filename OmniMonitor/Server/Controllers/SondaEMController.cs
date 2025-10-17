@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.EM;
 using System;
 using System.Threading.Tasks;
@@ -228,7 +229,7 @@ public class SondaEMController : ControllerBase
         try
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var items = await _sondaEMService.GetExtensionById(eventId, username, password);
+            var items = await _sondaEMService.GetExtensionByEventId(eventId, username, password);
             if (items == null || items.Count == 0) return NotFound("No se han encontrado extensiones.");
             return Ok(items);
         }
@@ -280,9 +281,10 @@ public class SondaEMController : ControllerBase
         try
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var alerts = await _sondaEMService.GetAlertsCategory(Categoryid,page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
+            var alerts = await _sondaEMService.GetAlertsCategory(Categoryid, page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
             if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
             return Ok(alerts);
+        
         }
         catch (Exception ex)
         {
