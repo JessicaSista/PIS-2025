@@ -109,6 +109,34 @@ public class DatasetController : ControllerBase
     }
 
     /// <summary>
+    /// Identifica rápidamente a qué módulo pertenece un dataset.
+    /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
+    /// </summary>
+    [HttpGet("GetDatasetModule")]
+    [ProducesResponseType(typeof(string), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<string>> GetDatasetModule(int datasetId, string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
+            
+            if (module == null)
+            {
+                return NotFound($"No se encontró el dataset con ID {datasetId}.");
+            }
+            
+            return Ok(module);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al identificar el módulo: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Obtiene un dataset específico por su ID y nombre de usuario.
     /// </summary>
     [HttpGet("GetDataset")]

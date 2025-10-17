@@ -221,6 +221,7 @@
                            Disabled="@(!selectedAssetTypeId.HasValue)"
                            Label="Seleccionar Asset(s)"
                            Class="dark-field"
+                           Required="true"
                            ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
                     @foreach (var a in assets)
                     {
@@ -304,9 +305,110 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Urban Monitor")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Tres selects: Zona, Eventos y Noticias -->
+    <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <!-- Zona -->
+        <div style="width: 33.33%;">
+            <MudSelect T="int?"
+                       Value="@selectedZoneId"
+                       ValueChanged="OnZoneChanged"
+                       Variant="Variant.Outlined"
+                       FullWidth="true"
+                       Clearable
+                       Label="Seleccionar Zona"
+                       Class="dark-field"
+                       Required="true">
+                @foreach (var zone in zones)
+                {
+                    <MudSelectItem Value="@((int?)zone.Id)">@zone.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Eventos -->
+        <div style="width: 33.33%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedEventIds"
+                       SelectedValuesChanged="OnSelectedEventsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="Seleccionar todos"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedZoneId.HasValue)"
+                       Label="Seleccionar Evento(s)"
+                       Class="dark-field"
+                       ToStringFunc="@(id => events.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
+                @foreach (var evt in events)
+                {
+                    <MudSelectItem T="int" Value="@evt.Id">@evt.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Noticias -->
+        <div style="width: 33.33%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedNewsIds"
+                       SelectedValuesChanged="OnSelectedNewsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="Seleccionar todos"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedZoneId.HasValue)"
+                       Label="Seleccionar Noticia(s)"
+                       Class="dark-field"
+                       ToStringFunc="@(id => newsList.FirstOrDefault(n => n.Id == id)?.Title ?? id.ToString())">
+                @foreach (var news in newsList)
+                {
+                    <MudSelectItem T="int" Value="@news.Id">@news.Title</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
+        <MudButton OnClick="GuardarDatasetUM"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!CanSaveUM)">
+            @Localizer["GuardarDataset"]
+        </MudButton>
+    </div>
+}
+
 @code {
     private string selectedTipo = "Insight Monitor";
-    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager" };
+    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager", "Urban Monitor" };
 
     private List<Source> sources = new();
     private List<DeviceGroup> deviceGroups = new();
@@ -345,6 +447,14 @@
     private List<EventTaskInstanceStockDto> stocks = new();
     private HashSet<int> selectedStockIds = new();
 
+    // UM UI State
+    private List<Zone> zones = new();
+    private int? selectedZoneId = null;
+    private List<Event> events = new();
+    private HashSet<int> selectedEventIds = new();
+    private List<News> newsList = new();
+    private HashSet<int> selectedNewsIds = new();
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -368,6 +478,7 @@
 
             await LoadSourcesAndGroups();
             await InitializeAMLists();
+            await InitializeUMLists();
         }
         catch (Exception ex)
         {
@@ -474,14 +585,23 @@
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
             if (amMode == 2)
             {
-                return selectedAssetTypeId.HasValue;
+                return selectedAssetTypeId.HasValue && selectedAssetIds.Count > 0;
             }
             // Event Task
-            return selectedTaskTypeId.HasValue;
+            return selectedTaskTypeId.HasValue && selectedEventTaskInstanceIds.Count > 0;
         }
     }
 
     private bool EnableStocksSelect => selectedEventTaskInstanceIds.Count == 1;
+
+    private bool CanSaveUM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            return selectedZoneId.HasValue && (selectedEventIds.Count > 0 || selectedNewsIds.Count > 0);
+        }
+    }
 
     private async Task InitializeAMLists()
     {
@@ -924,5 +1044,155 @@
             config.VisibleStateDuration = 4000;
             config.CloseAfterNavigation = false;
         });
+    }
+
+    // ====== Urban Monitor Methods ======
+
+    private async Task InitializeUMLists()
+    {
+        try
+        {
+            var encodedToken = GetEncodedToken();
+
+            // Load Zones
+            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={encodedToken}");
+            if (respZones.IsSuccessStatusCode)
+            {
+                zones = await respZones.Content.ReadFromJsonAsync<List<Zone>>() ?? new List<Zone>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando Urban Monitor: {ex.Message}");
+        }
+    }
+
+    private async Task OnZoneChanged(int? zoneId)
+    {
+        selectedZoneId = zoneId;
+        selectedEventIds.Clear();
+        selectedNewsIds.Clear();
+        events.Clear();
+        newsList.Clear();
+
+        if (selectedZoneId.HasValue)
+        {
+            await LoadEventsByZone(selectedZoneId.Value);
+            await LoadNewsByZone(selectedZoneId.Value);
+        }
+
+        StateHasChanged();
+    }
+
+    private Task OnSelectedEventsChanged(IEnumerable<int> ids)
+    {
+        selectedEventIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedNewsChanged(IEnumerable<int> ids)
+    {
+        selectedNewsIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadEventsByZone(int zoneId)
+    {
+        try
+        {
+            var url = $"api/SondaMain/zones/{zoneId}/events?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                events = await resp.Content.ReadFromJsonAsync<List<Event>>() ?? new List<Event>();
+            }
+            else
+            {
+                events = new List<Event>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando eventos: {ex.Message}");
+        }
+    }
+
+    private async Task LoadNewsByZone(int zoneId)
+    {
+        try
+        {
+            var url = $"api/SondaMain/zones/{zoneId}/news?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                newsList = await resp.Content.ReadFromJsonAsync<List<News>>() ?? new List<News>();
+            }
+            else
+            {
+                newsList = new List<News>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando noticias: {ex.Message}");
+        }
+    }
+
+    private async Task GuardarDatasetUM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+            if (!selectedZoneId.HasValue)
+            {
+                ShowError("Debe seleccionar una zona");
+                return;
+            }
+
+            var request = new CreateDatasetUMRequest
+            {
+                Username = username,
+                Name = addName,
+                Description = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                ZoneId = selectedZoneId,
+                EventIds = selectedEventIds.Any() ? selectedEventIds.ToList() : null,
+                NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
+            };
+
+            var resp = await Http.PostAsJsonAsync("api/DatasetUM", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var created = await resp.Content.ReadFromJsonAsync<DatasetUM>();
+                ShowSuccess($"'{created?.Name}' {Localizer["DatasetCreadoExito"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo crear el dataset UM: {ex.Message}");
+        }
     }
 }
