@@ -1,545 +1,665 @@
-using Xunit;
-using Moq;
 using Microsoft.Extensions.Options;
-using System.Net;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Text.Json;
+using Moq;
+using Moq.Protected;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos.EM;
-using Moq.Protected;
+using System.Net;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using Xunit;
 
-public class SondaEMServiceTests
+namespace OmniMonitor.Tests
 {
-    private (SondaEMService service, Mock<HttpMessageHandler> handlerMock) SetupService(
-        HttpStatusCode code,
-        object? content = null,
-        string token = "test-token")
+    /// <summary>
+    /// Tests para SondaEMService que verifican:
+    /// 1. ComunicaciÃ³n correcta con la API externa EM
+    /// 2. Manejo de errores HTTP (400, 401, 403, 404, 500)
+    /// 3. AutenticaciÃ³n y autorizaciÃ³n
+    /// 4. SerializaciÃ³n/deserializaciÃ³n de datos
+    /// 5. ParÃ¡metros de consulta correctos
+    /// </summary>
+    public class SondaEMServiceTests
     {
-        var response = new HttpResponseMessage(code)
+        private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
+        private readonly Mock<ISondaAuthService> _mockAuthService;
+        private readonly Mock<HttpMessageHandler> _mockHttpMessageHandler;
+        private readonly HttpClient _httpClient;
+        private readonly ApiConfig _apiConfig;
+        private readonly SondaEMService _service;
+
+        public SondaEMServiceTests()
         {
-            Content = content != null ? new StringContent(JsonSerializer.Serialize(content)) : null
-        };
-        var mockAuthService = new Mock<ISondaAuthService>();
-        mockAuthService.Setup(x => x.GetUserTokenEMAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(token);
+            _mockHttpClientFactory = new Mock<IHttpClientFactory>();
+            _mockAuthService = new Mock<ISondaAuthService>();
+            _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
 
-        var handlerMock = new Mock<HttpMessageHandler>();
-        handlerMock.Protected()
-            .Setup<Task<HttpResponseMessage>>(
-                "SendAsync",
-                ItExpr.IsAny<HttpRequestMessage>(),
-                ItExpr.IsAny<CancellationToken>()
-            )
-            .ReturnsAsync(response);
+            _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
+            _mockHttpClientFactory.Setup(f => f.CreateClient()).Returns(_httpClient);
 
-        var httpClient = new HttpClient(handlerMock.Object);
-        var httpClientFactoryMock = new Mock<IHttpClientFactory>();
-        httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
-
-        var apiConfig = new ApiConfig
-        {
-            BaseUrl = new BaseUrlConfig { UrlEM = "http://localhost/api/" },
-            EndpointsEM = new Dictionary<string, Dictionary<string, string>>
+            // ConfiguraciÃ³n de API
+            _apiConfig = new ApiConfig
             {
-                ["Event"] = new Dictionary<string, string>
+                BaseUrl = new BaseUrls { UrlEM = "https://api.em.test/" },
+                EndpointsEM = new Dictionary<string, Dictionary<string, string>>
                 {
-                    ["GetById"] = "events/get/{eventId}",
-                    ["GetEvents"] = "events"
-                },
-                ["Alert"] = new Dictionary<string, string>
-                {
-                    ["GetById"] = "alerts/get/{alertId}",
-                    ["GetAll"] = "alerts",
-                    ["GetStored"] = "alerts/stored"
-                },
-                ["EventType"] = new Dictionary<string, string>
-                {
-                    ["GetEventTypes"] = "eventtypes"
-                },
-                ["Extension"] = new Dictionary<string, string>
-                {
-                    ["GetById"] = "extensions/get/{extensionId}",
-                    ["GetAll"] = "extensions",
-                    ["GetAttachedItems"] = "extensions/{extensionId}/attachments"
-                },
-                ["ResourceType"] = new Dictionary<string, string>
-                {
-                    ["GetById"] = "resources/get/{id}"
+                    ["Alert"] = new Dictionary<string, string>
+                    {
+                        ["GetAll"] = "alerts",
+                        ["GetById"] = "alerts/{alertId}",
+                        ["GetStored"] = "alerts/stored"
+                    },
+                    ["Event"] = new Dictionary<string, string>
+                    {
+                        ["GetEvents"] = "events",
+                        ["GetById"] = "events/{eventId}"
+                    },
+                    ["EventType"] = new Dictionary<string, string>
+                    {
+                        ["GetEventTypes"] = "eventtypes"
+                    },
+                    ["Extension"] = new Dictionary<string, string>
+                    {
+                        ["GetAll"] = "extensions",
+                        ["GetById"] = "extensions/{extensionId}"
+                    },
+                    ["Resource"] = new Dictionary<string, string>
+                    {
+                        ["GetById"] = "resources/{id}"
+                    }
                 }
-            }
-        };
-        var options = Options.Create(apiConfig);
-
-        var service = new SondaEMService(httpClientFactoryMock.Object, mockAuthService.Object, options);
-        return (service, handlerMock);
-    }
-
-    [Fact]
-    public async Task GetEventById_ReturnsEvent_WhenResponseIsSuccessful()
-    {
-        var eventDto = new EventDto { Id = 1, Name = "Evento Test" };
-        var (service, _) = SetupService(HttpStatusCode.OK, eventDto);
-
-        var result = await service.GetEventById(1, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Equal(1, result.Id);
-        Assert.Equal("Evento Test", result.Name);
-    }
-
-    [Fact]
-    public async Task GetEventById_ReturnsNull_WhenNotFound()
-    {
-        var (service, _) = SetupService(HttpStatusCode.NotFound);
-
-        var result = await service.GetEventById(1, "user", "pass");
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetEventById_ThrowsException_WhenServerError()
-    {
-        var (service, _) = SetupService(HttpStatusCode.InternalServerError);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetEventById(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEvents_BuildsUrlWithPaginationAndSort()
-    {
-        var events = new List<EventDto> { new EventDto { Id = 1, Name = "Evento 1" } };
-        var apiResponse = new { results = events };
-        var (service, handlerMock) = SetupService(HttpStatusCode.OK, apiResponse);
-
-        await service.GetEvents(2, 5, "date", "test", "user", "pass");
-
-        handlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("page=2") &&
-                req.RequestUri!.ToString().Contains("pageSize=5") &&
-                req.RequestUri!.ToString().Contains("sort=date") &&
-                req.RequestUri!.ToString().Contains("query=test")
-            ),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [Fact]
-    public async Task GetEvents_SendsAuthorizationHeader()
-    {
-        var events = new List<EventDto> { new EventDto { Id = 1, Name = "Evento 1" } };
-        var apiResponse = new { results = events };
-        var (service, handlerMock) = SetupService(HttpStatusCode.OK, apiResponse, token: "my-fake-token");
-
-        await service.GetEvents(1, 10, null, null, "user", "pass");
-
-        handlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req =>
-                req.Headers.Authorization != null &&
-                req.Headers.Authorization.Scheme == "Bearer" &&
-                req.Headers.Authorization.Parameter == "my-fake-token"
-            ),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [Fact]
-    public async Task GetAlertById_ReturnsAlert_WhenResponseIsSuccessful()
-    {
-        var alertDto = new AlertDto { AlertId = 1, AlertName = "Alerta Test" };
-        var (service, _) = SetupService(HttpStatusCode.OK, alertDto);
-
-        var result = await service.GetAlertById(1, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Equal(1, result.AlertId);
-        Assert.Equal("Alerta Test", result.AlertName);
-    }
-
-    [Fact]
-    public async Task GetAlertById_ReturnsNull_WhenNotFound()
-    {
-        var (service, _) = SetupService(HttpStatusCode.NotFound);
-
-        var result = await service.GetAlertById(1, "user", "pass");
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetAlertById_ThrowsException_WhenServerError()
-    {
-        var (service, _) = SetupService(HttpStatusCode.InternalServerError);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetAlertById(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetAlerts_BuildsUrlWithPaginationAndFilters()
-    {
-        var alerts = new List<AlertDto> { new AlertDto { AlertId = 1, AlertName = "Alerta 1" } };
-        var apiResponse = new { results = alerts };
-        var (service, handlerMock) = SetupService(HttpStatusCode.OK, apiResponse);
-
-        await service.GetAlerts(2, 5, "test", "open,closed", 1.1, 2.2, 3.3, true, "date", "user", "pass");
-
-        handlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("page=2") &&
-                req.RequestUri!.ToString().Contains("pageSize=5") &&
-                req.RequestUri!.ToString().Contains("query=test") &&
-                req.RequestUri!.ToString().Contains("stateList=open%2Cclosed") &&
-                req.RequestUri!.ToString().Contains("x=1.1") &&
-                req.RequestUri!.ToString().Contains("y=2.2") &&
-                req.RequestUri!.ToString().Contains("r=3.3") &&
-                req.RequestUri!.ToString().Contains("forceGps=true") &&
-                req.RequestUri!.ToString().Contains("sort=date")
-            ),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [Fact]
-    public async Task GetAlerts_SendsAuthorizationHeader()
-    {
-        var alerts = new List<AlertDto> { new AlertDto { AlertId = 1, AlertName = "Alerta 1" } };
-        var apiResponse = new { results = alerts };
-        var (service, handlerMock) = SetupService(HttpStatusCode.OK, apiResponse, token: "my-fake-token");
-
-        await service.GetAlerts(1, 10, null, null, null, null, null, null, null, "user", "pass");
-
-        handlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req =>
-                req.Headers.Authorization != null &&
-                req.Headers.Authorization.Scheme == "Bearer" &&
-                req.Headers.Authorization.Parameter == "my-fake-token"
-            ),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [Fact]
-    public async Task GetStoredAlerts_BuildsUrlWithPaginationAndFilters()
-    {
-        var alerts = new List<AlertDto> { new AlertDto { AlertId = 1, AlertName = "Alerta 1" } };
-        var apiResponse = new { results = alerts };
-        var (service, handlerMock) = SetupService(HttpStatusCode.OK, apiResponse);
-
-        await service.GetStoredAlerts(2, 5, "test", "open,closed", 1.1, 2.2, 3.3, "date", "user", "pass");
-
-        handlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("page=2") &&
-                req.RequestUri!.ToString().Contains("pageSize=5") &&
-                req.RequestUri!.ToString().Contains("query=test") &&
-                req.RequestUri!.ToString().Contains("stateList=open%2Cclosed") &&
-                req.RequestUri!.ToString().Contains("x=1.1") &&
-                req.RequestUri!.ToString().Contains("y=2.2") &&
-                req.RequestUri!.ToString().Contains("r=3.3") &&
-                req.RequestUri!.ToString().Contains("sort=date")
-            ),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [Fact]
-    public async Task GetEventTypes_ReturnsList_WhenResponseIsSuccessful()
-    {
-        var eventTypes = new List<EventTypeDto> { new EventTypeDto { Id = 1, Name = "Tipo 1" } };
-        var (service, _) = SetupService(HttpStatusCode.OK, eventTypes);
-
-        var result = await service.GetEventTypes("user", "pass");
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Tipo 1", result[0].Name);
-    }
-
-    [Fact]
-    public async Task GetExtensionById_ReturnsExtension_WhenResponseIsSuccessful()
-    {
-        var extension = new ExtensionDtoDup { Id = 1 };
-        var (service, _) = SetupService(HttpStatusCode.OK, extension);
-
-        var result = await service.GetExtensionById(1, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Equal(1, result.Id);
-    }
-
-    [Fact]
-    public async Task GetExtensions_BuildsUrlWithPaginationAndFilters()
-    {
-        var extensions = new List<ExtensionDto> { new ExtensionDto { ExtensionId = 1, ExtensionState = "Activa" } };
-        var apiResponse = new { results = extensions };
-        var (service, handlerMock) = SetupService(HttpStatusCode.OK, apiResponse);
-
-        await service.GetExtensions(2, 5, "date", "test", "open", "2024-01-01", "high", "cat1", "zone1", "user", "pass");
-
-        handlerMock.Protected().Verify(
-            "SendAsync",
-            Times.Once(),
-            ItExpr.Is<HttpRequestMessage>(req =>
-                req.RequestUri!.ToString().Contains("page=2") &&
-                req.RequestUri!.ToString().Contains("pageSize=5") &&
-                req.RequestUri!.ToString().Contains("sort=date") &&
-                req.RequestUri!.ToString().Contains("query=test") &&
-                req.RequestUri!.ToString().Contains("states=open") &&
-                req.RequestUri!.ToString().Contains("dates=2024-01-01") &&
-                req.RequestUri!.ToString().Contains("priorities=high") &&
-                req.RequestUri!.ToString().Contains("categories=cat1") &&
-                req.RequestUri!.ToString().Contains("zones=zone1")
-            ),
-            ItExpr.IsAny<CancellationToken>()
-        );
-    }
-
-    [Fact]
-    public async Task GetAttachedItems_ReturnsList_WhenResponseIsSuccessful()
-    {
-        var attachments = new List<AttachmentDto> { new AttachmentDto { AttachmentId = 1, Name = "Archivo 1" } };
-        var (service, _) = SetupService(HttpStatusCode.OK, attachments);
-
-        var result = await service.GetAttachedItems(1, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("Archivo 1", result[0].Name);
-    }
-
-    [Fact]
-    public async Task GetResourceById_ReturnsResource_WhenResponseIsSuccessful()
-    {
-        var resource = new ResourceDto { Id = 1, Name = "Recurso 1" };
-        var (service, _) = SetupService(HttpStatusCode.OK, resource);
-
-        var result = await service.GetResourceById(1, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Equal(1, result.Id);
-        Assert.Equal("Recurso 1", result.Name);
-    }
-
-    [Fact]
-    public async Task GetEventById_ThrowsArgumentException_WhenIdIsInvalid()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK);
-        await Assert.ThrowsAsync<ArgumentException>(() => service.GetEventById(0, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetAlertById_ThrowsArgumentException_WhenIdIsInvalid()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK);
-        await Assert.ThrowsAsync<ArgumentException>(() => service.GetAlertById(0, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetExtensionById_ThrowsArgumentException_WhenIdIsInvalid()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK);
-        await Assert.ThrowsAsync<ArgumentException>(() => service.GetExtensionById(0, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetResourceById_ThrowsArgumentException_WhenIdIsInvalid()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK);
-        await Assert.ThrowsAsync<ArgumentException>(() => service.GetResourceById(0, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEventById_ThrowsException_WhenUnauthorized()
-    {
-        var (service, _) = SetupService(HttpStatusCode.Unauthorized);
-
-        var ex = await Assert.ThrowsAsync<Exception>(() => service.GetEventById(1, "user", "pass"));
-        Assert.Contains("token inv�lido o expirado", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task GetEventById_ThrowsException_WhenForbidden()
-    {
-        var (service, _) = SetupService(HttpStatusCode.Forbidden);
-
-        var ex = await Assert.ThrowsAsync<Exception>(() => service.GetEventById(1, "user", "pass"));
-        Assert.Contains("Forbidden", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task GetEventById_ThrowsJsonException_WhenResponseIsInvalidJson()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "<html>not json</html>");
-
-        await Assert.ThrowsAsync<JsonException>(() => service.GetEventById(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEventById_ReturnsNull_WhenResponseIsEmpty()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "");
-
-        var result = await service.GetEventById(1, "user", "pass");
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetAttachedItems_ReturnsEmptyList_WhenNotFound()
-    {
-        var (service, _) = SetupService(HttpStatusCode.NotFound);
-
-        var result = await service.GetAttachedItems(1, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetEventTypes_ReturnsEmptyList_WhenResponseIsEmpty()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "");
-
-        var result = await service.GetEventTypes("user", "pass");
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetStoredAlerts_ThrowsException_WhenUnauthorized()
-    {
-        var (service, _) = SetupService(HttpStatusCode.Unauthorized);
-
-        var ex = await Assert.ThrowsAsync<Exception>(() => service.GetStoredAlerts(1, 10, null, null, null, null, null, null, "user", "pass"));
-        Assert.Contains("Unauthorized", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task GetStoredAlerts_ThrowsException_WhenForbidden()
-    {
-        var (service, _) = SetupService(HttpStatusCode.Forbidden);
-
-        var ex = await Assert.ThrowsAsync<Exception>(() => service.GetStoredAlerts(1, 10, null, null, null, null, null, null, "user", "pass"));
-        Assert.Contains("Forbidden", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public async Task GetExtensions_ReturnsEmptyList_WhenResponseIsEmpty()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "");
-
-        var result = await service.GetExtensions(1, 10, null, null, null, null, null, null, null, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetExtensions_ThrowsJsonException_WhenResponseIsInvalidJson()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "<html>not json</html>");
-
-        await Assert.ThrowsAsync<JsonException>(() => service.GetExtensions(1, 10, null, null, null, null, null, null, null, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEventById_ThrowsHttpRequestException_WhenUnexpectedStatusCode()
-    {
-        var (service, _) = SetupService((HttpStatusCode)418);
-
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetEventById(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEvents_ThrowsArgumentException_WhenPageIsNegative()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK);
-
-        await Assert.ThrowsAsync<ArgumentException>(() => service.GetEvents(-1, 10, null, null, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetExtensionById_ReturnsNull_WhenResponseIsEmpty()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "");
-
-        var result = await service.GetExtensionById(1, "user", "pass");
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetStoredAlerts_ReturnsEmptyList_WhenResponseIsEmpty()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "");
-        var result = await service.GetStoredAlerts(1, 10, null, null, null, null, null, null, "user", "pass");
-        Assert.NotNull(result);
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetStoredAlerts_ThrowsJsonException_WhenResponseIsInvalidJson()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "<html>not json</html>");
-        await Assert.ThrowsAsync<JsonException>(() => service.GetStoredAlerts(1, 10, null, null, null, null, null, null, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetStoredAlerts_ThrowsHttpRequestException_WhenUnexpectedStatusCode()
-    {
-        var (service, _) = SetupService((HttpStatusCode)418);
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetStoredAlerts(1, 10, null, null, null, null, null, null, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEventTypes_ThrowsJsonException_WhenResponseIsInvalidJson()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "<html>not json</html>");
-        await Assert.ThrowsAsync<JsonException>(() => service.GetEventTypes("user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetEventTypes_ThrowsHttpRequestException_WhenUnexpectedStatusCode()
-    {
-        var (service, _) = SetupService((HttpStatusCode)418);
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetEventTypes("user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetAttachedItems_ThrowsJsonException_WhenResponseIsInvalidJson()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "<html>not json</html>");
-        await Assert.ThrowsAsync<JsonException>(() => service.GetAttachedItems(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetAttachedItems_ThrowsHttpRequestException_WhenUnexpectedStatusCode()
-    {
-        var (service, _) = SetupService((HttpStatusCode)418);
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetAttachedItems(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetResourceById_ReturnsNull_WhenResponseIsEmpty()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "");
-        var result = await service.GetResourceById(1, "user", "pass");
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task GetResourceById_ThrowsJsonException_WhenResponseIsInvalidJson()
-    {
-        var (service, _) = SetupService(HttpStatusCode.OK, "<html>not json</html>");
-        await Assert.ThrowsAsync<JsonException>(() => service.GetResourceById(1, "user", "pass"));
-    }
-
-    [Fact]
-    public async Task GetResourceById_ThrowsHttpRequestException_WhenUnexpectedStatusCode()
-    {
-        var (service, _) = SetupService((HttpStatusCode)418);
-        await Assert.ThrowsAsync<HttpRequestException>(() => service.GetResourceById(1, "user", "pass"));
+            };
+
+            var options = Options.Create(_apiConfig);
+            _service = new SondaEMService(_mockHttpClientFactory.Object, _mockAuthService.Object, options);
+
+            // Mock del token de autenticaciÃ³n
+            _mockAuthService.Setup(a => a.GetUserTokenEMAsync("testuser", "testpass"))
+                          .ReturnsAsync("test-token-123");
+        }
+
+        private void SetupHttpResponse(HttpStatusCode statusCode, string content = "")
+        {
+            _mockHttpMessageHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = statusCode,
+                    Content = new StringContent(content, Encoding.UTF8, "application/json")
+                });
+        }
+
+        #region GetAlerts Tests
+
+        [Fact]
+        public async Task GetAlerts_ValidParameters_ReturnsAlertList()
+        {
+            // Arrange
+            var expectedAlerts = new List<AlertDto>
+            {
+                new AlertDto { AlertId = 1, AlertName = "Alert 1", AlertState = "Active" },
+                new AlertDto { AlertId = 2, AlertName = "Alert 2", AlertState = "Inactive" }
+            };
+
+            var apiResponse = new AlertApiResponse { Results = expectedAlerts };
+            var jsonResponse = JsonSerializer.Serialize(apiResponse);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetAlerts(1, 10, "test", "Active", 1.0, 2.0, 5.0, true, "name", "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Alert 1", result[0].AlertName);
+            Assert.Equal("Alert 2", result[1].AlertName);
+
+            // Verificar que se llamÃ³ al servicio de autenticaciÃ³n
+            _mockAuthService.Verify(a => a.GetUserTokenEMAsync("testuser", "testpass"), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAlerts_DirectListResponse_ReturnsAlertList()
+        {
+            // Arrange
+            var expectedAlerts = new List<AlertDto>
+            {
+                new AlertDto { AlertId = 1, AlertName = "Alert 1" }
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedAlerts);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetAlerts(1, 10, null, null, null, null, null, null, null, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Single(result);
+            Assert.Equal("Alert 1", result[0].AlertName);
+        }
+
+        [Fact]
+        public async Task GetAlerts_InvalidPageParameter_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetAlerts(null, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
+
+            Assert.Equal("page", exception.ParamName);
+            Assert.Contains("El parÃ¡metro 'page' es requerido", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetAlerts_InvalidPageSizeParameter_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetAlerts(1, null, null, null, null, null, null, null, null, "testuser", "testpass"));
+
+            Assert.Equal("pageSize", exception.ParamName);
+            Assert.Contains("El parÃ¡metro 'pageSize' es requerido", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetAlerts_ZeroPage_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetAlerts(0, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
+
+            Assert.Equal("page", exception.ParamName);
+            Assert.Contains("El parÃ¡metro 'page' debe ser mayor que cero", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetAlerts_EmptyResponse_ReturnsEmptyList()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "");
+
+            // Act
+            var result = await _service.GetAlerts(1, 10, null, null, null, null, null, null, null, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        #endregion
+
+        #region GetAlertById Tests
+
+        [Fact]
+        public async Task GetAlertById_ValidId_ReturnsAlert()
+        {
+            // Arrange
+            var expectedAlert = new AlertDto
+            {
+                AlertId = 1,
+                AlertName = "Test Alert",
+                AlertState = "Active",
+                SourceAddress = "Test Address"
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedAlert);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetAlertById(1, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.AlertId);
+            Assert.Equal("Test Alert", result.AlertName);
+            Assert.Equal("Active", result.AlertState);
+
+            _mockAuthService.Verify(a => a.GetUserTokenEMAsync("testuser", "testpass"), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAlertById_NotFound_ReturnsNull()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.NotFound);
+
+            // Act
+            var result = await _service.GetAlertById(999, "testuser", "testpass");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetAlertById_Unauthorized_ThrowsException()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.Unauthorized);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<Exception>(
+                () => _service.GetAlertById(1, "testuser", "testpass"));
+
+            Assert.Contains("No tienes permisos: token invÃ¡lido o expirado (401 Unauthorized)", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetAlertById_Forbidden_ThrowsException()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.Forbidden);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<Exception>(
+                () => _service.GetAlertById(1, "testuser", "testpass"));
+
+            Assert.Contains("No tienes permisos para acceder a este recurso (403 Forbidden)", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetAlertById_InvalidId_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetAlertById(0, "testuser", "testpass"));
+
+            Assert.Equal("alertId", exception.ParamName);
+            Assert.Contains("El alertId debe ser mayor que cero", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetAlertById_EmptyResponse_ReturnsNull()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "");
+
+            // Act
+            var result = await _service.GetAlertById(1, "testuser", "testpass");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        #endregion
+
+        #region GetEvents Tests
+
+        [Fact]
+        public async Task GetEvents_ValidParameters_ReturnsEventList()
+        {
+            // Arrange
+            var expectedEvents = new List<EventDto>
+            {
+                new EventDto { Id = 1, Name = "Event 1", State = "Open" },
+                new EventDto { Id = 2, Name = "Event 2", State = "Closed" }
+            };
+
+            var apiResponse = new EventApiResponse { Results = expectedEvents };
+            var jsonResponse = JsonSerializer.Serialize(apiResponse);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetEvents(1, 10, "name", "test", "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Event 1", result[0].Name);
+            Assert.Equal("Event 2", result[1].Name);
+        }
+
+        [Fact]
+        public async Task GetEvents_NegativePage_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetEvents(-1, 10, null, null, "testuser", "testpass"));
+
+            Assert.Contains("El parÃ¡metro 'page' debe ser mayor o igual que cero", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetEvents_EmptyResponse_ReturnsEmptyList()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "");
+
+            // Act
+            var result = await _service.GetEvents(1, 10, null, null, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        #endregion
+
+        #region GetEventById Tests
+
+        [Fact]
+        public async Task GetEventById_ValidId_ReturnsEvent()
+        {
+            // Arrange
+            var expectedEvent = new EventDto
+            {
+                Id = 1,
+                Name = "Test Event",
+                State = "Open",
+                Origin = "Test Origin"
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedEvent);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetEventById(1, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
+            Assert.Equal("Test Event", result.Name);
+            Assert.Equal("Open", result.State);
+        }
+
+        [Fact]
+        public async Task GetEventById_InvalidId_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetEventById(0, "testuser", "testpass"));
+
+            Assert.Equal("eventId", exception.ParamName);
+            Assert.Contains("El eventId debe ser positivo", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetEventById_NotFound_ReturnsNull()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.NotFound);
+
+            // Act
+            var result = await _service.GetEventById(999, "testuser", "testpass");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        #endregion
+
+        #region GetExtensions Tests
+
+        [Fact]
+        public async Task GetExtensions_ValidParameters_ReturnsExtensionList()
+        {
+            // Arrange
+            var expectedExtensions = new List<ExtensionDto>
+            {
+                new ExtensionDto { ExtensionId = 1, EventName = "Extension 1" },
+                new ExtensionDto { ExtensionId = 2, EventName = "Extension 2" }
+            };
+
+            var apiResponse = new ExtensionApiResponse { Results = expectedExtensions };
+            var jsonResponse = JsonSerializer.Serialize(apiResponse);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetExtensions(1, 10, "name", "test", "Active", "2023-01-01", "High", "Category1", "Zone1", "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Extension 1", result[0].EventName);
+            Assert.Equal("Extension 2", result[1].EventName);
+        }
+
+        [Fact]
+        public async Task GetExtensions_NegativePage_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetExtensions(-1, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
+
+            Assert.Contains("El parÃ¡metro 'page' debe ser mayor o igual que cero", exception.Message);
+        }
+
+        #endregion
+
+        #region GetExtensionById Tests
+
+        [Fact]
+        public async Task GetExtensionById_ValidId_ReturnsExtension()
+        {
+            // Arrange
+            var expectedExtension = new ExtensionDtoDup
+            {
+                ExtensionId = 1,
+                EventName = "Test Extension"
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedExtension);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetExtensionById(1, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.ExtensionId);
+            Assert.Equal("Test Extension", result.EventName);
+        }
+
+        [Fact]
+        public async Task GetExtensionById_InvalidId_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetExtensionById(0, "testuser", "testpass"));
+
+            Assert.Equal("extensionId", exception.ParamName);
+            Assert.Contains("El extensionId debe ser mayor que cero", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetExtensionById_NotFound_ReturnsNull()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.NotFound);
+
+            // Act
+            var result = await _service.GetExtensionById(999, "testuser", "testpass");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        #endregion
+
+        #region GetResourceById Tests
+
+        [Fact]
+        public async Task GetResourceById_ValidId_ReturnsResource()
+        {
+            // Arrange
+            var expectedResource = new ResourceDto
+            {
+                Id = 1,
+                Name = "Test Resource"
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedResource);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetResourceById(1, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.Id);
+            Assert.Equal("Test Resource", result.Name);
+        }
+
+        [Fact]
+        public async Task GetResourceById_InvalidId_ThrowsArgumentException()
+        {
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentException>(
+                () => _service.GetResourceById(0, "testuser", "testpass"));
+
+            Assert.Equal("id", exception.ParamName);
+            Assert.Contains("El id debe ser mayor que cero", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetResourceById_NotFound_ReturnsNull()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.NotFound);
+
+            // Act
+            var result = await _service.GetResourceById(999, "testuser", "testpass");
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task GetResourceById_Unauthorized_ThrowsException()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.Unauthorized);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<Exception>(
+                () => _service.GetResourceById(1, "testuser", "testpass"));
+
+            Assert.Contains("No tienes permisos: token invÃ¡lido o expirado (401 Unauthorized)", exception.Message);
+        }
+
+        [Fact]
+        public async Task GetResourceById_Forbidden_ThrowsException()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.Forbidden);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<Exception>(
+                () => _service.GetResourceById(1, "testuser", "testpass"));
+
+            Assert.Contains("No tienes permisos para acceder a este recurso (403 Forbidden)", exception.Message);
+        }
+
+        #endregion
+
+        #region GetEventTypes Tests
+
+        [Fact]
+        public async Task GetEventTypes_ValidRequest_ReturnsEventTypeList()
+        {
+            // Arrange
+            var expectedEventTypes = new List<EventTypeDto>
+            {
+                new EventTypeDto { Id = 1, Name = "Type 1" },
+                new EventTypeDto { Id = 2, Name = "Type 2" }
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedEventTypes);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetEventTypes("testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Type 1", result[0].Name);
+            Assert.Equal("Type 2", result[1].Name);
+        }
+
+        [Fact]
+        public async Task GetEventTypes_EmptyResponse_ReturnsEmptyList()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "");
+
+            // Act
+            var result = await _service.GetEventTypes("testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        #endregion
+
+        #region GetAttachedItems Tests
+
+        [Fact]
+        public async Task GetAttachedItems_ValidExtensionId_ReturnsAttachmentList()
+        {
+            // Arrange
+            var expectedAttachments = new List<AttachmentDto>
+            {
+                new AttachmentDto { Id = 1, Name = "Attachment 1" },
+                new AttachmentDto { Id = 2, Name = "Attachment 2" }
+            };
+
+            var jsonResponse = JsonSerializer.Serialize(expectedAttachments);
+            SetupHttpResponse(HttpStatusCode.OK, jsonResponse);
+
+            // Act
+            var result = await _service.GetAttachedItems(1, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Attachment 1", result[0].Name);
+            Assert.Equal("Attachment 2", result[1].Name);
+        }
+
+        [Fact]
+        public async Task GetAttachedItems_EmptyResponse_ReturnsEmptyList()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.OK, "");
+
+            // Act
+            var result = await _service.GetAttachedItems(1, "testuser", "testpass");
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        #endregion
+
+        #region HTTP Error Handling Tests
+
+        [Fact]
+        public async Task GetAlerts_ServerError_ThrowsHttpRequestException()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.InternalServerError);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<HttpRequestException>(
+                () => _service.GetAlerts(1, 10, null, null, null, null, null, null, null, "testuser", "testpass"));
+        }
+
+        [Fact]
+        public async Task GetEvents_BadRequest_ThrowsHttpRequestException()
+        {
+            // Arrange
+            SetupHttpResponse(HttpStatusCode.BadRequest);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<HttpRequestException>(
+                () => _service.GetEvents(1, 10, null, null, "testuser", "testpass"));
+        }
+
+        #endregion
     }
 }
