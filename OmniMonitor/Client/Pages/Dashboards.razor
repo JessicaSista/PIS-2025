@@ -5,6 +5,7 @@
 @using MudBlazor
 @using OmniMonitor.Shared
 @using Microsoft.AspNetCore.Components
+@using Blazored.LocalStorage
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
@@ -13,6 +14,7 @@
 @inject IStringLocalizer<Dashboards> Localizer
 @using Microsoft.AspNetCore.Components.Authorization
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILocalStorageService LocalStorage
 <PageTitle>Dashboards</PageTitle>
 
 <!-- Header -->
@@ -116,6 +118,7 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -125,7 +128,7 @@
             }
 
             dashboards = await Http.GetFromJsonAsync<List<DashboardSummaryResponse>>(
-                $"api/Dashboard/user/{username}"
+                $"api/Dashboard/GetAllDashboards?token=" + token
             ) ?? new();
 
             filteredDashboards = dashboards.ToList();
@@ -180,7 +183,6 @@
                 Nombre = newDashboard.Nombre,
                 Descripcion = newDashboard.Descripcion
             };
-
             var response = await Http.PostAsJsonAsync("api/Dashboard", request);
 
             if (response.IsSuccessStatusCode)
