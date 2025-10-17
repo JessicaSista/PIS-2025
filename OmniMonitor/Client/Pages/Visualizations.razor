@@ -7,7 +7,9 @@
 @using System.Text.Json
 @using System.Globalization
 @using Microsoft.Extensions.Localization
+@using Blazored.LocalStorage
 @inject IStringLocalizer<Visualizations> Localizer
+@inject ILocalStorageService LocalStorage
 
 
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
@@ -102,7 +104,9 @@
             _isLoading = true;
             StateHasChanged();
             
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/user/{_authenticatedUser}");
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
 
             if (response.IsSuccessStatusCode)
             {
@@ -172,7 +176,8 @@
                             catch {Console.WriteLine("fallo"); }
                         }
 
-                        var response = await Http.GetAsync($"api/Dataset/{grupoDataset.Dataset.Id}/{_authenticatedUser}");
+                        string token = await LocalStorage.GetItemAsync<string>("authToken");
+                        HttpResponseMessage? response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
                         
                         if (response.IsSuccessStatusCode)
                         {
@@ -187,7 +192,8 @@
                                         try
                                         {
                                             var sensorDataResponse = await Http.GetAsync(
-                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&user=admin&password=admin"
+                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token=" + token
+
                                             );
 
                                             if (sensorDataResponse.IsSuccessStatusCode)
@@ -263,14 +269,15 @@
     {
         try
         {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            var response = await Http.GetAsync($"api/Visualizacion/user/{_authenticatedUser}");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
 
             if (response.IsSuccessStatusCode)
             {
-                var visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
+                List<Visualizacion>? visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
                 if (visualizacionesFromApi != null)
                 {
                     _visualizations = visualizacionesFromApi;
