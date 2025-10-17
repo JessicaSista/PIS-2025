@@ -11,8 +11,8 @@ namespace OmniMonitor.Server.Services
         Task<List<DatasetEM>> GetAllDatasetsEMAsync(string username);
         Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username);
         Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username);
-        Task<DatasetEM> UpdateDatasetEMAsync(DatasetEM dataset);
         Task DeleteDatasetEMAsync(int datasetId, string username);
+        Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request);
     }
 
     public class DatasetEMService : IDatasetEMService
@@ -31,14 +31,7 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request)
         {
-            // Validar que el nombre sea único para el usuario
-            var existingDataset = await _context.DatasetsEM
-                .FirstOrDefaultAsync(d => d.Name == request.Name && d.Username == request.Username);
-
-            if (existingDataset != null)
-            {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{request.Username}'.");
-            }
+            await ValidateDuplicateName(request.Name, request.Username);
 
             var newDataset = new DatasetEM
             {
@@ -49,72 +42,13 @@ namespace OmniMonitor.Server.Services
                 Id_Alert = request.AlertId,
                 Id_Event = request.EventId,
                 Id_Extension = request.ExtensionId,
-                Id_Resource = request.ResourceId,
                 AlertState = request.AlertState,
                 EventState = request.EventState,
                 ExtensionState = request.ExtensionState,
-                ResourceState = request.ResourceState
+                ContentType = GetContentType(request).ToString()
             };
 
-            if (request.IsDataset == "S")
-            {
-               newDataset.ContentType = "0"; // 0 para indicar un dataset formal
-            }
-            else // Si IsDataset es 'N'
-            {
-                if (request.AlertIds != null && request.AlertIds.Any())
-                {
-                    newDataset.ContentType = "1"; // 1 para indicar alerts
-                }
-                else if (request.EventIds != null && request.EventIds.Any())
-                {
-                    newDataset.ContentType = "2"; // 2 para indicar events
-                }
-                else if (request.ExtensionIds != null && request.ExtensionIds.Any())
-                {
-                    newDataset.ContentType = "3"; // 3 para indicar extensions
-                }
-                else if (request.ResourceIds != null && request.ResourceIds.Any())
-                {
-                    newDataset.ContentType = "4"; // 4 para indicar resources
-                }
-            }
-
-            // Si el usuario seleccionó alerts específicos, los agregamos.
-            if (request.AlertIds != null && request.AlertIds.Any())
-            {
-                foreach (var alertId in request.AlertIds)
-                {
-                    newDataset.DatasetAlerts.Add(new DatasetAlert { Id_alert = alertId });
-                }
-            }
-
-            // Si el usuario seleccionó events específicos, los agregamos.
-            if (request.EventIds != null && request.EventIds.Any())
-            {
-                foreach (var eventId in request.EventIds)
-                {
-                    newDataset.DatasetEvents.Add(new DatasetEventEM { Id_event = eventId });
-                }
-            }
-
-            // Si el usuario seleccionó extensions específicas, las agregamos.
-            if (request.ExtensionIds != null && request.ExtensionIds.Any())
-            {
-                foreach (var extensionId in request.ExtensionIds)
-                {
-                    newDataset.DatasetExtensions.Add(new DatasetExtension { Id_extension = extensionId });
-                }
-            }
-
-            // Si el usuario seleccionó resources específicos, los agregamos.
-            if (request.ResourceIds != null && request.ResourceIds.Any())
-            {
-                foreach (var resourceId in request.ResourceIds)
-                {
-                    newDataset.DatasetResources.Add(new DatasetResource { Id_resource = resourceId });
-                }
-            }
+            UpdateRelationsFromRequest(newDataset, request);
 
             _context.DatasetsEM.Add(newDataset);
             await _context.SaveChangesAsync();
@@ -142,94 +76,55 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetResources)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
-            {
                 return null;
-            }
 
-            // Si es un dataset formal ('S') y no se seleccionaron entidades, las buscamos dinámicamente.
-            if (dataset.Is_Dataset == "S" && !dataset.DatasetAlerts.Any() && !dataset.DatasetEvents.Any() && 
-                !dataset.DatasetExtensions.Any() && !dataset.DatasetResources.Any())
+            // Lógica de carga dinámica (sin cambios aquí)
+            if (dataset.Is_Dataset == "S" &&
+                !dataset.DatasetAlerts.Any() &&
+                !dataset.DatasetEvents.Any() &&
+                !dataset.DatasetExtensions.Any())
             {
-                // Para llamar a la API externa, necesitamos las credenciales del usuario.
+                // Obtener usuario y credenciales
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
                 if (user == null)
-                {
-                    // No se puede proceder si el usuario no existe en la base de datos local.
                     return null;
-                }
 
-                // --- LÓGICA MODIFICADA: Búsqueda dinámica optimizada para EM ---
-                
-                // 1. Buscar Alerts dinámicamente
+                // 1. Alerts dinámicos
                 if (dataset.Id_Alert.HasValue || !string.IsNullOrEmpty(dataset.AlertState))
                 {
                     var alerts = await _sondaEMService.GetAlerts(1, 1000, null, dataset.AlertState, null, null, null, null, null, user.Username, user.Password);
-                    
                     if (dataset.Id_Alert.HasValue)
-                    {
                         alerts = alerts.Where(a => a.AlertId == dataset.Id_Alert.Value).ToList();
-                    }
 
                     foreach (var alert in alerts)
-                    {
                         dataset.DatasetAlerts.Add(new DatasetAlert { Id_alert = alert.AlertId });
-                    }
                 }
 
-                // 2. Buscar Events dinámicamente
+                // 2. Events dinámicos
                 if (dataset.Id_Event.HasValue || !string.IsNullOrEmpty(dataset.EventState))
                 {
                     var events = await _sondaEMService.GetEvents(1, 1000, null, null, user.Username, user.Password);
-                    
                     if (dataset.Id_Event.HasValue)
-                    {
                         events = events.Where(e => e.Id == dataset.Id_Event.Value).ToList();
-                    }
-
                     if (!string.IsNullOrEmpty(dataset.EventState))
-                    {
                         events = events.Where(e => e.State == dataset.EventState).ToList();
-                    }
 
                     foreach (var eventItem in events)
-                    {
                         dataset.DatasetEvents.Add(new DatasetEventEM { Id_event = eventItem.Id });
-                    }
                 }
 
-                // 3. Buscar Extensions dinámicamente
+                // 3. Extensions dinámicas
                 if (dataset.Id_Extension.HasValue || !string.IsNullOrEmpty(dataset.ExtensionState))
                 {
                     var extensions = await _sondaEMService.GetExtensions(1, 1000, null, null, dataset.ExtensionState, null, null, null, null, user.Username, user.Password);
-                    
                     if (dataset.Id_Extension.HasValue)
-                    {
                         extensions = extensions.Where(e => e.ExtensionId == dataset.Id_Extension.Value).ToList();
-                    }
 
                     foreach (var extension in extensions)
-                    {
                         dataset.DatasetExtensions.Add(new DatasetExtension { Id_extension = extension.ExtensionId });
-                    }
-                }
-
-                // 4. Buscar Resources dinámicamente
-                if (dataset.Id_Resource.HasValue || !string.IsNullOrEmpty(dataset.ResourceState))
-                {
-                    // Nota: No hay método GetAllResources en ISondaEMService, solo GetResourceById
-                    // Por ahora, solo buscamos por ID específico
-                    if (dataset.Id_Resource.HasValue)
-                    {
-                        var resource = await _sondaEMService.GetResourceById(dataset.Id_Resource.Value, user.Username, user.Password);
-                        if (resource != null)
-                        {
-                            dataset.DatasetResources.Add(new DatasetResource { Id_resource = resource.Id });
-                        }
-                    }
                 }
             }
 
@@ -241,34 +136,61 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username)
         {
-            var dataset = await _context.DatasetsEM
+            return await _context.DatasetsEM
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetResources)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-
-            return dataset;
         }
 
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
-        public async Task<DatasetEM> UpdateDatasetEMAsync(DatasetEM dataset)
+        public async Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request)
         {
-            // Validar que el nombre sea único para el usuario (excluyendo el dataset actual)
             var existingDataset = await _context.DatasetsEM
-                .FirstOrDefaultAsync(d => d.Name == dataset.Name && d.Username == dataset.Username && d.Id != dataset.Id);
+                .Include(d => d.DatasetAlerts)
+                .Include(d => d.DatasetEvents)
+                .Include(d => d.DatasetExtensions)
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
-            if (existingDataset != null)
-            {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{dataset.Name}' para el usuario '{dataset.Username}'.");
-            }
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            _context.DatasetsEM.Update(dataset);
+            await ValidateDuplicateName(request.Name, request.Username, datasetId);
+
+            // Actualizar campos básicos
+            existingDataset.Name = request.Name;
+            existingDataset.Description = request.Description;
+            existingDataset.Is_Dataset = request.IsDataset;
+            existingDataset.ContentType = GetContentType(request).ToString();
+            existingDataset.Id_Alert = request.AlertId;
+            existingDataset.Id_Event = request.EventId;
+            existingDataset.Id_Extension = request.ExtensionId;
+            existingDataset.AlertState = request.AlertState;
+            existingDataset.EventState = request.EventState;
+            existingDataset.ExtensionState = request.ExtensionState;
+
+            // Marcar campos nullable como modificados si es necesario
+            _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
+            _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
+            _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
+
+            // Eliminar relaciones existentes de la base de datos
+            _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
+            _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
+            _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
+
+            // Limpiar colecciones
+            existingDataset.DatasetAlerts.Clear();
+            existingDataset.DatasetEvents.Clear();
+            existingDataset.DatasetExtensions.Clear();
+
+            // Agregar nuevas relaciones
+            UpdateRelationsFromRequest(existingDataset, request);
+
             await _context.SaveChangesAsync();
-
-            return dataset;
+            return existingDataset;
         }
 
         /// <summary>
@@ -280,12 +202,50 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
-            {
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
-            }
 
             _context.DatasetsEM.Remove(dataset);
             await _context.SaveChangesAsync();
         }
+
+        // --- Helpers ---
+
+        private static void UpdateRelationsFromRequest(DatasetEM dataset, CreateDatasetEMRequest request)
+        {
+            dataset.DatasetAlerts = request.AlertIds?.Select(id => new DatasetAlert { DatasetId = dataset.Id, Id_alert = id }).ToList() ?? new();
+            dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEventEM { DatasetId = dataset.Id, Id_event = id }).ToList() ?? new();
+            dataset.DatasetExtensions = request.ExtensionIds?.Select(id => new DatasetExtension { DatasetId = dataset.Id, Id_extension = id }).ToList() ?? new();
+        }
+
+        private static DatasetContentType GetContentType(CreateDatasetEMRequest r)
+        {
+            DatasetContentType type = DatasetContentType.None;
+            if (r.AlertIds?.Any() == true) type |= DatasetContentType.Alerts;
+            if (r.EventIds?.Any() == true) type |= DatasetContentType.Events;
+            if (r.ExtensionIds?.Any() == true) type |= DatasetContentType.Extensions;
+            return type;
+        }
+
+        private async Task ValidateDuplicateName(string name, string username, int? excludeId = null)
+        {
+            var query = _context.DatasetsEM
+                .Where(d => d.Name == name && d.Username == username);
+
+            if (excludeId.HasValue)
+                query = query.Where(d => d.Id != excludeId.Value);
+
+            if (await query.AnyAsync())
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+        }
+    }
+
+    [Flags]
+    public enum DatasetContentType
+    {
+        None = 0,
+        Alerts = 1,
+        Events = 2,
+        Extensions = 4,
+        Resources = 8
     }
 }

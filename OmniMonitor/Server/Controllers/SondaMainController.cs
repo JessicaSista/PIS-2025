@@ -412,6 +412,35 @@ public class SondaMainController : ControllerBase
         }
     }
 
+    [HttpGet("zones/{id}/news")]
+    [ProducesResponseType(typeof(List<News>), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<News>>> GetNewsByZoneId(
+        int id,
+        [FromQuery] string token,
+        [FromQuery] int startIndex = 1,
+        [FromQuery] string? queryString = null,
+        [FromQuery] string? sort = null,
+        [FromQuery] int count = 10
+    )
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var news = await _sondaUMApiService.GetNewsByZoneId(id, username, password, startIndex, queryString, sort, count);
+            if (news == null || !news.Any())
+            {
+                return NotFound($"No se encontraron noticias para la zona {id}.");
+            }
+            return Ok(news);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener las noticias de la zona: {ex.Message}");
+        }
+    }
+
     [HttpGet("events")]
     [ProducesResponseType(typeof(List<Event>), 200)]
     [ProducesResponseType(500)]
@@ -444,6 +473,28 @@ public class SondaMainController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+    [HttpGet("zones/{id}/events")]
+    [ProducesResponseType(typeof(List<Event>), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<Event>>> GetEventsByZoneId(int id, [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var events = await _sondaUMApiService.GetEventsByZoneId(id, username, password);
+            if (events == null || !events.Any())
+            {
+                return NotFound($"No se encontraron eventos para la zona {id}.");
+            }
+            return Ok(events);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener los eventos de la zona: {ex.Message}");
         }
     }
 

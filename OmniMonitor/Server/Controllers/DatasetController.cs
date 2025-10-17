@@ -10,9 +10,11 @@ using System.Threading.Tasks;
 public class DatasetController : ControllerBase
 {
     private readonly IDatasetService _datasetService;
-    public DatasetController(IDatasetService datasetService)
+    private readonly ISondaAuthService _sondaAuthService;
+    public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService)
     {
         _datasetService = datasetService;
+        _sondaAuthService = sondaAuthService;
     }
 
     /// <summary>
@@ -52,13 +54,14 @@ public class DatasetController : ControllerBase
     /// <summary>
     /// Obtiene todos los datasets para un usuario específico.
     /// </summary>
-    [HttpGet("user/{username}")]
+    [HttpGet("user")]
     [ProducesResponseType(typeof(List<DatasetIM>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets(string username)
+    public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets(string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var datasets = await _datasetService.GetAllDatasetsIMAsync(username);
             return Ok(datasets);
         }
@@ -71,14 +74,15 @@ public class DatasetController : ControllerBase
     /// <summary>
     /// Obtiene un dataset específico por su ID y nombre de usuario.
     /// </summary>
-    [HttpGet("{datasetId}/{username}")]
+    [HttpGet("GetDataset")]
     [ProducesResponseType(typeof(DatasetIM), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId, string username)
+    public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId, string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
@@ -168,14 +172,15 @@ public class DatasetController : ControllerBase
     /// <summary>
     /// Elimina un dataset.
     /// </summary>
-    [HttpDelete("{datasetId}/{username}")]
+    [HttpDelete("DeleteDataset")]
     [ProducesResponseType(204)] // No Content
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult> DeleteDataset(int datasetId, string username)
+    public async Task<ActionResult> DeleteDataset(int datasetId, string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {

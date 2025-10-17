@@ -152,8 +152,8 @@
         "Event": {
             "GetById": "/api/Event/{eventId}",
             "GetEvents": "/api/Event/events",
-            "GetPending": "/api/event/events/pending"
-
+            "GetPending": "/api/event/events/pending",
+            "Extensions": "/api/Event/{eventId}/extensions"
         },
         "Alert": {
             "GetById": "/api/Alert/{alertId}",
@@ -169,8 +169,11 @@
             "GetAttachedItems": "/api/extensions/{extensionId}/attachedItems"
         },
         "ResourceType": {
-            "GetById": "/api/Resources/{id}"
-        }
+          "GetById": "/api/Resources/{id}"
+        },
+      "Category": {
+          "GetAll":"/api/Category" 
+      }
     },
     "EndpointsUM": {
       "Login": {
