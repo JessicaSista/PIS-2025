@@ -1,13 +1,15 @@
-@inject ISnackbar SnackbarService
-@inject IStringLocalizer<DashboardCard> Localizer
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject HttpClient Http
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using MudBlazor.Extensions
 @using System.Globalization
 @using Microsoft.Extensions.Localization
 @using static OmniMonitor.Client.Shared.VisualizationCard
+@using Blazored.LocalStorage
+@inject ISnackbar SnackbarService
+@inject IStringLocalizer<DashboardCard> Localizer
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
 @if (!esKPI)
 {
     <MudItem lg=@WidthLg md=@WidthMd sm="@WidthXs" xs=@WidthXs>
@@ -82,7 +84,7 @@
     [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
 
     //Parametros
-    [Parameter] public int Id { get; set; }
+    [Parameter] public int VisualizationId { get; set; }
     [Parameter] public int Width { get; set; }
     [Parameter] public int Height {get; set;}
 
@@ -118,7 +120,8 @@
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
 
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/{Id}/{_authenticatedUser}");
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}&token={token}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -164,11 +167,11 @@
                                     catch { Console.WriteLine("fallo"); }
                                 }
 
-                                var datasetResponse = await Http.GetAsync($"api/Dataset/{grupoDataset.Dataset.Id}/{_authenticatedUser}");
+                                var datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
 
                                 if (datasetResponse.IsSuccessStatusCode)
                                 {
-                                    var dataset = await datasetResponse.Content.ReadFromJsonAsync<Dataset>();
+                                    var dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
 
                                     if (dataset != null)
                                     {
@@ -179,7 +182,7 @@
                                                 try
                                                 {
                                                     var sensorDataResponse = await Http.GetAsync(
-                                                        $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&user=admin&password=admin"
+                                                        $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
                                                     );
 
                                                     if (sensorDataResponse.IsSuccessStatusCode)
@@ -367,5 +370,10 @@
             return;
         }
         SnackbarService.Add(Localizer["NoAumentarMas"], Severity.Warning);
+    }
+
+    private void HandleUpdatedVisualization()
+    {
+        StateHasChanged();
     }
 }

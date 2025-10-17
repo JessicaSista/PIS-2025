@@ -1,17 +1,19 @@
-﻿@page "/dashboards/edit/{id:int}"
+﻿@page "/dashboards/edit/{DashboardId:int}"
 @attribute [Authorize]
 @using OmniMonitor.Shared.Dtos
-@inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
 @using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Localization
+@using System.Text.Json;
+@using Blazored.LocalStorage
+@inject HttpClient Http
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject IDialogService DialogService
-@using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Dashboards> Localizer
-@using System.Text.Json;
+@inject ILocalStorageService LocalStorage
 
 <PageTitle>Dashboards</PageTitle>
 
@@ -25,11 +27,11 @@
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
     <MudText Typo="Typo.body1" Class="mb-4" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">
-        @Localizer["Gestiona"]
+        @(dashDesc)
     </MudText>
 </MudStack>
 
-<Dashboard CardsData=@cardsData></Dashboard>
+<Dashboard CardsData=@(cardsData)></Dashboard>
 
 <style>
     @@media (max-width: 768px) {
@@ -49,85 +51,91 @@
 
 
 @code {
-    [Parameter] public int id { get; set; }
+    [Parameter] public int DashboardId { get; set; }
 
     private string dashName = string.Empty;
     private string dashDesc = string.Empty;
 
+    private List<int> _visualizationsIDs = new List<int> { };
+
     // ID, ancho, alto
-    private List<(int, int, int)> cardsData = new List<(int, int, int)> { };
-
-
-
-
-
-
-
-
-
-    // Datos de dos dashboards de ejemplo hardcodeados
-    
-    private List<string> dashboardNames = new List<string> {"dash1","dash2"};
-    private List<string> dashboardDescriptions = new List<string> {"desc1","desc2"};
-    private List<string> jsonLayoutStrings = new List<string>
-    {
-        @"{ ""cards"": [ 
-                { ""ancho"": 4, ""alto"": 400 }, 
-                { ""ancho"": 4, ""alto"": 400 } ] 
-        }",
-        @"{ ""cards"": [ 
-                { ""ancho"": 5, ""alto"": 500 }] 
-        }"
-    };
-    private List<int> indices1 = new List<int>
-    {
-        1, 
-        2, 
-    };
-    private List<int> indices2 = new List<int>
-    {
-        1,  
-    };
-
-
-
+    private List<(int Id, int Ancho, int Alto)> cardsData = new List<(int, int, int)> { };
 
 
 
     protected override async Task OnInitializedAsync()
     {
-        // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
-        dashName = dashboardNames[id];
-        dashDesc = dashboardDescriptions[id];
-        
-        //tentativo de ids de visualizaciones
-        var visualizationIDs = id == 0 ? indices1 : indices2;
-        
-        
-        // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
-        using (JsonDocument design = JsonDocument.Parse(jsonLayoutStrings[id]))
+        try
         {
-            var root = design.RootElement;
-            if (root.TryGetProperty("cards", out JsonElement cardsElement) && cardsElement.ValueKind == JsonValueKind.Array)
+            // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}&token={token}");
+
+            if (response.IsSuccessStatusCode)
             {
-                var cardsElementArray = cardsElement.EnumerateArray().ToList();
-                for (int i = 0; i<visualizationIDs.Count; i++)
+                DashboardResponse? dashboardData = await response.Content.ReadFromJsonAsync<DashboardResponse>();
+                
+                if (dashboardData != null)
                 {
-                    if (i >= cardsElementArray.Count)
+                    dashName = dashboardData.Nombre;
+                    dashDesc = dashboardData.Descripcion;
+
+
+                    for (int i = 0; i < dashboardData.Tarjetas.Count; i++)
                     {
-                        break; // Evita errores si hay más IDs de cards que tamaños definidos
+                        _visualizationsIDs.Add(dashboardData.Tarjetas[i].Visualizacion.IdVisualizacion);
                     }
-                    if (cardsElementArray[i].TryGetProperty("ancho", out JsonElement anchoElement) && 
-                        cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
+                    
+                    // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
+                    string jsonDesign = dashboardData.JsonDiseno;
+                    if (string.IsNullOrEmpty(jsonDesign))
                     {
-                        // Agregar el nuevo objeto CardData a la lista de resultados
-                        cardsData.Add((visualizationIDs[i],anchoElement.GetInt32(), altoElement.GetInt32()));
+                        jsonDesign = @"{ ""cards"": []}";
+                    }
+                    using (JsonDocument design = JsonDocument.Parse(jsonDesign))
+                    {
+                        var root = design.RootElement;
+                        if (root.TryGetProperty("cards", out JsonElement cardsElement) && cardsElement.ValueKind == JsonValueKind.Array)
+                        {
+                            var cardsElementArray = cardsElement.EnumerateArray().ToList();
+                            for (int i = 0; i<_visualizationsIDs.Count; i++)
+                            {
+                                if (i >= cardsElementArray.Count)
+                                {
+                                    break; // Evita errores si hay más IDs de cards que tamaños definidos
+                                }
+                                if (cardsElementArray[i].TryGetProperty("ancho", out JsonElement anchoElement) && 
+                                    cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
+                                {
+                                    // Agregar el nuevo objeto CardData a la lista de resultados
+                                    cardsData.Add((_visualizationsIDs[i],anchoElement.GetInt32(), altoElement.GetInt32()));
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
-
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error recargando dashboard: {ex.Message}");
+        }
     }
 
-    
+
+    private void HandleNewVisualization(int newVisualizationId)
+    {
+        const int DefaultAncho = 4;
+        const int DefaultAlto = 400;
+
+        _visualizationsIDs.Add(newVisualizationId);
+
+        cardsData.Add((newVisualizationId, DefaultAncho, DefaultAlto));
+
+        StateHasChanged();
+
+        Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tamaño: {DefaultAncho}x{DefaultAlto}. Total Cards: {cardsData.Count}");
+    }
+
+
 }
