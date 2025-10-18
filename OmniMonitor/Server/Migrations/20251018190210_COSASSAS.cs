@@ -5,7 +5,7 @@
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class CategoryResource : Migration
+    public partial class COSASSAS : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -14,14 +14,14 @@ namespace OmniMonitor.Server.Migrations
                 name: "DatasetResources");
 
             migrationBuilder.RenameColumn(
-                name: "Id_Resource",
-                table: "DatasetsEM",
-                newName: "Id_Category");
-
-            migrationBuilder.RenameColumn(
                 name: "ResourceState",
                 table: "DatasetsEM",
                 newName: "CategoryState");
+
+            migrationBuilder.RenameColumn(
+                name: "Id_Resource",
+                table: "DatasetsEM",
+                newName: "Id_Category");
 
             migrationBuilder.CreateTable(
                 name: "DatasetCategory",
@@ -29,7 +29,7 @@ namespace OmniMonitor.Server.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Id_category = table.Column<int>(type: "int", nullable: false),
+                    Id_Category = table.Column<int>(type: "int", nullable: false),
                     DatasetId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -56,14 +56,14 @@ namespace OmniMonitor.Server.Migrations
                 name: "DatasetCategory");
 
             migrationBuilder.RenameColumn(
-                name: "CategoryState",
-                table: "DatasetsEM",
-                newName: "ResourceState");
-
-            migrationBuilder.RenameColumn(
                 name: "Id_Category",
                 table: "DatasetsEM",
                 newName: "Id_Resource");
+
+            migrationBuilder.RenameColumn(
+                name: "CategoryState",
+                table: "DatasetsEM",
+                newName: "ResourceState");
 
             migrationBuilder.CreateTable(
                 name: "DatasetResources",
@@ -71,8 +71,8 @@ namespace OmniMonitor.Server.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Id_resource = table.Column<int>(type: "int", nullable: false),
-                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                    DatasetId = table.Column<int>(type: "int", nullable: false),
+                    Id_resource = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
