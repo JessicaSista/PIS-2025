@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251018002146_Category-Resource")]
-    partial class CategoryResource
+    [Migration("20251018185208_Resource-Category")]
+    partial class ResourceCategory
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -236,6 +236,27 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("DatasetAsset");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_Category")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetCategory");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
                 {
                     b.Property<int>("Id")
@@ -268,6 +289,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("AlertState")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("CategoryState")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ContentType")
                         .HasColumnType("nvarchar(max)");
 
@@ -284,13 +308,13 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<int?>("Id_Alert")
                         .HasColumnType("int");
 
+                    b.Property<int?>("Id_Category")
+                        .HasColumnType("int");
+
                     b.Property<int?>("Id_Event")
                         .HasColumnType("int");
 
                     b.Property<int?>("Id_Extension")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Id_Resource")
                         .HasColumnType("int");
 
                     b.Property<string>("Is_Dataset")
@@ -302,9 +326,6 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("ResourceState")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -463,27 +484,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("DatasetId");
 
                     b.ToTable("DatasetNews");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetResource", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DatasetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Id_resource")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetId");
-
-                    b.ToTable("DatasetResources");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
@@ -1225,6 +1225,17 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("DatasetAM");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
+                        .WithMany("DatasetCategory")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
@@ -1284,17 +1295,6 @@ namespace OmniMonitor.Server.Migrations
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.DatasetUM", "Dataset")
                         .WithMany("DatasetNews")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dataset");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetResource", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
-                        .WithMany("DatasetResources")
                         .HasForeignKey("DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1424,11 +1424,11 @@ namespace OmniMonitor.Server.Migrations
                 {
                     b.Navigation("DatasetAlerts");
 
+                    b.Navigation("DatasetCategory");
+
                     b.Navigation("DatasetEvents");
 
                     b.Navigation("DatasetExtensions");
-
-                    b.Navigation("DatasetResources");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
