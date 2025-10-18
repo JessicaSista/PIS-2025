@@ -189,6 +189,7 @@ public class SondaIMService : ISondaIMService
         return parsed;
     }
 
+
     public async Task<List<Device>> GetDeviceOfSource(int id, string username, string password)
     {
         string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
@@ -411,8 +412,6 @@ public class SondaIMService : ISondaIMService
 
         return parsed;
     }
-
-
 
 
 
