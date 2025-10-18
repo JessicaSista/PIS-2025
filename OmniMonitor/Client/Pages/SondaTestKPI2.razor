@@ -54,42 +54,16 @@
                   placeholder='[{"min":0,"max":10,"color":"#00FF00"}, {"min":11,"max":20,"color":"#FFFF00"}]'></textarea>
     </div>
 
+    <div class="mb-2">
+        <label class="form-label">Extra Info (JSON string):</label>
+        <textarea class="form-control" @bind="kpiRequest.ExtraInfo"
+                  placeholder='{"dateFrom":"2025-10-18T18:00:00","dateTo":"2025-10-18T19:00:00"}'></textarea>
+    </div>
+
     <button class="btn btn-primary mt-2" @onclick="CreateKpiAsync" disabled="@isLoading">
         @(isLoading ? "Creando..." : "Crear KPI")
     </button>
 </div>
-
-
-
-
-@* 
-    Datos de Ejemplo
-    (para poner en el input o para crear en algún otro lado)
-
-    Name: kpiNombre
-    Description: kpiDesc
-    SourceModule: IM
-    DatasetId: 3
-    Unit (no es obligatorio): V
-    Metric: lastValue
-    Multiplier (si corresponde): 2.5
-    DefaultColor: #FFFFFF
-    ColorRanges (STRING) (no es obligatorio): [
-      {"min":0,"max":10,"color":"#00FF00"},
-      {"min":11,"max":20,"color":"#FFFF00"},
-      {"min":21,"max":30,"color":"#FF0000"},
-      {"min":31,"max":1000,"color":"#FEFEFE"}
-    ]
-
-*@
-
-
-
-
-
-
-
-
 
 @if (responseKpi != null)
 {

@@ -11,11 +11,13 @@ public class KPIController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly IKpiService _kpiService;
-    public KPIController(ApplicationDbContext context, ISondaAuthService sondaAuthService, IKpiService kpiService)
+    private readonly ISondaIMService _sondaIMService;
+    public KPIController(ApplicationDbContext context, ISondaAuthService sondaAuthService, IKpiService kpiService, ISondaIMService sondaIMService)
     {
         _sondaAuthService = sondaAuthService;
         _context = context;
         _kpiService = kpiService;
+        _sondaIMService = sondaIMService;
     }
 
     [HttpPost("")]
@@ -105,6 +107,36 @@ public class KPIController : ControllerBase
     }
 
 
+
+
+    // ⚙️ Endpoint temporal para probar GetDeviceDataByDate
+    [HttpGet("testDates")]
+    [ProducesResponseType(typeof(List<DeviceData>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<DeviceData>>> TestGetDeviceDataByDate()
+    {
+        try
+        {
+            // 🔧 Datos de prueba (ajustá según tus datos reales)
+            string username = "admin";
+            string password = "admin";
+            int deviceId = 52726;
+
+            DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
+            DateTime dateTo = DateTime.UtcNow;               // ahora
+
+            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username, password);
+
+            if (data == null || data.Count == 0)
+                return Ok("No se encontraron datos para el rango de fechas.");
+
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
 
 
 
