@@ -122,3 +122,48 @@
         }
     }
 }
+@* 
+Inputs para crear kpis de IM en /sonda-test-kpi2
+
+
+
+LASTVALUE (puede ser sensor de cualquier tipo)
+
+Name: testKPI
+Description: descripcion
+Source Module: IM
+DatasetId: 1
+Unit: W
+Metric: lastValue
+Multiplier: 1
+Default Color: #FFFFFF
+
+Color Ranges (JSON string):
+
+[{"min":0,"max":10,"color":"#00FF00"}, {"min":11,"max":20,"color":"#FFFF00"}]
+
+Extra Info (JSON string):
+
+{"dateFrom":"2025-10-16T18:00:00","dateTo":"2025-10-18T18:00:00"}
+
+
+
+AVERAGE / MIN / MAX
+
+
+Name: testKPI
+Description: descripcion
+Source Module: IM
+DatasetId: 1
+Unit: W
+Metric: min  /  max  /  average   (solo uno de los 3)
+Multiplier: 1
+Default Color: #FFFFFF
+
+Color Ranges (JSON string):
+
+[{"min":0,"max":10,"color":"#00FF00"}, {"min":11,"max":20,"color":"#FFFF00"}]
+
+Extra Info (JSON string):
+
+{"dateFrom":"2025-10-16T18:00:00","dateTo":"2025-10-18T18:00:00"} *@
