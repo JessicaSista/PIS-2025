@@ -1,5 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
+using System.Dynamic;
+using System.Reflection;
+using System.Text.Json;
 
 public interface IReportService
 {
@@ -8,17 +11,24 @@ public interface IReportService
     Task<List<Report>> GetAllReportsByUsernameAsync(string username);
     Task<Report?> GetReportByIdAsync(int reportId, string username);
     Task<bool> DeleteReportAsync(int reportId, string username);
-    Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username);
+    Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config);
     Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username);
+    Task<DatasetReports> AddDatasetToReportAsync(int reportId, ModuleType moduleType, int id_dataset, string username);
+    Task<bool> RemoveDatasetFromReportAsync(int reportId, ModuleType moduleType, int id_dataset, string username);
+    Task<List<dynamic>> ExecuteReportAsync(int reportId, string username);
 }
 
 public class ReportService : IReportService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IJoinConfigurationService _joinConfigService;
+    private readonly IApiDataService _apiDataService;
 
-    public ReportService(ApplicationDbContext context)
+    public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService, IApiDataService ApiDataService)
     {
         _context = context;
+        _joinConfigService = JoinConfigurationService;
+        _apiDataService = ApiDataService;
     }
 
     /// <summary>
@@ -119,7 +129,7 @@ public class ReportService : IReportService
         return true;
     }
 
-    public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username)
+    public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config)
     {
         // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
         var reportToUpdate = await _context.Reports
@@ -134,10 +144,58 @@ public class ReportService : IReportService
         // 3. Actualiza las propiedades y guarda los cambios.
         reportToUpdate.Name = name;
         reportToUpdate.Description = descripcion;
+        reportToUpdate.JSON_config = JSON_config;
 
         await _context.SaveChangesAsync();
 
         return reportToUpdate;
+    }
+
+    public async Task<DatasetReports> AddDatasetToReportAsync(int reportId, ModuleType moduleType, int id_dataset, string username)
+    {
+        var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+        if (report == null)
+        {
+            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado para este usuario.");
+        }
+
+        var datasetInfo = new DatasetsOfReports
+        {
+            ModuleType = moduleType,
+            id_dataset = id_dataset
+        };
+        _context.DatasetsOfReports.Add(datasetInfo);
+        await _context.SaveChangesAsync();
+
+        var reportLink = new DatasetReports
+        {
+            ReportId = report.Id,
+            DatasetsOfReportsId = datasetInfo.Id
+        };
+        _context.DatasetReports.Add(reportLink);
+        await _context.SaveChangesAsync();
+
+        return reportLink;
+    }
+
+    public async Task<bool> RemoveDatasetFromReportAsync(int reportId, ModuleType moduleType, int id_dataset, string username)
+    {
+        var linkToRemove = await _context.DatasetReports
+            .FirstOrDefaultAsync(link =>
+                link.ReportId == reportId &&
+                link.Report.Username == username &&
+                link.DatasetsOfReports.ModuleType == moduleType &&
+                link.DatasetsOfReports.id_dataset == id_dataset);
+
+        if (linkToRemove == null)
+        {
+            return false;
+        }
+
+        _context.DatasetReports.Remove(linkToRemove);
+        await _context.SaveChangesAsync();
+
+        return true;
     }
 
     public async Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username)
@@ -157,5 +215,92 @@ public class ReportService : IReportService
         await _context.SaveChangesAsync();
 
         return true;
+    }
+
+    public async Task<List<dynamic>> ExecuteReportAsync(int reportId, string username)
+    {
+        // 1. Obtener el reporte y su configuración JSON
+        var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+        if (report == null || string.IsNullOrWhiteSpace(report.JSON_config))
+        {
+            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuración JSON válida.");
+        }
+
+        var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+        var finalResults = new List<dynamic>();
+
+        
+        foreach (var sourceConfig in config.Sources ?? new List<ReportSourceConfig>())
+        {
+
+            IEnumerable<dynamic> rawData;
+            switch (sourceConfig.SourceType.ToLower())
+            {
+                case "join":
+                    if (!sourceConfig.SourceId.HasValue) continue;
+                    rawData = await _joinConfigService.ExecuteJoinAsync(sourceConfig.SourceId.Value);
+                    break;
+
+                case "dataset":
+                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue) continue;
+                    var operand = new JoinOperand
+                    {
+                        ModuleType = sourceConfig.SourceModule.Value,
+                        DatasetId = sourceConfig.SourceId.Value,
+                        EntityName = sourceConfig.EntityName.Value
+                    };
+                    rawData = await _apiDataService.GetDataForOperand(operand, username);
+                    break;
+
+                default:
+                    continue;
+            }
+
+            if (rawData == null || !rawData.Any())
+            {
+                continue;
+            }
+
+            foreach (var rawRow in rawData)
+            {
+                var projectedRow = new ExpandoObject() as IDictionary<string, object>;
+                var rowAsDictionary = ObjectToDictionary(rawRow);
+
+                foreach (var column in sourceConfig.Columns)
+                {
+                    if (rowAsDictionary.TryGetValue(column.Attribute, out object value))
+                    {
+                        projectedRow[column.As] = value;
+                    }
+                    else
+                    {
+                        projectedRow[column.As] = null;
+                    }
+                }
+                finalResults.Add(projectedRow);
+            }
+        }
+
+        return finalResults;
+    }
+
+    private IDictionary<string, object> ObjectToDictionary(object obj)
+    {
+        if (obj == null) return new Dictionary<string, object>();
+
+        // Si el objeto ya es un diccionario (como un ExpandoObject), lo retornamos directamente.
+        if (obj is IDictionary<string, object> dict)
+        {
+            return dict;
+        }
+
+        // Si es una clase estándar (como Device), usamos reflexión para convertirlo en un diccionario.
+        var dictionary = new Dictionary<string, object>();
+        foreach (var property in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            dictionary[property.Name] = property.GetValue(obj);
+        }
+        return dictionary;
     }
 }
