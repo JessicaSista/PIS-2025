@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OmniMonitor.Server.Context;
 
@@ -11,9 +12,11 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251018012741_kpi")]
+    partial class kpi
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -621,66 +624,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("IdVisualizacion");
 
                     b.ToTable("GrupoVisualizaciones");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Kpi", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("Relational:JsonPropertyName", "id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ColorRanges")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "colorRanges");
-
-                    b.Property<int>("DatasetId")
-                        .HasColumnType("int")
-                        .HasAnnotation("Relational:JsonPropertyName", "datasetId");
-
-                    b.Property<string>("DefaultColor")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "defaultColor");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "description");
-
-                    b.Property<string>("ExtraInfo")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "extraInfo");
-
-                    b.Property<string>("Metric")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "metric");
-
-                    b.Property<double?>("Multiplier")
-                        .HasColumnType("float")
-                        .HasAnnotation("Relational:JsonPropertyName", "multiplier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "name");
-
-                    b.Property<string>("SourceModule")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "sourceModule");
-
-                    b.Property<string>("Unit")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "unit");
-
-                    b.Property<string>("Username")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "username");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Kpi");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>

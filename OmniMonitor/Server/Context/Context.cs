@@ -46,6 +46,7 @@ namespace OmniMonitor.Server.Context
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
+    public DbSet<Kpi> Kpi { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // Check if the options are not already configured (e.g., by a unit test).
