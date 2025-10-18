@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251016235523_fix3")]
-    partial class fix3
+    [Migration("20251018152715_newm")]
+    partial class newm
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -95,7 +95,7 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("JoinOperands");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
                 {
                     b.Property<int>("IdDashboard")
                         .ValueGeneratedOnAdd()
@@ -505,6 +505,26 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("DatasetEventTaskInstanceId");
 
                     b.ToTable("DatasetStock");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetTable", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("IdDataset")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TipoDataset")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("DatasetTable");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
@@ -1334,7 +1354,7 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoVisualizacion", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Dashboard", "Dashboard")
+                    b.HasOne("OmniMonitor.Shared.Dtos.DashboardDto", "Dashboard")
                         .WithMany("GrupoVisualizaciones")
                         .HasForeignKey("GrupoVisualizacionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1408,7 +1428,7 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Dashboard", b =>
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
                 {
                     b.Navigation("GrupoVisualizaciones");
                 });

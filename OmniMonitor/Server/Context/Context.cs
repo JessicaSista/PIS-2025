@@ -43,6 +43,7 @@ namespace OmniMonitor.Server.Context
         public DbSet<JoinOperand> JoinOperands { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<ReportJoin> ReportJoins { get; set; }
+        public DbSet<DatasetTable> DatasetTables { get; set; }
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>

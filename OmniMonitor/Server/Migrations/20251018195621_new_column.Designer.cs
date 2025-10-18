@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251016231705_fix2")]
-    partial class fix2
+    [Migration("20251018195621_new_column")]
+    partial class new_column
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -505,6 +505,29 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("DatasetEventTaskInstanceId");
 
                     b.ToTable("DatasetStock");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetTable", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("IdDataset")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TipoDataset")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("fechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("DatasetTable");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>

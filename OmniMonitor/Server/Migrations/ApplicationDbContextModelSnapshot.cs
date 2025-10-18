@@ -504,6 +504,29 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("DatasetStock");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetTable", b =>
+                {
+                    b.Property<int>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ID"));
+
+                    b.Property<int>("IdDataset")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TipoDataset")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("fechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("DatasetTable");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
                 {
                     b.Property<int>("Id")
