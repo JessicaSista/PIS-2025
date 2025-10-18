@@ -35,10 +35,12 @@ namespace OmniMonitor.Server.Context
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
         public DbSet<DashboardDto> Dashboards { get; set; }
         public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
-    public DbSet<DatasetAM> DatasetAM { get; set; }
-    public DbSet<DatasetEventTaskInstance> DatasetEventTaskInstance { get; set; }
-    public DbSet<DatasetStock> DatasetStock { get; set; }
-    public DbSet<DatasetAsset> DatasetAsset { get; set; }
+        public DbSet<DatasetsOfReports> DatasetsOfReports { get; set; }
+        public DbSet<DatasetReports> DatasetReports { get; set; }
+        public DbSet<DatasetAM> DatasetAM { get; set; }
+        public DbSet<DatasetEventTaskInstance> DatasetEventTaskInstance { get; set; }
+        public DbSet<DatasetStock> DatasetStock { get; set; }
+        public DbSet<DatasetAsset> DatasetAsset { get; set; }
         public DbSet<CrossModuleJoin> CrossModuleJoins { get; set; }
         public DbSet<JoinOperand> JoinOperands { get; set; }
         public DbSet<Report> Reports { get; set; }
@@ -46,6 +48,7 @@ namespace OmniMonitor.Server.Context
         /// <summary>
         /// Configuration step using the injected IConfiguration.
         /// </summary>
+    public DbSet<Kpi> Kpi { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // Check if the options are not already configured (e.g., by a unit test).
@@ -80,22 +83,34 @@ namespace OmniMonitor.Server.Context
         {
             builder.Entity<ReportJoin>(entity =>
             {
-                // 1. Define the composite primary key for the linking table.
-                // This is necessary and ensures a join can only be added to a report once.
                 entity.HasKey(rj => new { rj.ReportId, rj.CrossModuleJoinId });
 
-                // 2. Configure the relationship to the Report entity.
-                // This sets up the foreign key from ReportJoin -> Report.
                 entity.HasOne(rj => rj.Report)
-                      .WithMany(r => r.ReportJoins) // A Report has many ReportJoin entries
+                      .WithMany(r => r.ReportJoins)
                       .HasForeignKey(rj => rj.ReportId);
 
-                // 3. Configure the relationship to the CrossModuleJoin entity.
-                // This sets up the foreign key from ReportJoin -> CrossModuleJoin.
                 entity.HasOne(rj => rj.CrossModuleJoin)
-                      .WithMany() // A CrossModuleJoin can be part of many reports
+                      .WithMany()
                       .HasForeignKey(rj => rj.CrossModuleJoinId);
             });
+
+            builder.Entity<DatasetReports>(entity =>
+            {
+
+                entity.HasKey(dr => new { dr.ReportId, dr.DatasetsOfReportsId });
+
+                entity.HasOne(dr => dr.Report)
+                      .WithMany(r => r.DatasetsReports) 
+                      .HasForeignKey(dr => dr.ReportId);
+
+                entity.HasOne(dr => dr.DatasetsOfReports)
+                      .WithMany() 
+                      .HasForeignKey(dr => dr.DatasetsOfReportsId);
+            });
+
+            builder.Entity<DatasetsOfReports>()
+                .Property(dor => dor.ModuleType)
+                .HasConversion<string>();
         }
 
         private void ConfigureCrossModuleJoins(ModelBuilder builder)

@@ -1,0 +1,93 @@
+﻿@page "/sonda-test-kpi3"
+@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+
+<h3>Probar KPI por ID</h3>
+
+<div class="card p-3 mb-3">
+    <div class="mb-2">
+        <label for="kpiId" class="form-label">KPI ID:</label>
+        <input id="kpiId" @bind="kpiId" type="number" class="form-control" />
+    </div>
+
+    <button class="btn btn-primary" @onclick="GetKpi">Obtener KPI</button>
+</div>
+
+@if (isLoading)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (kpiResponse != null)
+{
+    <div class="card p-3">
+        <h5>@kpiResponse.Name</h5>
+        <p><b>Descripción:</b> @kpiResponse.Description</p>
+        <p><b>Tipo:</b> @kpiResponse.Type</p>
+        <p><b>Unidad:</b> @kpiResponse.Unit</p>
+        <p><b>Color:</b> @kpiResponse.ActualColor</p>
+        <p><b>Valor:</b> @kpiResponse.Value</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@code {
+    private int kpiId;
+    private KpiResponse? kpiResponse;
+    private string? errorMessage;
+    private bool isLoading = false;
+
+    private async Task GetKpi()
+    {
+        if (kpiId <= 0)
+        {
+            errorMessage = "Ingresá un ID válido.";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        kpiResponse = null;
+
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            if (string.IsNullOrEmpty(token))
+            {
+                errorMessage = "No se encontró el token en el almacenamiento local.";
+                isLoading = false;
+                return;
+            }
+
+            var response = await Http.GetAsync($"/api/kpi/{kpiId}?token={token}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                kpiResponse = await response.Content.ReadFromJsonAsync<KpiResponse>();
+            }
+            else
+            {
+                errorMessage = $"Error {response.StatusCode}: {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+
+        isLoading = false;
+    }
+
+    public class KpiResponse
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public string? Type { get; set; }
+        public string? Unit { get; set; }
+        public string? ActualColor { get; set; }
+        public object? Value { get; set; }
+    }
+}

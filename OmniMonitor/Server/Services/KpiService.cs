@@ -1,0 +1,791 @@
+﻿using Microsoft.AspNetCore.Razor.TagHelpers;
+using Microsoft.EntityFrameworkCore;
+using OmniMonitor.Server.Context;
+using OmniMonitor.Shared.Dtos;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace OmniMonitor.Server.Services
+{
+    public interface IKpiService
+    {
+        Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
+        Task<Kpi> GetKpiDefinitionAsync(int kpiId);
+        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password);
+
+        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password);
+    }
+
+    public class KpiService : IKpiService
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly IDatasetService _datasetService;
+        private readonly ISondaEMService _sondaEMService;
+        private readonly ISondaIMService _sondaIMService;
+        private readonly ISondaAuthService _sondaAuthService;
+        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
+        {
+            _context = context;
+            _datasetService = datasetService;
+            _sondaEMService = sondaEMService;
+            _sondaIMService = sondaIMService;
+            _sondaAuthService = sondaAuthService;
+        }
+
+        public async Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            var newKpi = new Kpi
+            {
+                Name = request.Name,
+                Description = request.Description,
+                SourceModule = request.SourceModule,
+                DatasetId = request.DatasetId,
+                Unit = request.Unit,
+                Metric = request.Metric,
+                Multiplier = request.Multiplier,
+                DefaultColor = request.DefaultColor,
+                ColorRanges = request.ColorRanges,
+                ExtraInfo = request.ExtraInfo,
+                Username = username ?? string.Empty,
+            };
+
+            _context.Kpi.Add(newKpi);
+            await _context.SaveChangesAsync();
+
+            return newKpi;
+        }
+
+        public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
+        {
+            var kpi = await _context.Kpi.FindAsync(kpiId);
+
+            if (kpi == null)
+                throw new ArgumentException($"No se encontró el KPI con ID {kpiId}");
+
+            return kpi;
+        }
+
+        public async Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password)
+        {
+            var kpi = await GetKpiDefinitionAsync(kpiId);
+
+            KpiResponse? response = null;
+
+            switch (kpi.SourceModule.ToUpper())
+            {
+                case "AM":
+                    response = await CalculateAmKpiAsync(kpi, username, password);
+                    break;
+
+                case "EM":
+                    response = await CalculateEmKpiAsync(kpi, username, password);
+                    break;
+
+                case "IM":
+                    response = await CalculateImKpiAsync(kpi, username, password);
+                    break;
+
+                case "UM":
+                    response = await CalculateUmKpiAsync(kpi, username, password);
+                    break;
+
+                default:
+                    throw new ArgumentException($"SourceModule no soportado: {kpi.SourceModule}");
+            }
+
+            if (response == null)
+                throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
+
+            return response;
+        }
+
+        public async Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password)
+        {
+            // Obtener todos los KPIs del usuario desde la base de datos
+            var kpis = await _context.Kpi
+                .Where(k => k.Username == username)
+                .ToListAsync();
+
+            var results = new List<KpiResponse>();
+
+            foreach (var kpi in kpis)
+            {
+                try
+                {
+                    var response = await CalculateKpiValueAsync(kpi.Id, username, password);
+                    results.Add(response);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error calculando KPI {kpi.Id}: {ex.Message}");
+                }
+            }
+
+            return results;
+        }
+
+        private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username, string password)
+        {
+            // Obtener dataset asociado al KPI
+            var dataset = await _datasetService.GetDatasetIMByIdAsync(kpi.DatasetId, kpi.Username);
+
+            if (dataset == null)
+                throw new Exception($"No se encontró el dataset con ID {kpi.DatasetId} para el KPI {kpi.Name}");
+
+            KpiResponse? response;
+
+            switch (kpi.Metric?.ToLower())
+            {
+                case "lastvalue":
+                    response = await CalculateLastValueIM(kpi, dataset, username, password);
+                    break;
+
+                case "average":
+                    response = await CalculateAverageKpiIMAsync(kpi,dataset, username, password);
+                    break;
+
+                case "min":
+                    response = await CalculateMinKpiIMAsync(kpi, dataset, username, password);
+                    break;
+
+                case "max":
+                    response = await CalculateMaxKpiIMAsync(kpi, dataset, username, password);
+                    break;
+
+                default:
+                    throw new ArgumentException($"Métrica no soportada para IM: {kpi.Metric}");
+            }
+
+            return response;
+        }
+
+
+        // Funciones privadas por módulo
+        private async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username, string password)
+        {
+            // TODO: lógica de cálculo para AM
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                ActualColor = kpi.DefaultColor,
+                Value = null
+            };
+        }
+
+        private async Task<KpiResponse> CalculateEmKpiAsync(Kpi kpi, string username, string password)
+        {
+            // TODO: lógica de cálculo para EM
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                ActualColor = kpi.DefaultColor,
+                Value = null
+            };
+        }
+
+
+        private async Task<KpiResponse> CalculateUmKpiAsync(Kpi kpi, string username, string password)
+        {
+            // TODO: lógica de cálculo para UM
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                ActualColor = kpi.DefaultColor,
+                Value = null
+            };
+        }
+
+
+        private async Task<KpiResponse> CalculateLastValueIM(Kpi kpi, DatasetIM dataset, string username, string password)
+        {
+            string? rawValue = null;
+            string? type = null;
+
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            if (source == null)
+                throw new Exception($"No se encontró el source con ID {dataset.Id_Source}.");
+
+            if (source.Devices == null || source.Devices.Count == 0)
+                throw new Exception($"No se encontraron devices en el source {source.Id}.");
+
+            foreach (var deviceSummary in source.Devices)
+            {
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                if (device?.Sensors == null)
+                    continue;
+
+                var sensor = device.Sensors.FirstOrDefault(s => s.Name == dataset.SensorName);
+                if (sensor != null)
+                {
+                    rawValue = sensor.LastValue;
+                    type = sensor.Type;
+                    break;
+                }
+            }
+
+            object? finalValue = null;
+
+            if (!string.IsNullOrEmpty(rawValue) && !string.IsNullOrEmpty(type))
+            {
+                switch (type.ToLower())
+                {
+                    case "boolean":
+                        if (bool.TryParse(rawValue, out var boolVal))
+                            finalValue = boolVal;
+                        break;
+
+                    case "int":
+                        if (int.TryParse(rawValue, out var intVal))
+                            finalValue = intVal * (kpi.Multiplier ?? 1);
+                        break;
+
+                    case "double":
+                        if (double.TryParse(rawValue, System.Globalization.NumberStyles.Any,
+                                            System.Globalization.CultureInfo.InvariantCulture, out var doubleVal))
+                            finalValue = doubleVal * (kpi.Multiplier ?? 1);
+                        break;
+
+                    case "text":
+                    case "json":
+                        finalValue = rawValue;
+                        break;
+
+                    default:
+                        Console.WriteLine($"Tipo de sensor desconocido: {type}");
+                        break;
+                }
+            }
+
+            string finalColor = kpi.DefaultColor ?? "#000000";
+
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+            {
+                if (finalValue is int intValue)
+                    finalColor = GetColorForValue(kpi.ColorRanges, intValue, finalColor);
+                else if (finalValue is double doubleValue)
+                    finalColor = GetColorForValue(kpi.ColorRanges, doubleValue, finalColor);
+            }
+
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                Description = kpi.Description,
+                Type = type,
+                Unit = kpi.Unit,
+                ActualColor = finalColor,
+                Value = finalValue
+            };
+        }
+
+
+        private async Task<KpiResponse> CalculateAverageKpiIMAsync(Kpi kpi, DatasetIM dataset, string username, string password)
+        {
+            // Si no tiene extraInfo o dates, dejamos en pendiente
+            if (string.IsNullOrEmpty(kpi.ExtraInfo))
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (average)",
+                    Type = null
+                };
+            }
+
+            // 1. Parsear fechas desde ExtraInfo
+            DateTime dateFrom, dateTo;
+            try
+            {
+                var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(kpi.ExtraInfo);
+                dateFrom = DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                dateTo = DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+            }
+            catch
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (average) - fechas inválidas",
+                    Type = null
+                };
+            }
+
+            // 2. Obtener el source del dataset
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            if (source == null || source.Devices == null || source.Devices.Count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (average) - sin devices",
+                    Type = null
+                };
+            }
+
+            // 3. Buscar device que tenga el sensor
+            int? deviceId = null;
+            string? sensorType = null;
+            foreach (var deviceSummary in source.Devices)
+            {
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                if (device?.Sensors == null) continue;
+
+                var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
+                if (sensor != null)
+                {
+                    deviceId = device.Id;
+                    sensorType = sensor.Type;
+                    break;
+                }
+            }
+
+            if (!deviceId.HasValue)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (average) - sensor no encontrado",
+                    Type = null
+                };
+            }
+
+            // 4. Obtener datos del sensor (solo Data y Time)
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            if (sensorData == null || sensorData.Count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (average) - sin datos",
+                    Type = sensorType
+                };
+            }
+
+            // 5. Filtrar solo valores numéricos y calcular promedio
+            double sum = 0;
+            int count = 0;
+            foreach (var data in sensorData)
+            {
+                if (double.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
+                {
+                    sum += val;
+                    count++;
+                }
+            }
+
+            if (count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (average) - sin valores numéricos",
+                    Type = sensorType
+                };
+            }
+
+            var average = sum / count;
+
+            // 6. Calcular color según ColorRanges
+            string actualColor = kpi.DefaultColor;
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+            {
+                try
+                {
+                    var ranges = JsonSerializer.Deserialize<List<ColorRange>>(kpi.ColorRanges);
+                    if (ranges != null)
+                    {
+                        var matched = ranges.FirstOrDefault(r => average >= r.Min && average <= r.Max);
+                        if (matched != null)
+                            actualColor = matched.Color;
+                    }
+                }
+                catch
+                {
+                    // ignorar errores de parseo
+                }
+            }
+
+            // 7. Devolver respuesta
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                Description = kpi.Description,
+                Unit = kpi.Unit,
+                ActualColor = actualColor,
+                Value = average.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                Type = sensorType
+            };
+        }
+
+
+
+
+        private async Task<KpiResponse> CalculateMinKpiIMAsync(Kpi kpi, DatasetIM dataset, string username, string password)
+        {
+            // Si no tiene extraInfo o dates, dejamos en pendiente
+            if (string.IsNullOrEmpty(kpi.ExtraInfo))
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (min)",
+                    Type = null
+                };
+            }
+
+            // 1. Parsear fechas desde ExtraInfo
+            DateTime dateFrom, dateTo;
+            try
+            {
+                var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(kpi.ExtraInfo);
+                dateFrom = DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                dateTo = DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+            }
+            catch
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (min) - fechas inválidas",
+                    Type = null
+                };
+            }
+
+            // 2. Obtener el source del dataset
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            if (source == null || source.Devices == null || source.Devices.Count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (min) - sin devices",
+                    Type = null
+                };
+            }
+
+            // 3. Buscar device que tenga el sensor
+            int? deviceId = null;
+            string? sensorType = null;
+            foreach (var deviceSummary in source.Devices)
+            {
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                if (device?.Sensors == null) continue;
+
+                var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
+                if (sensor != null)
+                {
+                    deviceId = device.Id;
+                    sensorType = sensor.Type;
+                    break;
+                }
+            }
+
+            if (!deviceId.HasValue)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (min) - sensor no encontrado",
+                    Type = null
+                };
+            }
+
+            // 4. Obtener datos del sensor
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            if (sensorData == null || sensorData.Count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (min) - sin datos",
+                    Type = sensorType
+                };
+            }
+
+            // 5. Filtrar solo valores numéricos y encontrar el mínimo
+            double? minValue = null;
+            foreach (var data in sensorData)
+            {
+                if (double.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
+                {
+                    if (!minValue.HasValue || val < minValue.Value)
+                        minValue = val;
+                }
+            }
+
+            if (!minValue.HasValue)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (min) - sin valores numéricos",
+                    Type = sensorType
+                };
+            }
+
+            // 6. Calcular color según ColorRanges
+            string actualColor = kpi.DefaultColor;
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+            {
+                try
+                {
+                    var ranges = JsonSerializer.Deserialize<List<ColorRange>>(kpi.ColorRanges);
+                    if (ranges != null)
+                    {
+                        var matched = ranges.FirstOrDefault(r => minValue >= r.Min && minValue <= r.Max);
+                        if (matched != null)
+                            actualColor = matched.Color;
+                    }
+                }
+                catch
+                {
+                    // ignorar errores de parseo
+                }
+            }
+
+            // 7. Devolver respuesta
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                Description = kpi.Description,
+                Unit = kpi.Unit,
+                ActualColor = actualColor,
+                Value = minValue.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                Type = sensorType
+            };
+        }
+
+
+
+        private async Task<KpiResponse> CalculateMaxKpiIMAsync(Kpi kpi, DatasetIM dataset, string username, string password)
+        {
+            // Si no tiene extraInfo o dates, dejamos en pendiente
+            if (string.IsNullOrEmpty(kpi.ExtraInfo))
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (max)",
+                    Type = null
+                };
+            }
+
+            // 1. Parsear fechas desde ExtraInfo
+            DateTime dateFrom, dateTo;
+            try
+            {
+                var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(kpi.ExtraInfo);
+                dateFrom = DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                dateTo = DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+            }
+            catch
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (max) - fechas inválidas",
+                    Type = null
+                };
+            }
+
+            // 2. Obtener el source del dataset
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            if (source == null || source.Devices == null || source.Devices.Count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (max) - sin devices",
+                    Type = null
+                };
+            }
+
+            // 3. Buscar device que tenga el sensor
+            int? deviceId = null;
+            string? sensorType = null;
+            foreach (var deviceSummary in source.Devices)
+            {
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                if (device?.Sensors == null) continue;
+
+                var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
+                if (sensor != null)
+                {
+                    deviceId = device.Id;
+                    sensorType = sensor.Type;
+                    break;
+                }
+            }
+
+            if (!deviceId.HasValue)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (max) - sensor no encontrado",
+                    Type = null
+                };
+            }
+
+            // 4. Obtener datos del sensor
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            if (sensorData == null || sensorData.Count == 0)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (max) - sin datos",
+                    Type = sensorType
+                };
+            }
+
+            // 5. Filtrar solo valores numéricos y encontrar el máximo
+            double? maxValue = null;
+            foreach (var data in sensorData)
+            {
+                if (double.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var val))
+                {
+                    if (!maxValue.HasValue || val > maxValue.Value)
+                        maxValue = val;
+                }
+            }
+
+            if (!maxValue.HasValue)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Pendiente de implementar (max) - sin valores numéricos",
+                    Type = sensorType
+                };
+            }
+
+            // 6. Calcular color según ColorRanges
+            string actualColor = kpi.DefaultColor;
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+            {
+                try
+                {
+                    var ranges = JsonSerializer.Deserialize<List<ColorRange>>(kpi.ColorRanges);
+                    if (ranges != null)
+                    {
+                        var matched = ranges.FirstOrDefault(r => maxValue >= r.Min && maxValue <= r.Max);
+                        if (matched != null)
+                            actualColor = matched.Color;
+                    }
+                }
+                catch
+                {
+                    // ignorar errores de parseo
+                }
+            }
+
+            // 7. Devolver respuesta
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                Description = kpi.Description,
+                Unit = kpi.Unit,
+                ActualColor = actualColor,
+                Value = maxValue.Value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
+                Type = sensorType
+            };
+        }
+
+
+
+        private string GetColorForValue(string colorRangesJson, double value, string defaultColor)
+        {
+            try
+            {
+                var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson);
+                if (ranges == null) return defaultColor;
+
+                foreach (var range in ranges)
+                {
+                    if (value >= range.Min && value <= range.Max)
+                        return range.Color;
+                }
+            }
+            catch
+            {
+                return defaultColor;
+            }
+
+            return defaultColor;
+        }
+
+        
+        public class ColorRange
+        {
+            [JsonPropertyName("min")]
+            public double Min { get; set; }
+
+            [JsonPropertyName("max")]
+            public double Max { get; set; }
+
+            [JsonPropertyName("color")]
+            public string Color { get; set; } = "#000000";
+        }
+
+    }
+
+
+
+}
