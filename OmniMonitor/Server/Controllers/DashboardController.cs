@@ -242,15 +242,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
         /// </summary>
-        [HttpDelete("{id}/card/{idGrupoVisualizacion}")]
+        [HttpDelete("{id}/card/{idCard}/{tipoCard}")]
         //[RequirePermission("Editar Dashboards")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteDashboardCard(int id, int idGrupoVisualizacion, [FromQuery] string username)
+        public async Task<IActionResult> DeleteDashboardCard(int id, int idCard, int tipoCard, [FromQuery] string username)
         {
-            var result = await _dashboardService.DeleteDashboardCardAsync(id, username, idGrupoVisualizacion);
+            var result = await _dashboardService.DeleteDashboardCardAsync(id, username, idCard, tipoCard);
             if (!result)
-                return NotFound(new { message = $"No se encontró la tarjeta con id {idGrupoVisualizacion} en el dashboard {id} para el usuario '{username}'" });
+                return NotFound(new { message = $"No se encontró la tarjeta con idCard {idCard} y tipoCard {tipoCard} en el dashboard {id} para el usuario '{username}'" });
             return Ok(new { message = $"Tarjeta eliminada correctamente del dashboard {id}" });
         }
 

@@ -23,7 +23,7 @@ namespace OmniMonitor.Server.Services
         Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno);
         Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard);
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards);
-        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion);
+        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
     }
 
@@ -366,7 +366,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
         /// </summary>
-        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion)
+        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
@@ -374,7 +374,7 @@ namespace OmniMonitor.Server.Services
             if (dashboard == null)
                 return false;
 
-            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdGrupoVisualizacion == idGrupoVisualizacion);
+            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdVisualizacion == idCard && gv.TipoCard == tipoCard);
             if (cardToRemove == null)
                 return false;
 
