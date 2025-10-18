@@ -269,8 +269,6 @@
     {
         try
         {
-            AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
             string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
