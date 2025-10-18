@@ -39,11 +39,9 @@
 </MudBreakpointProvider>
 
 @code {
-    // [Parameter] public List<(System.Int32)> VisualizationIDs { get; set; } = new List<(System.Int32)>();
     [Parameter] public List<(System.Int32, System.Int32, System.Int32)> CardsData { get; set; } = new List<(System.Int32, System.Int32, System.Int32)>();
-    [Parameter]
-    [Required]
-    public System.Int32 dashboardId {get; set;}
+    [Parameter] public EventCallback<int> OnVisualizationCreated { get; set; }
+    [Parameter] [Required] public System.Int32 dashboardId {get; set;}
 
     
     // public System.String[] Domain = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29" };
@@ -70,10 +68,13 @@
     //     Random rnd = new Random();
     //     return GraphType[rnd.Next(0, 3)];
     // }
+
+
+
     private async Task OpenDialogCreateCard()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters {["dashboardId"] = dashboardId};
+        DialogParameters parameters = new DialogParameters { ["dashboardId"] = dashboardId, ["OnVisualizationCreated"] = OnVisualizationCreated };
         IDialogReference? dialog = await DialogService.ShowAsync<AddVisualizationDashboard>("Agregar visualizacion", parameters, options);
         DialogResult? result = await dialog.Result;
     }

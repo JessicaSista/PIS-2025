@@ -45,46 +45,28 @@
     [Parameter]
     public List<object> visualizationData { get; set; } = new();
 
+    [Parameter] public EventCallback<int> OnVisualizationCreated { get; set; }
+
+
     private void Cancel()
     {
         MudDialog.Close();
     }
     
     private async Task Submit()
-{
-    try
     {
-        AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        System.String? username = authState.User.Identity?.Name;
-
-        using (JsonDocument doc = JsonDocument.Parse("{}"))
+        try
         {
-            OmniMonitor.Shared.Dtos.DashboardCard request = new OmniMonitor.Shared.Dtos.DashboardCard {
-                CardId = visualization.IdVisualizacion,
-                TipoCard = 1,
-                Props = doc.RootElement.Clone()
-            };
-
-            HttpResponseMessage? response = await Http.PostAsJsonAsync($"api/Dashboard/{dashboardId}/card?username={username}", request);
-            Console.WriteLine(response.StatusCode);
-            if (!response.IsSuccessStatusCode)
-            {
-                System.String error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add($"Error al agregar la visualización: {error}", Severity.Error);
-            }
-            else
-            {
-                Snackbar.Add("Visualización agregada exitosamente", Severity.Success);
-            }
+            
+            await OnVisualizationCreated.InvokeAsync(visualization.IdVisualizacion);
+        }
+        catch(Exception e)
+        {
+            Snackbar.Add($"Error al agregar visualizacion: {e.Message}", Severity.Error);
+        }
+        finally
+        {
+            MudDialog.Close(DialogResult.Ok(true));
         }
     }
-    catch(Exception e)
-    {
-        Snackbar.Add($"Error al agregar visualizacion: {e.Message}", Severity.Error);
-    }
-    finally
-    {
-        MudDialog.Close(DialogResult.Ok(true));
-    }
-}
 }
