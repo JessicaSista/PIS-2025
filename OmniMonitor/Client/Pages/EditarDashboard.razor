@@ -233,12 +233,11 @@
                 string requestUri = $"api/Dashboard/{DashboardId}/config?username={username}";
 
                 // Usamos el string final y ESPECIFICAMOS application/json
-                var contentToSend = new StringContent(newJsonDesign, System.Text.Encoding.UTF8, "application/json");
 
                 string token = await LocalStorage.GetItemAsync<string>("authToken");
                 Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var response = await Http.PutAsync(requestUri, contentToSend);
+                var response = await Http.PutAsJsonAsync(requestUri, newJsonDesign);
 
                 // ... (Resto del manejo de la respuesta) ...
                 if (response.IsSuccessStatusCode)
