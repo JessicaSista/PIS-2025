@@ -202,14 +202,13 @@ namespace OmniMonitor.Server.Controllers
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente
         /// </summary>
         [HttpPost("{id}/card")]
-        //[RequirePermission("Editar Dashboards")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromBody] DashboardCard nuevaCard)
+        public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromQuery] string jsonConfig, [FromBody] DashboardCard nuevaCard)
         {
             try
             {
-                var result = await _dashboardService.AddDashboardCardAsync(id, username, nuevaCard);
+                var result = await _dashboardService.AddDashboardCardAsync(id, username, jsonConfig, nuevaCard);
                 if (!result)
                     return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
                 return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
@@ -231,9 +230,9 @@ namespace OmniMonitor.Server.Controllers
         //[RequirePermission("Editar Dashboards")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> ReorderDashboardCards(int id, [FromQuery] string username, [FromBody] List<DashboardCard> orderedCards)
+        public async Task<IActionResult> ReorderDashboardCards(int id, [FromQuery] string username, [FromQuery] string jsonConfig, [FromBody] List<DashboardCard> orderedCards)
         {
-            var result = await _dashboardService.ReorderDashboardCardsAsync(id, username, orderedCards);
+            var result = await _dashboardService.ReorderDashboardCardsAsync(id, username, jsonConfig, orderedCards);
             if (!result)
                 return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
             return Ok(new { message = $"Orden de tarjetas actualizado correctamente para el dashboard {id}" });
@@ -246,9 +245,9 @@ namespace OmniMonitor.Server.Controllers
         //[RequirePermission("Editar Dashboards")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteDashboardCard(int id, int idGrupoVisualizacion, [FromQuery] string username)
+        public async Task<IActionResult> DeleteDashboardCard(int id, int idGrupoVisualizacion, [FromQuery] string username, [FromQuery] string jsonConfig)
         {
-            var result = await _dashboardService.DeleteDashboardCardAsync(id, username, idGrupoVisualizacion);
+            var result = await _dashboardService.DeleteDashboardCardAsync(id, username, jsonConfig, idGrupoVisualizacion);
             if (!result)
                 return NotFound(new { message = $"No se encontró la tarjeta con id {idGrupoVisualizacion} en el dashboard {id} para el usuario '{username}'" });
             return Ok(new { message = $"Tarjeta eliminada correctamente del dashboard {id}" });

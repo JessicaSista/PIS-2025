@@ -21,9 +21,9 @@ namespace OmniMonitor.Server.Services
         Task<bool> ValidateLayoutAsync(DashboardLayout layout);
         Task<bool> DeleteDashboardAsync(int idDashboard, string username);
         Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno);
-        Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard);
-        Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards);
-        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion);
+        Task<bool> AddDashboardCardAsync(int idDashboard, string username, string jsonConfig,DashboardCard nuevaCard);
+        Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string jsonConfig, List<DashboardCard> orderedCards);
+        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, string jsonConfig, int idGrupoVisualizacion);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
         Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard);
         Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
@@ -131,19 +131,7 @@ namespace OmniMonitor.Server.Services
                 FechaModificacion = dashboard.FechaModificacion
             };
 
-            // Deserializar el layout si existe
-            /*if (!string.IsNullOrEmpty(dashboard.JsonDiseno))
-            {
-                try
-                {
-                    response.Layout = JsonSerializer.Deserialize<DashboardLayout>(dashboard.JsonDiseno);
-                }
-                catch (JsonException)
-                {
-                    // Si hay error en la deserialización, se deja como null
-                    response.Layout = null;
-                }
-            }*/
+            
 
             // Mapear las tarjetas
             response.Tarjetas = dashboard.GrupoVisualizaciones
@@ -287,7 +275,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente
         /// </summary>
-        public async Task<bool> AddDashboardCardAsync(int idDashboard, string username, DashboardCard nuevaCard)
+        public async Task<bool> AddDashboardCardAsync(int idDashboard, string username, string JsonDiseno, DashboardCard nuevaCard)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
@@ -308,6 +296,10 @@ namespace OmniMonitor.Server.Services
                 // TODO: Validar que el KPI exista cuando se implemente la entidad correspondiente
                 // bool kpiExiste = await _context.KPIs.AnyAsync(k => k.IdKPI == nuevaCard.CardId);
                 // if (!kpiExiste) return false;
+            }
+
+            if (JsonDiseno == null){
+                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
             }
 
             // Chequear si la tarjeta ya existe en el dashboard (por IdVisualizacion y TipoCard)
@@ -333,6 +325,10 @@ namespace OmniMonitor.Server.Services
                 FechaAgregado = DateTime.UtcNow,
                 Orden = orden
             };
+
+            dashboard.JsonDiseno = JsonDiseno;
+            _context.Dashboards.Update(dashboard);
+
             _context.GrupoVisualizaciones.Add(grupoVisualizacion);
             await _context.SaveChangesAsync();
             return true;
@@ -341,13 +337,17 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Reordena las tarjetas (GrupoVisualizaciones) de un dashboard según el orden de la lista recibida
         /// </summary>
-        public async Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, List<DashboardCard> orderedCards)
+        public async Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string JsonDiseno, List<DashboardCard> orderedCards)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
             if (dashboard == null)
                 return false;
+
+            if (JsonDiseno == null){
+                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
+            }
 
             for (int i = 0; i < orderedCards.Count; i++)
             {
@@ -361,6 +361,7 @@ namespace OmniMonitor.Server.Services
                     grupo.Orden = i + 1;
                 }
             }
+            dashboard.JsonDiseno = JsonDiseno;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -368,13 +369,17 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
         /// </summary>
-        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idGrupoVisualizacion)
+        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, string jsonConfig, int idGrupoVisualizacion)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
             if (dashboard == null)
                 return false;
+            
+            if (jsonConfig == null){
+                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
+            }
 
             var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdGrupoVisualizacion == idGrupoVisualizacion);
             if (cardToRemove == null)
@@ -389,7 +394,7 @@ namespace OmniMonitor.Server.Services
             {
                 card.Orden--;
             }
-
+            dashboard.JsonDiseno = jsonConfig;
             await _context.SaveChangesAsync();
             return true;
         }
