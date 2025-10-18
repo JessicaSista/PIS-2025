@@ -42,9 +42,11 @@ namespace OmniMonitor.Server.Services
                 Id_Alert = request.AlertId,
                 Id_Event = request.EventId,
                 Id_Extension = request.ExtensionId,
+                Id_Category = request.CategoryId,
                 AlertState = request.AlertState,
                 EventState = request.EventState,
                 ExtensionState = request.ExtensionState,
+                CategoryState = request.CategoryState,
                 ContentType = GetContentType(request).ToString()
             };
 
@@ -76,6 +78,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
+                 .Include(d => d.DatasetCategory)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
@@ -85,7 +88,8 @@ namespace OmniMonitor.Server.Services
             if (dataset.Is_Dataset == "S" &&
                 !dataset.DatasetAlerts.Any() &&
                 !dataset.DatasetEvents.Any() &&
-                !dataset.DatasetExtensions.Any())
+                !dataset.DatasetExtensions.Any() &&
+                 !dataset.DatasetCategory.Any())
             {
                 // Obtener usuario y credenciales
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
@@ -126,6 +130,15 @@ namespace OmniMonitor.Server.Services
                     foreach (var extension in extensions)
                         dataset.DatasetExtensions.Add(new DatasetExtension { Id_extension = extension.ExtensionId });
                 }
+                // 4. Category dinámicas
+                if (dataset.Id_Category.HasValue || !string.IsNullOrEmpty(dataset.CategoryState))
+                {
+                    var categories = await _sondaEMService.GetCategory(1, 1000, null,null, user.Username, user.Password);
+                    if (dataset.Id_Category.HasValue)
+                        categories = categories.Where(c => c.CategoryId == dataset.Id_Category.Value).ToList();
+                    foreach (var category in categories)
+                        dataset.DatasetCategory.Add(new DatasetCategory { Id_Category = category.CategoryId });
+                }
             }
 
             return dataset;
@@ -140,6 +153,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
+                .Include(d => d.DatasetCategory)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
         }
 
@@ -152,6 +166,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
+                .Include(d => d.DatasetCategory)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
@@ -167,25 +182,28 @@ namespace OmniMonitor.Server.Services
             existingDataset.Id_Alert = request.AlertId;
             existingDataset.Id_Event = request.EventId;
             existingDataset.Id_Extension = request.ExtensionId;
+            existingDataset.Id_Category = request.CategoryId;
             existingDataset.AlertState = request.AlertState;
             existingDataset.EventState = request.EventState;
             existingDataset.ExtensionState = request.ExtensionState;
+            existingDataset.CategoryState = request.CategoryState;
 
             // Marcar campos nullable como modificados si es necesario
             _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
-
+            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;
             // Eliminar relaciones existentes de la base de datos
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
+            _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
 
             // Limpiar colecciones
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();
-
+            existingDataset.DatasetCategory.Clear();
             // Agregar nuevas relaciones
             UpdateRelationsFromRequest(existingDataset, request);
 
@@ -215,6 +233,7 @@ namespace OmniMonitor.Server.Services
             dataset.DatasetAlerts = request.AlertIds?.Select(id => new DatasetAlert { DatasetId = dataset.Id, Id_alert = id }).ToList() ?? new();
             dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEventEM { DatasetId = dataset.Id, Id_event = id }).ToList() ?? new();
             dataset.DatasetExtensions = request.ExtensionIds?.Select(id => new DatasetExtension { DatasetId = dataset.Id, Id_extension = id }).ToList() ?? new();
+            dataset.DatasetCategory = request.CategoryIds?.Select(id => new DatasetCategory { DatasetId = dataset.Id, Id_Category = id }).ToList() ?? new();
         }
 
         private static DatasetContentType GetContentType(CreateDatasetEMRequest r)
@@ -223,6 +242,7 @@ namespace OmniMonitor.Server.Services
             if (r.AlertIds?.Any() == true) type |= DatasetContentType.Alerts;
             if (r.EventIds?.Any() == true) type |= DatasetContentType.Events;
             if (r.ExtensionIds?.Any() == true) type |= DatasetContentType.Extensions;
+            if (r.CategoryIds?.Any() == true) type |= DatasetContentType.Category;
             return type;
         }
 
@@ -246,6 +266,6 @@ namespace OmniMonitor.Server.Services
         Alerts = 1,
         Events = 2,
         Extensions = 4,
-        Resources = 8
+        Category = 8
     }
 }

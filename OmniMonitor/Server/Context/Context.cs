@@ -30,7 +30,7 @@ namespace OmniMonitor.Server.Context
         public DbSet<DatasetAlert> DatasetAlerts { get; set; }
         public DbSet<DatasetEventEM> DatasetEventsEM { get; set; }
         public DbSet<DatasetExtension> DatasetExtensions { get; set; }
-        public DbSet<DatasetResource> DatasetResources { get; set; }
+        public DbSet<DatasetCategory> DatasetCategory { get; set; }
         public DbSet<Visualizacion> Visualizaciones { get; set; }
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
         public DbSet<DashboardDto> Dashboards { get; set; }

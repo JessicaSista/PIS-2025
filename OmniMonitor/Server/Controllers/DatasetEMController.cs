@@ -8,7 +8,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+   
     public class DatasetEMController : ControllerBase
     {
         private readonly IDatasetEMService _datasetEMService;
@@ -28,7 +28,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> CreateDataset([FromBody] CreateDatasetEMRequest request)
+        public async Task<ActionResult<DatasetEM>> CreateDataset([FromBody] CreateDatasetEMRequest request,string token)
         {
             try
             {
@@ -51,7 +51,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest("El tipo de dataset es requerido.");
                 }
-
+                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var createdDataset = await _datasetEMService.CreateDatasetEMAsync(request);
                 return CreatedAtAction(nameof(GetDatasetById), new { datasetId = createdDataset.Id, username = createdDataset.Username }, createdDataset);
             }

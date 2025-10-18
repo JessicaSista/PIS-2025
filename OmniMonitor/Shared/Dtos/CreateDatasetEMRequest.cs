@@ -30,16 +30,16 @@ namespace OmniMonitor.Shared.Dtos
         public int? AlertId { get; set; }
         public int? EventId { get; set; }
         public int? ExtensionId { get; set; }
-        public int? ResourceId { get; set; }
+        public int? CategoryId { get; set; }
         public string? AlertState { get; set; }
         public string? EventState { get; set; }
         public string? ExtensionState { get; set; }
-        public string? ResourceState { get; set; }
+        public string? CategoryState { get; set; }
 
         // IDs de entidades específicas
         public List<int>? AlertIds { get; set; }
         public List<int>? EventIds { get; set; }
         public List<int>? ExtensionIds { get; set; }
-        public List<int>? ResourceIds { get; set; }
+        public List<int>? CategoryIds { get; set; }
     }
 }
