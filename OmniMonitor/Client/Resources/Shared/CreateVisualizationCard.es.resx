@@ -162,4 +162,10 @@
   <data name="ChartType" xml:space="preserve">
     <value>Tipo de Gráfica</value>
   </data>
+  <data name="NewChart" xml:space="preserve">
+    <value>Nueva gráfica</value>
+  </data>
+  <data name="NewKPI" xml:space="preserve">
+    <value>Nuevo KPI</value>
+  </data>
 </root>

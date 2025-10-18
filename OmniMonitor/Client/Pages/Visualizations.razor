@@ -47,6 +47,17 @@
     else
     {
         <MudGrid Spacing="4">
+            <!-- Tarjeta KPI hardcodeada con color dinámico -->
+            <MudItem xs="12" sm="12" md="6" lg="4">
+                <KpiCard Title="Producción Actual"
+                         Value="1275"
+                         LastUpdated="Hace 2 horas"
+                         Color="rgb(0, 255, 231)" />
+            </MudItem>
+
+
+
+
             @if (_visualizations != null && _visualizations.Any())
             {
                 @foreach (var visualization in _visualizations.Where(v => string.IsNullOrWhiteSpace(_searchQuery) || v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
@@ -54,15 +65,15 @@
                     JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
                     var chartType = design.RootElement.GetProperty("ChartType").ToString();
                     var datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
-                    
+
                     var visualizationData = GetVisualizationData(visualization.IdVisualizacion);
 
                     <MudItem xs="12" sm="12" md="6" lg="4">
                         <VisualizationCard visualizationTitle="@visualization.Nombre"
-                                    visualizationDatasets="@datasetNames"
-                                    lastUpdated="@DateTime.Now.ToString("g")" 
-                                    dataCharts="@visualizationData"
-                                    chartType="@chartType"/>
+                                           visualizationDatasets="@datasetNames"
+                                           lastUpdated="@DateTime.Now.ToString("g")"
+                                           dataCharts="@visualizationData"
+                                           chartType="@chartType" />
                     </MudItem>
                 }
             }
@@ -75,6 +86,7 @@
                 </MudItem>
             }
         </MudGrid>
+
     }
 </MudContainer>
 
@@ -87,14 +99,8 @@
 
     private async Task OpenDialogCreateVisualization()
     {
-        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
-        DialogResult? result = await dialog.Result;
-        
-        if (!result.Canceled)
-        {
-            await RecargarVisualizacionesAsync();
-        }
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        await DialogService.ShowAsync<SelectVisualizationTypeDialog>(Localizer["NewVisualization"], options);
     }
 
     private async Task RecargarVisualizacionesAsync()

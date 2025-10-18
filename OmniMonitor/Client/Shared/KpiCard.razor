@@ -1,0 +1,35 @@
+﻿@using MudBlazor
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<KpiCard> Localizer
+
+<MudPaper Class="pa-4" Style="@CardStyle">
+    <MudCard Elevation="0" Style="background-color: transparent;">
+        <MudCardContent>
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudText Typo="Typo.h4">@Value</MudText>
+        </MudCardContent>
+
+        <MudCardActions Class="d-block">
+            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@Localizer["Actualizado"]: @LastUpdated</MudText>
+        </MudCardActions>
+    </MudCard>
+</MudPaper>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Título KPI";
+    [Parameter] public string Value { get; set; } = "0";
+    [Parameter] public string LastUpdated { get; set; } = "N/A";
+    [Parameter] public string Color { get; set; } = "rgb(0, 255, 231)";
+
+    private string CardStyle => $"background-color:{GetTransparentColor(Color, 0.15)}; border:2px solid {Color}; border-radius: 2px;";
+
+    private string GetTransparentColor(string rgbColor, double opacity)
+    {
+        // rgbColor formato "rgb(r,g,b)"
+        var parts = rgbColor.Replace("rgb(", "").Replace(")", "").Split(',');
+        if (parts.Length != 3) return rgbColor;
+
+        return $"rgba({parts[0].Trim()},{parts[1].Trim()},{parts[2].Trim()},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+    }
+
+}

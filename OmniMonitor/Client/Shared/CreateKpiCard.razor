@@ -1,0 +1,203 @@
+﻿@inject ISnackbar Snackbar
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.Extensions.Localization;
+@using Blazored.LocalStorage;
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
+@inject ILocalStorageService LocalStorage
+
+<MudDialog Style="background-color: var(--fondo-dialog)">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
+            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Class="mb-n1 mr-1" />
+            @Localizer["NewKPI"]
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudStack Spacing="3">
+            <!-- Fila 1: Dataset + Multiplicador + Color -->
+            <MudGrid>
+                <!-- Dataset -->
+                <MudItem xs="12" sm="6" md="6">
+                    <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Dataset"]</MudText>
+                    <MudSelect T="int" @bind-Value="_selectedDatasetId"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="background: var(--card); width: 100%;"
+                               Required="true">
+                        @foreach (var ds in _datasets)
+                        {
+                            <MudSelectItem T="int" Value="@ds.Id">@ds.Nombre (@ds.Tipo)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Multiplicador (solo si numérico) -->
+                @if (_selectedDataset?.Tipo?.ToLower() == "numerico")
+                {
+                    <MudItem xs="12" sm="3" md="3">
+                        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Multiplier"]</MudText>
+                        <MudNumericField @bind-Value="_multiplier"
+                                         Variant="Variant.Outlined"
+                                         Dense="true"
+                                         HideSpinButtons="true"
+                                         Step=".1M"
+                                         Style="background: var(--card); width: 100%;" />
+                    </MudItem>
+                }
+
+                <!-- Color -->
+                <MudItem xs="12" sm="3" md="3">
+                    <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Color"]</MudText>
+
+                    <MudMenu AnchorOrigin="Origin.BottomCenter"
+                             TransformOrigin="Origin.TopCenter"
+                             OffsetY="true">
+                        <ActivatorContent>
+                            <div style="width: 40px; height: 40px; border-radius: 8px;
+                        cursor: pointer; border: 2px solid var(--borde-drawer);
+                        background-color:@_color;">
+                            </div>
+                        </ActivatorContent>
+
+                        <ChildContent>
+                            <MudColorPicker @bind-Text="_color"
+                                            Variant="Variant.Outlined"
+                                            Style="width: 220px;" />
+                        </ChildContent>
+                    </MudMenu>
+                </MudItem>
+
+            </MudGrid>
+
+            <!-- Fila 2: Nombre -->
+            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
+            <MudTextField @bind-Value="_name"
+                          Label="@Localizer["Name"]"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          Style="background: var(--card);" />
+
+            <!-- Fila 3: Descripción -->
+            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
+            <MudTextField @bind-Value="_description"
+                          Label="@Localizer["Description"]"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Style="background: var(--card);" />
+
+            <!-- Fila 4: Tipo de KPI -->
+            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["KpiType"]</MudText>
+            <MudSelect T="string" @bind-Value="_selectedType"
+                       Variant="Variant.Outlined"
+                       Dense="true"
+                       Style="background: var(--card);">
+                @foreach (var tipo in _kpiTypes)
+                {
+                    <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
+                }
+            </MudSelect>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">@Localizer["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] public required IMudDialogInstance _mudDialog { get; set; }
+
+    private List<DatasetDto> _datasets = new();
+    private int _selectedDatasetId;
+    private DatasetDto? _selectedDataset => _datasets.FirstOrDefault(d => d.Id == _selectedDatasetId);
+
+    private decimal _multiplier = 1.0M;
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+    private string _selectedType = "Promedio";
+    private string _color = "rgb(0, 255, 231)";
+    private bool _showColorPicker = false;
+
+    private List<string> _kpiTypes = new() { "Promedio", "Suma", "Máximo", "Mínimo", "Último valor" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var storedDatasets = await LocalStorage.GetItemAsync<List<DatasetDto>>("datasets");
+
+            if (storedDatasets == null || storedDatasets.Count == 0)
+            {
+                storedDatasets = new List<DatasetDto>
+                {
+                    new DatasetDto { Id = 1, Nombre = "Ventas", Tipo = "Numerico" },
+                    new DatasetDto { Id = 2, Nombre = "Regiones", Tipo = "Categorico" },
+                    new DatasetDto { Id = 3, Nombre = "Clientes activos", Tipo = "Numerico" }
+                };
+                await LocalStorage.SetItemAsync("datasets", storedDatasets);
+            }
+
+            _datasets = storedDatasets;
+
+            _kpiTypes = new List<string> { "Promedio", "Suma", "Máximo", "Mínimo", "Último valor" };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar datos: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => _mudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            Snackbar.Add("El nombre del KPI es obligatorio.", Severity.Warning);
+            return;
+        }
+
+        if (_selectedDataset == null)
+        {
+            Snackbar.Add("Debe seleccionar un dataset.", Severity.Warning);
+            return;
+        }
+
+        var nuevoKpi = new KpiDto
+        {
+            Nombre = _name,
+            Descripcion = _description,
+            DatasetId = _selectedDatasetId,
+            Multiplicador = _multiplier,
+            Tipo = _selectedType,
+            Color = _color
+        };
+
+        var lista = await LocalStorage.GetItemAsync<List<KpiDto>>("kpis") ?? new List<KpiDto>();
+        lista.Add(nuevoKpi);
+        await LocalStorage.SetItemAsync("kpis", lista);
+
+        Snackbar.Add($"KPI '{_name}' creado correctamente.", Severity.Success);
+        _mudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private class DatasetDto
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
+        public string? Tipo { get; set; }
+    }
+
+    private class KpiDto
+    {
+        public string Nombre { get; set; } = "";
+        public string? Descripcion { get; set; }
+        public int DatasetId { get; set; }
+        public decimal Multiplicador { get; set; }
+        public string Tipo { get; set; } = "";
+        public string Color { get; set; } = "";
+    }
+}

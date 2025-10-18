@@ -129,4 +129,7 @@
   <data name="AgregarVisualizacion" xml:space="preserve">
     <value>New Visualisation</value>
   </data>
+  <data name="NewVisualization" xml:space="preserve">
+    <value>New visualization</value>
+  </data>
 </root>
