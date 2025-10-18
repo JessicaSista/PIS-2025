@@ -59,6 +59,38 @@
     </button>
 </div>
 
+
+
+
+@* 
+    Datos de Ejemplo
+    (para poner en el input o para crear en algún otro lado)
+
+    Name: kpiNombre
+    Description: kpiDesc
+    SourceModule: IM
+    DatasetId: 3
+    Unit (no es obligatorio): V
+    Metric: lastValue
+    Multiplier (si corresponde): 2.5
+    DefaultColor: #FFFFFF
+    ColorRanges (STRING) (no es obligatorio): [
+      {"min":0,"max":10,"color":"#00FF00"},
+      {"min":11,"max":20,"color":"#FFFF00"},
+      {"min":21,"max":30,"color":"#FF0000"},
+      {"min":31,"max":1000,"color":"#FEFEFE"}
+    ]
+
+*@
+
+
+
+
+
+
+
+
+
 @if (responseKpi != null)
 {
     <div class="alert alert-success mt-3">
