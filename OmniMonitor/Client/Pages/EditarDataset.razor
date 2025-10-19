@@ -522,10 +522,10 @@ else if (selectedTipo == "Insight Monitor")
                        Disabled="@(!EnableExtensionsSelect)"
                        Label="Seleccionar Extension(es)"
                        Class="dark-field"
-                       ToStringFunc="@(id => extensions.FirstOrDefault(e => e.Id == id)?.EventName ?? id.ToString())">
+                       ToStringFunc="@(id => GetExtensionDisplayName(id))">
                 @foreach (var ext in extensions)
                 {
-                    <MudSelectItem T="int" Value="@ext.Id">@ext.EventName</MudSelectItem>
+                    <MudSelectItem T="int" Value="@ext.Id">@GetExtensionDisplayName(ext.Id)</MudSelectItem>
                 }
             </MudSelect>
         </div>
@@ -640,6 +640,32 @@ else if (selectedTipo == "Insight Monitor")
     }
 
     private bool EnableExtensionsSelect => selectedEventEMIds.Count == 1;
+
+    private string GetExtensionDisplayName(int extensionId)
+    {
+        var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
+        if (ext == null) return extensionId.ToString();
+        
+        // Build a descriptive name using available fields
+        var parts = new List<string>();
+        
+        // Add ID for uniqueness
+        parts.Add($"#{ext.Id}");
+        
+        // Add work zone name if available
+        if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
+            parts.Add(ext.WorkZoneName);
+        
+        // Add state if available
+        if (!string.IsNullOrWhiteSpace(ext.State))
+            parts.Add($"({ext.State})");
+        
+        // Add event name if available and different from work zone
+        if (!string.IsNullOrWhiteSpace(ext.EventName) && ext.EventName != ext.WorkZoneName)
+            parts.Add($"[{ext.EventName}]");
+        
+        return parts.Any() ? string.Join(" ", parts) : extensionId.ToString();
+    }
 
     private bool CanSaveEM
     {
@@ -1723,7 +1749,7 @@ else if (selectedTipo == "Insight Monitor")
             var encodedToken = GetEncodedToken();
             Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
 
-            // Load Categories
+            // Load Categories (backend handles Sonda API pagination limitations)
             var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
             Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             

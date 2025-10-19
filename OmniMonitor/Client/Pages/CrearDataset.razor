@@ -511,10 +511,10 @@
                        Disabled="@(!EnableExtensionsSelect)"
                        Label="Seleccionar Extension(es)"
                        Class="dark-field"
-                       ToStringFunc="@(id => extensions.FirstOrDefault(e => e.Id == id)?.EventName ?? id.ToString())">
+                       ToStringFunc="@(id => GetExtensionDisplayName(id))">
                 @foreach (var ext in extensions)
                 {
-                    <MudSelectItem T="int" Value="@ext.Id">@ext.EventName</MudSelectItem>
+                    <MudSelectItem T="int" Value="@ext.Id">@GetExtensionDisplayName(ext.Id)</MudSelectItem>
                 }
             </MudSelect>
         </div>
@@ -739,6 +739,32 @@
     }
 
     private bool EnableExtensionsSelect => selectedEventEMIds.Count == 1;
+
+    private string GetExtensionDisplayName(int extensionId)
+    {
+        var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
+        if (ext == null) return extensionId.ToString();
+        
+        // Build a descriptive name using available fields
+        var parts = new List<string>();
+        
+        // Add ID for uniqueness
+        parts.Add($"#{ext.Id}");
+        
+        // Add work zone name if available
+        if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
+            parts.Add(ext.WorkZoneName);
+        
+        // Add state if available
+        if (!string.IsNullOrWhiteSpace(ext.State))
+            parts.Add($"({ext.State})");
+        
+        // Add event name if available and different from work zone
+        if (!string.IsNullOrWhiteSpace(ext.EventName) && ext.EventName != ext.WorkZoneName)
+            parts.Add($"[{ext.EventName}]");
+        
+        return parts.Any() ? string.Join(" ", parts) : extensionId.ToString();
+    }
 
     private bool CanSaveEM
     {
@@ -1351,7 +1377,7 @@
             var encodedToken = GetEncodedToken();
             Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
 
-            // Load Categories
+            // Load Categories (backend handles Sonda API pagination limitations)
             var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
             Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             
@@ -1428,20 +1454,28 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&token={GetEncodedToken()}";
+            Console.WriteLine($"[DEBUG EM Events] Calling: {url}");
             var resp = await Http.GetAsync(url);
+            Console.WriteLine($"[DEBUG EM Events] Response status: {resp.StatusCode}");
+            
             if (resp.IsSuccessStatusCode)
             {
                 eventsEM = await resp.Content.ReadFromJsonAsync<List<EventDto>>() ?? new List<EventDto>();
+                Console.WriteLine($"[DEBUG EM Events] Loaded {eventsEM.Count} events");
             }
             else
             {
+                var error = await resp.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EM Events] Error: {error}");
                 eventsEM = new List<EventDto>();
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[DEBUG EM Events] Exception: {ex.Message}");
             ShowError($"Error cargando eventos: {ex.Message}");
+            eventsEM = new List<EventDto>();
         }
     }
 
@@ -1471,10 +1505,20 @@
         try
         {
             var url = $"api/SondaEM/Event/{eventId}/extensions?token={GetEncodedToken()}";
+            Console.WriteLine($"[DEBUG EM Extensions] Calling: {url}");
             var resp = await Http.GetAsync(url);
+            Console.WriteLine($"[DEBUG EM Extensions] Response status: {resp.StatusCode}");
+            
             if (resp.IsSuccessStatusCode)
             {
                 extensions = await resp.Content.ReadFromJsonAsync<List<ExtensionDtoDup>>() ?? new List<ExtensionDtoDup>();
+                Console.WriteLine($"[DEBUG EM Extensions] Loaded {extensions.Count} extensions");
+                
+                if (extensions.Any())
+                {
+                    var first = extensions[0];
+                    Console.WriteLine($"[DEBUG EM Extensions] First extension - Id: {first.Id}, EventName: '{first.EventName}', WorkZoneName: '{first.WorkZoneName}', State: '{first.State}'");
+                }
             }
             else
             {
@@ -1483,7 +1527,9 @@
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[DEBUG EM Extensions] Exception: {ex.Message}");
             ShowError($"Error cargando extensiones: {ex.Message}");
+            extensions = new List<ExtensionDtoDup>();
         }
     }
 

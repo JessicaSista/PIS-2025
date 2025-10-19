@@ -266,7 +266,7 @@ public class SondaEMController : ControllerBase
     [ProducesResponseType(typeof(List<AlertDto>), 200)]
     [ProducesResponseType(500)]
     public async Task<ActionResult<List<AlertDto>>> GetAlertsCategory(
-        int Categoryid,
+        [FromQuery] int Categoryid,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         [FromQuery] string? query,
@@ -282,8 +282,8 @@ public class SondaEMController : ControllerBase
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var alerts = await _sondaEMService.GetAlertsCategory(Categoryid, page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
-            if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
-            return Ok(alerts);
+            // Return empty list instead of NotFound to allow UI to display empty select
+            return Ok(alerts ?? new List<AlertDto>());
         
         }
         catch (Exception ex)
@@ -293,10 +293,10 @@ public class SondaEMController : ControllerBase
     }
 
     [HttpGet("Category/event")]
-    [ProducesResponseType(typeof(List<AlertDto>), 200)]
+    [ProducesResponseType(typeof(List<EventDto>), 200)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<AlertDto>>> GetEventsByIdCategory(
-        int Categoryid,
+    public async Task<ActionResult<List<EventDto>>> GetEventsByIdCategory(
+        [FromQuery] int Categoryid,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
         [FromQuery] string? query,
@@ -307,8 +307,8 @@ public class SondaEMController : ControllerBase
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var events = await _sondaEMService.GetEventsByCategory(Categoryid, page, pageSize, query, sort, username, password);
-            if (events == null || events.Count == 0) return NotFound("No se han encontrado eventos.");
-            return Ok(events);
+            // Return empty list instead of NotFound to allow UI to display empty select
+            return Ok(events ?? new List<EventDto>());
         }
         catch (Exception ex)
         {
