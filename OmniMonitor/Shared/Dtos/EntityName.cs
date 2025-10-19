@@ -3,5 +3,14 @@
     Device,
     Source,
     Group,
-    Sensor
+    Sensor,
+    Zone,
+    EventUM,
+    New,
+    EventAM,
+    Stock,
+    Asset,
+    Alert,
+    EventEM,
+    Extension
 }
