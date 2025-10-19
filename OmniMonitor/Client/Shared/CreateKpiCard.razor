@@ -1,10 +1,12 @@
-﻿@inject ISnackbar Snackbar
+﻿@using OmniMonitor.Shared.Dtos
+@using System.Net.Http.Json
+@using Blazored.LocalStorage
 @inject HttpClient Http
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@using Microsoft.Extensions.Localization;
-@using Blazored.LocalStorage;
-@inject IStringLocalizer<CreateVisualizationCard> Localizer
+@inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
+@inject IDialogService DialogService
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
@@ -16,88 +18,152 @@
 
     <DialogContent>
         <MudStack Spacing="3">
-            <!-- Fila 1: Dataset + Multiplicador + Color -->
-            <MudGrid>
-                <!-- Dataset -->
-                <MudItem xs="12" sm="6" md="6">
-                    <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Dataset"]</MudText>
-                    <MudSelect T="int" @bind-Value="_selectedDatasetId"
+
+            <!-- Dataset + Multiplicador + Color -->
+            <!-- Dataset + Multiplicador + Color por defecto -->
+            <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+
+                <!-- Dataset select -->
+                <div style="display: flex; flex-direction: column;">
+                    <MudText Typo="Typo.h6" Style="color: var(--text-primary);">Dataset</MudText>
+                    <MudSelect T="int"
+                               @bind-Value="_selectedDatasetId"
                                Variant="Variant.Outlined"
                                Dense="true"
-                               Style="background: var(--card); width: 100%;"
+                               Style="background: var(--card); width: 280px;"
                                Required="true">
                         @foreach (var ds in _datasets)
                         {
-                            <MudSelectItem T="int" Value="@ds.Id">@ds.Nombre (@ds.Tipo)</MudSelectItem>
+                            <MudSelectItem T="int" Value="@ds.Id">
+                                @ds.Name (@(ds.ContentType ?? ds.SensorName ?? "—"))
+                            </MudSelectItem>
                         }
                     </MudSelect>
-                </MudItem>
+                </div>
 
-                <!-- Multiplicador (solo si numérico) -->
-                @if (_selectedDataset?.Tipo?.ToLower() == "numerico")
+                <!-- Multiplicador (solo si es numérico) -->
+                @if (IsNumericDataset)
                 {
-                    <MudItem xs="12" sm="3" md="3">
+                    <div style="display: flex; flex-direction: column;">
                         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Multiplier"]</MudText>
                         <MudNumericField @bind-Value="_multiplier"
                                          Variant="Variant.Outlined"
                                          Dense="true"
                                          HideSpinButtons="true"
                                          Step=".1M"
-                                         Style="background: var(--card); width: 100%;" />
-                    </MudItem>
+                                         Style="background: var(--card); width: 120px;" />
+                    </div>
                 }
 
-                <!-- Color -->
-                <MudItem xs="12" sm="3" md="3">
-                    <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Color"]</MudText>
-
-                    <MudMenu AnchorOrigin="Origin.BottomCenter"
-                             TransformOrigin="Origin.TopCenter"
-                             OffsetY="true">
+                <!-- Color por defecto (cuadrado centrado, sin texto) -->
+                <div style="display: flex; align-items: center; height: 100%; ">
+                    <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
                         <ActivatorContent>
-                            <div style="width: 40px; height: 40px; border-radius: 8px;
-                        cursor: pointer; border: 2px solid var(--borde-drawer);
-                        background-color:@_color;">
-                            </div>
+                            <MudTooltip Text="@_color">
+                                <div style="
+                        width: 56.5px;
+                        height: 56.5px;
+                        border-radius: 6px;
+                        border: 1px solid var(--borde-drawer);
+                        cursor: pointer;
+margin-top:30.5px;
+                        background-color:@_color;
+                        transition: box-shadow 0.2s ease;"
+                                     onmouseover="this.style.boxShadow='0 0 4px var(--borde-drawer)'"
+                                     onmouseout="this.style.boxShadow='none'">
+                                </div>
+                            </MudTooltip>
                         </ActivatorContent>
-
                         <ChildContent>
-                            <MudColorPicker @bind-Text="_color"
-                                            Variant="Variant.Outlined"
-                                            Style="width: 220px;" />
+                            <div style="padding: 8px; background: var(--card); border-radius: 8px;">
+                                <MudColorPicker @bind-Text="_color"
+                                                DisableAlpha="true"
+                                                Variant="Variant.Outlined"
+                                                Style="width: 220px;" />
+                            </div>
                         </ChildContent>
                     </MudMenu>
-                </MudItem>
+                </div>
 
-            </MudGrid>
+            </div>
 
-            <!-- Fila 2: Nombre -->
+
+
+
+            <!-- Nombre -->
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
-            <MudTextField @bind-Value="_name"
-                          Label="@Localizer["Name"]"
-                          Variant="Variant.Outlined"
-                          Required="true"
-                          Style="background: var(--card);" />
+            <MudTextField @bind-Value="_name" Variant="Variant.Outlined" Required="true" Style="background: var(--card);" />
 
-            <!-- Fila 3: Descripción -->
+            <!-- Descripción -->
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
-            <MudTextField @bind-Value="_description"
-                          Label="@Localizer["Description"]"
-                          Variant="Variant.Outlined"
-                          Lines="2"
-                          Style="background: var(--card);" />
+            <MudTextField @bind-Value="_description" Variant="Variant.Outlined" Lines="2" Style="background: var(--card);" />
 
-            <!-- Fila 4: Tipo de KPI -->
-            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["KpiType"]</MudText>
-            <MudSelect T="string" @bind-Value="_selectedType"
-                       Variant="Variant.Outlined"
-                       Dense="true"
-                       Style="background: var(--card);">
+            <!-- Tipo de métrica -->
+            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Metric"]</MudText>
+            <MudSelect T="string" @bind-Value="_metric" Variant="Variant.Outlined" Dense="true" Style="background: var(--card);">
                 @foreach (var tipo in _kpiTypes)
                 {
                     <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
                 }
             </MudSelect>
+
+            <!-- Rangos de color (solo numérico) -->
+            @if (IsNumericDataset)
+            {
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["ColorRanges"]</MudText>
+
+                @foreach (var range in _colorRanges)
+                {
+                    <div class="d-flex align-items-end mb-2" style="gap: 12px; flex-wrap: wrap;">
+                        <div style="display: flex; flex-direction: column;">
+                            <MudText Typo="Typo.body2" Style="color: var(--text-secondary);">@Localizer["MinValue"]</MudText>
+                            <MudNumericField @bind-Value="range.Min"
+                                             Dense="true"
+                                             Variant="Variant.Outlined"
+                                             Style="width: 120px; background: var(--card);" />
+                        </div>
+
+                        <div style="display: flex; flex-direction: column;">
+                            <MudText Typo="Typo.body2" Style="color: var(--text-secondary);">@Localizer["MaxValue"]</MudText>
+                            <MudNumericField @bind-Value="range.Max"
+                                             Dense="true"
+                                             Variant="Variant.Outlined"
+                                             Style="width: 120px; background: var(--card);" />
+                        </div>
+
+                        <!-- Selector de color -->
+                        <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                            <MudText Typo="Typo.body2" Style="color: var(--text-secondary);">@Localizer["Color"]</MudText>
+                            <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
+                                <ActivatorContent>
+                                    <div style="width: 36px; height: 36px; border-radius: 6px;
+                                        border: 1px solid var(--borde-drawer);
+                                        cursor: pointer;
+                                        background-color:@range.Color;">
+                                    </div>
+                                </ActivatorContent>
+                                <ChildContent>
+                                    <MudColorPicker @bind-Text="range.Color"
+                                                    Variant="Variant.Outlined"
+                                                    DisableAlpha="true"
+                                                    Style="width: 220px;" />
+                                </ChildContent>
+                            </MudMenu>
+                        </div>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Color="MudBlazor.Color.Error"
+                                       OnClick="@(() => RemoveRange(range))" />
+                    </div>
+                }
+
+
+                <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary" OnClick="AddRange" StartIcon="@Icons.Material.Filled.Add">
+                    @Localizer["AddRange"]
+                </MudButton>
+            }
+
         </MudStack>
     </DialogContent>
 
@@ -110,45 +176,56 @@
 @code {
     [CascadingParameter] public required IMudDialogInstance _mudDialog { get; set; }
 
-    private List<DatasetDto> _datasets = new();
+    private List<DatasetIM> _datasets = new();
     private int _selectedDatasetId;
-    private DatasetDto? _selectedDataset => _datasets.FirstOrDefault(d => d.Id == _selectedDatasetId);
+    private DatasetIM? _selectedDataset => _datasets.FirstOrDefault(d => d.Id == _selectedDatasetId);
 
     private decimal _multiplier = 1.0M;
     private string _name = string.Empty;
     private string _description = string.Empty;
-    private string _selectedType = "Promedio";
-    private string _color = "rgb(0, 255, 231)";
-    private bool _showColorPicker = false;
+    private string _metric = "average";
+    private string _color = "#FFFFFF";
 
-    private List<string> _kpiTypes = new() { "Promedio", "Suma", "Máximo", "Mínimo", "Último valor" };
+    private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
+    private List<ColorRange> _colorRanges = new();
+
+    private bool IsNumericDataset =>
+        _selectedDataset?.ContentType?.ToLower().Contains("num") == true ||
+        _selectedDataset?.Name.ToLower().Contains("num") == true;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            var storedDatasets = await LocalStorage.GetItemAsync<List<DatasetDto>>("datasets");
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.GetAsync($"api/Dataset/GetAllDatasets?token={Uri.EscapeDataString(token)}");
 
-            if (storedDatasets == null || storedDatasets.Count == 0)
+            if (response.IsSuccessStatusCode)
             {
-                storedDatasets = new List<DatasetDto>
-                {
-                    new DatasetDto { Id = 1, Nombre = "Ventas", Tipo = "Numerico" },
-                    new DatasetDto { Id = 2, Nombre = "Regiones", Tipo = "Categorico" },
-                    new DatasetDto { Id = 3, Nombre = "Clientes activos", Tipo = "Numerico" }
-                };
-                await LocalStorage.SetItemAsync("datasets", storedDatasets);
+                var datasets = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                _datasets = datasets ?? new();
+                _selectedDatasetId = _datasets.FirstOrDefault()?.Id ?? 0;
             }
-
-            _datasets = storedDatasets;
-
-            _kpiTypes = new List<string> { "Promedio", "Suma", "Máximo", "Mínimo", "Último valor" };
+            else
+            {
+                Snackbar.Add("Error al obtener datasets del backend.", Severity.Warning);
+                _datasets = GetFallbackDatasets();
+            }
         }
-        catch (Exception ex)
+        catch
         {
-            Snackbar.Add($"Error al cargar datos: {ex.Message}", Severity.Error);
+            _datasets = GetFallbackDatasets();
         }
     }
+
+    private List<DatasetIM> GetFallbackDatasets() => new()
+    {
+        new DatasetIM { Id = 1, Name = "Dataset numérico", ContentType = "Numerico" },
+        new DatasetIM { Id = 2, Name = "Dataset categórico", ContentType = "Categorico" },
+    };
+
+    private void AddRange() => _colorRanges.Add(new ColorRange());
+    private void RemoveRange(ColorRange range) => _colorRanges.Remove(range);
 
     private void Cancel() => _mudDialog.Cancel();
 
@@ -160,44 +237,45 @@
             return;
         }
 
-        if (_selectedDataset == null)
+        var request = new KpiRequest
         {
-            Snackbar.Add("Debe seleccionar un dataset.", Severity.Warning);
-            return;
-        }
-
-        var nuevoKpi = new KpiDto
-        {
-            Nombre = _name,
-            Descripcion = _description,
+            Name = _name,
+            Description = _description,
             DatasetId = _selectedDatasetId,
-            Multiplicador = _multiplier,
-            Tipo = _selectedType,
-            Color = _color
+            Unit = "x",
+            Metric = _metric,
+            Multiplier = (double)_multiplier,
+            DefaultColor = _color,
+            ColorRanges = IsNumericDataset ? System.Text.Json.JsonSerializer.Serialize(_colorRanges) : "[]",
+            ExtraInfo = "{}",
+            SourceModule = "IM"
         };
 
-        var lista = await LocalStorage.GetItemAsync<List<KpiDto>>("kpis") ?? new List<KpiDto>();
-        lista.Add(nuevoKpi);
-        await LocalStorage.SetItemAsync("kpis", lista);
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.PostAsJsonAsync($"api/Kpi?token={token}", request);
 
-        Snackbar.Add($"KPI '{_name}' creado correctamente.", Severity.Success);
-        _mudDialog.Close(DialogResult.Ok(true));
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"KPI '{_name}' creado correctamente.", Severity.Success);
+                _mudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add($"Error creando KPI: {await response.Content.ReadAsStringAsync()}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al conectar con el servidor: {ex.Message}", Severity.Error);
+        }
     }
 
-    private class DatasetDto
+    private class ColorRange
     {
-        public int Id { get; set; }
-        public string Nombre { get; set; } = "";
-        public string? Tipo { get; set; }
-    }
-
-    private class KpiDto
-    {
-        public string Nombre { get; set; } = "";
-        public string? Descripcion { get; set; }
-        public int DatasetId { get; set; }
-        public decimal Multiplicador { get; set; }
-        public string Tipo { get; set; } = "";
-        public string Color { get; set; } = "";
+        public decimal Min { get; set; }
+        public decimal Max { get; set; }
+        public string Color { get; set; } = "#00FF00";
     }
 }

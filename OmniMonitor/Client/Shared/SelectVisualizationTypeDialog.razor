@@ -42,14 +42,37 @@
     {
         MudDialog.Close();
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, CloseOnEscapeKey = true };
-        await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewChart"], options);
+        var dialogRef = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewChart"], options);
+        var innerResult = await dialogRef.Result;
+
+
+        if (innerResult?.Data != null)
+        {
+            MudDialog.Close(DialogResult.Ok(innerResult.Data));
+            return;
+        }
+
+
+        MudDialog.Cancel();
     }
+
 
     private async Task OpenKpiCard()
     {
         MudDialog.Close();
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, CloseOnEscapeKey = true };
-        await DialogService.ShowAsync<CreateKpiCard>(Localizer["NewKPI"], options);
+        var dialogRef = await DialogService.ShowAsync<CreateKpiCard>(Localizer["NewKPI"], options);
+        var innerResult = await dialogRef.Result;
+
+
+        if (innerResult?.Data != null)
+        {
+            MudDialog.Close(DialogResult.Ok(innerResult.Data));
+            return;
+        }
+
+
+        MudDialog.Cancel();
     }
 
     private void Cancel()

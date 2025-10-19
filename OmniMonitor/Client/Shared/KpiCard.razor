@@ -23,13 +23,37 @@
 
     private string CardStyle => $"background-color:{GetTransparentColor(Color, 0.15)}; border:2px solid {Color}; border-radius: 2px;";
 
-    private string GetTransparentColor(string rgbColor, double opacity)
+    private string GetTransparentColor(string colorInput, double opacity)
     {
-        // rgbColor formato "rgb(r,g,b)"
-        var parts = rgbColor.Replace("rgb(", "").Replace(")", "").Split(',');
-        if (parts.Length != 3) return rgbColor;
+        if (string.IsNullOrWhiteSpace(colorInput)) return colorInput;
 
-        return $"rgba({parts[0].Trim()},{parts[1].Trim()},{parts[2].Trim()},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+        // Si viene hex: #RRGGBB
+        if (colorInput.StartsWith("#") && (colorInput.Length == 7 || colorInput.Length == 4))
+        {
+            try
+            {
+                string hex = colorInput.Substring(1);
+                if (hex.Length == 3) // #RGB -> #RRGGBB
+                    hex = string.Concat(hex.Select(c => new string(c, 2)));
+
+                int r = int.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                int g = int.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                int b = int.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+                return $"rgba({r},{g},{b},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+            }
+            catch { return colorInput; }
+        }
+
+        // Si viene rgb(r,g,b)
+        var parts = colorInput.Replace("rgb(", "").Replace(")", "").Split(',');
+        if (parts.Length == 3)
+        {
+            return $"rgba({parts[0].Trim()},{parts[1].Trim()},{parts[2].Trim()},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+        }
+
+        // fallback
+        return colorInput;
     }
+
 
 }

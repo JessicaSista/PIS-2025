@@ -168,4 +168,22 @@
   <data name="NewKPI" xml:space="preserve">
     <value>New KPI</value>
   </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Metric" xml:space="preserve">
+    <value>Metric</value>
+  </data>
+  <data name="ColorRanges" xml:space="preserve">
+    <value>Color ranges</value>
+  </data>
+  <data name="MinValue" xml:space="preserve">
+    <value>Minimum value</value>
+  </data>
+  <data name="MaxValue" xml:space="preserve">
+    <value>Maximum value</value>
+  </data>
+  <data name="AddRange" xml:space="preserve">
+    <value>Add new range</value>
+  </data>
 </root>

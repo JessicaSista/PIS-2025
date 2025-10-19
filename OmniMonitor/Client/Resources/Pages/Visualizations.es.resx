@@ -123,13 +123,25 @@
   <data name="Descripcion" xml:space="preserve">
     <value>Crea y gestiona gráficos y visualizaciones de datos</value>
   </data>
-  <data name="BuscarPlaceholder" xml:space="preserve">
-    <value>Buscar visualización</value>
-  </data>
   <data name="AgregarVisualizacion" xml:space="preserve">
-    <value>Nueva Visualización</value>
+    <value>Crear visualización</value>
   </data>
   <data name="NewVisualization" xml:space="preserve">
     <value>Nueva visualización</value>
+  </data>
+  <data name="Graficas" xml:space="preserve">
+    <value>Gráficas</value>
+  </data>
+  <data name="BuscarKpiPlaceholder" xml:space="preserve">
+    <value>Buscar KPI...</value>
+  </data>
+  <data name="BuscarGraficaPlaceholder" xml:space="preserve">
+    <value>Buscar gráfica...</value>
+  </data>
+  <data name="NoHayKpis" xml:space="preserve">
+    <value>No hay KPIs disponibles.</value>
+  </data>
+  <data name="NoHayGraficas" xml:space="preserve">
+    <value>No hay gráficas disponibles.</value>
   </data>
 </root>
