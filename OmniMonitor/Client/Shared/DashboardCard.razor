@@ -110,7 +110,7 @@
     private List<object> _dataCharts { get; set; } = new();
 
     private ApexChart<ChartPoint>? _apexChart;
-    private int _chartKey = 0;
+    private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
 
 
     protected override async Task OnInitializedAsync()
@@ -201,13 +201,14 @@
             return;
         }
         Height -= 50;
+        _chartKey++;
         UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
     }
     
     private void ResizeDown(){
         Height +=50;
         UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-        Console.WriteLine(CurrentBreakpoint);
+        _chartKey++;
     }
 
     private void ResizeLeft(){
