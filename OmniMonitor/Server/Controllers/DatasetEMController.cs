@@ -8,7 +8,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+   
     public class DatasetEMController : ControllerBase
     {
         private readonly IDatasetEMService _datasetEMService;
@@ -51,7 +51,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest("El tipo de dataset es requerido.");
                 }
-
+                
                 var createdDataset = await _datasetEMService.CreateDatasetEMAsync(request);
                 return CreatedAtAction(nameof(GetDatasetById), new { datasetId = createdDataset.Id, username = createdDataset.Username }, createdDataset);
             }
