@@ -219,7 +219,7 @@
 
     private void OpenDashboard(int id)
     {
-        NavigationManager.NavigateTo($"/dashboard/{id}");
+        NavigationManager.NavigateTo($"/dashboards/edit/{id}");
     }
 
     private async Task EditDashboard(DashboardSummaryResponse dashboard)
@@ -264,6 +264,7 @@
 
                         StateHasChanged();
                         await JS.InvokeVoidAsync("equalizeCardHeights");
+                        NavigationManager.NavigateTo($"/dashboards/edit/{dashboard.IdDashboard}");
                     }
                     else
                     {
