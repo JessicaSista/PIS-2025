@@ -402,7 +402,8 @@ namespace OmniMonitor.Server.Services
             // Implementación de otro método si es necesario
 
             var visualizacion = await _context.Visualizaciones
-                .FirstOrDefaultAsync(v => v.IdVisualizacion == visualizacionId && v.Username == username);
+                    .Include(v => v.GrupoDatasets)
+                    .FirstOrDefaultAsync(v => v.IdVisualizacion == visualizacionId && v.Username == username);
 
             if (visualizacion == null)
             {
@@ -424,12 +425,53 @@ namespace OmniMonitor.Server.Services
             visualizacion.FechaHasta = updatedCard.FechaHasta;
             visualizacion.JsonDesign = updatedCard.JsonDiseñoGeneral;
 
+            if (updatedCard.Datasets != null && updatedCard.Datasets.Any())
+                {
+                    var newDatasetIds = updatedCard.Datasets.Select(d => d.DatasetId).ToList();
+
+                    var existingGrupoDatasets = visualizacion.GrupoDatasets.ToList();
+                    var existingDatasetIds = existingGrupoDatasets.Select(gd => gd.DatasetId).ToList();
+
+                    var datasetsToRemove = existingGrupoDatasets
+                        .Where(gd => !newDatasetIds.Contains(gd.DatasetId))
+                        .ToList();
+
+                    foreach (var grupoToRemove in datasetsToRemove)
+                    {
+                        visualizacion.GrupoDatasets.Remove(grupoToRemove);
+                        _context.GrupoDatasets.Remove(grupoToRemove);
+                    }
+
+                    foreach (var datasetConfig in updatedCard.Datasets)
+                    {
+                        var existingGrupo = existingGrupoDatasets
+                            .FirstOrDefault(gd => gd.DatasetId == datasetConfig.DatasetId);
+
+                        if (existingGrupo != null)
+                        {
+                            existingGrupo.JsonDesign = datasetConfig.JsonDiseño;
+                            _context.GrupoDatasets.Update(existingGrupo);
+                        }
+                        else
+                        {
+                            var nuevoGrupo = new GrupoDataset
+                            {
+                                DatasetId = datasetConfig.DatasetId,
+                                JsonDesign = datasetConfig.JsonDiseño
+                            };
+                            visualizacion.GrupoDatasets.Add(nuevoGrupo);
+                        }
+                    }
+                }
+
+
             if (jsonConfig != null)
             {
                 //agrega complejidad extra y no es necesario por el momento
                 //grupovisu.PropsConfiguracion = jsonConfig;
             }
 
+            _context.Visualizaciones.Update(visualizacion);
             await _context.SaveChangesAsync();
             return true;
         }
