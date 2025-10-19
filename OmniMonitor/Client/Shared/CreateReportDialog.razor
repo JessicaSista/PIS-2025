@@ -1,0 +1,57 @@
+@using MudBlazor
+@inject ISnackbar Snackbar
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject HttpClient Http
+@using OmniMonitor.Shared.Dtos
+
+<MudForm @ref="_form" @bind-IsValid="_formIsValid">
+    <MudDialog>
+        <DialogContent>
+            <MudTextField @bind-Value="_model.Name" Label="Nombre del reporte" Required="true" />
+            <MudTextField @bind-Value="_model.Description" Label="Descripción" Lines="3" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Cancelar</MudButton>
+            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary">Siguiente</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudForm>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public string Username { get; set; } = string.Empty;  // 👈 Esto faltaba
+
+    private MudForm? _form;
+    private bool _formIsValid;
+    private bool _isSubmitting;
+    private readonly CreateReportRequestDto _model = new();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSubmitting = true;
+        try
+        {
+            _model.Username = Username; // 👈 si lo necesitás
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.PostAsJsonAsync($"api/reports", _model);
+            if (response.IsSuccessStatusCode)
+            {
+                var createdReport = await response.Content.ReadFromJsonAsync<ReporteDto>();
+                MudDialog.Close(DialogResult.Ok(createdReport?.Id));
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+}
+

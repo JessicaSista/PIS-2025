@@ -18,6 +18,7 @@ namespace OmniMonitor.Server.Services
         Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username);
         Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset);
         Task DeleteDatasetIMAsync(int datasetId, string username);
+        Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username);
     }
 
     // --- Implementación del servicio ---
@@ -314,6 +315,39 @@ namespace OmniMonitor.Server.Services
             // Eliminar el dataset
             _context.DatasetsIM.Remove(dataset);
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Identifica rápidamente a qué módulo pertenece un dataset chequeando las tablas.
+        /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager", o null si no existe.
+        /// </summary>
+        public async Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username)
+        {
+            // Check Insight Monitor table
+            var existsInIM = await _context.DatasetsIM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInIM)
+                return "Insight Monitor";
+
+            // Check Asset Manager table
+            var existsInAM = await _context.DatasetAM
+                .AnyAsync(d => d.Id_Dataset == datasetId && d.Username == username);
+            if (existsInAM)
+                return "Asset Manager";
+
+            // Check Urban Monitor table
+            var existsInUM = await _context.DatasetsUM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInUM)
+                return "Urban Monitor";
+
+            // Check Event Manager table
+            var existsInEM = await _context.DatasetsEM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInEM)
+                return "Event Manager";
+
+            return null;
         }
     }
 }

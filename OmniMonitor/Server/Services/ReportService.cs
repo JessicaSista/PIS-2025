@@ -184,10 +184,10 @@ public class ReportService : IReportService
 
         var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, serializerOptions);
 
-        var finalResults = new List<dynamic>();
+    var finalResults = new List<dynamic>();
 
-        
-        foreach (var sourceConfig in config.Sources ?? new List<ReportSourceConfig>())
+    var sources = config?.Sources ?? new List<ReportSourceConfig>();
+    foreach (var sourceConfig in sources)
         {
 
             IEnumerable<dynamic> rawData;
@@ -199,7 +199,7 @@ public class ReportService : IReportService
                     break;
 
                 case "dataset":
-                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue) continue;
+                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue || !sourceConfig.EntityName.HasValue) continue;
                     var operand = new JoinOperand
                     {
                         ModuleType = sourceConfig.SourceModule.Value,
@@ -224,7 +224,7 @@ public class ReportService : IReportService
                 var projectedRow = new ExpandoObject() as IDictionary<string, object>;
                 var rowAsDictionary = ObjectToDictionary(rawRow);
 
-                foreach (var column in sourceConfig.Columns)
+                foreach (var column in (sourceConfig.Columns ?? Enumerable.Empty<ReportColumnConfig>()))
                 {
                     if (rowAsDictionary.TryGetValue(column.Attribute, out object value))
                     {
@@ -232,7 +232,7 @@ public class ReportService : IReportService
                     }
                     else
                     {
-                        projectedRow[column.As] = null;
+                        projectedRow[column.As] = null!;
                     }
                 }
                 finalResults.Add(projectedRow);
@@ -277,7 +277,7 @@ public class ReportService : IReportService
         var dictionary = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
-            dictionary[property.Name] = property.GetValue(obj);
+            dictionary[property.Name] = property.GetValue(obj) ?? default!;
         }
         return dictionary;
     }
