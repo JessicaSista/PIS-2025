@@ -109,6 +109,7 @@ builder.Services.AddScoped<IApiDataService, ApiDataService>();
 builder.Services.AddScoped<IJoinConfigurationService, JoinConfigurationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
+builder.Services.AddScoped<IKpiAMService, KpiAMService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();

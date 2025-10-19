@@ -12,6 +12,7 @@ namespace OmniMonitor.Server.Services
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password);
+
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
     }
@@ -23,12 +24,15 @@ namespace OmniMonitor.Server.Services
         private readonly ISondaEMService _sondaEMService;
         private readonly ISondaIMService _sondaIMService;
         private readonly ISondaAuthService _sondaAuthService;
-        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
+        private readonly IKpiAMService _kpiAMService;
+
+        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, IKpiAMService kpiAMService)
         {
             _context = context;
             _datasetService = datasetService;
             _sondaEMService = sondaEMService;
             _sondaIMService = sondaIMService;
+            _kpiAMService = kpiAMService;
             _sondaAuthService = sondaAuthService;
         }
 
@@ -77,7 +81,7 @@ namespace OmniMonitor.Server.Services
             switch (kpi.SourceModule.ToUpper())
             {
                 case "AM":
-                    response = await CalculateAmKpiAsync(kpi, username, password);
+                    response = await _kpiAMService.CalculateAmKpiAsync(kpi, username, password);
                     break;
 
                 case "EM":
