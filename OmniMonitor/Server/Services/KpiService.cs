@@ -52,9 +52,18 @@ namespace OmniMonitor.Server.Services
                 Username = username ?? string.Empty,
             };
 
-            _context.Kpi.Add(newKpi);
-            await _context.SaveChangesAsync();
-
+            
+            try
+            {
+                _context.Kpi.Add(newKpi);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] {ex.Message}");
+                Console.WriteLine($"[INNER] {ex.InnerException?.Message}");
+                throw;
+            }
             return newKpi;
         }
 
@@ -373,7 +382,7 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (average) - sin datos",
+                    Value = null,
                     Type = sensorType
                 };
             }

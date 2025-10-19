@@ -186,4 +186,10 @@
   <data name="AddRange" xml:space="preserve">
     <value>Add new range</value>
   </data>
+  <data name="ChooseDataset" xml:space="preserve">
+    <value>Select Dataset </value>
+  </data>
+  <data name="DateRange" xml:space="preserve">
+    <value>Date Range</value>
+  </data>
 </root>

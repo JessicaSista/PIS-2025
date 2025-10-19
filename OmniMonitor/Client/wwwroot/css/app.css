@@ -135,3 +135,13 @@ a,
 .dark-field-popover .mud-list-item {
   color: #e5eaeb !important;
 }
+.mud-picker-popover-paper {
+    overflow: visible !important;
+    z-index: calc(var(--mud-zindex-popover) + 1) !important;
+    position: absolute;
+}
+.mud-picker-popover-paper,
+.mud-picker-container,
+.mud-picker-content {
+    width: auto !important;
+}

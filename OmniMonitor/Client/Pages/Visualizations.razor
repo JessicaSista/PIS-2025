@@ -6,7 +6,7 @@
 @inject HttpClient Http
 @inject IStringLocalizer<Visualizations> Localizer
 @inject ILocalStorageService LocalStorage
-
+@inject IJSRuntime JS
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using Blazored.LocalStorage
@@ -58,12 +58,14 @@
                 {
                     @foreach (var kpi in _kpis)
                     {
-                        <MudItem xs="12" sm="12" md="6" lg="4">
+                        <MudItem xs="12" sm="6" md="3" lg="3">
                             <KpiCard Title="@kpi.Name"
                                      Value="@RenderKpiValue(kpi.Value)"
+                                     Description="@kpi.Description"
                                      LastUpdated="@(DateTime.Now.ToString("g"))"
                                      Color="@kpi.ActualColor" />
                         </MudItem>
+
                     }
                 }
                 else
@@ -428,6 +430,13 @@ DatasetName = kpiCreado.Name
         catch (Exception ex)
         {
             Console.WriteLine($"Error cargando KPIs: {ex.Message}");
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_kpis.Count > 0)
+        {
+            await JS.InvokeVoidAsync("equalizeCardHeights");
         }
     }
 

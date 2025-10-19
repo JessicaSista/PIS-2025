@@ -1,23 +1,47 @@
 ﻿@using MudBlazor
 @using Microsoft.Extensions.Localization
-@inject IStringLocalizer<KpiCard> Localizer
+@inject IStringLocalizer<VisualizationCard> Localizer
 
-<MudPaper Class="pa-4" Style="@CardStyle">
-    <MudCard Elevation="0" Style="background-color: transparent;">
-        <MudCardContent>
-            <MudText Typo="Typo.h6">@Title</MudText>
-            <MudText Typo="Typo.h4">@Value</MudText>
+<MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
+    <MudCard Elevation="0" Style="background-color: transparent; display:flex; flex-direction:column; height:200px;">
+        <MudCardContent Style="flex-grow:1; display:flex; flex-direction:column;">
+            <MudText Class="mb-4" Typo="Typo.h6">@Title</MudText>
+
+            @if (Value == "—" || string.IsNullOrEmpty(Value))
+            {
+                <MudText Typo="Typo.body2" Style="color: var(--card-text-secondary); font-weight: bold;">
+                    @Localizer["NoData"]
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.h4">
+                    @Value
+                </MudText>
+            }
+
+            @if (!string.IsNullOrEmpty(Description))
+            {
+                <MudText Typo="Typo.body2" Style="color: var(--card-text-secondary); margin-top:4px;">
+                    @Description
+                </MudText>
+            }
         </MudCardContent>
 
-        <MudCardActions Class="d-block">
-            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@Localizer["Actualizado"]: @LastUpdated</MudText>
-        </MudCardActions>
+        <!-- Footer fijo al fondo -->
+        <MudStack Row Justify="Justify.FlexEnd" Style="margin-top:auto;">
+            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">
+                @Localizer["Actualizado"]: @LastUpdated
+            </MudText>
+        </MudStack>
     </MudCard>
 </MudPaper>
 
+
 @code {
     [Parameter] public string Title { get; set; } = "Título KPI";
-    [Parameter] public string Value { get; set; } = "0";
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public string? Description { get; set; }
     [Parameter] public string LastUpdated { get; set; } = "N/A";
     [Parameter] public string Color { get; set; } = "rgb(0, 255, 231)";
 
@@ -27,14 +51,12 @@
     {
         if (string.IsNullOrWhiteSpace(colorInput)) return colorInput;
 
-        // Si viene hex: #RRGGBB
         if (colorInput.StartsWith("#") && (colorInput.Length == 7 || colorInput.Length == 4))
         {
             try
             {
                 string hex = colorInput.Substring(1);
-                if (hex.Length == 3) // #RGB -> #RRGGBB
-                    hex = string.Concat(hex.Select(c => new string(c, 2)));
+                if (hex.Length == 3) hex = string.Concat(hex.Select(c => new string(c, 2)));
 
                 int r = int.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
                 int g = int.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
@@ -44,16 +66,13 @@
             catch { return colorInput; }
         }
 
-        // Si viene rgb(r,g,b)
         var parts = colorInput.Replace("rgb(", "").Replace(")", "").Split(',');
         if (parts.Length == 3)
         {
             return $"rgba({parts[0].Trim()},{parts[1].Trim()},{parts[2].Trim()},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
         }
 
-        // fallback
         return colorInput;
     }
-
-
 }
+
