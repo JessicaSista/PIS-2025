@@ -8,10 +8,12 @@ public class DatasetController : ControllerBase
 {
     private readonly IDatasetService _datasetService;
     private readonly ISondaAuthService _sondaAuthService;
-    public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService)
+    private readonly ISondaIMService _sondaIMService;
+    public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService, ISondaIMService sondaIMService)
     {
         _datasetService = datasetService;
         _sondaAuthService = sondaAuthService;
+        _sondaIMService = sondaIMService;
     }
 
     /// <summary>
@@ -102,6 +104,34 @@ public class DatasetController : ControllerBase
 
         // 3) Normalizar de vuelta a FormC
         return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
+    }
+
+    /// <summary>
+    /// Identifica rápidamente a qué módulo pertenece un dataset.
+    /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
+    /// </summary>
+    [HttpGet("GetDatasetModule")]
+    [ProducesResponseType(typeof(string), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<string>> GetDatasetModule(int datasetId, string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
+            
+            if (module == null)
+            {
+                return NotFound($"No se encontró el dataset con ID {datasetId}.");
+            }
+            
+            return Ok(module);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al identificar el módulo: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -228,4 +258,66 @@ public class DatasetController : ControllerBase
             return StatusCode(500, $"Error interno al eliminar el dataset: {ex.Message}");
         }
     }
+
+[HttpGet("GetSensorType")]
+[ProducesResponseType(typeof(string), 200)]
+[ProducesResponseType(404)]
+[ProducesResponseType(500)]
+public async Task<ActionResult<string>> GetSensorType(int datasetId, [FromQuery] string token)
+{
+    try
+    {
+        Console.WriteLine($"[TRACE] Token recibido: {token}");
+        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        Console.WriteLine($"[TRACE] Usuario: {username}");
+
+        var dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
+        Console.WriteLine($"[TRACE] Dataset encontrado: {dataset?.Id}, Source: {dataset?.Id_Source}, SensorName: {dataset?.SensorName}");
+        if (dataset == null)
+            return NotFound($"No se encontró el dataset con ID {datasetId}.");
+
+        if (dataset.Id_Source == null || string.IsNullOrEmpty(dataset.SensorName))
+        {
+            Console.WriteLine($"[TRACE] Dataset sin Source o SensorName");
+            return BadRequest("El dataset no contiene información suficiente (Source o SensorName).");
+        }
+
+
+        var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+        Console.WriteLine($"[TRACE] Source encontrado: {source?.Id}");
+        if (source == null)
+            return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
+
+        // Recorrer los devices del source, obtener cada uno por GetDeviceById y buscar el sensor ahí
+        if (source.Devices != null)
+        {
+            foreach (var dev in source.Devices)
+            {
+                Console.WriteLine($"[TRACE] Device: {dev.Id}, Name: {dev.Name}");
+                var fullDevice = await _sondaIMService.GetDeviceById(dev.Id, username, password);
+                if (fullDevice == null)
+                {
+                    Console.WriteLine($"[TRACE] No se pudo obtener el device completo para ID {dev.Id}");
+                    continue;
+                }
+                if (fullDevice.Sensors != null)
+                {
+                    
+                    var sensor = fullDevice.Sensors.FirstOrDefault(s => string.Equals(s.Name, dataset.SensorName, StringComparison.OrdinalIgnoreCase));
+                    if (sensor != null)
+                    {
+                        //Console.WriteLine($"[TRACE] Sensor encontrado: {sensor.Name}, Tipo: {sensor.Type}");
+                        return Ok(sensor.Type ?? "unknown");
+                    }
+                }
+            }
+        }
+        return NotFound($"No se encontró el sensor '{dataset.SensorName}' en ningún device del Source.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[ERROR] {ex.Message}");
+        return StatusCode(500, $"Error interno al obtener el tipo del sensor: {ex.Message}");
+    }
+}
 }
