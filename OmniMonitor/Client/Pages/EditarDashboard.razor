@@ -274,6 +274,33 @@
             Snackbar.Add("Se produjo un error al guardar una o más tarjetas nuevas. Diseño no actualizado.", Severity.Warning);
             return;
         }
+
+        foreach (var visualizationId in _visulaizationsToDelete)
+        {
+            try
+            {
+                int TipoCardVisualizacion = 1;
+                string deleteUri = $"api/Dashboard/{DashboardId}/card/{visualizationId}/{TipoCardVisualizacion}?username={username}";
+
+                HttpResponseMessage? response = await Http.DeleteAsync(deleteUri);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error al eliminar la visualización {visualizationId}: {response.ReasonPhrase}. {error}", Severity.Error);
+                }
+                else
+                {
+                    Console.WriteLine($"Tarjeta eliminada del servidor: ID {visualizationId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar visualización {visualizationId} del dashboard: {ex.Message}");
+                Snackbar.Add($"Error interno al eliminar visualización {visualizationId}.", Severity.Error);
+            }
+        }
+
         try
         {
             var cardsDesignList = cardsData.Select(card => new
@@ -318,6 +345,8 @@
                 if (response.IsSuccessStatusCode)
                 {
                     Snackbar.Add("Diseño del Dashboard guardado exitosamente.", Severity.Success);
+                    _visulaizationsToSave.Clear();
+                    _visulaizationsToDelete.Clear();
                 }
                 else
                 {
@@ -326,31 +355,6 @@
                 }
             }
 
-            foreach (var visualizationId in _visulaizationsToDelete)
-            {
-                try
-                {   
-                    int TipoCardVisualizacion = 1;
-                    string deleteUri = $"api/Dashboard/{DashboardId}/card/{visualizationId}/{TipoCardVisualizacion}?username={username}";
-
-                    HttpResponseMessage? response = await Http.DeleteAsync(deleteUri);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        string error = await response.Content.ReadAsStringAsync();
-                        Snackbar.Add($"Error al eliminar la visualización {visualizationId}: {response.ReasonPhrase}. {error}", Severity.Error);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Tarjeta eliminada del servidor: ID {visualizationId}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error al eliminar visualización {visualizationId} del dashboard: {ex.Message}");
-                    Snackbar.Add($"Error interno al eliminar visualización {visualizationId}.", Severity.Error);
-                }
-            }
             
         }
         catch (Exception ex)
