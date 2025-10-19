@@ -25,7 +25,7 @@ namespace OmniMonitor.Server.Services
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string jsonConfig, List<DashboardCard> orderedCards);
         Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
-        Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard);
+        Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 IdVisualizacion, CreateVisualizacionRequest updatedCard);
         Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
     }   
 
@@ -408,12 +408,13 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Actualiza el nombre y/o la descripción de un dashboard
         /// </summary>
-        public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard)
+        public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 visualizacionId, CreateVisualizacionRequest updatedCard)
         {
             // Implementación de otro método si es necesario
 
             var visualizacion = await _context.Visualizaciones
-                .FirstOrDefaultAsync(v => v.Nombre == nombre && v.Username == username);
+                    .Include(v => v.GrupoDatasets)
+                    .FirstOrDefaultAsync(v => v.IdVisualizacion == visualizacionId && v.Username == username);
 
             if (visualizacion == null)
             {
@@ -435,11 +436,53 @@ namespace OmniMonitor.Server.Services
             visualizacion.FechaHasta = updatedCard.FechaHasta;
             visualizacion.JsonDesign = updatedCard.JsonDiseñoGeneral;
 
+            if (updatedCard.Datasets != null && updatedCard.Datasets.Any())
+                {
+                    var newDatasetIds = updatedCard.Datasets.Select(d => d.DatasetId).ToList();
+
+                    var existingGrupoDatasets = visualizacion.GrupoDatasets.ToList();
+                    var existingDatasetIds = existingGrupoDatasets.Select(gd => gd.DatasetId).ToList();
+
+                    var datasetsToRemove = existingGrupoDatasets
+                        .Where(gd => !newDatasetIds.Contains(gd.DatasetId))
+                        .ToList();
+
+                    foreach (var grupoToRemove in datasetsToRemove)
+                    {
+                        visualizacion.GrupoDatasets.Remove(grupoToRemove);
+                        _context.GrupoDatasets.Remove(grupoToRemove);
+                    }
+
+                    foreach (var datasetConfig in updatedCard.Datasets)
+                    {
+                        var existingGrupo = existingGrupoDatasets
+                            .FirstOrDefault(gd => gd.DatasetId == datasetConfig.DatasetId);
+
+                        if (existingGrupo != null)
+                        {
+                            existingGrupo.JsonDesign = datasetConfig.JsonDiseño;
+                            _context.GrupoDatasets.Update(existingGrupo);
+                        }
+                        else
+                        {
+                            var nuevoGrupo = new GrupoDataset
+                            {
+                                DatasetId = datasetConfig.DatasetId,
+                                JsonDesign = datasetConfig.JsonDiseño
+                            };
+                            visualizacion.GrupoDatasets.Add(nuevoGrupo);
+                        }
+                    }
+                }
+
+
             if (jsonConfig != null)
             {
-                grupovisu.PropsConfiguracion = jsonConfig;
+                //agrega complejidad extra y no es necesario por el momento
+                //grupovisu.PropsConfiguracion = jsonConfig;
             }
 
+            _context.Visualizaciones.Update(visualizacion);
             await _context.SaveChangesAsync();
             return true;
         }

@@ -89,11 +89,18 @@
                 FullWidth = true
             };
 
-            await DialogService.ShowAsync<PreviewVisualizationDialog>(
+            IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
                 "Preview", 
                 parameters, 
                 options
             );
+            DialogResult? dialogResult = await dialog.Result;
+
+            if (!dialogResult.Canceled)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            
         }
         catch (Exception ex)
         {

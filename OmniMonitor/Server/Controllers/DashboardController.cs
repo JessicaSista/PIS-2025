@@ -290,12 +290,12 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string username, [FromQuery] string? JsonConfig, [FromQuery] string nombre, [FromBody] CreateVisualizacionRequest request)
+        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string username, [FromQuery] string? JsonConfig, [FromQuery] System.Int32 idVisualizacion, [FromBody] CreateVisualizacionRequest request)
         {
             if (request == null || request.Nombre == null)
                 return BadRequest(new { message = "Datos inválidos para la edición de la tarjeta." });
 
-            var result = await _dashboardService.EditDashboardCard(id, username, JsonConfig, nombre, request);
+            var result = await _dashboardService.EditDashboardCard(id, username, JsonConfig, idVisualizacion, request);
             if (!result)
                 return NotFound(new { message = "No se encontró la tarjeta o la visualización asociada para editar." });
             return Ok(new { message = "Tarjeta y visualización actualizadas correctamente." });
