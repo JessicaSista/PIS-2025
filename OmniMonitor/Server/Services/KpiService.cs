@@ -373,7 +373,7 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (average) - sin datos",
+                    Value = null,
                     Type = sensorType
                 };
             }

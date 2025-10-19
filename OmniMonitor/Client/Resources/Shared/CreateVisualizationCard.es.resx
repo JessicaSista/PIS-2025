@@ -186,4 +186,10 @@
   <data name="AddRange" xml:space="preserve">
     <value>Agregar nuevo rango</value>
   </data>
+  <data name="DateRange" xml:space="preserve">
+    <value>Rango de fechas</value>
+  </data>
+  <data name="NoData" xml:space="preserve">
+    <value>No hay datos disponibles</value>
+  </data>
 </root>
