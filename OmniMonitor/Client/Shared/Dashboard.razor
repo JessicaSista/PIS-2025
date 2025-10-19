@@ -9,9 +9,9 @@
         {
             @* var (esKPI, _widget) = Widgets[i]; *@
             
-            var (id, ancho, alto) = CardsData[i];
+            var (id, anchoSm, anchoMd, anchoLg, alto) = CardsData[i];
 
-            <DashboardCard VisualizationId=@id Width=@ancho Height=@alto></DashboardCard>
+            <DashboardCard VisualizationId=@id WidthXs=@anchoSm WidthMd=@anchoMd WidthLg=@anchoLg Height=@alto UpdateCardSize="UpdateCardSize"></DashboardCard>
         }
         <MudItem xs="12" lg="3" md="6" @onclick="OpenDialogCreateCard">
             <MudPaper Class="add-card-widget d-flex flex-column justify-center align-center mud-width-full pa-10"
@@ -39,9 +39,12 @@
 </MudBreakpointProvider>
 
 @code {
-    [Parameter] public List<(System.Int32, System.Int32, System.Int32)> CardsData { get; set; } = new List<(System.Int32, System.Int32, System.Int32)>();
-    [Parameter] public EventCallback<int> OnVisualizationCreated { get; set; }
     [Parameter] [Required] public System.Int32 dashboardId {get; set;}
+    [Parameter] public List<(System.Int32, System.Int32, System.Int32, System.Int32, System.Int32)> CardsData { get; set; } = new List<(System.Int32, System.Int32, System.Int32, System.Int32, System.Int32)>();
+    
+    [Parameter] public EventCallback<int> OnVisualizationCreated { get; set; }
+    [Parameter] public EventCallback<(int,int,int,int,int)> UpdateCardSize { get; set; }
+
 
     
     // public System.String[] Domain = { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29" };

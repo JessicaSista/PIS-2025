@@ -39,7 +39,7 @@
     </MudText>
 </MudStack>
 
-<Dashboard CardsData=@(cardsData) dashboardId="@DashboardId" OnVisualizationCreated="HandleNewVisualization"></Dashboard>
+<Dashboard CardsData=@(cardsData) dashboardId="@DashboardId" OnVisualizationCreated="HandleNewVisualization" UpdateCardSize="UpdateCardSize"></Dashboard>
 
 <style>
     @@media (max-width: 768px) {
@@ -68,9 +68,8 @@
 
     private List<int> _visulaizationsToSave = new List<int> { };
 
-    // ID, ancho, alto
-    private List<(int Id, int Ancho, int Alto)> cardsData = new List<(int, int, int)> { };
-
+    // ID, AnchoSm, AnchoMd, AnchoLg, Alto
+    private List<(int Id, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new List<(int, int, int, int, int)> { };
 
 
     protected override async Task OnInitializedAsync()
@@ -94,7 +93,9 @@
                     for (int i = 0; i < dashboardData.Tarjetas.Count; i++)
                     {
                         _visualizationsIDs.Add(dashboardData.Tarjetas[i].Visualizacion.IdVisualizacion);
+                        Console.WriteLine($"Dashboard: Agregada visualización con ID {_visualizationsIDs[i]} desde el dashboard.");
                     }
+                    Console.WriteLine($"Dashboard: Total de visualizaciones cargadas: {dashboardData.Tarjetas.Count}");
 
                     // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
                     string jsonDesign = dashboardData.JsonDiseno;
@@ -114,11 +115,13 @@
                                 {
                                     break; // Evita errores si hay más IDs de cards que tamaños definidos
                                 }
-                                if (cardsElementArray[i].TryGetProperty("ancho", out JsonElement anchoElement) && 
+                                if (cardsElementArray[i].TryGetProperty("anchoSm", out JsonElement anchoSmElement) && 
+                                    cardsElementArray[i].TryGetProperty("anchoMd", out JsonElement anchoMdElement) &&
+                                    cardsElementArray[i].TryGetProperty("anchoLg", out JsonElement anchoLgElement) &&
                                     cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
                                 {
                                     // Agregar el nuevo objeto CardData a la lista de resultados
-                                    cardsData.Add((_visualizationsIDs[i],anchoElement.GetInt32(), altoElement.GetInt32()));
+                                    cardsData.Add((_visualizationsIDs[i], anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
                                 }
                             }
                         }
@@ -135,7 +138,9 @@
 
     private void HandleNewVisualization(int newVisualizationId)
     {
-        const int DefaultAncho = 4;
+        const int DefaultAnchoSm = 6;
+        const int DefaultAnchoMd = 4;
+        const int DefaultAnchoLg = 3;
         const int DefaultAlto = 400;
 
         bool alreadyExists = _visualizationsIDs.Contains(newVisualizationId);
@@ -150,11 +155,24 @@
 
         _visulaizationsToSave.Add(newVisualizationId);
 
-        cardsData.Add((newVisualizationId, DefaultAncho, DefaultAlto));
+        cardsData.Add((newVisualizationId, DefaultAnchoSm, DefaultAnchoMd, DefaultAnchoLg, DefaultAlto));
 
         StateHasChanged();
 
-        Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tamaño: {DefaultAncho}x{DefaultAlto}. Total Cards: {cardsData.Count}");
+        Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tamaño: {DefaultAnchoSm}x{DefaultAlto}. Total Cards: {cardsData.Count}");
+    }
+
+    private void UpdateCardSize((int Id, int AnchoSm, int AnchoMd, int AnchoLg, int Alto) cardInfo)
+    {
+        for (int i = 0; i < cardsData.Count; i++)
+        {
+            if (cardsData[i].Id == cardInfo.Id)
+            {
+                cardsData[i] = cardInfo;
+                Console.WriteLine($"Tamaño de la tarjeta actualizado. ID: {cardInfo.Id}, Nuevos Anchos: {cardInfo.AnchoSm}, {cardInfo.AnchoMd}, {cardInfo.AnchoLg}. Alto: {cardInfo.Alto}");
+                break;
+            }
+        }
     }
 
 
@@ -205,7 +223,9 @@
         {
             var cardsDesignList = cardsData.Select(card => new
             {
-                ancho = card.Ancho,
+                anchoSm = card.AnchoSm,
+                anchoMd = card.AnchoMd,
+                anchoLg = card.AnchoLg,
                 alto = card.Alto
             }).ToList();
 

@@ -85,20 +85,15 @@
 
     //Parametros
     [Parameter] public int VisualizationId { get; set; }
-    [Parameter] public int Width { get; set; }
+    [Parameter] public int WidthLg { get; set; }
+    [Parameter] public int WidthMd { get; set; }
+    [Parameter] public int WidthXs { get; set; }
     [Parameter] public int Height {get; set;}
 
+    [Parameter] public EventCallback<(int, int, int, int, int)> UpdateCardSize { get; set; }
 
-    [Parameter] public int WidthLg { get; set; } = 3;
-    [Parameter] public int WidthMd { get; set; } = 6;
-    [Parameter] public int WidthXs { get; set; } = 12;
     [Parameter] public System.String Title { get; set; } = string.Empty;
 
-
-    // [Parameter] public (System.String, System.String, double, double[])[] Datos { get; set; } = Array.Empty<(System.String, System.String, double, double[])>();
-    // [Parameter] public int GraphType { get; set; } = 0;
-    // [Parameter] public System.String[] dominio { get; set; } = {};
-    // [Parameter] public double Multiplier {get; set;} = 1;
 
     //Parameto temporal para saber si es KPI
     [Parameter] public bool esKPI {get; set;} = false;
@@ -333,24 +328,29 @@
             return;
         }
         Height -= 50;
+        UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
     }
     
     private void ResizeDown(){
         Height +=50;
+        UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
         Console.WriteLine(CurrentBreakpoint);
     }
 
     private void ResizeLeft(){
         if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && WidthXs > 6){
-            WidthXs -= 1; 
+            WidthXs -= 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
             return;
         }
         else if((CurrentBreakpoint == Breakpoint.Md) && WidthMd > 4){
             WidthMd -= 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
             return;
         }
         else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && WidthLg > 3){
             WidthLg -= 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
             return;
         }
         SnackbarService.Add(Localizer["NoDisminuirMas"], Severity.Warning);
@@ -358,15 +358,18 @@
 
     private void ResizeRight(){
         if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && WidthXs < 12){
-            WidthXs += 1; 
+            WidthXs += 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
             return;
         }
         else if(CurrentBreakpoint == Breakpoint.Md && WidthMd < 12){
             WidthMd += 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
             return;
         }
         else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && WidthLg < 12){
             WidthLg += 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
             return;
         }
         SnackbarService.Add(Localizer["NoAumentarMas"], Severity.Warning);
