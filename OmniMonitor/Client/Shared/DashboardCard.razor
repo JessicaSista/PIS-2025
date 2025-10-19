@@ -5,11 +5,14 @@
 @using Microsoft.Extensions.Localization
 @using static OmniMonitor.Client.Shared.VisualizationCard
 @using Blazored.LocalStorage
+@using System.Reflection.Metadata
 @inject ISnackbar SnackbarService
 @inject IStringLocalizer<DashboardCard> Localizer
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
+@inject IDialogService DialogService
+
 @if (!esKPI)
 {
     <MudItem lg=@WidthLg md=@WidthMd sm="@WidthXs" xs=@WidthXs>
@@ -26,7 +29,7 @@
                     <MudIconButton @onclick="ResizeLeft" Icon="@Icons.Material.Filled.KeyboardArrowLeft" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit" />
                     <MudIconButton @onclick="ResizeRight" Icon="@Icons.Material.Filled.KeyboardArrowRight" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit" />
                 </MudStack>
-                <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Inherit" />
+                <MudIconButton Onclick="OpenEditVisualizationDialog" Icon="@Icons.Material.Filled.Settings" Size="MudBlazor.Size.Small" Color="MudBlazor.Color.Inherit" />
             </MudCardHeader>
 
             <MudText Class="px-7 py-5" Typo="Typo.h6"
@@ -84,6 +87,7 @@
     [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
 
     //Parametros
+    [Parameter] public int dashboardId { get; set; }
     [Parameter] public int VisualizationId { get; set; }
     [Parameter] public int WidthLg { get; set; }
     [Parameter] public int WidthMd { get; set; }
@@ -109,6 +113,166 @@
 
 
     protected override async Task OnInitializedAsync()
+    {
+        await RefreshVisualizationData();
+    }
+
+
+    private SeriesType MapSeriesType(string type)
+    {
+        if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
+            return SeriesType.Line;
+        return parsed;
+    }
+
+    private List<DatasetSeries> BuildSeriesFromData(List<object> data)
+    {
+        var grouped = new Dictionary<string, DatasetSeries>();
+
+        foreach (var item in data)
+        {
+            try
+            {
+                System.String json = JsonSerializer.Serialize(item);
+                using JsonDocument? doc = JsonDocument.Parse(json);
+                JsonElement root = doc.RootElement;
+
+                System.String datasetName = root.TryGetProperty("DatasetName", out var dnProp)
+                    ? dnProp.GetString() ?? "SinNombre"
+                    : "SinNombre";
+
+                System.String color = root.TryGetProperty("Color", out var colorProp)
+                    ? colorProp.GetString() ?? "#00FFE7"
+                    : "#00FFE7";
+
+                System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
+                    ? tProp.GetDateTime().ToString("yyyy-MM-ddTHH:mm")
+                    : null;
+
+                double value = 0;
+                if (root.TryGetProperty("Value", out var vProp))
+                {
+                    double.TryParse(vProp.ToString(), out value);
+                }
+
+                if (!grouped.ContainsKey(datasetName))
+                {
+                    grouped[datasetName] = new DatasetSeries
+                    {
+                        DatasetName = datasetName,
+                        Color = color
+                    };
+                }
+
+                grouped[datasetName].Points.Add(new ChartPoint
+                {
+                    X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
+                    Y = value
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
+            }
+        }
+
+        return grouped.Values.ToList();
+    }
+
+    public class DatasetSeries
+    {
+        public System.String DatasetName { get; set; } = String.Empty;
+        public System.String Color { get; set; } = "#00FFE7";
+        public List<ChartPoint> Points { get; set; } = new();
+    }
+
+    public class ChartPoint
+    {
+        public System.String X { get; set; } = string.Empty;
+        public double Y { get; set; }
+    }
+
+
+    //Funciones para cambiar la disposicion de los widgets en el dashboard
+    private void ResizeUp(){
+        if(Height == 300){
+            SnackbarService.Add(Localizer["NoDisminuirMas"], Severity.Warning);
+            return;
+        }
+        Height -= 50;
+        UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+    }
+    
+    private void ResizeDown(){
+        Height +=50;
+        UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+        Console.WriteLine(CurrentBreakpoint);
+    }
+
+    private void ResizeLeft(){
+        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && WidthXs > 6){
+            WidthXs -= 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+            return;
+        }
+        else if((CurrentBreakpoint == Breakpoint.Md) && WidthMd > 4){
+            WidthMd -= 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+            return;
+        }
+        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && WidthLg > 3){
+            WidthLg -= 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+            return;
+        }
+        SnackbarService.Add(Localizer["NoDisminuirMas"], Severity.Warning);
+    }
+
+    private void ResizeRight(){
+        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && WidthXs < 12){
+            WidthXs += 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+            return;
+        }
+        else if(CurrentBreakpoint == Breakpoint.Md && WidthMd < 12){
+            WidthMd += 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+            return;
+        }
+        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && WidthLg < 12){
+            WidthLg += 1;
+            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
+            return;
+        }
+        SnackbarService.Add(Localizer["NoAumentarMas"], Severity.Warning);
+    }
+
+    private async Task OpenEditVisualizationDialog()
+    {
+        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        DialogParameters parameters = new DialogParameters
+            {
+
+                ["dashboardId"] = dashboardId,
+                ["visualizationId"] = VisualizationId
+            };
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
+        DialogResult? result = await dialog.Result;
+        
+        if (result != null && !result.Canceled)
+        {
+            try
+            {
+                await RefreshVisualizationData();
+            }
+            catch (Exception ex)
+            {
+                SnackbarService.Add($"Error actualizando visualizacion: {ex.Message}", Severity.Warning);
+            }
+        }
+    }
+
+    private async Task RefreshVisualizationData()
     {
         try
         {   
@@ -245,138 +409,9 @@
         }
     }
 
-
-    private SeriesType MapSeriesType(string type)
-    {
-        if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
-            return SeriesType.Line;
-        return parsed;
-    }
-
-    private List<DatasetSeries> BuildSeriesFromData(List<object> data)
-    {
-        var grouped = new Dictionary<string, DatasetSeries>();
-
-        foreach (var item in data)
-        {
-            try
-            {
-                System.String json = JsonSerializer.Serialize(item);
-                using JsonDocument? doc = JsonDocument.Parse(json);
-                JsonElement root = doc.RootElement;
-
-                System.String datasetName = root.TryGetProperty("DatasetName", out var dnProp)
-                    ? dnProp.GetString() ?? "SinNombre"
-                    : "SinNombre";
-
-                System.String color = root.TryGetProperty("Color", out var colorProp)
-                    ? colorProp.GetString() ?? "#00FFE7"
-                    : "#00FFE7";
-
-                System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
-                    ? tProp.GetDateTime().ToString("yyyy-MM-ddTHH:mm")
-                    : null;
-
-                double value = 0;
-                if (root.TryGetProperty("Value", out var vProp))
-                {
-                    double.TryParse(vProp.ToString(), out value);
-                }
-
-                if (!grouped.ContainsKey(datasetName))
-                {
-                    grouped[datasetName] = new DatasetSeries
-                    {
-                        DatasetName = datasetName,
-                        Color = color
-                    };
-                }
-
-                grouped[datasetName].Points.Add(new ChartPoint
-                {
-                    X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
-                    Y = value
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
-            }
-        }
-
-        return grouped.Values.ToList();
-    }
-
-    public class DatasetSeries
-    {
-        public System.String DatasetName { get; set; } = String.Empty;
-        public System.String Color { get; set; } = "#00FFE7";
-        public List<ChartPoint> Points { get; set; } = new();
-    }
-
-    public class ChartPoint
-    {
-        public System.String X { get; set; } = string.Empty;
-        public double Y { get; set; }
-    }
-
-
-    //Funciones para cambiar la disposicion de los widgets en el dashboard
-    private void ResizeUp(){
-        if(Height == 300){
-            SnackbarService.Add(Localizer["NoDisminuirMas"], Severity.Warning);
-            return;
-        }
-        Height -= 50;
-        UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-    }
-    
-    private void ResizeDown(){
-        Height +=50;
-        UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-        Console.WriteLine(CurrentBreakpoint);
-    }
-
-    private void ResizeLeft(){
-        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && WidthXs > 6){
-            WidthXs -= 1;
-            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-            return;
-        }
-        else if((CurrentBreakpoint == Breakpoint.Md) && WidthMd > 4){
-            WidthMd -= 1;
-            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-            return;
-        }
-        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && WidthLg > 3){
-            WidthLg -= 1;
-            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-            return;
-        }
-        SnackbarService.Add(Localizer["NoDisminuirMas"], Severity.Warning);
-    }
-
-    private void ResizeRight(){
-        if((CurrentBreakpoint == Breakpoint.Xs  || CurrentBreakpoint == Breakpoint.Sm) && WidthXs < 12){
-            WidthXs += 1;
-            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-            return;
-        }
-        else if(CurrentBreakpoint == Breakpoint.Md && WidthMd < 12){
-            WidthMd += 1;
-            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-            return;
-        }
-        else if((CurrentBreakpoint == Breakpoint.Lg || CurrentBreakpoint == Breakpoint.Xl) && WidthLg < 12){
-            WidthLg += 1;
-            UpdateCardSize.InvokeAsync((VisualizationId, WidthXs, WidthMd, WidthLg, Height));
-            return;
-        }
-        SnackbarService.Add(Localizer["NoAumentarMas"], Severity.Warning);
-    }
-
     private void HandleUpdatedVisualization()
     {
+
         StateHasChanged();
     }
 }

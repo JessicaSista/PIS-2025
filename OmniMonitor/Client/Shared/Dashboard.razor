@@ -11,7 +11,7 @@
             
             var (id, anchoSm, anchoMd, anchoLg, alto) = CardsData[i];
 
-            <DashboardCard VisualizationId=@id WidthXs=@anchoSm WidthMd=@anchoMd WidthLg=@anchoLg Height=@alto UpdateCardSize="UpdateCardSize"></DashboardCard>
+            <DashboardCard dashboardId=@dashboardId VisualizationId=@id WidthXs=@anchoSm WidthMd=@anchoMd WidthLg=@anchoLg Height=@alto UpdateCardSize="UpdateCardSize"></DashboardCard>
         }
         <MudItem xs="12" lg="3" md="6" @onclick="OpenDialogCreateCard">
             <MudPaper Class="add-card-widget d-flex flex-column justify-center align-center mud-width-full pa-10"
