@@ -253,8 +253,8 @@ public class SondaEMController : ControllerBase
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var items = await _sondaEMService.GetCategory(page,pageSize,sort,query,username, password);
-            if (items == null || items.Count == 0) return NotFound("No se han encontrado Categorias.");
-            return Ok(items);
+            // Return empty list instead of NotFound to allow UI to display empty select
+            return Ok(items ?? new List<CategoryDto>());
         }
         catch (Exception ex)
         {

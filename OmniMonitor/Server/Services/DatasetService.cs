@@ -319,7 +319,7 @@ namespace OmniMonitor.Server.Services
 
         /// <summary>
         /// Identifica rápidamente a qué módulo pertenece un dataset chequeando las tablas.
-        /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no existe.
+        /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager", o null si no existe.
         /// </summary>
         public async Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username)
         {
@@ -340,6 +340,12 @@ namespace OmniMonitor.Server.Services
                 .AnyAsync(d => d.Id == datasetId && d.Username == username);
             if (existsInUM)
                 return "Urban Monitor";
+
+            // Check Event Manager table
+            var existsInEM = await _context.DatasetsEM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInEM)
+                return "Event Manager";
 
             return null;
         }

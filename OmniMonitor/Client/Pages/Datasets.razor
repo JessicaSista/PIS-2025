@@ -178,6 +178,9 @@
                     case "Urban Monitor":
                         response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}/{username}");
                         break;
+                    case "Event Manager":
+                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}/{username}");
+                        break;
                     default:
                         Snackbar.Add("Módulo desconocido", Severity.Error);
                         return;
@@ -339,6 +342,37 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"Error cargando datasets UM: {ex.Message}");
+            }
+
+            // 4. Cargar datasets de Event Manager
+            try
+            {
+                var urlEM = $"api/DatasetEM/GetAllDatasets?token={Uri.EscapeDataString(token)}";
+                var responseEM = await Http.GetAsync(urlEM);
+                if (responseEM.IsSuccessStatusCode)
+                {
+                    var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetEM>>();
+                    var filteredEM = datasetsEM ?? new List<OmniMonitor.Shared.Dtos.DatasetEM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredEM = filteredEM.Where(d => NormalizeText(d.Name ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredEM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Event Manager"
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets EM: {ex.Message}");
             }
 
             datasets = allDatasets;

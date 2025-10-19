@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Blazored.LocalStorage
 @using OmniMonitor.Shared.Dtos.AM
+@using OmniMonitor.Shared.Dtos.EM
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject HttpClient Http
@@ -406,9 +407,132 @@
     </div>
 }
 
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Event Manager")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Cuatro selects: Categoria, Eventos, Alertas y Extensiones -->
+    <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <!-- Categoria -->
+        <div style="width: 25%;">
+            <MudSelect T="int?"
+                       Value="@selectedCategoryId"
+                       ValueChanged="OnCategoryChanged"
+                       Variant="Variant.Outlined"
+                       FullWidth="true"
+                       Clearable
+                       Label="Seleccionar Categoria"
+                       Class="dark-field"
+                       Required="true">
+                @foreach (var category in categories)
+                {
+                    <MudSelectItem Value="@((int?)category.Id)">@category.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Eventos -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedEventEMIds"
+                       SelectedValuesChanged="OnSelectedEventEMsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="Seleccionar todos"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedCategoryId.HasValue)"
+                       Label="Seleccionar Evento(s)"
+                       Class="dark-field"
+                       ToStringFunc="@(id => eventsEM.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
+                @foreach (var evt in eventsEM)
+                {
+                    <MudSelectItem T="int" Value="@evt.Id">@evt.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Alertas -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedAlertIds"
+                       SelectedValuesChanged="OnSelectedAlertsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="Seleccionar todos"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedCategoryId.HasValue)"
+                       Label="Seleccionar Alerta(s)"
+                       Class="dark-field"
+                       ToStringFunc="@(id => alertsEM.FirstOrDefault(a => a.AlertId == id)?.AlertName ?? id.ToString())">
+                @foreach (var alert in alertsEM)
+                {
+                    <MudSelectItem T="int" Value="@alert.AlertId">@alert.AlertName</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Extensiones -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedExtensionIds"
+                       SelectedValuesChanged="OnSelectedExtensionsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="Seleccionar todos"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!EnableExtensionsSelect)"
+                       Label="Seleccionar Extension(es)"
+                       Class="dark-field"
+                       ToStringFunc="@(id => extensions.FirstOrDefault(e => e.Id == id)?.EventName ?? id.ToString())">
+                @foreach (var ext in extensions)
+                {
+                    <MudSelectItem T="int" Value="@ext.Id">@ext.EventName</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
+        <MudButton OnClick="GuardarDatasetEM"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!CanSaveEM)">
+            @Localizer["GuardarDataset"]
+        </MudButton>
+    </div>
+}
+
 @code {
     private string selectedTipo = "Insight Monitor";
-    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager", "Urban Monitor" };
+    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager" };
 
     private List<Source> sources = new();
     private List<DeviceGroup> deviceGroups = new();
@@ -455,6 +579,16 @@
     private List<News> newsList = new();
     private HashSet<int> selectedNewsIds = new();
 
+    // EM UI State
+    private List<CategoryDto> categories = new();
+    private int? selectedCategoryId = null;
+    private List<EventDto> eventsEM = new();
+    private HashSet<int> selectedEventEMIds = new();
+    private List<AlertDto> alertsEM = new();
+    private HashSet<int> selectedAlertIds = new();
+    private List<ExtensionDtoDup> extensions = new();
+    private HashSet<int> selectedExtensionIds = new();
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -479,6 +613,7 @@
             await LoadSourcesAndGroups();
             await InitializeAMLists();
             await InitializeUMLists();
+            await InitializeEMLists();
         }
         catch (Exception ex)
         {
@@ -600,6 +735,17 @@
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
             return selectedZoneId.HasValue && (selectedEventIds.Count > 0 || selectedNewsIds.Count > 0);
+        }
+    }
+
+    private bool EnableExtensionsSelect => selectedEventEMIds.Count == 1;
+
+    private bool CanSaveEM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            return selectedCategoryId.HasValue && (selectedEventEMIds.Count > 0 || selectedAlertIds.Count > 0);
         }
     }
 
@@ -1193,6 +1339,209 @@
         catch (Exception ex)
         {
             ShowError($"No se pudo crear el dataset UM: {ex.Message}");
+        }
+    }
+
+    // ====== Event Manager Methods ======
+
+    private async Task InitializeEMLists()
+    {
+        try
+        {
+            var encodedToken = GetEncodedToken();
+            Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
+
+            // Load Categories
+            var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
+            Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
+            
+            var respCategories = await Http.GetAsync(url);
+            Console.WriteLine($"[DEBUG EM] Categories response status: {respCategories.StatusCode}");
+            
+            if (respCategories.IsSuccessStatusCode)
+            {
+                categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
+                Console.WriteLine($"[DEBUG EM] Loaded {categories.Count} categories");
+            }
+            else
+            {
+                var error = await respCategories.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EM] Categories error: {error}");
+                ShowError($"Error al cargar categorías: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DEBUG EM] Exception: {ex.Message}");
+            Console.WriteLine($"[DEBUG EM] Stack trace: {ex.StackTrace}");
+            ShowError($"Error cargando Event Manager: {ex.Message}");
+        }
+    }
+
+    private async Task OnCategoryChanged(int? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        selectedEventEMIds.Clear();
+        selectedAlertIds.Clear();
+        selectedExtensionIds.Clear();
+        eventsEM.Clear();
+        alertsEM.Clear();
+        extensions.Clear();
+
+        if (selectedCategoryId.HasValue)
+        {
+            await LoadEventsByCategory(selectedCategoryId.Value);
+            await LoadAlertsByCategory(selectedCategoryId.Value);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedEventEMsChanged(IEnumerable<int> ids)
+    {
+        selectedEventEMIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        selectedExtensionIds.Clear();
+        extensions.Clear();
+        
+        if (EnableExtensionsSelect)
+        {            
+            var onlyId = selectedEventEMIds.First();
+            await LoadExtensionsByEvent(onlyId);
+        }
+        
+        StateHasChanged();
+    }
+
+    private Task OnSelectedAlertsChanged(IEnumerable<int> ids)
+    {
+        selectedAlertIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedExtensionsChanged(IEnumerable<int> ids)
+    {
+        selectedExtensionIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadEventsByCategory(int categoryId)
+    {
+        try
+        {
+            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                eventsEM = await resp.Content.ReadFromJsonAsync<List<EventDto>>() ?? new List<EventDto>();
+            }
+            else
+            {
+                eventsEM = new List<EventDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando eventos: {ex.Message}");
+        }
+    }
+
+    private async Task LoadAlertsByCategory(int categoryId)
+    {
+        try
+        {
+            var url = $"api/SondaEM/Category/alert?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                alertsEM = await resp.Content.ReadFromJsonAsync<List<AlertDto>>() ?? new List<AlertDto>();
+            }
+            else
+            {
+                alertsEM = new List<AlertDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando alertas: {ex.Message}");
+        }
+    }
+
+    private async Task LoadExtensionsByEvent(int eventId)
+    {
+        try
+        {
+            var url = $"api/SondaEM/Event/{eventId}/extensions?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                extensions = await resp.Content.ReadFromJsonAsync<List<ExtensionDtoDup>>() ?? new List<ExtensionDtoDup>();
+            }
+            else
+            {
+                extensions = new List<ExtensionDtoDup>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando extensiones: {ex.Message}");
+        }
+    }
+
+    private async Task GuardarDatasetEM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+            if (!selectedCategoryId.HasValue)
+            {
+                ShowError("Debe seleccionar una categoria");
+                return;
+            }
+
+            var request = new CreateDatasetEMRequest
+            {
+                Username = username,
+                Name = addName,
+                Description = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                EventIds = selectedEventEMIds.Any() ? selectedEventEMIds.ToList() : null,
+                AlertIds = selectedAlertIds.Any() ? selectedAlertIds.ToList() : null,
+                ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
+            };
+
+            var resp = await Http.PostAsJsonAsync("api/DatasetEM", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();
+                ShowSuccess($"'{created?.Name}' {Localizer["DatasetCreadoExito"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo crear el dataset EM: {ex.Message}");
         }
     }
 }
