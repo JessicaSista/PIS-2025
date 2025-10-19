@@ -265,13 +265,10 @@
                            Disabled="@(!selectedTaskTypeId.HasValue)"
                            Label="Seleccionar Event Task Instance(s)"
                            Class="dark-field"
-                           ToStringFunc="@(id => {
-                               var it = eventTaskInstances.FirstOrDefault(e => e.Id == id);
-                               return it?.Subject ?? it?.EventTaskDto?.Subject ?? $"Instance {id}";
-                           })">
+                           ToStringFunc="@(id => GetEventTaskInstanceDisplayName(id))">
                     @foreach (var e in eventTaskInstances)
                     {
-                        <MudSelectItem T="int" Value="@e.Id">@(string.IsNullOrWhiteSpace(e.Subject) ? (e.EventTaskDto?.Subject ?? $"Instance {e.Id}") : e.Subject)</MudSelectItem>
+                        <MudSelectItem T="int" Value="@e.Id">@GetEventTaskInstanceDisplayName(e.Id)</MudSelectItem>
                     }
                 </MudSelect>
             </div>
@@ -489,10 +486,10 @@
                        Disabled="@(!selectedCategoryId.HasValue)"
                        Label="Seleccionar Alerta(s)"
                        Class="dark-field"
-                       ToStringFunc="@(id => alertsEM.FirstOrDefault(a => a.AlertId == id)?.AlertName ?? id.ToString())">
+                       ToStringFunc="@(id => GetAlertDisplayName(id))">
                 @foreach (var alert in alertsEM)
                 {
-                    <MudSelectItem T="int" Value="@alert.AlertId">@alert.AlertName</MudSelectItem>
+                    <MudSelectItem T="int" Value="@alert.AlertId">@GetAlertDisplayName(alert.AlertId)</MudSelectItem>
                 }
             </MudSelect>
         </div>
@@ -745,25 +742,43 @@
         var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
         if (ext == null) return extensionId.ToString();
         
-        // Build a descriptive name using available fields
-        var parts = new List<string>();
-        
-        // Add ID for uniqueness
-        parts.Add($"#{ext.Id}");
-        
-        // Add work zone name if available
+        // Show ID and work zone name (most descriptive field for extensions)
         if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
-            parts.Add(ext.WorkZoneName);
+            return $"#{ext.Id} {ext.WorkZoneName}";
         
-        // Add state if available
-        if (!string.IsNullOrWhiteSpace(ext.State))
-            parts.Add($"({ext.State})");
+        // Fallback to event name if work zone name is not available
+        if (!string.IsNullOrWhiteSpace(ext.EventName))
+            return $"#{ext.Id} {ext.EventName}";
         
-        // Add event name if available and different from work zone
-        if (!string.IsNullOrWhiteSpace(ext.EventName) && ext.EventName != ext.WorkZoneName)
-            parts.Add($"[{ext.EventName}]");
+        return $"#{ext.Id}";
+    }
+
+    private string GetAlertDisplayName(int alertId)
+    {
+        var alert = alertsEM.FirstOrDefault(a => a.AlertId == alertId);
+        if (alert == null) return alertId.ToString();
         
-        return parts.Any() ? string.Join(" ", parts) : extensionId.ToString();
+        // Show ID and alert name
+        if (!string.IsNullOrWhiteSpace(alert.AlertName))
+            return $"#{alert.AlertId} {alert.AlertName}";
+        
+        return $"#{alert.AlertId}";
+    }
+
+    private string GetEventTaskInstanceDisplayName(int instanceId)
+    {
+        var instance = eventTaskInstances.FirstOrDefault(e => e.Id == instanceId);
+        if (instance == null) return instanceId.ToString();
+        
+        // Show ID and subject
+        if (!string.IsNullOrWhiteSpace(instance.Subject))
+            return $"#{instance.Id} {instance.Subject}";
+        
+        // Fallback to EventTaskDto subject if instance subject is empty
+        if (instance.EventTaskDto != null && !string.IsNullOrWhiteSpace(instance.EventTaskDto.Subject))
+            return $"#{instance.Id} {instance.EventTaskDto.Subject}";
+        
+        return $"#{instance.Id}";
     }
 
     private bool CanSaveEM
