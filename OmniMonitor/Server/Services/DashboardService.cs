@@ -16,7 +16,7 @@ namespace OmniMonitor.Server.Services
     {
         Task<DashboardResponse> CreateDashboardAsync(CreateDashboardRequest request, string username);
         Task<DashboardResponse?> GetDashboardByIdAsync(int idDashboard, string username);
-        Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username);
+    Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username, string? query);
         Task<bool> ValidateCardIdsAsync(List<int> cardIds);
         Task<bool> ValidateLayoutAsync(DashboardLayout layout);
         Task<bool> DeleteDashboardAsync(int idDashboard, string username);
@@ -159,13 +159,24 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Obtiene todos los dashboards de un usuario
         /// </summary>
-        public async Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username)
+        public async Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username, string? query)
         {
-            return await _context.Dashboards
-                .Where(d => d.Username == username)
+            var dashboardsQuery = _context.Dashboards
+                .Where(d => d.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                dashboardsQuery = dashboardsQuery.Where(d =>
+                    (d.Nombre != null && d.Nombre.ToLower().Contains(loweredQuery)) ||
+                    (d.Descripcion != null && d.Descripcion.ToLower().Contains(loweredQuery)));
+            }
+
+            return await dashboardsQuery
                 .Select(d => new DashboardSummaryResponse
                 {
                     IdDashboard = d.IdDashboard,
+                    Username = d.Username,
                     Nombre = d.Nombre,
                     Descripcion = d.Descripcion,
                     FechaCreacion = d.FechaCreacion,

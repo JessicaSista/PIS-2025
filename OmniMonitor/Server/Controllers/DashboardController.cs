@@ -120,12 +120,12 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string token)
+        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string token, string? query)
         {
             try
             {
                 var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var dashboards = await _dashboardService.GetAllDashboardsAsync(username);
+                var dashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
                 return Ok(dashboards);
             }
             catch (Exception ex)
