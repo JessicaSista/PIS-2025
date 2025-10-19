@@ -170,16 +170,16 @@
                 switch (dataset.Module)
                 {
                     case "Insight Monitor":
-                        response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={token}");
+                        response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
                         break;
                     case "Asset Manager":
-                        response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}/{username}");
+                        response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
                         break;
                     case "Urban Monitor":
-                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}/{username}");
+                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
                         break;
                     case "Event Manager":
-                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}/{username}");
+                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
                         break;
                     default:
                         Snackbar.Add("Módulo desconocido", Severity.Error);
@@ -188,8 +188,9 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    datasets.RemoveAll(d => d.Id == dataset.Id);
-                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
+                    // Remover solo el dataset que coincide tanto en ID como en Módulo
+                    datasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
+                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
                     Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;
