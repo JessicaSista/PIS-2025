@@ -1,0 +1,106 @@
+﻿@page "/sonda-test-kpi"
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+
+<h3>Probar Endpoints de KPI</h3>
+
+<div class="mb-4">
+    <button class="btn btn-primary me-2" @onclick="ProbarKpi" disabled="@isLoadingKpi">
+        @(isLoadingKpi ? "Cargando..." : "Probar /api/kpi/test")
+    </button>
+
+    <button class="btn btn-success" @onclick="ProbarKpiResponse" disabled="@isLoadingResponse">
+        @(isLoadingResponse ? "Cargando..." : "Probar /api/kpi/test-response")
+    </button>
+</div>
+
+@if (error != null)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (kpi != null)
+{
+    <div class="card mt-3">
+        <div class="card-body">
+            <p>@kpi.Description</p>
+            <p><b>Unidad:</b> @kpi.Unit</p>
+            <p><b>Módulo:</b> @kpi.SourceModule</p>
+            <p><b>DatasetId:</b> @kpi.DatasetId</p>
+            <p><b>Color por defecto:</b> <span style="color:@kpi.DefaultColor">@kpi.DefaultColor</span></p>
+
+            @if (kpi.ColorRanges != null)
+            {
+                <p><b>Rangos de color:</b></p>
+                <div>
+                    @foreach (var c in kpi.ColorRanges)
+                    {
+                        <span style="background-color:@c; padding:5px 10px; margin-right:5px; border-radius:4px; color:white;">@c</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (kpiResponse != null)
+{
+    <div class="card mt-4 border-success">
+        <div class="card-body">
+            <h5>@kpiResponse.Name (@kpiResponse.Type)</h5>
+            <p>@kpiResponse.Description</p>
+            <p><b>Valor:</b> @kpiResponse.Value</p>
+            <p><b>Color Actual:</b> <span style="color:@kpiResponse.ActualColor">@kpiResponse.ActualColor</span></p>
+        </div>
+    </div>
+}
+
+@code {
+    private Kpi? kpi;
+    private KpiResponse? kpiResponse;
+    private string? error;
+    private bool isLoadingKpi = false;
+    private bool isLoadingResponse = false;
+
+    private async Task ProbarKpi()
+    {
+        isLoadingKpi = true;
+        error = null;
+        kpi = null;
+        kpiResponse = null;
+
+        try
+        {
+            kpi = await Http.GetFromJsonAsync<Kpi>("api/kpi/test");
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al llamar al endpoint /api/kpi/test: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingKpi = false;
+        }
+    }
+
+    private async Task ProbarKpiResponse()
+    {
+        isLoadingResponse = true;
+        error = null;
+        kpiResponse = null;
+        kpi = null;
+
+        try
+        {
+            kpiResponse = await Http.GetFromJsonAsync<KpiResponse>("api/kpi/test-response");
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al llamar al endpoint /api/kpi/test-response: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingResponse = false;
+        }
+    }
+}

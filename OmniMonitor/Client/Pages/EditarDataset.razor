@@ -2,6 +2,8 @@
 @using OmniMonitor.Shared.Dtos
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.LocalStorage
+@using OmniMonitor.Shared.Dtos.AM
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject HttpClient Http
@@ -10,7 +12,6 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
-@using Blazored.LocalStorage
 @inject ILocalStorageService LocalStorage
 
 
@@ -46,7 +47,7 @@ else if (noEncontrado)
         No se encontró el dataset solicitado.
     </MudAlert>
 }
-else
+else if (selectedTipo == "Insight Monitor")
 {
     <!-- Campo Nombre -->
     <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
@@ -161,11 +162,162 @@ else
     </div>
 }
 
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Asset Manager")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Toggle de modo: Asset vs Event Task -->
+    <MudStack Row Spacing="2" Class="mb-1 mx-4">
+        <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(2)">Asset</MudButton>
+        <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(1)">Event Task</MudButton>
+    </MudStack>
+
+    @if (amMode == 2)
+    {
+        <!-- Asset Manager: AssetType (req) -> Assets (multi, opcional) -->
+        <MudStack Row Spacing="2" Class="mb-4 mx-4">
+            <div style="width: 50%;">
+                <MudSelect T="int?"
+                           Value="@selectedAssetTypeId"
+                           ValueChanged="OnAssetTypeChanged"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Clearable
+                           Label="Seleccionar tipo de Asset"
+                           Class="dark-field"
+                           Required="true">
+                    @foreach (var t in assetTypes)
+                    {
+                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div style="width: 50%;">
+                <MudSelect T="string"
+                           SelectedValues="selectedAssetIds"
+                           SelectedValuesChanged="OnSelectedAssetsChanged"
+                           Variant="Variant.Outlined"
+                           MultiSelection="true"
+                           SelectAll="true"
+                           SelectAllText="Seleccionar todos"
+                           Clearable
+                           FullWidth="true"
+                           Disabled="@(!selectedAssetTypeId.HasValue)"
+                           Label="Seleccionar Asset(s)"
+                           Class="dark-field"
+                           ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
+                    @foreach (var a in assets)
+                    {
+                        <MudSelectItem T="string" Value="@a.Id">@a.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </MudStack>
+    }
+    else if (amMode == 1)
+    {
+        <!-- Asset Manager: Event Task flow -->
+        <MudStack Row Spacing="2" Class="mb-4 mx-4">
+            <div style="width: 33.33%;">
+                <MudSelect T="int?"
+                           Value="@selectedTaskTypeId"
+                           ValueChanged="OnTaskTypeChanged"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Label="Seleccionar Task Type"
+                           Clearable
+                           Class="dark-field"
+                           Required="true">
+                    @foreach (var t in taskTypes)
+                    {
+                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div style="width: 33.33%;">
+                <MudSelect T="int"
+                           SelectedValues="selectedEventTaskInstanceIds"
+                           SelectedValuesChanged="OnSelectedEventTaskInstancesChanged"
+                           Variant="Variant.Outlined"
+                           MultiSelection="true"
+                           SelectAll="true"
+                           SelectAllText="Seleccionar todos"
+                           Clearable
+                           FullWidth="true"
+                           Disabled="@(!selectedTaskTypeId.HasValue)"
+                           Label="Seleccionar Event Task Instance(s)"
+                           Class="dark-field"
+                           ToStringFunc="@(id => {
+                               var it = eventTaskInstances.FirstOrDefault(e => e.Id == id);
+                               return it?.Subject ?? it?.EventTaskDto?.Subject ?? $"Instance {id}";
+                           })">
+                    @foreach (var e in eventTaskInstances)
+                    {
+                        <MudSelectItem T="int" Value="@e.Id">@(string.IsNullOrWhiteSpace(e.Subject) ? (e.EventTaskDto?.Subject ?? $"Instance {e.Id}") : e.Subject)</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div style="width: 33.33%;">
+                <MudSelect T="int"
+                           SelectedValues="selectedStockIds"
+                           SelectedValuesChanged="OnSelectedStocksChanged"
+                           Variant="Variant.Outlined"
+                           MultiSelection="true"
+                           Clearable
+                           FullWidth="true"
+                           Disabled="@(!EnableStocksSelect)"
+                           Label="Seleccionar Stock(s)"
+                           Class="dark-field"
+                           ToStringFunc="@(id => stocks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString())">
+                    @foreach (var s in stocks)
+                    {
+                        <MudSelectItem T="int" Value="@s.Id">@s.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </MudStack>
+    }
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            @Localizer["Cancelar"]
+        </MudButton>
+        <MudButton OnClick="GuardarCambiosAM"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!CanSaveAM)">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </div>
+}
+
 @code {
     [Parameter] public int id { get; set; }
 
-    private string selectedTipo = "Inside Monitor";
-    private List<string> tiposDataset = new() { "Inside Monitor", "Modulo 2", "Modulo 3" };
+    private string selectedTipo = "Insight Monitor";
+    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager" };
 
     // Listas dinámicas desde la API
     private List<Source> sources = new();
@@ -186,11 +338,44 @@ else
     private bool cargando = true;
     private bool noEncontrado = false;
 
-    // Credenciales del usuario
+    // Credenciales del usuario / token logic from develop
     private string currentUsername = string.Empty;
     private string authToken = string.Empty;
-
     private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
+
+    // AM UI State (kept from HEAD)
+    // amMode: 1 = Event Task, 2 = Asset
+    private int amMode = 2;
+
+    // Asset flow
+    private List<AssetTypeDto> assetTypes = new();
+    private int? selectedAssetTypeId = null;
+    private List<AssetDto> assets = new();
+    private HashSet<string> selectedAssetIds = new();
+
+    // Event Task flow
+    private List<TaskTypeDto> taskTypes = new();
+    private int? selectedTaskTypeId = null;
+    private List<EventTaskInstanceDto> eventTaskInstances = new();
+    private HashSet<int> selectedEventTaskInstanceIds = new();
+    private List<EventTaskInstanceStockDto> stocks = new();
+    private HashSet<int> selectedStockIds = new();
+
+    private bool EnableStocksSelect => selectedEventTaskInstanceIds.Count == 1;
+
+    private bool CanSaveAM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            if (amMode == 2)
+            {
+                return selectedAssetTypeId.HasValue;
+            }
+            // Event Task
+            return selectedTaskTypeId.HasValue;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -198,6 +383,7 @@ else
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             currentUsername = authState.User.Identity?.Name ?? "";
+
             authToken = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
 
             if (string.IsNullOrEmpty(currentUsername) || string.IsNullOrEmpty(authToken))
@@ -206,8 +392,16 @@ else
                 return;
             }
 
+            if (string.IsNullOrEmpty(authToken))
+            {
+                ShowError("No se encontró token de sesión. Vuelva a iniciar sesión.");
+                noEncontrado = true;
+                return;
+            }
+
             // Cargar sources y groups al inicio
             await LoadSourcesAndGroups();
+            await InitializeAMLists();
         }
         catch (Exception ex)
         {
@@ -226,7 +420,7 @@ else
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            var token = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
 
             if (string.IsNullOrEmpty(username))
             {
@@ -234,43 +428,108 @@ else
                 return;
             }
 
-            // Cargar el dataset desde el backend
-            var response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={id}&token={token}");
-            if (!response.IsSuccessStatusCode)
+            // Intentar cargar como Insight Monitor usando endpoint develop (con token)
+            var response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            if (response.IsSuccessStatusCode)
             {
-                noEncontrado = true;
-                return;
+                var existente = await response.Content.ReadFromJsonAsync<DatasetIM>();
+                if (existente != null)
+                {
+                    selectedTipo = "Insight Monitor";
+                    // Poblar campos básicos
+                    addName = existente.Name ?? string.Empty;
+                    addDesc = existente.Description ?? string.Empty;
+                    
+                    // Pre-seleccionar los valores de fuente, grupo, dispositivo
+                    selectedSourceId = existente.Id_Source;
+                    selectedGroupId = existente.Id_Group;
+                    selectedSensor = existente.SensorName ?? string.Empty;
+
+                    // IMPORTANTE: Establecer selectedDeviceIds basado en DatasetDevices
+                    selectedDeviceIds.Clear();
+                    
+                    if (existente.DatasetDevices != null && existente.DatasetDevices.Any())
+                    {
+                        selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
+                    }
+
+                    // Cargar los devices según los filtros seleccionados
+                    await LoadDevices();
+                    
+                    // Cargar los sensores de la fuente seleccionada
+                    await LoadSensors();
+                    
+                    cargando = false;
+                    return;
+                }
             }
 
-            var existente = await response.Content.ReadFromJsonAsync<DatasetIM>();
-            if (existente == null)
+            // Si no es IM, intentar cargar como Dataset AM (HEAD logic preserved)
+            var responseAM = await Http.GetAsync($"api/DatasetAM/{id}/{username}");
+            if (responseAM.IsSuccessStatusCode)
             {
-                noEncontrado = true;
-                return;
+                var existenteAM = await responseAM.Content.ReadFromJsonAsync<DatasetAM>();
+                if (existenteAM != null)
+                {
+                    selectedTipo = "Asset Manager";
+                    // Poblar campos básicos
+                    addName = existenteAM.Nombre ?? string.Empty;
+                    addDesc = existenteAM.Descripcion ?? string.Empty;
+                    
+                    // Determinar el modo (Asset vs Event Task)
+                    amMode = existenteAM.Type_Dataset;
+
+                    if (amMode == 2)
+                    {
+                        // Asset mode
+                        selectedAssetTypeId = existenteAM.Id_Asset_Type;
+                        if (selectedAssetTypeId.HasValue)
+                        {
+                            await LoadAssetsByType(selectedAssetTypeId.Value);
+                        }
+                        
+                        // Cargar los assets seleccionados
+                        if (existenteAM.Grupo_Asset != null && existenteAM.Grupo_Asset.Any())
+                        {
+                            selectedAssetIds = new HashSet<string>(existenteAM.Grupo_Asset.Select(da => da.Id_Asset));
+                        }
+                    }
+                    else if (amMode == 1)
+                    {
+                        // Event Task mode
+                        selectedTaskTypeId = existenteAM.Id_Event_Task;
+                        if (selectedTaskTypeId.HasValue)
+                        {
+                            await LoadEventTaskInstancesByType(selectedTaskTypeId.Value);
+                        }
+                        
+                        // Cargar las event task instances seleccionadas
+                        if (existenteAM.Grupo_Event_Task_Instance != null && existenteAM.Grupo_Event_Task_Instance.Any())
+                        {
+                            selectedEventTaskInstanceIds = new HashSet<int>(existenteAM.Grupo_Event_Task_Instance.Select(det => det.Id_Event_Task_Instance));
+                            
+                            // Si solo hay una instancia seleccionada, cargar stocks
+                            if (EnableStocksSelect)
+                            {
+                                await LoadStocksForEventTaskInstance(selectedEventTaskInstanceIds.First());
+                                
+                                // Cargar los stocks seleccionados
+                                var firstInstance = existenteAM.Grupo_Event_Task_Instance.First();
+                                if (firstInstance.Grupo_Stock != null && firstInstance.Grupo_Stock.Any())
+                                {
+                                    selectedStockIds = new HashSet<int>(firstInstance.Grupo_Stock.Select(ds => ds.Id_Stock));
+                                }
+                            }
+                        }
+                    }
+                    
+                    cargando = false;
+                    return;
+                }
             }
 
-            // Poblar campos básicos
-            addName = existente.Name ?? string.Empty;
-            addDesc = existente.Description ?? string.Empty;
-            
-            // Pre-seleccionar los valores de fuente, grupo, dispositivo
-            selectedSourceId = existente.Id_Source;
-            selectedGroupId = existente.Id_Group;
-            selectedSensor = existente.SensorName ?? string.Empty;
-
-            // IMPORTANTE: Establecer selectedDeviceIds basado en DatasetDevices
-            selectedDeviceIds.Clear(); // Inicializar como vacío por defecto
-            
-            if (existente.DatasetDevices != null && existente.DatasetDevices.Any())
-            {
-                selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
-            }
-
-            // Cargar los devices según los filtros seleccionados
-            await LoadDevices();
-            
-            // Cargar los sensores de la fuente seleccionada
-            await LoadSensors();
+            // Si no se encontró en ninguno
+            noEncontrado = true;
         }
         catch
         {
@@ -431,7 +690,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"{Localizer["ErrorCargaDispositivos"]} {ex.Message}", Severity.Error);
+            ShowError($"{Localizer["ErrorCargaDispositivos"]} {ex.Message}");
             devices = new List<Device>();
         }
     }
@@ -473,7 +732,7 @@ else
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"{Localizer["ErrorCargaSensores"]} {ex.Message}", Severity.Error);
+            ShowError($"{Localizer["ErrorCargaSensores"]} {ex.Message}");
             sensores = new List<string>();
             selectedSensor = string.Empty;
         }
@@ -555,5 +814,250 @@ else
     private void Cancelar()
     {
         Nav.NavigateTo("/datasets");
+    }
+
+    // ====== Asset Manager Methods (kept from HEAD, token usage updated to develop logic) ======
+
+    private void SetAmMode(int mode)
+    {
+        if (amMode == mode) return;
+        amMode = mode;
+        // Reset selections when switching modes
+        if (amMode == 2)
+        {
+            selectedTaskTypeId = null;
+            selectedEventTaskInstanceIds.Clear();
+            selectedStockIds.Clear();
+            stocks.Clear();
+        }
+        else
+        {
+            selectedAssetTypeId = null;
+            selectedAssetIds.Clear();
+            assets.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task InitializeAMLists()
+    {
+        try
+        {
+            var encoded = GetEncodedToken();
+
+            // Load Asset Types
+            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?token={encoded}");
+            if (respTypes.IsSuccessStatusCode)
+            {
+                assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
+            }
+
+            // Load Task Types
+            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?token={encoded}");
+            if (respTaskTypes.IsSuccessStatusCode)
+            {
+                taskTypes = await respTaskTypes.Content.ReadFromJsonAsync<List<TaskTypeDto>>() ?? new List<TaskTypeDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando Asset Manager: {ex.Message}");
+        }
+    }
+
+    private async Task OnAssetTypeChanged(int? typeId)
+    {
+        selectedAssetTypeId = typeId;
+        selectedAssetIds.Clear();
+        assets.Clear();
+        if (selectedAssetTypeId.HasValue)
+        {
+            await LoadAssetsByType(selectedAssetTypeId.Value);
+        }
+        StateHasChanged();
+    }
+
+    private Task OnSelectedAssetsChanged(IEnumerable<string> ids)
+    {
+        selectedAssetIds = ids != null ? new HashSet<string>(ids) : new HashSet<string>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAssetsByType(int assetTypeId)
+    {
+        try
+        {
+            var url = $"api/SondaAM/asset/assets?assetTypeId={assetTypeId}&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                assets = await resp.Content.ReadFromJsonAsync<List<AssetDto>>() ?? new List<AssetDto>();
+            }
+            else
+            {
+                assets = new List<AssetDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando assets: {ex.Message}");
+        }
+    }
+
+    private async Task OnTaskTypeChanged(int? typeId)
+    {
+        selectedTaskTypeId = typeId;
+        selectedEventTaskInstanceIds.Clear();
+        selectedStockIds.Clear();
+        eventTaskInstances.Clear();
+        stocks.Clear();
+        if (selectedTaskTypeId.HasValue)
+        {
+            await LoadEventTaskInstancesByType(selectedTaskTypeId.Value);
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedEventTaskInstancesChanged(IEnumerable<int> ids)
+    {
+        selectedEventTaskInstanceIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        selectedStockIds.Clear();
+        stocks.Clear();
+        if (EnableStocksSelect)
+        {
+            var onlyId = selectedEventTaskInstanceIds.First();
+            await LoadStocksForEventTaskInstance(onlyId);
+        }
+        StateHasChanged();
+    }
+
+    private Task OnSelectedStocksChanged(IEnumerable<int> ids)
+    {
+        selectedStockIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadEventTaskInstancesByType(int taskTypeId)
+    {
+        try
+        {
+            var dates = Uri.EscapeDataString("1980-01-01T03:00:00,2050-10-31T03:00:00");
+            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                eventTaskInstances = await resp.Content.ReadFromJsonAsync<List<EventTaskInstanceDto>>() ?? new List<EventTaskInstanceDto>();
+            }
+            else
+            {
+                eventTaskInstances = new List<EventTaskInstanceDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando event task instances: {ex.Message}");
+        }
+    }
+
+    private async Task LoadStocksForEventTaskInstance(int eventTaskInstanceId)
+    {
+        try
+        {
+            var url = $"api/SondaAM/eventTaskInstance/stock/{eventTaskInstanceId}?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                var stocksDto = await resp.Content.ReadFromJsonAsync<List<EventTaskInstanceStockDto>>() ?? new List<EventTaskInstanceStockDto>();
+                stocks = stocksDto;
+            }
+            else
+            {
+                stocks = new List<EventTaskInstanceStockDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando stocks: {ex.Message}");
+        }
+    }
+
+    private async Task GuardarCambiosAM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+
+            var request = new CreateDatasetAMRequest
+            {
+                Username = username,
+                Nombre = addName,
+                Descripcion = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                Type_Dataset = amMode,
+                Id_Event_Task = amMode == 1 ? selectedTaskTypeId : null,
+                Id_Asset_Type = amMode == 2 ? selectedAssetTypeId : null,
+                Grupo_Event_Task_Instance_Ids = amMode == 1 && selectedEventTaskInstanceIds.Any() ? selectedEventTaskInstanceIds.ToList() : null,
+                Grupo_Asset_Ids = amMode == 2 && selectedAssetIds.Any() ? selectedAssetIds.ToList() : null,
+                StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var updated = await resp.Content.ReadFromJsonAsync<DatasetAM>();
+                ShowSuccess($"Dataset '{updated?.Nombre}' {Localizer["Actualizado"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo actualizar el dataset AM: {ex.Message}");
+        }
+    }
+
+    private void ShowSuccess(string mensaje)
+    {
+        Snackbar.Add(mensaje, Severity.Success, config =>
+        {
+            config.SnackbarVariant = Variant.Filled;
+            config.ShowCloseIcon = true;
+            config.RequireInteraction = false;
+            config.VisibleStateDuration = 2500;
+            config.CloseAfterNavigation = false;
+        });
+    }
+
+    private void ShowError(string mensaje)
+    {
+        Snackbar.Add(mensaje, Severity.Error, config =>
+        {
+            config.SnackbarVariant = Variant.Filled;
+            config.ShowCloseIcon = true;
+            config.RequireInteraction = false;
+            config.VisibleStateDuration = 4000;
+            config.CloseAfterNavigation = false;
+        });
     }
 }

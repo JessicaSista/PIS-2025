@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using OmniMonitor.Shared.Dtos;
+using System.ComponentModel.DataAnnotations;
 
 public class Report
 {
@@ -16,7 +17,7 @@ public class Report
     [MaxLength(256)]
     public string Username { get; set; } = string.Empty;
 
-    // This navigation property defines the many-to-many relationship
-    // It will hold the collection of join configurations associated with this report.
+    public virtual ICollection<DatasetReports> DatasetsReports { get; set; } = new List<DatasetReports>();
     public virtual ICollection<ReportJoin> ReportJoins { get; set; } = new List<ReportJoin>();
+    public string JSON_config { get; set; }
 }

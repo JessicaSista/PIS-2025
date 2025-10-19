@@ -1,10 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]

@@ -1,0 +1,169 @@
+﻿@page "/sonda-test-kpi2"
+@using OmniMonitor.Shared.Dtos
+@using System.Net.Http.Json
+@using Blazored.LocalStorage
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+
+<h3>Test Endpoint KPI</h3>
+
+<div class="card p-3 mb-3" style="max-width: 600px;">
+    <div class="mb-2">
+        <label class="form-label">Name:</label>
+        <input class="form-control" @bind="kpiRequest.Name" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Description:</label>
+        <input class="form-control" @bind="kpiRequest.Description" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Source Module:</label>
+        <input class="form-control" @bind="kpiRequest.SourceModule" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">DatasetId:</label>
+        <input type="number" class="form-control" @bind="kpiRequest.DatasetId" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Unit:</label>
+        <input class="form-control" @bind="kpiRequest.Unit" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Metric:</label>
+        <input class="form-control" @bind="kpiRequest.Metric" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Multiplier:</label>
+        <input type="number" step="0.01" class="form-control" @bind="kpiRequest.Multiplier" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Default Color:</label>
+        <input class="form-control" @bind="kpiRequest.DefaultColor" />
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Color Ranges (JSON string):</label>
+        <textarea class="form-control" @bind="kpiRequest.ColorRanges"
+                  placeholder='[{"min":0,"max":10,"color":"#00FF00"}, {"min":11,"max":20,"color":"#FFFF00"}]'></textarea>
+    </div>
+
+    <div class="mb-2">
+        <label class="form-label">Extra Info (JSON string):</label>
+        <textarea class="form-control" @bind="kpiRequest.ExtraInfo"
+                  placeholder='{"dateFrom":"2025-10-18T18:00:00","dateTo":"2025-10-18T19:00:00"}'></textarea>
+    </div>
+
+    <button class="btn btn-primary mt-2" @onclick="CreateKpiAsync" disabled="@isLoading">
+        @(isLoading ? "Creando..." : "Crear KPI")
+    </button>
+</div>
+
+@if (responseKpi != null)
+{
+    <div class="alert alert-success mt-3">
+        <b>KPI creado con ID:</b> @responseKpi.Id <br />
+        <b>Name:</b> @responseKpi.Name <br />
+        <b>Usuario:</b> @responseKpi.Username
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+@code {
+    private KpiRequest kpiRequest = new KpiRequest();
+    private bool isLoading = false;
+    private Kpi? responseKpi;
+    private string? errorMessage;
+
+    private async Task CreateKpiAsync()
+    {
+        isLoading = true;
+        responseKpi = null;
+        errorMessage = null;
+
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                errorMessage = "No se encontró token de autenticación.";
+                return;
+            }
+
+            string url = $"api/Kpi?token={token}";
+            var httpResponse = await Http.PostAsJsonAsync(url, kpiRequest);
+
+            if (httpResponse.IsSuccessStatusCode)
+            {
+                responseKpi = await httpResponse.Content.ReadFromJsonAsync<Kpi>();
+            }
+            else
+            {
+                errorMessage = $"Error del servidor: {httpResponse.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al crear KPI: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
+@* 
+Inputs para crear kpis de IM en /sonda-test-kpi2
+
+
+
+LASTVALUE (puede ser sensor de cualquier tipo)
+
+Name: testKPI
+Description: descripcion
+Source Module: IM
+DatasetId: 1
+Unit: W
+Metric: lastValue
+Multiplier: 1
+Default Color: #FFFFFF
+
+Color Ranges (JSON string):
+
+[{"min":0,"max":10,"color":"#00FF00"}, {"min":11,"max":20,"color":"#FFFF00"}]
+
+Extra Info (JSON string):
+
+{"dateFrom":"2025-10-16T18:00:00","dateTo":"2025-10-18T18:00:00"}
+
+
+
+AVERAGE / MIN / MAX
+
+
+Name: testKPI
+Description: descripcion
+Source Module: IM
+DatasetId: 1
+Unit: W
+Metric: min  /  max  /  average   (solo uno de los 3)
+Multiplier: 1
+Default Color: #FFFFFF
+
+Color Ranges (JSON string):
+
+[{"min":0,"max":10,"color":"#00FF00"}, {"min":11,"max":20,"color":"#FFFF00"}]
+
+Extra Info (JSON string):
+
+{"dateFrom":"2025-10-16T18:00:00","dateTo":"2025-10-18T18:00:00"} *@

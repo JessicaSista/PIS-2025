@@ -3,13 +3,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OmniMonitor.Shared.Dtos
 {
-    public class DatasetResource
+    public class DatasetCategory
     {
         [Key]
         public int Id { get; set; }
 
         [Required]
-        public int Id_resource { get; set; }
+        public int Id_Category { get; set; }
 
         // Relación de clave externa con Dataset
         public int DatasetId { get; set; }

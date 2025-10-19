@@ -2,6 +2,10 @@ namespace OmniMonitor.Shared.Dtos.EM
 {
     public class CategoryDto
     {
+        [System.Text.Json.Serialization.JsonPropertyName("CategoryId")]
+        public int CategoryId { get; set; }
+        [System.Text.Json.Serialization.JsonPropertyName("CategoryState")]
+        public string CategoryState { get; set; } = string.Empty;
         public int Id { get; set; }
         public bool Active { get; set; }
         public string Name { get; set; } = string.Empty;
