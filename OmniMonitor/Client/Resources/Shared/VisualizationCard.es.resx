@@ -123,7 +123,4 @@
   <data name="Datasets" xml:space="preserve">
     <value>Datasets</value>
   </data>
-  <data name="NoData" xml:space="preserve">
-    <value>No hay datos disponibles</value>
-  </data>
 </root>

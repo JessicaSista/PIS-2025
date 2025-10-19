@@ -17,49 +17,32 @@
     </TitleContent>
 
     <DialogContent>
-        @if (_isLoadingDatasets)
-        {
-            <div style="display:flex; justify-content:center; align-items:center; height:100px;">
-                <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" Size="MudBlazor.Size.Medium" />
-            </div>
-        }
-        else
-        {
         <MudStack Spacing="3">
 
             <!-- Dataset + Multiplicador + Color -->
+            <!-- Dataset + Multiplicador + Color por defecto -->
             <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
 
                 <!-- Dataset select -->
                 <div style="display: flex; flex-direction: column;">
                     <MudText Typo="Typo.h6" Style="color: var(--text-primary);">Dataset</MudText>
                     <MudSelect T="int"
-                               Value="_selectedDatasetId"
-                               ValueChanged="OnDatasetChanged"
+                               @bind-Value="_selectedDatasetId"
                                Variant="Variant.Outlined"
                                Dense="true"
                                Style="background: var(--card); width: 280px;"
                                Required="true">
                         @foreach (var ds in _datasets)
                         {
-                            var displayName = ds.Name?.Trim();
-                            if (!string.IsNullOrEmpty(displayName) && displayName.Length > 4)
-                            {
-                                displayName = displayName[..^4]; // Quita los últimos 4 caracteres
-                            }
-
                             <MudSelectItem T="int" Value="@ds.Id">
-                                @displayName (@(ds.ContentType ?? ds.SensorName ?? "—"))
+                                @ds.Name (@(ds.ContentType ?? ds.SensorName ?? "—"))
                             </MudSelectItem>
                         }
                     </MudSelect>
-
-
-
                 </div>
 
                 <!-- Multiplicador (solo si es numérico) -->
-                @if (_isNumericDataset)
+                @if (IsNumericDataset)
                 {
                     <div style="display: flex; flex-direction: column;">
                         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Multiplier"]</MudText>
@@ -72,20 +55,20 @@
                     </div>
                 }
 
-                <!-- Color -->
-                <div style="display: flex; align-items: center; height: 100%;">
+                <!-- Color por defecto (cuadrado centrado, sin texto) -->
+                <div style="display: flex; align-items: center; height: 100%; ">
                     <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
                         <ActivatorContent>
                             <MudTooltip Text="@_color">
                                 <div style="
-                                    width: 56.5px;
-                                    height: 56.5px;
-                                    border-radius: 6px;
-                                    border: 1px solid var(--borde-drawer);
-                                    cursor: pointer;
-                                    margin-top:30.5px;
-                                    background-color:@_color;
-                                    transition: box-shadow 0.2s ease;"
+                        width: 56.5px;
+                        height: 56.5px;
+                        border-radius: 6px;
+                        border: 1px solid var(--borde-drawer);
+                        cursor: pointer;
+margin-top:30.5px;
+                        background-color:@_color;
+                        transition: box-shadow 0.2s ease;"
                                      onmouseover="this.style.boxShadow='0 0 4px var(--borde-drawer)'"
                                      onmouseout="this.style.boxShadow='none'">
                                 </div>
@@ -104,53 +87,28 @@
 
             </div>
 
+
+
+
             <!-- Nombre -->
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
-            <MudTextField @bind-Value="_name"
-                          Variant="Variant.Outlined"
-                          Required="true"
-                          Style="background: var(--card);" />
+            <MudTextField @bind-Value="_name" Variant="Variant.Outlined" Required="true" Style="background: var(--card);" />
 
             <!-- Descripción -->
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
-            <MudTextField @bind-Value="_description"
-                          Variant="Variant.Outlined"
-                          Lines="2"
-                          MaxLength="200"
-                          Style="background: var(--card);" />
-            @if (_metric is "average" or "min" or "max")
-            {
-                <MudDivider Class="my-2" />
-            }
+            <MudTextField @bind-Value="_description" Variant="Variant.Outlined" Lines="2" Style="background: var(--card);" />
+
             <!-- Tipo de métrica -->
             <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Metric"]</MudText>
-
-            <MudSelect T="string" @bind-Value="_metric"
-                       Variant="Variant.Outlined"
-                       Dense="true"
-                       Style="background: var(--card);"
-                       Required="true">
+            <MudSelect T="string" @bind-Value="_metric" Variant="Variant.Outlined" Dense="true" Style="background: var(--card);">
                 @foreach (var tipo in _kpiTypes)
                 {
-                    <MudSelectItem T="string" Value="@tipo">@_metricLabels[tipo]</MudSelectItem>
+                    <MudSelectItem T="string" Value="@tipo">@tipo</MudSelectItem>
                 }
             </MudSelect>
 
-
-            @if (_metric is "average" or "min" or "max")
-            {
-                
-                <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
-
-                <div style="display:flex; gap:16px; flex-wrap:wrap;">
-                    <MudDatePicker @bind-Date="_dateFrom" Label="@Localizer["From"]" Variant="Variant.Outlined" Style="width:180px;" Required="true" />
-                    <MudDatePicker @bind-Date="_dateTo" Label="@Localizer["To"]" Variant="Variant.Outlined" Style="width:180px;" Required="true" />
-                </div>
-            }
-
-
             <!-- Rangos de color (solo numérico) -->
-            @if (_isNumericDataset)
+            @if (IsNumericDataset)
             {
                 <MudDivider Class="my-2" />
                 <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["ColorRanges"]</MudText>
@@ -200,13 +158,13 @@
                     </div>
                 }
 
+
                 <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary" OnClick="AddRange" StartIcon="@Icons.Material.Filled.Add">
                     @Localizer["AddRange"]
                 </MudButton>
             }
 
         </MudStack>
-        }
     </DialogContent>
 
     <DialogActions>
@@ -220,101 +178,56 @@
 
     private List<DatasetIM> _datasets = new();
     private int _selectedDatasetId;
-    private bool _isNumericDataset = false;
+    private DatasetIM? _selectedDataset => _datasets.FirstOrDefault(d => d.Id == _selectedDatasetId);
 
     private decimal _multiplier = 1.0M;
     private string _name = string.Empty;
     private string _description = string.Empty;
     private string _metric = "average";
     private string _color = "#FFFFFF";
-    private DateTime? _dateFrom;
-    private DateTime? _dateTo;
-    private bool _isLoadingDatasets = true;
 
     private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<ColorRange> _colorRanges = new();
 
+    private bool IsNumericDataset =>
+        _selectedDataset?.ContentType?.ToLower().Contains("num") == true ||
+        _selectedDataset?.Name.ToLower().Contains("num") == true;
+
     protected override async Task OnInitializedAsync()
     {
-        await LoadDatasets();
-    }
-
-    private async Task LoadDatasets()
-    {
-        _isLoadingDatasets = true; // inicio de carga
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Dataset/user?token={Uri.EscapeDataString(token)}");
+            var response = await Http.GetAsync($"api/Dataset/GetAllDatasets?token={Uri.EscapeDataString(token)}");
 
             if (response.IsSuccessStatusCode)
             {
-                _datasets = await response.Content.ReadFromJsonAsync<List<DatasetIM>>() ?? new();
+                var datasets = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                _datasets = datasets ?? new();
                 _selectedDatasetId = _datasets.FirstOrDefault()?.Id ?? 0;
-                if (_selectedDatasetId != 0)
-                    await UpdateSensorType(_selectedDatasetId);
             }
             else
             {
                 Snackbar.Add("Error al obtener datasets del backend.", Severity.Warning);
+                _datasets = GetFallbackDatasets();
             }
         }
-        catch (Exception ex)
+        catch
         {
-            Snackbar.Add($"Error al cargar datasets: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            _isLoadingDatasets = false; // fin de carga
-            StateHasChanged();
+            _datasets = GetFallbackDatasets();
         }
     }
 
-
-    private async Task OnDatasetChanged(int datasetId)
+    private List<DatasetIM> GetFallbackDatasets() => new()
     {
-        _selectedDatasetId = datasetId; 
-        await UpdateSensorType(datasetId);
-    }
-
-    private async Task UpdateSensorType(int datasetId)
-    {
-        try
-        {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Dataset/GetSensorType?datasetId={datasetId}&token={Uri.EscapeDataString(token)}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                var type = await response.Content.ReadAsStringAsync();
-
-                string[] numericTypes = { "num", "int", "float", "double", "decimal" };
-                _isNumericDataset = numericTypes.Any(t => type.Contains(t, StringComparison.OrdinalIgnoreCase));
-            }
-            else
-            {
-                _isNumericDataset = false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al obtener tipo de dataset {datasetId}: {ex.Message}");
-            _isNumericDataset = false;
-        }
-    }
+        new DatasetIM { Id = 1, Name = "Dataset numérico", ContentType = "Numerico" },
+        new DatasetIM { Id = 2, Name = "Dataset categórico", ContentType = "Categorico" },
+    };
 
     private void AddRange() => _colorRanges.Add(new ColorRange());
-    
     private void RemoveRange(ColorRange range) => _colorRanges.Remove(range);
 
     private void Cancel() => _mudDialog.Cancel();
-    private Dictionary<string, string> _metricLabels = new()
-{
-    { "lastValue", "Last Value" },
-    { "average", "Average" },
-    { "min", "Minimum" },
-    { "max", "Maximum" }
-};
 
     private async Task Submit()
     {
@@ -322,17 +235,6 @@
         {
             Snackbar.Add("El nombre del KPI es obligatorio.", Severity.Warning);
             return;
-        }
-
-        object extraInfoObj;
-
-        if ((_metric == "average" || _metric == "min" || _metric == "max") && _dateFrom.HasValue && _dateTo.HasValue)
-        {
-            extraInfoObj = new { dateFrom = _dateFrom.Value, dateTo = _dateTo.Value };
-        }
-        else
-        {
-            extraInfoObj = new { };
         }
 
         var request = new KpiRequest
@@ -344,17 +246,15 @@
             Metric = _metric,
             Multiplier = (double)_multiplier,
             DefaultColor = _color,
-            ColorRanges = _isNumericDataset ? System.Text.Json.JsonSerializer.Serialize(_colorRanges) : "[]",
-            ExtraInfo = System.Text.Json.JsonSerializer.Serialize(extraInfoObj),
+            ColorRanges = IsNumericDataset ? System.Text.Json.JsonSerializer.Serialize(_colorRanges) : "[]",
+            ExtraInfo = "{}",
             SourceModule = "IM"
         };
-
-
 
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.PostAsJsonAsync($"api/Kpi?token={Uri.EscapeDataString(token)}", request);
+            var response = await Http.PostAsJsonAsync($"api/Kpi?token={token}", request);
 
             if (response.IsSuccessStatusCode)
             {
