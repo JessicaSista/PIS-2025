@@ -191,27 +191,15 @@ public class SondaEMService : ISondaEMService
         string username,
         string password)
     {
-        if (!page.HasValue)
-        {
-            throw new ArgumentException("El parámetro 'page' es requerido.", nameof(page));
-        }
-        if (!pageSize.HasValue)
-        {
-            throw new ArgumentException("El parámetro 'pageSize' es requerido.", nameof(pageSize));
-        }
-        if (page.Value <= 0)
-        {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor que cero.", nameof(page));
-        }
-        if (pageSize.Value <= 0)
-        {
-            throw new ArgumentException("El parámetro 'pageSize' debe ser mayor que cero.", nameof(pageSize));
-        }
+        // NOTE: Making pagination optional like other endpoints
+        // Some Sonda API endpoints may not support pagination properly
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Alert"]["GetAll"];
+        
         var queryParams = new List<string>();
-        if (page.HasValue) queryParams.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
-        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value.ToString(CultureInfo.InvariantCulture)}");
+        // Only add pagination if provided
+        if (page.HasValue && page.Value > 0) queryParams.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
+        if (pageSize.HasValue && pageSize.Value > 0) queryParams.Add($"pageSize={pageSize.Value.ToString(CultureInfo.InvariantCulture)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
         if (!string.IsNullOrEmpty(stateList)) queryParams.Add($"stateList={Uri.EscapeDataString(stateList)}");
         if (x.HasValue) queryParams.Add($"x={x.Value.ToString(CultureInfo.InvariantCulture)}");
@@ -219,9 +207,10 @@ public class SondaEMService : ISondaEMService
         if (r.HasValue) queryParams.Add($"r={r.Value.ToString(CultureInfo.InvariantCulture)}");
         if (forceGps.HasValue) queryParams.Add($"forceGps={forceGps.Value.ToString().ToLowerInvariant()}");
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
+        
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
+        Console.WriteLine($"SONDA API REQUEST (Alerts): {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
@@ -338,26 +327,29 @@ public class SondaEMService : ISondaEMService
         string username,
         string password)
     {
-        if (page.HasValue && page.Value < 0)
-        {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor o igual que cero.");
-        }
+        // NOTE: Similar to Categories, the Sonda API's events endpoint may not support pagination
+        // Testing shows it works better without page/pageSize parameters
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Event"]["GetEvents"];
+        
+        // Only include sort and query parameters if provided
+        // DO NOT include page/pageSize as the API may not support them
         var queryParams = new List<string>();
-        if (page.HasValue) queryParams.Add($"page={page.Value}");
-        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value}");
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
+        
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
+        Console.WriteLine($"SONDA API REQUEST (Events - no pagination): {getDataUrl}");
+        
         string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
         Console.WriteLine($"SONDA API TOKEN: {token}");
+        
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
+        
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
@@ -561,26 +553,30 @@ public class SondaEMService : ISondaEMService
         string username,
         string password)
     {
-        if (page.HasValue && page.Value < 0)
-        {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor o igual que cero.");
-        }
+        // NOTE: The Sonda API's category endpoint does NOT support pagination parameters
+        // Attempting to send page/pageSize results in 404 errors
+        // This is an API design inconsistency that we need to work around
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Category"]["GetAll"];
+        
+        // Only include sort and query parameters if provided
+        // DO NOT include page/pageSize as the API doesn't support them
         var queryParams = new List<string>();
-        if (page.HasValue) queryParams.Add($"page={page.Value}");
-        if (pageSize.HasValue) queryParams.Add($"pageSize={pageSize.Value}");
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
+        
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
+        Console.WriteLine($"SONDA API REQUEST (Categories - no pagination support): {getDataUrl}");
+        
         string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
         Console.WriteLine($"SONDA API TOKEN: {token}");
+        
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
+        
         var responseBody = await response.Content.ReadAsStringAsync();
         Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))

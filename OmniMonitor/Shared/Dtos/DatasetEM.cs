@@ -37,16 +37,16 @@ namespace OmniMonitor.Shared.Dtos
         public virtual ICollection<DatasetExtension> DatasetExtensions { get; set; } = new List<DatasetExtension>();
 
         // Relación con los resources seleccionados explícitamente
-        public virtual ICollection<DatasetResource> DatasetResources { get; set; } = new List<DatasetResource>();
+        public virtual ICollection<DatasetCategory> DatasetCategory { get; set; } = new List<DatasetCategory>();
 
         // IDs para la búsqueda dinámica cuando no se seleccionan explícitamente
         public int? Id_Alert { get; set; }
         public int? Id_Event { get; set; }
         public int? Id_Extension { get; set; }
-        public int? Id_Resource { get; set; }
+        public int? Id_Category { get; set; }
         public string? AlertState { get; set; }
         public string? EventState { get; set; }
         public string? ExtensionState { get; set; }
-        public string? ResourceState { get; set; }
+        public string? CategoryState { get; set; }
     }
 }

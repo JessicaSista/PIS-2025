@@ -128,7 +128,8 @@
     private void EditarDataset(DatasetDto dataset)
     {
         if (dataset is null) return;
-        NavigationManager.NavigateTo($"/editarDataset/{dataset.Id}");
+        // Pasar el módulo como parámetro de query para carga más rápida
+        NavigationManager.NavigateTo($"/editarDataset/{dataset.Id}?module={Uri.EscapeDataString(dataset.Module)}");
     }
 
     private async Task ConfirmEliminar(DatasetDto dataset)
@@ -163,12 +164,33 @@
                     return;
                 }
 
-                // Eliminar desde el backend
-                var response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={token}");
+                HttpResponseMessage response;
+                
+                // Eliminar según el módulo
+                switch (dataset.Module)
+                {
+                    case "Insight Monitor":
+                        response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
+                        break;
+                    case "Asset Manager":
+                        response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
+                        break;
+                    case "Urban Monitor":
+                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
+                        break;
+                    case "Event Manager":
+                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
+                        break;
+                    default:
+                        Snackbar.Add("Módulo desconocido", Severity.Error);
+                        return;
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
-                    datasets.RemoveAll(d => d.Id == dataset.Id);
-                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
+                    // Remover solo el dataset que coincide tanto en ID como en Módulo
+                    datasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
+                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
                     Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;
@@ -232,44 +254,132 @@
                 return;
             }
 
-            // Construir la URL con el parámetro de búsqueda si existe
-            var url = $"api/Dataset/user?token={Uri.EscapeDataString(token)}";
-            if (!string.IsNullOrWhiteSpace(searchText))
+            var allDatasets = new List<DatasetDto>();
+
+            // 1. Cargar datasets de Insight Monitor
+            try
             {
-                url += $"&search={Uri.EscapeDataString(searchText)}";
+                var urlIM = $"api/Dataset/user?token={Uri.EscapeDataString(token)}";
+                if (!string.IsNullOrWhiteSpace(searchText))
+                {
+                    urlIM += $"&search={Uri.EscapeDataString(searchText)}";
+                }
+
+                var responseIM = await Http.GetAsync(urlIM);
+                if (responseIM.IsSuccessStatusCode)
+                {
+                    var datasetsIM = await responseIM.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                    allDatasets.AddRange(datasetsIM?.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Insight Monitor"
+                    }) ?? new List<DatasetDto>());
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets IM: {ex.Message}");
             }
 
-            // Cargar datasets desde el backend
-            var response = await Http.GetAsync(url);
-            
-            Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");
-            
-            if (response.IsSuccessStatusCode)
+            // 2. Cargar datasets de Asset Manager
+            try
             {
-                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
-                
-                Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
-                
-                // Convertir Dataset a DatasetDto
-                datasets = datasetsFromApi?.Select(d => new DatasetDto
+                var urlAM = $"api/DatasetAM/GetAllDatasetAMs?token={Uri.EscapeDataString(token)}";
+                var responseAM = await Http.GetAsync(urlAM);
+                if (responseAM.IsSuccessStatusCode)
                 {
-                    Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description
-                }).ToList() ?? new List<DatasetDto>();
-                
-                // Como el filtrado ya se hizo en el backend, asignamos directamente
-                filteredDatasets = datasets.ToList();
+                    var datasetsAM = await responseAM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetAM>>();
+                    var filteredAM = datasetsAM ?? new List<OmniMonitor.Shared.Dtos.DatasetAM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredAM = filteredAM.Where(d => NormalizeText(d.Nombre ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredAM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id_Dataset,
+                        Nombre = d.Nombre,
+                        Descripcion = d.Descripcion,
+                        Module = "Asset Manager"
+                    }));
+                }
             }
-            else
+            catch (Exception ex)
             {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"DEBUG: Error response: {errorContent}");
-                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
-                
-                datasets = new List<DatasetDto>();
-                filteredDatasets = new List<DatasetDto>();
+                Console.WriteLine($"Error cargando datasets AM: {ex.Message}");
             }
+
+            // 3. Cargar datasets de Urban Monitor
+            try
+            {
+                var urlUM = $"api/DatasetUM/GetAllDatasets?token={Uri.EscapeDataString(token)}";
+                var responseUM = await Http.GetAsync(urlUM);
+                if (responseUM.IsSuccessStatusCode)
+                {
+                    var datasetsUM = await responseUM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetUM>>();
+                    var filteredUM = datasetsUM ?? new List<OmniMonitor.Shared.Dtos.DatasetUM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredUM = filteredUM.Where(d => NormalizeText(d.Name ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredUM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Urban Monitor"
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets UM: {ex.Message}");
+            }
+
+            // 4. Cargar datasets de Event Manager
+            try
+            {
+                var urlEM = $"api/DatasetEM/GetAllDatasets?token={Uri.EscapeDataString(token)}";
+                var responseEM = await Http.GetAsync(urlEM);
+                if (responseEM.IsSuccessStatusCode)
+                {
+                    var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetEM>>();
+                    var filteredEM = datasetsEM ?? new List<OmniMonitor.Shared.Dtos.DatasetEM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredEM = filteredEM.Where(d => NormalizeText(d.Name ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredEM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Event Manager"
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets EM: {ex.Message}");
+            }
+
+            datasets = allDatasets;
+            filteredDatasets = allDatasets;
+            
+            Console.WriteLine($"DEBUG: Total datasets cargados: {allDatasets.Count}");
 
             StateHasChanged();
         }

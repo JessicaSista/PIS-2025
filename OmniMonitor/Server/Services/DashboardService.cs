@@ -23,7 +23,7 @@ namespace OmniMonitor.Server.Services
         Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno);
         Task<bool> AddDashboardCardAsync(int idDashboard, string username, string jsonConfig,DashboardCard nuevaCard);
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string jsonConfig, List<DashboardCard> orderedCards);
-        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, string jsonConfig, int idGrupoVisualizacion);
+        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
         Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard);
         Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
@@ -298,9 +298,9 @@ namespace OmniMonitor.Server.Services
                 // if (!kpiExiste) return false;
             }
 
-            if (JsonDiseno == null){
-                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
-            }
+            //if (JsonDiseno == null){
+            //    throw new ArgumentException("El JSON de configuración no puede estar vacío.");
+            //}
 
             // Chequear si la tarjeta ya existe en el dashboard (por IdVisualizacion y TipoCard)
             bool cardExists = dashboard.GrupoVisualizaciones.Any(gv =>
@@ -326,7 +326,7 @@ namespace OmniMonitor.Server.Services
                 Orden = orden
             };
 
-            dashboard.JsonDiseno = JsonDiseno;
+            //dashboard.JsonDiseno = JsonDiseno;
             _context.Dashboards.Update(dashboard);
 
             _context.GrupoVisualizaciones.Add(grupoVisualizacion);
@@ -369,19 +369,15 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
         /// </summary>
-        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, string jsonConfig, int idGrupoVisualizacion)
+        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
             if (dashboard == null)
                 return false;
-            
-            if (jsonConfig == null){
-                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
-            }
 
-            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdGrupoVisualizacion == idGrupoVisualizacion);
+            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdVisualizacion == idCard && gv.TipoCard == tipoCard );
             if (cardToRemove == null)
                 return false;
 
@@ -394,7 +390,6 @@ namespace OmniMonitor.Server.Services
             {
                 card.Orden--;
             }
-            dashboard.JsonDiseno = jsonConfig;
             await _context.SaveChangesAsync();
             return true;
         }
