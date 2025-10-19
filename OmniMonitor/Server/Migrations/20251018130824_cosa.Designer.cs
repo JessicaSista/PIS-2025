@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OmniMonitor.Server.Context;
 
@@ -11,9 +12,11 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251018130824_cosa")]
+    partial class cosa
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,27 +273,6 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("DatasetAsset");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DatasetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Id_Category")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetId");
-
-                    b.ToTable("DatasetCategory");
-                });
-
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
                 {
                     b.Property<int>("Id")
@@ -323,9 +305,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("AlertState")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("CategoryState")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ContentType")
                         .HasColumnType("nvarchar(max)");
 
@@ -342,13 +321,13 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<int?>("Id_Alert")
                         .HasColumnType("int");
 
-                    b.Property<int?>("Id_Category")
-                        .HasColumnType("int");
-
                     b.Property<int?>("Id_Event")
                         .HasColumnType("int");
 
                     b.Property<int?>("Id_Extension")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Id_Resource")
                         .HasColumnType("int");
 
                     b.Property<string>("Is_Dataset")
@@ -360,6 +339,9 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ResourceState")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -520,6 +502,27 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("DatasetNews");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetResource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DatasetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Id_resource")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DatasetId");
+
+                    b.ToTable("DatasetResources");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
                 {
                     b.Property<int>("Grupo_Stock")
@@ -658,66 +661,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("IdVisualizacion");
 
                     b.ToTable("GrupoVisualizaciones");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Kpi", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasAnnotation("Relational:JsonPropertyName", "id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ColorRanges")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "colorRanges");
-
-                    b.Property<int>("DatasetId")
-                        .HasColumnType("int")
-                        .HasAnnotation("Relational:JsonPropertyName", "datasetId");
-
-                    b.Property<string>("DefaultColor")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "defaultColor");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "description");
-
-                    b.Property<string>("ExtraInfo")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "extraInfo");
-
-                    b.Property<string>("Metric")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "metric");
-
-                    b.Property<double?>("Multiplier")
-                        .HasColumnType("float")
-                        .HasAnnotation("Relational:JsonPropertyName", "multiplier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "name");
-
-                    b.Property<string>("SourceModule")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "sourceModule");
-
-                    b.Property<string>("Unit")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "unit");
-
-                    b.Property<string>("Username")
-                        .HasColumnType("nvarchar(max)")
-                        .HasAnnotation("Relational:JsonPropertyName", "username");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Kpi");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
@@ -1342,17 +1285,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("DatasetAM");
                 });
 
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
-                        .WithMany("DatasetCategory")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dataset");
-                });
-
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
@@ -1412,6 +1344,17 @@ namespace OmniMonitor.Server.Migrations
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.DatasetUM", "Dataset")
                         .WithMany("DatasetNews")
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetResource", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
+                        .WithMany("DatasetResources")
                         .HasForeignKey("DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1541,11 +1484,11 @@ namespace OmniMonitor.Server.Migrations
                 {
                     b.Navigation("DatasetAlerts");
 
-                    b.Navigation("DatasetCategory");
-
                     b.Navigation("DatasetEvents");
 
                     b.Navigation("DatasetExtensions");
+
+                    b.Navigation("DatasetResources");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>

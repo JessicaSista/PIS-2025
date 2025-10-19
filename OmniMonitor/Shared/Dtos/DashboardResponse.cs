@@ -59,6 +59,7 @@ namespace OmniMonitor.Shared.Dtos
     public class DashboardSummaryResponse
     {
         public int IdDashboard { get; set; }
+        public string Username { get; set; } = string.Empty;
         public string Nombre { get; set; } = string.Empty;
         public string? Descripcion { get; set; }
         public DateTime FechaCreacion { get; set; }

@@ -35,10 +35,13 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(400)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request)
+    public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request,string token)
     {
         try
         {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (!IsUserAuthorized(username))
+                return Forbid();
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
