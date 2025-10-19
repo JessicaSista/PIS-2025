@@ -105,11 +105,6 @@
       </xsd:complexType>
     </xsd:element>
   </xsd:schema>
-  
-  <!-- AppBar -->
-  <data name="Logout" xml:space="preserve">
-    <value>Cerrar Sesión</value>
-  </data>
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -122,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Logout" xml:space="preserve">
+    <value>Cerrar Sesión</value>
+  </data>
   <data name="Actualizado" xml:space="preserve">
     <value>Actualizado:</value>
   </data>
@@ -142,5 +140,20 @@
   </data>
   <data name="QuickViewTitle" xml:space="preserve">
     <value>Visualización Rápida</value>
+  </data>
+  <data name="RemoveCardText" xml:space="preserve">
+    <value>¿Seguro que deseas eliminar esta card?</value>
+  </data>
+  <data name="EditButtonText" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="DeleteButtonText" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="CancelButtonText" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="ConfirmButtonText" xml:space="preserve">
+    <value>Confirmar</value>
   </data>
 </root>

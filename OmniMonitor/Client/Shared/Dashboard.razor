@@ -11,7 +11,16 @@
             
             var (id, anchoSm, anchoMd, anchoLg, alto) = CardsData[i];
 
-            <DashboardCard VisualizationId=@id WidthXs=@anchoSm WidthMd=@anchoMd WidthLg=@anchoLg Height=@alto UpdateCardSize="UpdateCardSize"></DashboardCard>
+            <DashboardCard @key="id"
+                dashboardId=@dashboardId 
+                VisualizationId=@id 
+                WidthXs=@anchoSm 
+                WidthMd=@anchoMd 
+                WidthLg=@anchoLg 
+                Height=@alto 
+                UpdateCardSize="UpdateCardSize" 
+                RemoveCard="RemoveCard">
+            </DashboardCard>
         }
         <MudItem xs="12" lg="3" md="6" @onclick="OpenDialogCreateCard">
             <MudPaper Class="add-card-widget d-flex flex-column justify-center align-center mud-width-full pa-10"
@@ -19,7 +28,8 @@
                          color: var(--card-text-primary);
                          cursor: pointer;
                          border: 1px solid #374151;
-                         border-radius: 7px;"
+                         border-radius: 7px;
+                         height: 100%"
                       Elevation="2">
 
                 <MudIcon Icon="@Icons.Material.Filled.Add" Size="MudBlazor.Size.Large" />
@@ -44,6 +54,7 @@
     
     [Parameter] public EventCallback<int> OnVisualizationCreated { get; set; }
     [Parameter] public EventCallback<(int,int,int,int,int)> UpdateCardSize { get; set; }
+    [Parameter] public EventCallback<int> RemoveCard { get; set; }
 
 
     
