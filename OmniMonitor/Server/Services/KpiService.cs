@@ -12,8 +12,8 @@ namespace OmniMonitor.Server.Services
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password);
-
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password);
+        Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
     }
 
     public class KpiService : IKpiService
@@ -592,6 +592,39 @@ namespace OmniMonitor.Server.Services
                 Type = sensorType
             };
         }
+
+
+        public async Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule)
+        {
+            var metrics = new List<MetricInfo>();
+
+            switch (sourceModule.ToUpper())
+            {
+                case "IM":
+                    metrics.Add(new MetricInfo { Name = "lastValue", ExtraInfo = "none" });
+                    metrics.Add(new MetricInfo { Name = "average", ExtraInfo = "requiresDateRange" });
+                    metrics.Add(new MetricInfo { Name = "minValue", ExtraInfo = "requiresDateRange" });
+                    metrics.Add(new MetricInfo { Name = "maxValue", ExtraInfo = "requiresDateRange" });
+                    break;
+
+                case "AM":
+                    break;
+
+                case "EM":
+                    break;
+
+                case "UM":
+                    break;
+
+                default:
+                    throw new ArgumentException($"SourceModule no soportado: {sourceModule}");
+            }
+
+            // Si quisieras, podrías hacerlo async por compatibilidad con interfaces o futura DB
+            await Task.CompletedTask;
+            return metrics;
+        }
+
 
 
 

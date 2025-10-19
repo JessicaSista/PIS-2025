@@ -120,12 +120,12 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string token)
+        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string token, string? query)
         {
             try
             {
                 var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var dashboards = await _dashboardService.GetAllDashboardsAsync(username);
+                var dashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
                 return Ok(dashboards);
             }
             catch (Exception ex)
@@ -290,12 +290,12 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string username, [FromQuery] string? JsonConfig, [FromQuery] string nombre, [FromBody] CreateVisualizacionRequest request)
+        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string username, [FromQuery] string? JsonConfig, [FromQuery] System.Int32 idVisualizacion, [FromBody] CreateVisualizacionRequest request)
         {
             if (request == null || request.Nombre == null)
                 return BadRequest(new { message = "Datos inválidos para la edición de la tarjeta." });
 
-            var result = await _dashboardService.EditDashboardCard(id, username, JsonConfig, nombre, request);
+            var result = await _dashboardService.EditDashboardCard(id, username, JsonConfig, idVisualizacion, request);
             if (!result)
                 return NotFound(new { message = "No se encontró la tarjeta o la visualización asociada para editar." });
             return Ok(new { message = "Tarjeta y visualización actualizadas correctamente." });

@@ -82,7 +82,6 @@ public class KPIController : ControllerBase
         }
     }
 
-    //Obtener todos los kpis
 
     // Obtener todos los KPIs del usuario
     [HttpGet("kpis")]
@@ -106,6 +105,101 @@ public class KPIController : ControllerBase
         }
     }
 
+
+    [HttpGet("metrics/{module}")]
+    [ProducesResponseType(typeof(List<MetricInfo>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<MetricInfo>>> GetMetricInfoByModule(string module)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(module))
+                return BadRequest("Debe especificarse el módulo.");
+
+            var metrics = await _kpiService.GetMetricInfoListAsync(module.ToUpperInvariant());
+            if (metrics == null || !metrics.Any())
+                return NotFound($"No se encontraron métricas para el módulo {module}.");
+
+            return Ok(metrics);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
+        }
+    }
+
+
+
+
+
+
+
+
+    // ⚙️ Endpoint temporal para probar GetDeviceDataByDate
+    [HttpGet("testDates")]
+    [ProducesResponseType(typeof(List<DeviceData>), 200)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<DeviceData>>> TestGetDeviceDataByDate()
+    {
+        try
+        {
+            // 🔧 Datos de prueba (ajustá según tus datos reales)
+            string username = "admin";
+            string password = "admin";
+            int deviceId = 52726;
+
+            DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
+            DateTime dateTo = DateTime.UtcNow;               // ahora
+
+            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username, password);
+
+            if (data == null || data.Count == 0)
+                return Ok("No se encontraron datos para el rango de fechas.");
+
+            return Ok(data);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+
+
+    [HttpGet("test")]
+    public ActionResult<Kpi> GetTestKpi()
+    {
+        var kpi = new Kpi
+        {
+            Id = 1,
+            Name = "Temperature Sensor",
+            Description = "Average temperature of last hour",
+            SourceModule = "UM",
+            DatasetId = 101,
+            Unit = "°C",
+            Metric = "Average",
+            Multiplier = 1.0,
+            DefaultColor = "#00FF00"
+        };
+
+        return Ok(kpi);
+    }
+
+    [HttpGet("test-response")]
+    public ActionResult<KpiResponse> GetTestKpiResponse()
+    {
+        var response = new KpiResponse
+        {
+            Name = "Temperature Sensor",
+            Description = "Average temperature of last hour",
+            Type = "float",
+            Value = 23.7,
+            ActualColor = "#00FF00"
+        };
+
+        return Ok(response);
+    }
 }
 
 

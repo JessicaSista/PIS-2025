@@ -19,5 +19,6 @@ public class Report
 
     public virtual ICollection<DatasetReports> DatasetsReports { get; set; } = new List<DatasetReports>();
     public virtual ICollection<ReportJoin> ReportJoins { get; set; } = new List<ReportJoin>();
-    public string JSON_config { get; set; }
+    [Required]
+    public string JSON_config { get; set; } = "{}";
 }
