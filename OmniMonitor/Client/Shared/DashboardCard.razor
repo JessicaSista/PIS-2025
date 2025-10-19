@@ -39,7 +39,7 @@
                             Style="color: var(--card-text-secondary)">
                 @if (_seriesData.Any())
                 {
-                    <ApexChart TItem="ChartPoint" @key="Height" Height="@(Height - 130)">
+                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="@(Height - 130)">
                         @foreach (var serie in _seriesData)
                         {
                             <ApexPointSeries TItem="ChartPoint"
@@ -54,9 +54,7 @@
                 }
                 else
                 {
-                    <MudText Typo="Typo.h6" Align="MudBlazor.Align.Center" Style="padding: 3rem 0; color: #667d8a;">
-                        Sin datos para graficar
-                    </MudText>
+                    <MudSkeleton/>
                 }
             </MudCardContent>
         </MudCard>
@@ -110,6 +108,9 @@
     private List<DatasetSeries> _seriesData = new();
     private string _chartType { get; set; } = "line";
     private List<object> _dataCharts { get; set; } = new();
+
+    private ApexChart<ChartPoint>? _apexChart;
+    private int _chartKey = 0;
 
 
     protected override async Task OnInitializedAsync()
@@ -263,7 +264,16 @@
         {
             try
             {
+                _seriesData.Clear();
+                StateHasChanged();
+                
                 await RefreshVisualizationData();
+                
+                _chartKey++;
+                
+                StateHasChanged();
+                
+                SnackbarService.Add("Visualización actualizada", Severity.Success);
             }
             catch (Exception ex)
             {
