@@ -2,6 +2,7 @@ namespace OmniMonitor.Shared.Dtos.EM
 {
     public class CategoryDto
     {
+      
         public int Id { get; set; }
         public bool Active { get; set; }
         public string Name { get; set; } = string.Empty;

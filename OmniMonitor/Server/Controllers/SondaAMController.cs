@@ -235,6 +235,10 @@ public class SondaAMController : ControllerBase
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var result = await _sondaAMService.GetEventTaskInstanceById(eventTaskInstanceId, username, password);
+            if (result == null)
+            {
+                return NotFound(new { error = "No se encontraron eventtaskinstances" });
+            }
             return Ok(result);
         }
         catch (Exception ex)
@@ -264,6 +268,10 @@ public class SondaAMController : ControllerBase
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString, bundleId, state, sort, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username, password);
+            if (result == null || result.Count == 0)
+            {
+                return NotFound(new { error = "No se encontraron eventtasks" });
+            }
             return Ok(result);
         }
         catch (Exception ex)
