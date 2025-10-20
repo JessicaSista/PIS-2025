@@ -133,7 +133,7 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
         var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
-
+        //
         List<dynamic> nestedResults;
 
         var leftList = processedLeftQuery.ToDynamicList();
