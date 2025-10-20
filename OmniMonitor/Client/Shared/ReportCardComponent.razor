@@ -21,7 +21,7 @@
                 AnchorOrigin="Origin.TopRight"
                 TransformOrigin="Origin.TopRight"
                 Style="color: var(--mud-palette-text-secondary);">
-            <MudMenuItem OnClick="@(() => EditReport())"
+            <MudMenuItem OnClick="EditReport"
                         Class="menu-item-edit"
                         Style="color: #949FD0 !important; padding: 8px 16px !important;">
                 <span style="font-weight: 800 !important; font-family: 'Inter', 'Roboto', sans-serif !important;">Editar</span>
@@ -78,11 +78,18 @@
         Reporte ??= new ReporteDto();
     }
 
-    private void EditReport()
+    private async Task EditReport()
     {
         if (Reporte?.Id > 0)
         {
-            NavigationManager.NavigateTo($"/editarReporte/{Reporte.Id}");
+            if (OnEdit.HasDelegate)
+            {
+                await OnEdit.InvokeAsync(Reporte.Id);
+            }
+            else
+            {
+                NavigationManager.NavigateTo($"/editarReporte/{Reporte.Id}");
+            }
         }
     }
 }
