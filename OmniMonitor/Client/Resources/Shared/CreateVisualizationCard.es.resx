@@ -192,4 +192,22 @@
   <data name="NoData" xml:space="preserve">
     <value>No hay datos disponibles</value>
   </data>
+  <data name="ErrorFetchingDatasets" xml:space="preserve">
+    <value>Error al obtener datasets del backend.</value>
+  </data>
+  <data name="ErrorLoadingDatasets" xml:space="preserve">
+    <value>Error al cargar datasets: {0}</value>
+  </data>
+  <data name="KpiNameRequired" xml:space="preserve">
+    <value>El nombre del KPI es obligatorio.</value>
+  </data>
+  <data name="KpiCreated" xml:space="preserve">
+    <value>KPI '{0}' creado correctamente.</value>
+  </data>
+  <data name="ErrorCreatingKpi" xml:space="preserve">
+    <value>Error creando KPI: {0}</value>
+  </data>
+  <data name="ServerConnectionError" xml:space="preserve">
+    <value>Error al conectar con el servidor: {0}</value>
+  </data>
 </root>
