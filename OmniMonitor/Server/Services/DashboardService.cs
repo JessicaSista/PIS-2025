@@ -16,16 +16,16 @@ namespace OmniMonitor.Server.Services
     {
         Task<DashboardResponse> CreateDashboardAsync(CreateDashboardRequest request, string username);
         Task<DashboardResponse?> GetDashboardByIdAsync(int idDashboard, string username);
-        Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username);
+    Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username, string? query);
         Task<bool> ValidateCardIdsAsync(List<int> cardIds);
         Task<bool> ValidateLayoutAsync(DashboardLayout layout);
         Task<bool> DeleteDashboardAsync(int idDashboard, string username);
         Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno);
         Task<bool> AddDashboardCardAsync(int idDashboard, string username, string jsonConfig,DashboardCard nuevaCard);
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string jsonConfig, List<DashboardCard> orderedCards);
-        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, string jsonConfig, int idGrupoVisualizacion);
+        Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
-        Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard);
+        Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 IdVisualizacion, CreateVisualizacionRequest updatedCard);
         Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
     }   
 
@@ -159,13 +159,24 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Obtiene todos los dashboards de un usuario
         /// </summary>
-        public async Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username)
+        public async Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username, string? query)
         {
-            return await _context.Dashboards
-                .Where(d => d.Username == username)
+            var dashboardsQuery = _context.Dashboards
+                .Where(d => d.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                dashboardsQuery = dashboardsQuery.Where(d =>
+                    (d.Nombre != null && d.Nombre.ToLower().Contains(loweredQuery)) ||
+                    (d.Descripcion != null && d.Descripcion.ToLower().Contains(loweredQuery)));
+            }
+
+            return await dashboardsQuery
                 .Select(d => new DashboardSummaryResponse
                 {
                     IdDashboard = d.IdDashboard,
+                    Username = d.Username,
                     Nombre = d.Nombre,
                     Descripcion = d.Descripcion,
                     FechaCreacion = d.FechaCreacion,
@@ -298,9 +309,9 @@ namespace OmniMonitor.Server.Services
                 // if (!kpiExiste) return false;
             }
 
-            if (JsonDiseno == null){
-                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
-            }
+            //if (JsonDiseno == null){
+            //    throw new ArgumentException("El JSON de configuración no puede estar vacío.");
+            //}
 
             // Chequear si la tarjeta ya existe en el dashboard (por IdVisualizacion y TipoCard)
             bool cardExists = dashboard.GrupoVisualizaciones.Any(gv =>
@@ -326,7 +337,7 @@ namespace OmniMonitor.Server.Services
                 Orden = orden
             };
 
-            dashboard.JsonDiseno = JsonDiseno;
+            //dashboard.JsonDiseno = JsonDiseno;
             _context.Dashboards.Update(dashboard);
 
             _context.GrupoVisualizaciones.Add(grupoVisualizacion);
@@ -369,19 +380,15 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes
         /// </summary>
-        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, string jsonConfig, int idGrupoVisualizacion)
+        public async Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
             if (dashboard == null)
                 return false;
-            
-            if (jsonConfig == null){
-                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
-            }
 
-            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdGrupoVisualizacion == idGrupoVisualizacion);
+            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdVisualizacion == idCard && gv.TipoCard == tipoCard );
             if (cardToRemove == null)
                 return false;
 
@@ -394,7 +401,6 @@ namespace OmniMonitor.Server.Services
             {
                 card.Orden--;
             }
-            dashboard.JsonDiseno = jsonConfig;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -402,12 +408,13 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Actualiza el nombre y/o la descripción de un dashboard
         /// </summary>
-        public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, string nombre, CreateVisualizacionRequest updatedCard)
+        public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 visualizacionId, CreateVisualizacionRequest updatedCard)
         {
             // Implementación de otro método si es necesario
 
             var visualizacion = await _context.Visualizaciones
-                .FirstOrDefaultAsync(v => v.Nombre == nombre && v.Username == username);
+                    .Include(v => v.GrupoDatasets)
+                    .FirstOrDefaultAsync(v => v.IdVisualizacion == visualizacionId && v.Username == username);
 
             if (visualizacion == null)
             {
@@ -429,11 +436,53 @@ namespace OmniMonitor.Server.Services
             visualizacion.FechaHasta = updatedCard.FechaHasta;
             visualizacion.JsonDesign = updatedCard.JsonDiseñoGeneral;
 
+            if (updatedCard.Datasets != null && updatedCard.Datasets.Any())
+                {
+                    var newDatasetIds = updatedCard.Datasets.Select(d => d.DatasetId).ToList();
+
+                    var existingGrupoDatasets = visualizacion.GrupoDatasets.ToList();
+                    var existingDatasetIds = existingGrupoDatasets.Select(gd => gd.DatasetId).ToList();
+
+                    var datasetsToRemove = existingGrupoDatasets
+                        .Where(gd => !newDatasetIds.Contains(gd.DatasetId))
+                        .ToList();
+
+                    foreach (var grupoToRemove in datasetsToRemove)
+                    {
+                        visualizacion.GrupoDatasets.Remove(grupoToRemove);
+                        _context.GrupoDatasets.Remove(grupoToRemove);
+                    }
+
+                    foreach (var datasetConfig in updatedCard.Datasets)
+                    {
+                        var existingGrupo = existingGrupoDatasets
+                            .FirstOrDefault(gd => gd.DatasetId == datasetConfig.DatasetId);
+
+                        if (existingGrupo != null)
+                        {
+                            existingGrupo.JsonDesign = datasetConfig.JsonDiseño;
+                            _context.GrupoDatasets.Update(existingGrupo);
+                        }
+                        else
+                        {
+                            var nuevoGrupo = new GrupoDataset
+                            {
+                                DatasetId = datasetConfig.DatasetId,
+                                JsonDesign = datasetConfig.JsonDiseño
+                            };
+                            visualizacion.GrupoDatasets.Add(nuevoGrupo);
+                        }
+                    }
+                }
+
+
             if (jsonConfig != null)
             {
-                grupovisu.PropsConfiguracion = jsonConfig;
+                //agrega complejidad extra y no es necesario por el momento
+                //grupovisu.PropsConfiguracion = jsonConfig;
             }
 
+            _context.Visualizaciones.Update(visualizacion);
             await _context.SaveChangesAsync();
             return true;
         }

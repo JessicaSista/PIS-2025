@@ -1,0 +1,82 @@
+﻿@inject IDialogService DialogService
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
+
+<MudDialog Style="background-color: var(--fondo-dialog)">
+    <DialogContent>
+
+        <MudStack Direction="Row" Spacing="2" AlignItems="MudBlazor.AlignItems.Center">
+            <MudButton FullWidth="true"
+                Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.BarChart"
+                       Color="MudBlazor.Color.Inherit"
+                       Size="MudBlazor.Size.Large"
+                       Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer); border-radius: 0.5rem;"
+                       OnClick="OpenGraphCard">
+                @Localizer["NewChart"]
+            </MudButton>
+
+            <MudButton FullWidth="true"
+                Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.TrendingUp"
+                       Color="MudBlazor.Color.Inherit"
+                       Size="MudBlazor.Size.Large"
+                       Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer); border-radius: 0.5rem;"
+                       OnClick="OpenKpiCard">
+                @Localizer["NewKPI"]
+            </MudButton>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="MudBlazor.Color.Default" OnClick="Cancel">
+            @Localizer["Cancel"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private async Task OpenGraphCard()
+    {
+        MudDialog.Close();
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, CloseOnEscapeKey = true };
+        var dialogRef = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewChart"], options);
+        var innerResult = await dialogRef.Result;
+
+
+        if (innerResult?.Data != null)
+        {
+            MudDialog.Close(DialogResult.Ok(innerResult.Data));
+            return;
+        }
+
+
+        MudDialog.Cancel();
+    }
+
+
+    private async Task OpenKpiCard()
+    {
+        MudDialog.Close();
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, CloseOnEscapeKey = true };
+        var dialogRef = await DialogService.ShowAsync<CreateKpiCard>(Localizer["NewKPI"], options);
+        var innerResult = await dialogRef.Result;
+
+
+        if (innerResult?.Data != null)
+        {
+            MudDialog.Close(DialogResult.Ok(innerResult.Data));
+            return;
+        }
+
+
+        MudDialog.Cancel();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

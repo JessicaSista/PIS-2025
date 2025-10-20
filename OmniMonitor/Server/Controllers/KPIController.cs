@@ -82,7 +82,6 @@ public class KPIController : ControllerBase
         }
     }
 
-    //Obtener todos los kpis
 
     // Obtener todos los KPIs del usuario
     [HttpGet("kpis")]
@@ -105,6 +104,34 @@ public class KPIController : ControllerBase
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
+
+    [HttpGet("metrics/{module}")]
+    [ProducesResponseType(typeof(List<MetricInfo>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<MetricInfo>>> GetMetricInfoByModule(string module)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(module))
+                return BadRequest("Debe especificarse el módulo.");
+
+            var metrics = await _kpiService.GetMetricInfoListAsync(module.ToUpperInvariant());
+            if (metrics == null || !metrics.Any())
+                return NotFound($"No se encontraron métricas para el módulo {module}.");
+
+            return Ok(metrics);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
+        }
+    }
+
+
+
+
 
 
 
@@ -174,7 +201,6 @@ public class KPIController : ControllerBase
         return Ok(response);
     }
 }
-
 
 
 
