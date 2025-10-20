@@ -219,4 +219,40 @@
   <data name="Actualizado" xml:space="preserve">
     <value>actualizado</value>
   </data>
+  <data name="SeleccionarTipoAsset" xml:space="preserve">
+    <value>Seleccionar Tipo de Asset</value>
+  </data>
+  <data name="SeleccionarAsset" xml:space="preserve">
+    <value>Seleccionar Asset(s)</value>
+  </data>
+  <data name="SeleccionarZona" xml:space="preserve">
+    <value>Seleccionar Zona</value>
+  </data>
+  <data name="SeleccionarEvento" xml:space="preserve">
+    <value>Seleccionar Evento(s)</value>
+  </data>
+  <data name="SeleccionarNoticia" xml:space="preserve">
+    <value>Seleccionar Noticia(s)</value>
+  </data>
+  <data name="SeleccionarTaskType" xml:space="preserve">
+    <value>Seleccionar Tipo de Tarea</value>
+  </data>
+  <data name="SeleccionarEventTaskInstance" xml:space="preserve">
+    <value>Seleccionar Instancia(s) de Tarea de Evento</value>
+  </data>
+  <data name="SeleccionarStock" xml:space="preserve">
+    <value>Seleccionar Stock(s)</value>
+  </data>
+  <data name="SeleccionarCategoria" xml:space="preserve">
+    <value>Seleccionar Categoría</value>
+  </data>
+  <data name="SeleccionarAlerta" xml:space="preserve">
+    <value>Seleccionar Alerta(s)</value>
+  </data>
+  <data name="SeleccionarExtension" xml:space="preserve">
+    <value>Seleccionar Extension(es)</value>
+  </data>
+  <data name="SeleccionarTodos" xml:space="preserve">
+    <value>Seleccionar Todas</value>
+  </data>
 </root>
