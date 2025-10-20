@@ -39,10 +39,10 @@ public class ReportsController : ControllerBase
         return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
     }
 
-    [HttpPost("{reportId}/joins")]
+    [HttpPost("{reportId}/joins/create-and-add")]
     [ProducesResponseType(typeof(ReportJoin), 200)]
     [ProducesResponseType(404)] // Not Found
-    public async Task<IActionResult> AddJoinToReport(int reportId, [FromBody] ReportJoinItemDto joinRequest, [FromQuery] string token)
+    public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest, [FromQuery] string token)
     {
         if (!ModelState.IsValid)
         {
@@ -52,12 +52,12 @@ public class ReportsController : ControllerBase
         try
         {
             var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var createdLink = await _reportService.AddJoinToReportAsync(reportId, joinRequest, username);
+            var createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
+
             return Ok(createdLink);
         }
         catch (KeyNotFoundException ex)
         {
-            // Esto se activará si el reporte o el join no existen.
             return NotFound(new { message = ex.Message });
         }
     }
@@ -239,72 +239,6 @@ public class ReportsController : ControllerBase
         {
             // Opcional: Loggear la excepción 'ex'
             return StatusCode(500, new { message = "Ocurrió un error interno al intentar quitar el join del reporte." });
-        }
-    }
-
-    [HttpPost("{reportId}/datasets")]
-    [ProducesResponseType(typeof(DatasetReports), 200)]
-    [ProducesResponseType(404)] // Not Found
-    [ProducesResponseType(401)] // Unauthorized
-    public async Task<IActionResult> AddDatasetToReport(int reportId, ModuleType moduleType, int id_dataset, [FromQuery] string token)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-
-        try
-        {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                return Unauthorized(new { message = "Token inválido." });
-            }
-
-            var createdLink = await _reportService.AddDatasetToReportAsync(reportId, moduleType, id_dataset, username);
-
-            return Ok(createdLink);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            // Esto se activará si el reporte no existe para el usuario.
-            return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            // Opcional: Loggear la excepción 'ex'
-            return StatusCode(500, new { message = "Ocurrió un error interno al añadir el dataset al reporte." });
-        }
-    }
-
-    [HttpDelete("{reportId}/datasets")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(404)] 
-    [ProducesResponseType(401)] 
-    public async Task<IActionResult> RemoveDatasetFromReport(int reportId, ModuleType moduleType, int id_dataset, [FromQuery] string token)
-    {
-        try
-        {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (string.IsNullOrWhiteSpace(username))
-            {
-                return Unauthorized(new { message = "Token inválido." });
-            }
-
-            var success = await _reportService.RemoveDatasetFromReportAsync(reportId, moduleType, id_dataset, username);
-
-            if (!success)
-            {
-                return NotFound(new { message = $"No se encontró la asociación del dataset (Módulo: {moduleType}, ID: {id_dataset}) en el Reporte con ID {reportId} para este usuario." });
-            }
-
-            // Retorna un 204 No Content, que es el estándar para un DELETE exitoso.
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            // Opcional: Loggear la excepción 'ex'
-            return StatusCode(500, new { message = "Ocurrió un error interno al intentar quitar el dataset del reporte." });
         }
     }
 
