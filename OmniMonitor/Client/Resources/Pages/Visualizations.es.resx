@@ -138,10 +138,10 @@
   <data name="BuscarGraficaPlaceholder" xml:space="preserve">
     <value>Buscar gráfica...</value>
   </data>
-  <data name="NoHayKpis" xml:space="preserve">
-    <value>No hay KPIs disponibles.</value>
-  </data>
-  <data name="NoHayGraficas" xml:space="preserve">
+  <data name="NoChartAvailable" xml:space="preserve">
     <value>No hay gráficas disponibles.</value>
+  </data>
+  <data name="NoKpisAvailable" xml:space="preserve">
+    <value>No hay KPIs disponibles.</value>
   </data>
 </root>

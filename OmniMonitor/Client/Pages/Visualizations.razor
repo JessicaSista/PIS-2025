@@ -13,122 +13,177 @@
 @using System.Globalization
 @using Microsoft.Extensions.Localization
 
+<style>
+    .tab-toggle-container {
+        display: inline-flex;
+        border-radius: 9999px; 
+        overflow: hidden;
+    }
+
+    .tab-toggle-btn {
+        color: var(--text-primary);
+        text-transform: capitalize;
+        padding: 6px 14px;
+        border: 1px solid color-mix(in srgb, var(--text-primary) 15%, transparent);
+        background-color: transparent;
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+        .tab-toggle-btn:hover {
+            background-color: color-mix(in srgb, var(--card) 60%, transparent);
+        }
+
+        /* Izquierdo: redondeado solo a la izquierda */
+        .tab-toggle-btn.left {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+            border-top-left-radius: 9999px;
+            border-bottom-left-radius: 9999px;
+        }
+
+        /* Derecho: redondeado solo a la derecha */
+        .tab-toggle-btn.right {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            border-top-right-radius: 9999px;
+            border-bottom-right-radius: 9999px;
+        }
+
+        /* Estado activo */
+        .tab-toggle-btn.active {
+            background-color: color-mix(in srgb, var(--card) 80%, transparent);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+</style>
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
     <MudItem Class="d-flex justify-space-between mb-4">
         <MudText Typo="Typo.h4" Style="color: var(--text-primary);">@Localizer["Titulo"]</MudText>
         <AddButton OnClick="OpenDialogCreateVisualization">@Localizer["AgregarVisualizacion"]</AddButton>
     </MudItem>
 
-    <!-- Tabs -->
-    <MudTabs Rounded="false"
-             Centered="true"
-             Border="true"
-             Elevation="0"
-             @bind-ActivePanelIndex="_activeTabIndex"
-             IndicatorColor="Color.Primary"
-             TextColor="Color.Default"
-             Class="mt-4"
-             Style="width: 100%;">
-        <!-- KPIs -->
-        <MudTabPanel Text="@Localizer["KPIs"]">
+    <!-- Selector superior con buscador y tabs -->
+    <MudItem Class="d-flex align-center justify-space-between mt-4 mb-4">
+        <div class="d-flex align-center">
             <!-- Buscador -->
-            <MudItem Style="width: 500px; margin: 24px 0 16px 0;">
-                <!-- separa buscador de pestañas -->
-                <MudTextField Immediate="true"
-                              @bind-Value="_searchQuery"
-                              Placeholder="@GetSearchPlaceholder()"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search" />
-            </MudItem>
+            <MudTextField Immediate="true"
+                          @bind-Value="_searchQuery"
+                          Placeholder="@GetSearchPlaceholder()"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Style="width: 400px; margin-right: 16px;" />
 
-            <MudGrid Spacing="4">
-                @if (_isLoading)
-                {
-                    @for (int i = 0; i < 3; i++)
-                    {
-                        <MudItem xs="12" sm="12" md="6" lg="4">
-                            <MudPaper Class="pa-4" Style="height: 200px;">
-                                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100%" />
-                            </MudPaper>
-                        </MudItem>
-                    }
-                }
-                else if (_kpis != null && _kpis.Any())
-                {
-                    @foreach (var kpi in _kpis)
-                    {
-                        <MudItem xs="12" sm="6" md="3" lg="3">
-                            <KpiCard Title="@kpi.Name"
-                                     Value="@RenderKpiValue(kpi.Value)"
-                                     Description="@kpi.Description"
-                                     LastUpdated="@(DateTime.Now.ToString("g"))"
-                                     Color="@kpi.ActualColor" />
-                        </MudItem>
+            <!-- Tabs pequeñas tipo toggle -->
+            <div class="tab-toggle-container">
+                <MudButton Variant="Variant.Text"
+                           Size="MudBlazor.Size.Small"
+                           Class="@($"tab-toggle-btn left {(_activeTabIndex == 0 ? "active" : "")}")"
+                           OnClick="@(() => SetActiveTab(0))">
+                    @Localizer["KPIs"]
+                </MudButton>
 
-                    }
-                }
-                else
+                <MudButton Variant="Variant.Text"
+                           Size="MudBlazor.Size.Small"
+                           Class="@($"tab-toggle-btn right {(_activeTabIndex == 1 ? "active" : "")}")"
+                           OnClick="@(() => SetActiveTab(1))">
+                    @Localizer["Gráficas"]
+                </MudButton>
+            </div>
+
+
+
+        </div>
+    </MudItem>
+
+
+    <!-- Contenido dinámico según pestaña -->
+    @if (_activeTabIndex == 0)
+    {
+        <!-- Contenido KPIs -->
+        <MudGrid Spacing="4">
+            @if (_isLoading)
+            {
+                @for (int i = 0; i < 3; i++)
                 {
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
-                            No hay KPIs disponibles.
-                        </MudText>
+                    <MudItem xs="12" sm="12" md="6" lg="4">
+                        <MudPaper Class="pa-4" Style="height: 200px;">
+                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100%" />
+                        </MudPaper>
                     </MudItem>
                 }
-            </MudGrid>
-        </MudTabPanel>
-
-        <!-- Visualizaciones -->
-        <MudTabPanel Text="@Localizer["Visualizaciones"]">
-            <MudItem Style="width: 500px; margin: 24px 0 16px 0;">
-                <MudTextField Immediate="true" @bind-Value="_searchQuery" Placeholder="@Localizer["BuscarGraficaPlaceholder"]"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search" />
-            </MudItem>
-
-            <MudGrid Spacing="4">
-                @if (_isLoading)
+            }
+            else if (_kpis != null && _kpis.Any())
+            {
+                @foreach (var kpi in _kpis)
                 {
-                    @for (int i = 0; i < 3; i++)
-                    {
-                        <MudItem xs="12" sm="12" md="6" lg="4">
-                            <MudPaper Class="pa-4" Style="height: 400px;">
-                                <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100%" />
-                            </MudPaper>
-                        </MudItem>
-                    }
-                }
-                else if (_visualizations != null && _visualizations.Any())
-                {
-                    @foreach (var visualization in _visualizations.Where(v => string.IsNullOrWhiteSpace(_searchQuery) || v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
-                        var chartType = design.RootElement.GetProperty("ChartType").ToString();
-                        var datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
-                        var visualizationData = GetVisualizationData(visualization.IdVisualizacion);
-
-                        <MudItem xs="12" sm="12" md="6" lg="4">
-                            <VisualizationCard visualizationTitle="@visualization.Nombre"
-                                               visualizationDatasets="@datasetNames"
-                                               lastUpdated="@DateTime.Now.ToString("g")"
-                                               dataCharts="@visualizationData"
-                                               chartType="@chartType" />
-                        </MudItem>
-                    }
-                }
-                else
-                {
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
-                            No hay visualizaciones disponibles.
-                        </MudText>
+                    <MudItem xs="12" sm="6" md="3" lg="3">
+                        <KpiCard Title="@kpi.Name"
+                                 Value="@RenderKpiValue(kpi.Value)"
+                                 Description="@kpi.Description"
+                                 LastUpdated="@DateTime.Now.ToString("g")"
+                                 Color="@kpi.ActualColor" />
                     </MudItem>
                 }
-            </MudGrid>
-        </MudTabPanel>
-    </MudTabs>
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
+                        @Localizer["NoKpisAvailable"]
+                    </MudText>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <!-- Contenido Visualizaciones -->
+        <MudGrid Spacing="4">
+            @if (_isLoading)
+            {
+                @for (int i = 0; i < 3; i++)
+                {
+                    <MudItem xs="12" sm="12" md="6" lg="4">
+                        <MudPaper Class="pa-4" Style="height: 400px;">
+                            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100%" />
+                        </MudPaper>
+                    </MudItem>
+                }
+            }
+            else if (_visualizations != null && _visualizations.Any())
+            {
+                @foreach (var visualization in _visualizations
+                        .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
+                        v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
+                {
+                    JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+                    var chartType = design.RootElement.GetProperty("ChartType").ToString();
+                    var datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
+                    var visualizationData = GetVisualizationData(visualization.IdVisualizacion);
+
+                    <MudItem xs="12" sm="12" md="6" lg="4">
+                        <VisualizationCard visualizationTitle="@visualization.Nombre"
+                                           visualizationDatasets="@datasetNames"
+                                           lastUpdated="@DateTime.Now.ToString("g")"
+                                           dataCharts="@visualizationData"
+                                           chartType="@chartType" />
+                    </MudItem>
+                }
+            }
+            else
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
+                        @Localizer["NoChartAvailable"]
+                    </MudText>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+
 </MudContainer>
 
 
@@ -140,7 +195,11 @@
     private string _authenticatedUser = string.Empty;
     private Dictionary<int, List<object>> _visualizationDataCache = new();
     private int _activeTabIndex = 0; // 0: KPI, 1: Chart
-    
+
+    private void SetActiveTab(int index)
+    {
+        _activeTabIndex = index;
+    }
     private string GetSearchPlaceholder()
     {
         return _activeTabIndex == 0 ? Localizer["BuscarKpiPlaceholder"] : Localizer["BuscarGraficaPlaceholder"];
@@ -148,13 +207,13 @@
 
     private string RenderKpiValue(object? val)
     {
-        if (val == null) return "—"; // valor nulo
+        if (val == null) return "—";
         if (val is JsonElement je)
         {
             switch (je.ValueKind)
             {
                 case JsonValueKind.Number:
-                    return je.GetRawText(); // devuelve el número como string
+                    return je.GetRawText(); 
                 case JsonValueKind.String:
                     return je.GetString() ?? "—";
                 case JsonValueKind.True:
@@ -220,14 +279,14 @@
 
                 // 4) Cache de datos
                 _visualizationDataCache[kpiCreado.Id] = new List<object>
-{
-new {
-Timestamp = DateTime.Now,
-Value = kpiResp?.Value ?? kpiCreado.Metric ?? (object?)null,
-Color = kpiCreado.DefaultColor ?? "#00FFE7",
-DatasetName = kpiCreado.Name
-}
-};
+                {
+                new {
+                Timestamp = DateTime.Now,
+                Value = kpiResp?.Value ?? kpiCreado.Metric ?? (object?)null,
+                Color = kpiCreado.DefaultColor ?? "#00FFE7",
+                DatasetName = kpiCreado.Name
+                }
+                };
 
 
                 StateHasChanged();
