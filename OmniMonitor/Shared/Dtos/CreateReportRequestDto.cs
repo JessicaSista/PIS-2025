@@ -16,4 +16,7 @@ public class CreateReportRequestDto
     [Required]
     [MaxLength(256)]
     public string Username { get; set; } = string.Empty;
+
+    [Required]
+    public string JSON_config { get; set; } = string.Empty;
 }

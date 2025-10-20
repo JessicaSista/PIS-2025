@@ -261,14 +261,13 @@ public class ApiDataService : IApiDataService
                             }
                         }
                         return resultingExtension;
-                    /*
-                    case EntityName.Resource:
-                        var resultingResource = new List<dynamic>();
-                        foreach (var datasetResoruce in datasetEM.DatasetResources)
+                    case EntityName.Categoria:
+                        var resultingCategorias = new List<dynamic>();
+                        foreach (var datasetCategoria in datasetEM.DatasetCategory)
                         {
-                            var resource = await _sondaEMService.get
+                            var category = _sondaEMService.GetCategorynById(datasetCategoria.Id_Category, username, password);
                         }
-                        return resultingResource; */
+                        return resultingCategorias;
                     default:
                         throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");
                 }

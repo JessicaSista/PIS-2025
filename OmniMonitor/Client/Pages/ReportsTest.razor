@@ -1,4 +1,4 @@
-﻿@page "/join-creator-test"
+﻿@page "/report-manager"
 @inject HttpClient Http
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @using System.Text.Json
@@ -6,124 +6,76 @@
 
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800">Join Test Page</h1>
-        <p class="text-gray-600 mt-2">A page to create, list, and execute your Join configurations.</p>
+        <h1 class="text-4xl font-bold text-gray-800">Panel de Pruebas de API de Reportes</h1>
+        <p class="text-gray-600 mt-2">Una página simple con botones para probar cada endpoint.</p>
     </header>
 
     <!-- Session Token Card -->
     <div class="card mb-8 max-w-xl mx-auto">
-        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Authentication</h2>
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Autenticación</h2>
         <div class="flex items-end space-x-2">
             <div class="flex-grow">
-                <label for="session-token" class="form-label">Session Token (from Local Storage)</label>
-                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="Token will be loaded here..." readonly />
+                <label for="session-token" class="form-label">Token de Sesión</label>
+                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="El token se cargará aquí..." readonly />
             </div>
-            <button class="btn btn-secondary" @onclick="LoadTokenFromLocalStorage">Load/Refresh Token</button>
+            <button class="btn btn-secondary" @onclick="LoadTokenFromLocalStorage">Cargar Token</button>
         </div>
-        <p class="text-xs text-gray-500 mt-1">This token is automatically loaded from local storage ('authToken').</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        <!-- List and Create Column -->
-        <div class="md:col-span-2 space-y-6">
-            <!-- New: Join Configurations List -->
+        <!-- Columna de Acciones -->
+        <div class="space-y-6">
+            <!-- Acciones de Joins -->
             <div class="card">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Join Configurations</h2>
-                <div class="space-y-3 max-h-96 overflow-y-auto pr-2">
-                    @if (joins.Any())
-                    {
-                        @foreach (var join in joins)
-                        {
-                            <div class="p-3 border rounded-md bg-gray-50 flex justify-between items-center">
-                                <div>
-                                    <p class="font-semibold">@join.Name (ID: @join.Id)</p>
-                                    <p class="text-sm text-gray-600">@join.LeftOperand.EntityName -> @join.RightOperand.EntityName</p>
-                                </div>
-                                <button class="btn btn-sm btn-success" @onclick="() => ExecuteJoin(join.Id)">Execute</button>
-                            </div>
-                        }
-                    }
-                    else
-                    {
-                        <p class="text-gray-500">No joins found for user '@TestUsername'. Click 'Load/Refresh' to fetch.</p>
-                    }
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Acciones de Joins</h2>
+                <div class="space-y-4">
+                    <button class="btn btn-primary w-full" @onclick="HandleCreateJoin">1. Crear un Join de Prueba</button>
+                    <button class="btn btn-secondary w-full" @onclick="HandleListJoins">2. Listar Joins del Usuario</button>
                 </div>
-                <button class="btn btn-secondary w-full mt-4" @onclick="LoadJoins">Load/Refresh Joins</button>
             </div>
 
+            <!-- Acciones de Reportes -->
             <div class="card">
-                <h3 class="text-xl font-semibold mb-4 text-gray-700">Create New Join</h3>
-                <EditForm Model="@newJoin" OnValidSubmit="HandleCreateJoin" class="space-y-4">
-                    <DataAnnotationsValidator />
-                    <div>
-                        <label class="form-label">Join Name</label>
-                        <InputText @bind-Value="newJoin.Name" class="form-input" placeholder="e.g., Devices to Events" />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <h4 class="font-medium text-gray-600">Left Operand</h4>
-                            <label class="form-label mt-2">Module</label>
-                            <InputSelect @bind-Value="newJoin.LeftOperand.ModuleType" class="form-input">
-                                @foreach (var val in Enum.GetValues(typeof(ModuleType)))
-                                {
-                                    <option value="@val">@val</option>
-                                }
-                            </InputSelect>
-                            <label class="form-label mt-2">Dataset ID</label>
-                            <InputNumber @bind-Value="newJoin.LeftOperand.DatasetId" class="form-input" placeholder="e.g., 4" />
-                            <label class="form-label mt-2">Entity Name</label>
-                            <InputSelect @bind-Value="newJoin.LeftOperand.EntityName" class="form-input">
-                                @foreach (var val in Enum.GetValues(typeof(EntityName)))
-                                {
-                                    <option value="@val">@val</option>
-                                }
-                            </InputSelect>
-                            <label class="form-label mt-2">Join Property</label>
-                            <InputText @bind-Value="newJoin.LeftOperand.JoinPropertyName" class="form-input" placeholder="e.g., Id" />
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Acciones de Reportes</h2>
+                <div class="space-y-4">
+                    <button class="btn btn-primary w-full" @onclick="HandleCreateReport">3. Crear un Reporte de Prueba</button>
+                    <button class="btn btn-secondary w-full" @onclick="HandleListReports">4. Listar Reportes del Usuario</button>
+
+                    <hr class="my-4" />
+
+                    <div class="flex items-end space-x-2">
+                        <div class="flex-grow">
+                            <label class="form-label">ID del Reporte</label>
+                            <InputNumber @bind-Value="reportIdForAction" class="form-input" />
                         </div>
-                        <div>
-                            <h4 class="font-medium text-gray-600">Right Operand</h4>
-                            <label class="form-label mt-2">Module</label>
-                            <InputSelect @bind-Value="newJoin.RightOperand.ModuleType" class="form-input">
-                                @foreach (var val in Enum.GetValues(typeof(ModuleType)))
-                                {
-                                    <option value="@val">@val</option>
-                                }
-                            </InputSelect>
-                            <label class="form-label mt-2">Dataset ID</label>
-                            <InputNumber @bind-Value="newJoin.RightOperand.DatasetId" class="form-input" placeholder="e.g., 5" />
-                            <label class="form-label mt-2">Entity Name</label>
-                            <InputSelect @bind-Value="newJoin.RightOperand.EntityName" class="form-input">
-                                @foreach (var val in Enum.GetValues(typeof(EntityName)))
-                                {
-                                    <option value="@val">@val</option>
-                                }
-                            </InputSelect>
-                            <label class="form-label mt-2">Join Property</label>
-                            <InputText @bind-Value="newJoin.RightOperand.JoinPropertyName" class="form-input" placeholder="e.g., Id_device" />
-                        </div>
+                        <button class="btn btn-success" @onclick="HandleCreateAndAddJoinToReport">5. Crear y Añadir Join de Prueba</button>
                     </div>
-                    <button type="submit" class="btn btn-primary w-full mt-4">Create Join</button>
-                </EditForm>
+
+                    <div class="flex items-end space-x-2">
+                        <div class="flex-grow">
+                            <label class="form-label">ID del Reporte a Ejecutar</label>
+                            <InputNumber @bind-Value="reportIdToExecute" class="form-input" />
+                        </div>
+                        <button class="btn btn-success" @onclick="ExecuteReport">6. Ejecutar Reporte</button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Results Column -->
-        <div class="md:col-span-1">
+        <!-- Columna de Resultados -->
+        <div class="lg:col-span-1">
             <div class="card sticky top-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Results Panel</h2>
-                <div class="bg-gray-800 text-white rounded-md p-4 h-96 overflow-y-auto font-mono text-sm">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Resultados de la API</h2>
+                <div class="bg-gray-800 text-white rounded-md p-4 min-h-[30rem] overflow-y-auto font-mono text-sm">
                     <pre><code>@resultJson</code></pre>
                 </div>
-                <button class="btn btn-secondary w-full mt-4" @onclick="ClearResults">Clear Results</button>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    /* Copied from original HTML for consistency */
     .card {
         background-color: white;
         border-radius: 0.5rem;
@@ -136,10 +88,7 @@
         border-radius: 0.375rem;
         font-weight: 600;
         color: white;
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 200ms;
+        transition: background-color 200ms;
     }
 
     .btn-primary {
@@ -166,18 +115,13 @@
             background-color: #15803d;
         }
 
-    .btn-sm {
-        padding: 0.25rem 0.75rem;
-        font-size: 0.875rem;
-    }
-
     .form-input {
         margin-top: 0.25rem;
         display: block;
         width: 100%;
         border-radius: 0.375rem;
-        border-color: #d1d5db;
-        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        border: 1px solid #d1d5db;
+        padding: 0.5rem;
     }
 
     .form-label {
@@ -186,151 +130,126 @@
         font-weight: 500;
         color: #374151;
     }
-
-    #results-panel pre {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
 </style>
 
 
 @code {
     private const string ApiBaseUrl = "api/reports";
-    private const string TestUsername = "admin";
 
     // --- State Variables ---
-    private List<CrossModuleJoinDto> joins = new();
-    private CreateJoinRequestDto newJoin = new();
-    private string resultJson = "Fill out the form and click 'Create Join' to test the endpoint.";
-    private string sessionToken = ""; // Variable to hold the auth token
+    private string sessionToken = "";
+    private string resultJson = "Los resultados de las operaciones aparecerán aquí...";
+    private int reportIdForAction;
+    private int reportIdToExecute;
 
-    // --- Lifecycle Method ---
+    // --- Lifecycle and Data Loading ---
     protected override async Task OnInitializedAsync()
     {
         await LoadTokenFromLocalStorage();
-        await LoadJoins(); // Load joins on initial page load
     }
 
-    // --- Method to load token ---
     private async Task LoadTokenFromLocalStorage()
     {
-        try
-        {
-            sessionToken = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
-            if (string.IsNullOrWhiteSpace(sessionToken))
-            {
-                DisplayResult(new { Warning = "Auth token not found in local storage. Some API calls may fail." });
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayResult(new { Error = "Could not access local storage.", Message = ex.Message });
-        }
-    }
-
-    // --- New Data Loading Method for Joins ---
-    private async Task LoadJoins()
-    {
-        try
-        {
-            var fetchedJoins = await Http.GetFromJsonAsync<List<CrossModuleJoinDto>>($"{ApiBaseUrl}/joins/user/{TestUsername}");
-            if (fetchedJoins != null)
-            {
-                joins = fetchedJoins;
-            }
-        }
-        catch (Exception ex)
-        {
-            DisplayResult(new { Error = "Failed to load joins.", Message = ex.Message });
-        }
+        try { sessionToken = await LocalStorage.GetItemAsync<string>("authToken") ?? ""; } catch { }
         StateHasChanged();
     }
 
-    // --- Event Handlers ---
+    // --- Action Handlers ---
     private async Task HandleCreateJoin()
     {
-        if (string.IsNullOrWhiteSpace(sessionToken))
-        {
-            DisplayResult(new { Error = "Authentication token is required to create a join." });
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(sessionToken)) { DisplayResult(new { Error = "Se requiere token." }); return; }
 
+        var testJoin = new CreateJoinRequestDto
+        {
+            Name = "Join de Prueba - Devices",
+            JoinType = JoinType.Inner,
+            LeftOperand = new JoinOperandDto { ModuleType = ModuleType.InsightMonitor, DatasetId = 3, EntityName = EntityName.Device, JoinPropertyName = "Id"},
+            RightOperand = new JoinOperandDto { ModuleType = ModuleType.InsightMonitor, DatasetId = 3, EntityName = EntityName.Device, JoinPropertyName = "Id"}
+        };
+
+        await PostRequest($"{ApiBaseUrl}/joins?token={sessionToken}", testJoin, "Join de Prueba Creado");
+    }
+
+    private async Task HandleListJoins()
+    {
+        await GetRequest($"{ApiBaseUrl}/joins/by-user?token={sessionToken}", "Lista de Joins");
+    }
+
+    private async Task HandleCreateReport()
+    {
+        var testReport = new CreateReportRequestDto
+        {
+            Name = "Reporte de Prueba General",
+            Username = "admin",
+            JSON_config = "{ \"sources\": [] }"
+        };
+
+        await PostRequest(ApiBaseUrl, testReport, "Reporte de Prueba Creado");
+    }
+
+    private async Task HandleListReports()
+    {
+        await GetRequest($"{ApiBaseUrl}/by-user?token={sessionToken}", "Lista de Reportes");
+    }
+
+    // --- FUNCIÓN MODIFICADA ---
+    private async Task HandleCreateAndAddJoinToReport()
+    {
+
+        // Crea un Join de prueba para añadirlo
+        var joinToCreateAndAdd = new CreateJoinRequestDto
+        {
+            Name = $"Join para Reporte {reportIdForAction} - {DateTime.Now.Ticks}",
+            JoinType = JoinType.Inner,
+            LeftOperand = new JoinOperandDto { ModuleType = ModuleType.InsightMonitor, DatasetId = 3, EntityName = EntityName.Device, JoinPropertyName = "Id" },
+            RightOperand = new JoinOperandDto { ModuleType = ModuleType.InsightMonitor, DatasetId = 3, EntityName = EntityName.Device, JoinPropertyName = "Id" }
+        };
+
+        // Llama al nuevo endpoint del controlador
+        await PostRequest($"{ApiBaseUrl}/2/joins/create-and-add?token={sessionToken}", joinToCreateAndAdd, $"Nuevo Join añadido al Reporte {reportIdForAction}");
+    }
+
+    private async Task ExecuteReport()
+    {
+        await GetRequest($"{ApiBaseUrl}/2/execute?token={sessionToken}", $"Ejecución del Reporte {reportIdToExecute}");
+    }
+
+    // --- Generic API Call Helpers ---
+    private async Task GetRequest(string url, string successMessage)
+    {
+        if (string.IsNullOrWhiteSpace(sessionToken)) { DisplayResult(new { Error = "Se requiere token." }); return; }
         try
         {
-            var response = await Http.PostAsJsonAsync($"{ApiBaseUrl}/joins?token={sessionToken}", newJoin);
+            var result = await Http.GetFromJsonAsync<object>(url);
+            DisplayResult(new { Message = successMessage, Response = result });
+        }
+        catch (Exception ex) { DisplayResult(new { Error = $"Fallo en GET {url}", ex.Message }); }
+    }
 
+    private async Task PostRequest<T>(string url, T payload, string successMessage)
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync(url, payload);
             if (response.IsSuccessStatusCode)
             {
-                var createdJoin = await response.Content.ReadFromJsonAsync<object>();
-                DisplayResult(new { Success = "Join created successfully!", Response = createdJoin });
-                newJoin = new(); // Reset form
-                await LoadJoins(); // Refresh the list after creating a new one
+                var result = await response.Content.ReadFromJsonAsync<object>();
+                DisplayResult(new { Message = successMessage, Response = result });
             }
-            else
-            {
-                DisplayResult(new { Error = $"Failed to create join. Status: {response.StatusCode}", Details = await response.Content.ReadAsStringAsync() });
-            }
+            else { DisplayResult(new { Error = $"Fallo en POST {url}", Details = await response.Content.ReadAsStringAsync() }); }
         }
-        catch (Exception ex)
-        {
-            DisplayResult(new { Error = "An exception occurred.", ex.Message });
-        }
+        catch (Exception ex) { DisplayResult(new { Error = $"Fallo en POST {url}", ex.Message }); }
     }
 
-    // --- New Method to Execute a Join ---
-    private async Task ExecuteJoin(int joinId)
-    {
-        DisplayResult($"Executing join {joinId}...");
-        try
-        {
-            var result = await Http.GetFromJsonAsync<object>($"{ApiBaseUrl}/joins/{1}/execute");
-            DisplayResult(result);
-        }
-        catch (Exception ex)
-        {
-            DisplayResult(new { Error = "An error occurred while executing the join.", ex.Message });
-        }
-    }
+    private void DisplayResult(object data) => resultJson = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
 
-    private void ClearResults()
-    {
-        resultJson = "Results cleared.";
-    }
-
-    private void DisplayResult(object data)
-    {
-        resultJson = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    // --- DTOs and Enums (mirroring your backend) ---
-    public class JoinOperandDto
-    {
-        public ModuleType ModuleType { get; set; }
-        public int DatasetId { get; set; }
-        public EntityName EntityName { get; set; }
-        public string JoinPropertyName { get; set; } = "";
-    }
-
-    public class CreateJoinRequestDto
-    {
-        public string Name { get; set; } = "";
-        public JoinType JoinType { get; set; } = JoinType.Inner;
-        public JoinOperandDto LeftOperand { get; set; } = new();
-        public JoinOperandDto RightOperand { get; set; } = new();
-    }
-
-    // DTO for listing joins
-    public class CrossModuleJoinDto
-    {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public JoinType JoinType { get; set; }
-        public JoinOperandDto LeftOperand { get; set; }
-        public JoinOperandDto RightOperand { get; set; }
-    }
-
+    // --- DTOs and Enums ---
+    public class JoinOperandDto { public ModuleType ModuleType { get; set; } public int DatasetId { get; set; } public EntityName EntityName { get; set; } public string JoinPropertyName { get; set; } = ""; }
+    public class CreateJoinRequestDto { public string Name { get; set; } = ""; public JoinType JoinType { get; set; } = JoinType.Inner; public JoinOperandDto LeftOperand { get; set; } = new(); public JoinOperandDto RightOperand { get; set; } = new(); }
+    public class ReportJoinItemDto { public int CrossModuleJoinId { get; set; } public int ExecutionOrder { get; set; } }
+    public class CreateReportRequestDto { [Required] public string Name { get; set; } = ""; public string? Description { get; set; } [Required] public string Username { get; set; } = ""; public string JSON_config { get; set; } = ""; }
     public enum ModuleType { InsightMonitor, UrbanMonitor, EventManager, AssetManager }
     public enum EntityName { Device, Sensor, Source, Group, Event, News, Alert, Resource, Asset, Stock }
-    public enum JoinType { Inner, LeftOuter }
+    public enum JoinType { Inner, LeftOuter, RightOuter }
 }
 

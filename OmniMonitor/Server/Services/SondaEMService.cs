@@ -78,6 +78,7 @@ public interface ISondaEMService
         string? sort,
         string username,
         string password);
+    Task<CategoryDto?> GetCategorynById(int categoryid, string username, string password);
 }
 
 
@@ -92,6 +93,43 @@ public class SondaEMService : ISondaEMService
         _httpClientFactory = httpClientFactory;
         _sondaAuthService = sondaAuthService;
         _apiConfig = apiConfigOptions.Value;
+    }
+
+    public async Task<CategoryDto?> GetCategorynById(int categoryid, string username, string password)
+    {
+        if (categoryid <= 0)
+        {
+            throw new ArgumentException("El CategoryId debe ser mayor que cero.", nameof(categoryid));
+        }
+        string baseUrl = _apiConfig.BaseUrl.UrlEM;
+        string endpoint = _apiConfig.EndpointsEM["Category"]["GetById"].Replace("{Id}", categoryid.ToString());
+        string getDataUrl = baseUrl + endpoint;
+        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        Console.WriteLine($"SONDA API TOKEN: {token}");
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+        }
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+        }
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
+        if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
+        {
+            return null;
+        }
+        return JsonSerializer.Deserialize<CategoryDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
     public async Task<EventDto?> GetEventById(int eventId, string username, string password)
