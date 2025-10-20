@@ -50,9 +50,12 @@ namespace OmniMonitor.Server.Services
                 ContentType = GetContentType(request).ToString()
             };
 
-            UpdateRelationsFromRequest(newDataset, request);
-
+            // Save dataset first to generate the ID
             _context.DatasetsEM.Add(newDataset);
+            await _context.SaveChangesAsync();
+
+            // Now update relations with the generated dataset.Id
+            UpdateRelationsFromRequest(newDataset, request);
             await _context.SaveChangesAsync();
 
             return newDataset;
@@ -230,10 +233,41 @@ namespace OmniMonitor.Server.Services
 
         private static void UpdateRelationsFromRequest(DatasetEM dataset, CreateDatasetEMRequest request)
         {
-            dataset.DatasetAlerts = request.AlertIds?.Select(id => new DatasetAlert { DatasetId = dataset.Id, Id_alert = id }).ToList() ?? new();
-            dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEventEM { DatasetId = dataset.Id, Id_event = id }).ToList() ?? new();
-            dataset.DatasetExtensions = request.ExtensionIds?.Select(id => new DatasetExtension { DatasetId = dataset.Id, Id_extension = id }).ToList() ?? new();
-            dataset.DatasetCategory = request.CategoryIds?.Select(id => new DatasetCategory { DatasetId = dataset.Id, Id_Category = id }).ToList() ?? new();
+            if (request.AlertIds?.Any() == true)
+            {
+                dataset.DatasetAlerts = request.AlertIds.Select(id => new DatasetAlert 
+                { 
+                    DatasetId = dataset.Id, 
+                    Id_alert = id 
+                }).ToList();
+            }
+            
+            if (request.EventIds?.Any() == true)
+            {
+                dataset.DatasetEvents = request.EventIds.Select(id => new DatasetEventEM 
+                { 
+                    DatasetId = dataset.Id, 
+                    Id_event = id 
+                }).ToList();
+            }
+            
+            if (request.ExtensionIds?.Any() == true)
+            {
+                dataset.DatasetExtensions = request.ExtensionIds.Select(id => new DatasetExtension 
+                { 
+                    DatasetId = dataset.Id, 
+                    Id_extension = id 
+                }).ToList();
+            }
+            
+            if (request.CategoryIds?.Any() == true)
+            {
+                dataset.DatasetCategory = request.CategoryIds.Select(id => new DatasetCategory 
+                { 
+                    DatasetId = dataset.Id, 
+                    Id_Category = id 
+                }).ToList();
+            }
         }
 
         private static DatasetContentType GetContentType(CreateDatasetEMRequest r)

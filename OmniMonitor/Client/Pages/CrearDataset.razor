@@ -200,7 +200,7 @@
                            Variant="Variant.Outlined"
                            FullWidth="true"
                            Clearable
-                           Label="Seleccionar tipo de Asset "
+                           Label="@Localizer["SeleccionarTipoAsset"]"
                            Class="dark-field"
                            Required="true">
                     @foreach (var t in assetTypes)
@@ -216,11 +216,11 @@
                            Variant="Variant.Outlined"
                            MultiSelection="true"
                            SelectAll="true" 
-                           SelectAllText="Seleccionar todos"
+                           SelectAllText="@Localizer["SeleccionarTodos"]"
                            Clearable
                            FullWidth="true"
                            Disabled="@(!selectedAssetTypeId.HasValue)"
-                           Label="Seleccionar Asset(s)"
+                           Label="@Localizer["SeleccionarAsset"]"
                            Class="dark-field"
                            Required="true"
                            ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
@@ -242,7 +242,7 @@
                            ValueChanged="OnTaskTypeChanged"
                            Variant="Variant.Outlined"
                            FullWidth="true"
-                           Label="Seleccionar Task Type"
+                           Label="@Localizer["SeleccionarTaskType"]"
                            Clearable
                            Class="dark-field"
                            Required="true">
@@ -259,19 +259,16 @@
                            Variant="Variant.Outlined"
                            MultiSelection="true"
                            SelectAll="true" 
-                           SelectAllText="Seleccionar todos"
+                           SelectAllText="@Localizer["SeleccionarTodos"]"
                            Clearable
                            FullWidth="true"
                            Disabled="@(!selectedTaskTypeId.HasValue)"
-                           Label="Seleccionar Event Task Instance(s)"
+                           Label="@Localizer["SeleccionarEventTaskInstance"]"
                            Class="dark-field"
-                           ToStringFunc="@(id => {
-                               var it = eventTaskInstances.FirstOrDefault(e => e.Id == id);
-                               return it?.Subject ?? it?.EventTaskDto?.Subject ?? $"Instance {id}";
-                           })">
+                           ToStringFunc="@(id => GetEventTaskInstanceDisplayName(id))">
                     @foreach (var e in eventTaskInstances)
                     {
-                        <MudSelectItem T="int" Value="@e.Id">@(string.IsNullOrWhiteSpace(e.Subject) ? (e.EventTaskDto?.Subject ?? $"Instance {e.Id}") : e.Subject)</MudSelectItem>
+                        <MudSelectItem T="int" Value="@e.Id">@GetEventTaskInstanceDisplayName(e.Id)</MudSelectItem>
                     }
                 </MudSelect>
             </div>
@@ -284,7 +281,7 @@
                            Clearable
                            FullWidth="true"
                            Disabled="@(!EnableStocksSelect)"
-                           Label="Seleccionar Stock(s)"
+                           Label="@Localizer["SeleccionarStock"]"
                            Class="dark-field"
                            ToStringFunc="@(id => stocks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString())">
                     @foreach (var s in stocks)
@@ -342,7 +339,7 @@
                        Variant="Variant.Outlined"
                        FullWidth="true"
                        Clearable
-                       Label="Seleccionar Zona"
+                       Label="@Localizer["SeleccionarZona"]"
                        Class="dark-field"
                        Required="true">
                 @foreach (var zone in zones)
@@ -360,11 +357,11 @@
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedZoneId.HasValue)"
-                       Label="Seleccionar Evento(s)"
+                       Label="@Localizer["SeleccionarEvento"]"
                        Class="dark-field"
                        ToStringFunc="@(id => events.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
                 @foreach (var evt in events)
@@ -382,11 +379,11 @@
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedZoneId.HasValue)"
-                       Label="Seleccionar Noticia(s)"
+                       Label="@Localizer["SeleccionarNoticia"]"
                        Class="dark-field"
                        ToStringFunc="@(id => newsList.FirstOrDefault(n => n.Id == id)?.Title ?? id.ToString())">
                 @foreach (var news in newsList)
@@ -443,7 +440,7 @@
                        Variant="Variant.Outlined"
                        FullWidth="true"
                        Clearable
-                       Label="Seleccionar Categoria"
+                       Label="@Localizer["SeleccionarCategoria"]"
                        Class="dark-field"
                        Required="true">
                 @foreach (var category in categories)
@@ -461,11 +458,11 @@
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedCategoryId.HasValue)"
-                       Label="Seleccionar Evento(s)"
+                       Label="@Localizer["SeleccionarEvento"]"
                        Class="dark-field"
                        ToStringFunc="@(id => eventsEM.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
                 @foreach (var evt in eventsEM)
@@ -483,16 +480,16 @@
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedCategoryId.HasValue)"
-                       Label="Seleccionar Alerta(s)"
+                       Label="@Localizer["SeleccionarAlerta"]"
                        Class="dark-field"
-                       ToStringFunc="@(id => alertsEM.FirstOrDefault(a => a.AlertId == id)?.AlertName ?? id.ToString())">
+                       ToStringFunc="@(id => GetAlertDisplayName(id))">
                 @foreach (var alert in alertsEM)
                 {
-                    <MudSelectItem T="int" Value="@alert.AlertId">@alert.AlertName</MudSelectItem>
+                    <MudSelectItem T="int" Value="@alert.AlertId">@GetAlertDisplayName(alert.AlertId)</MudSelectItem>
                 }
             </MudSelect>
         </div>
@@ -505,11 +502,11 @@
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!EnableExtensionsSelect)"
-                       Label="Seleccionar Extension(es)"
+                       Label="@Localizer["SeleccionarExtension"]"
                        Class="dark-field"
                        ToStringFunc="@(id => GetExtensionDisplayName(id))">
                 @foreach (var ext in extensions)
@@ -745,25 +742,43 @@
         var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
         if (ext == null) return extensionId.ToString();
         
-        // Build a descriptive name using available fields
-        var parts = new List<string>();
-        
-        // Add ID for uniqueness
-        parts.Add($"#{ext.Id}");
-        
-        // Add work zone name if available
+        // Show ID and work zone name (most descriptive field for extensions)
         if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
-            parts.Add(ext.WorkZoneName);
+            return $"#{ext.Id} {ext.WorkZoneName}";
         
-        // Add state if available
-        if (!string.IsNullOrWhiteSpace(ext.State))
-            parts.Add($"({ext.State})");
+        // Fallback to event name if work zone name is not available
+        if (!string.IsNullOrWhiteSpace(ext.EventName))
+            return $"#{ext.Id} {ext.EventName}";
         
-        // Add event name if available and different from work zone
-        if (!string.IsNullOrWhiteSpace(ext.EventName) && ext.EventName != ext.WorkZoneName)
-            parts.Add($"[{ext.EventName}]");
+        return $"#{ext.Id}";
+    }
+
+    private string GetAlertDisplayName(int alertId)
+    {
+        var alert = alertsEM.FirstOrDefault(a => a.AlertId == alertId);
+        if (alert == null) return alertId.ToString();
         
-        return parts.Any() ? string.Join(" ", parts) : extensionId.ToString();
+        // Show ID and alert name
+        if (!string.IsNullOrWhiteSpace(alert.AlertName))
+            return $"#{alert.AlertId} {alert.AlertName}";
+        
+        return $"#{alert.AlertId}";
+    }
+
+    private string GetEventTaskInstanceDisplayName(int instanceId)
+    {
+        var instance = eventTaskInstances.FirstOrDefault(e => e.Id == instanceId);
+        if (instance == null) return instanceId.ToString();
+        
+        // Show ID and subject
+        if (!string.IsNullOrWhiteSpace(instance.Subject))
+            return $"#{instance.Id} {instance.Subject}";
+        
+        // Fallback to EventTaskDto subject if instance subject is empty
+        if (instance.EventTaskDto != null && !string.IsNullOrWhiteSpace(instance.EventTaskDto.Subject))
+            return $"#{instance.Id} {instance.EventTaskDto.Subject}";
+        
+        return $"#{instance.Id}";
     }
 
     private bool CanSaveEM
@@ -1349,7 +1364,7 @@
                 NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetUM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetUM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetUM>();
@@ -1567,6 +1582,7 @@
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
+                CategoryIds = selectedCategoryId.HasValue ? new List<int> { selectedCategoryId.Value } : null,
                 EventIds = selectedEventEMIds.Any() ? selectedEventEMIds.ToList() : null,
                 AlertIds = selectedAlertIds.Any() ? selectedAlertIds.ToList() : null,
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
