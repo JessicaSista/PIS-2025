@@ -68,33 +68,48 @@
 </style>
 
 <!-- Dashboard grid -->
-<MudContainer Fixed="true" Class="pl-4 pr-6">
-    <MudGrid GutterSize="3">
-        @foreach (var dashboard in filteredDashboards)
-        {
-            <MudItem xs="12" sm="6" md="4">
-                <div style="position:relative;">
-                    <DashboardCardComponent Dashboard="dashboard"
-                                            OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
+<MudContainer Fixed="false" Class="pl-4 pr-6">
+        <MudGrid GutterSize="3">
+            @if (dashboards == null || dashboards.Count == 0)
+            {
+                @for (int i = 0; i < 6; i++)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard>
+                            <MudCardContent>
+                                <MudSkeleton Height="150px" Width="100%" />
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            }
+            else
+            {
+                @foreach (var dashboard in filteredDashboards)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <div style="position:relative;">
+                            <DashboardCardComponent Dashboard="dashboard"
+                                                    OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
 
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                             AnchorOrigin="Origin.TopRight"
-                             TransformOrigin="Origin.TopRight"
-                             Class="position-absolute"
-                             Style="position:absolute; top:8px; right:8px;">
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                     AnchorOrigin="Origin.TopRight"
+                                     TransformOrigin="Origin.TopRight"
+                                     Class="position-absolute"
+                                     Style="position:absolute; top:8px; right:8px;">
+                                <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
+                                    @Localizer["Editar"]
+                                </MudMenuItem>
 
-                        <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
-                            @Localizer["Editar"]
-                        </MudMenuItem>
-
-                        <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
-                            @Localizer["Eliminar"]
-                        </MudMenuItem>
-                    </MudMenu>
-                </div>
-            </MudItem>
-        }
-    </MudGrid>
+                                <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
+                                    @Localizer["Eliminar"]
+                                </MudMenuItem>
+                            </MudMenu>
+                        </div>
+                    </MudItem>
+                }
+            }
+        </MudGrid>
 </MudContainer>
 
 @code {
@@ -108,9 +123,10 @@
         set
         {
             _searchText = value ?? string.Empty;
-            FilterDashboards();
+            _ = LoadDashboardsAsync();
         }
     }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,8 +143,24 @@
                 return;
             }
 
+            await LoadDashboardsAsync();
+
+            filteredDashboards = dashboards.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading dashboards: {ex.Message}", Severity.Error);
+        }
+    }
+    private async Task LoadDashboardsAsync()
+    {
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            string queryParam = string.IsNullOrWhiteSpace(searchText) ? "" : $"&query={Uri.EscapeDataString(searchText)}";
+
             dashboards = await Http.GetFromJsonAsync<List<DashboardSummaryResponse>>(
-                $"api/Dashboard/GetAllDashboards?token=" + token
+                $"api/Dashboard/GetAllDashboards?token={token}{queryParam}"
             ) ?? new();
 
             filteredDashboards = dashboards.ToList();
@@ -158,7 +190,8 @@
             BackgroundClass = "mud-overlay-dark"
         };
 
-        await DialogService.ShowAsync<CreateDashboardDialog>("Create Dashboard", parameters, options);
+        var title = Localizer["CrearDashboard"];
+        await DialogService.ShowAsync<CreateDashboardDialog>(title, parameters, options);
     }
 
     private async void CreateDashboard(DashboardDto newDashboard)
@@ -350,20 +383,6 @@
 
             StateHasChanged();
         }
-    }
-
-    private void FilterDashboards()
-    {
-        if (string.IsNullOrWhiteSpace(searchText))
-        {
-            filteredDashboards = dashboards.ToList();
-            return;
-        }
-
-        var normalizedSearch = NormalizeText(searchText);
-        filteredDashboards = dashboards
-            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
-            .ToList();
     }
 
     private string NormalizeText(string text)

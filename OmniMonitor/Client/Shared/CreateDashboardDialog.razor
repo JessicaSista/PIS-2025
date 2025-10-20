@@ -7,19 +7,18 @@
 <MudDialog Style="background-color: var(--fondo-dialog); color: var(--text-primary); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
     <DialogContent>
         <MudStack Spacing="3">
-            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Name"]</MudText>
             <MudTextField @bind-Value="newDashboard.Nombre"
-                          Label="Name"
+                          Label="@Localizer["Name"]"
                           Variant="Variant.Outlined"
                           Required="true"
                           For="@(() => newDashboard.Nombre)"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
-            <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["Description"]</MudText>
             <MudTextField @bind-Value="newDashboard.Descripcion"
-                          Label="Description"
+                          Label="@Localizer["Description"]"
                           Variant="Variant.Outlined"
                           Lines="2"
                           For="@(() => newDashboard.Descripcion)"
+                          MaxLength="200"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
         </MudStack>
     </DialogContent>

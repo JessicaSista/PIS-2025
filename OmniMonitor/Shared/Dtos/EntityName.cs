@@ -12,5 +12,6 @@
     Asset,
     Alert,
     EventEM,
-    Extension
+    Extension,
+    Categoria
 }

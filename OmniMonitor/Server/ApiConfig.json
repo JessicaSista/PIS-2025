@@ -171,9 +171,10 @@
         "ResourceType": {
           "GetById": "/api/Resources/{id}"
         },
-      "Category": {
-          "GetAll":"/api/Category" 
-      }
+        "Category": {
+            "GetAll": "/api/Category",
+            "GetById": "api/Category/{id}"
+        }
     },
     "EndpointsUM": {
       "Login": {

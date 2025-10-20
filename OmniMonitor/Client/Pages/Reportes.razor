@@ -129,10 +129,86 @@
             ? _reportes
             : _reportes.Where(r => r.Nombre.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
 
-    private void EditarReporte(int id)
+    private async Task EditarReporte(int id)
     {
-        Console.WriteLine($"Editar reporte: {id}");
-        // NavigationManager.NavigateTo($"/editarReporte/{id}");
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
+                return;
+            }
+
+            var response = await Http.GetAsync($"api/reports/{id}?token={Uri.EscapeDataString(token)}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al cargar el reporte: {errorBody}", Severity.Error);
+                return;
+            }
+
+            var report = await response.Content.ReadFromJsonAsync<Report>();
+            if (report == null)
+            {
+                Snackbar.Add("No se encontró la información del reporte", Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                ["Username"] = report.Username ?? string.Empty,
+                ["IsEditMode"] = true,
+                ["ReportId"] = report.Id,
+                ["InitialName"] = report.Name ?? string.Empty,
+                ["InitialDescription"] = report.Description ?? string.Empty
+            };
+
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Editar Reporte", parameters, options);
+            var result = await dialog.Result;
+
+            if (result == null || result.Canceled || result.Data is not CreateReportDialog.ReportDialogResult editResult)
+            {
+                return;
+            }
+
+            var trimmedName = editResult.Name.Trim();
+            var trimmedDescription = string.IsNullOrWhiteSpace(editResult.Description)
+                ? null
+                : editResult.Description.Trim();
+
+            var currentName = report.Name ?? string.Empty;
+            var currentDescription = report.Description ?? string.Empty;
+            var hasNameChange = !string.Equals(currentName, trimmedName, StringComparison.Ordinal);
+            var hasDescriptionChange = !string.Equals(currentDescription, trimmedDescription ?? string.Empty, StringComparison.Ordinal);
+
+            if (hasNameChange || hasDescriptionChange)
+            {
+                var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
+                var updateUrl =
+                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&JSON_config={Uri.EscapeDataString(jsonConfig)}&token={Uri.EscapeDataString(token)}";
+
+                var updateResponse = await Http.PutAsync(updateUrl, null);
+                if (updateResponse.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Reporte actualizado correctamente", Severity.Success);
+                    await CargarReportes();
+                }
+                else
+                {
+                    var updateError = await updateResponse.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error al actualizar el reporte: {updateError}", Severity.Error);
+                    return;
+                }
+            }
+
+            NavigationManager.NavigateTo($"editarReporte/{id}", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al editar el reporte: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task EliminarReporte(int id)
@@ -268,10 +344,16 @@
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-            var dialog = DialogService.Show<CreateReportDialog>("Crear Nuevo Reporte", parameters, options);
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Crear Nuevo Reporte", parameters, options);
             Console.WriteLine("[DEBUG] Antes de result Dialog.");
             var result = await dialog.Result;
             Console.WriteLine("[DEBUG] Despues de result Dialog.");
+            if (result == null)
+            {
+                await JSRuntime.InvokeVoidAsync("console.warn", "[WARN] El diálogo de creación retornó un resultado nulo");
+                return;
+            }
+
             await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] Diálogo cerrado. Cancelado: {result.Canceled}, Tipo de dato: {result.Data?.GetType().Name ?? "null"}");
             await JSRuntime.InvokeVoidAsync("console.log", "[DEBUG] Contenido completo de result:", result);
 
@@ -302,11 +384,13 @@
                         }
 
                         await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] Intentando navegar a: editarReporte/{reportId}");
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
                         await JSRuntime.InvokeVoidAsync("console.log", "[DEBUG] Navegación iniciada");
                     }
                     catch (Exception loadEx)
                     {
                         Console.WriteLine($"[ERROR] Error al cargar reportes: {loadEx.Message}");
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
                     }
                 }
                 else
@@ -326,4 +410,3 @@
         }
     }
 }
-

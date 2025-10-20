@@ -1,0 +1,15 @@
+.tab-button-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 6px;
+}
+
+.tab-button {
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    text-transform: none;
+    min-width: 0;
+    height: 72px;
+    padding: 12px 8px;
+}

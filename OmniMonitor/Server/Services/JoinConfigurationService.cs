@@ -4,6 +4,7 @@ using OmniMonitor.Server.Services;
 using System.Dynamic;
 using System.Linq.Dynamic.Core;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 public interface IJoinConfigurationService
 {
@@ -109,9 +110,11 @@ public class JoinConfigurationService : IJoinConfigurationService
         // 3. Perform the in-memory join using Dynamic LINQ
         string leftJoinKey = joinConfig.LeftOperand.JoinPropertyName;
         string leftJoinType = GetPropertyTypeDynamically(leftData, leftJoinKey);
+        //string leftJoinType = "string";
 
         string rightJoinKey = joinConfig.RightOperand.JoinPropertyName;
         string rightJoinType = GetPropertyTypeDynamically(rightData, rightJoinKey);
+        //string rightJoinType = "string";
 
         if ((joinConfig.JoinType == JoinType.Inner || joinConfig.JoinType == JoinType.LeftOuter) && (leftData == null || !leftData.AsQueryable().Any()))
             return new List<dynamic>();
@@ -128,18 +131,23 @@ public class JoinConfigurationService : IJoinConfigurationService
             );
         }
 
-
+        var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
+        var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
+        //
         List<dynamic> nestedResults;
+
+        var leftList = processedLeftQuery.ToDynamicList();
+        var rightList = processedRightQuery.ToDynamicList();
 
         switch (joinConfig.JoinType)
         {
             case JoinType.Inner:
-                nestedResults = leftData.AsQueryable().Join(
-                    rightData.AsQueryable(),
-                    BuildSelector(leftJoinKey, leftJoinType),
-                    BuildSelector(rightJoinKey, rightJoinType),
-                    "new(outer as Left, inner as Right)"
-                ).ToDynamicList();
+                nestedResults = leftList.Join(
+                    rightList,
+                    outer => ((dynamic)outer).JoinKey,
+                    inner => ((dynamic)inner).JoinKey,
+                    (outer, inner) => (dynamic)new { Left = ((dynamic)outer).Data, Right = ((dynamic)inner).Data }
+                ).ToList();
                 break;
 
             case JoinType.LeftOuter:
