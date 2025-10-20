@@ -26,7 +26,8 @@
 <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Modulo"]</MudText>
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
     <MudSelect T="string"
-               @bind-Value="selectedTipo"
+               Value="@selectedTipo"
+               ValueChanged="OnModuleChanged"
                Variant="Variant.Outlined"
                Class="flex-grow-1 dark-field"
                InputClass="dark-field-input"
@@ -206,7 +207,7 @@ else if (selectedTipo == "Insight Monitor")
                            Variant="Variant.Outlined"
                            FullWidth="true"
                            Clearable
-                           Label="Seleccionar tipo de Asset"
+                           Label="@Localizer["SeleccionarTipoAsset"]"
                            Class="dark-field"
                            Required="true">
                     @foreach (var t in assetTypes)
@@ -222,11 +223,11 @@ else if (selectedTipo == "Insight Monitor")
                            Variant="Variant.Outlined"
                            MultiSelection="true"
                            SelectAll="true"
-                           SelectAllText="Seleccionar todos"
+                           SelectAllText="@Localizer["SeleccionarTodos"]"
                            Clearable
                            FullWidth="true"
                            Disabled="@(!selectedAssetTypeId.HasValue)"
-                           Label="Seleccionar Asset(s)"
+                           Label="@Localizer["SeleccionarAsset"]"
                            Class="dark-field"
                            ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
                     @foreach (var a in assets)
@@ -247,7 +248,7 @@ else if (selectedTipo == "Insight Monitor")
                            ValueChanged="OnTaskTypeChanged"
                            Variant="Variant.Outlined"
                            FullWidth="true"
-                           Label="Seleccionar Task Type"
+                           Label="@Localizer["SeleccionarTaskType"]"
                            Clearable
                            Class="dark-field"
                            Required="true">
@@ -264,11 +265,11 @@ else if (selectedTipo == "Insight Monitor")
                            Variant="Variant.Outlined"
                            MultiSelection="true"
                            SelectAll="true"
-                           SelectAllText="Seleccionar todos"
+                           SelectAllText="@Localizer["SeleccionarTodos"]"
                            Clearable
                            FullWidth="true"
                            Disabled="@(!selectedTaskTypeId.HasValue)"
-                           Label="Seleccionar Event Task Instance(s)"
+                           Label="@Localizer["SeleccionarEventTaskInstance(s)"]"
                            Class="dark-field"
                            ToStringFunc="@(id => GetEventTaskInstanceDisplayName(id))">
                     @foreach (var e in eventTaskInstances)
@@ -286,7 +287,7 @@ else if (selectedTipo == "Insight Monitor")
                            Clearable
                            FullWidth="true"
                            Disabled="@(!EnableStocksSelect)"
-                           Label="Seleccionar Stock(s)"
+                           Label="@Localizer["SeleccionarStock"]"
                            Class="dark-field"
                            ToStringFunc="@(id => stocks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString())">
                     @foreach (var s in stocks)
@@ -347,7 +348,7 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        FullWidth="true"
                        Clearable
-                       Label="Seleccionar Zona"
+                       Label="@Localizer["SeleccionarZona"]"
                        Class="dark-field"
                        Required="true">
                 @foreach (var zone in zones)
@@ -365,11 +366,11 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedZoneId.HasValue)"
-                       Label="Seleccionar Evento(s)"
+                       Label="@Localizer["SeleccionarEvento"]"
                        Class="dark-field"
                        ToStringFunc="@(id => events.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
                 @foreach (var evt in events)
@@ -387,11 +388,11 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedZoneId.HasValue)"
-                       Label="Seleccionar Noticia(s)"
+                       Label="@Localizer["SeleccionarNoticia"]"
                        Class="dark-field"
                        ToStringFunc="@(id => newsList.FirstOrDefault(n => n.Id == id)?.Title ?? id.ToString())">
                 @foreach (var news in newsList)
@@ -451,7 +452,7 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        FullWidth="true"
                        Clearable
-                       Label="Seleccionar Categoria"
+                       Label="@Localizer["SeleccionarCategoria"]"
                        Class="dark-field"
                        Required="true">
                 @foreach (var category in categories)
@@ -469,11 +470,11 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedCategoryId.HasValue)"
-                       Label="Seleccionar Evento(s)"
+                       Label="@Localizer["SeleccionarEvento"]"
                        Class="dark-field"
                        ToStringFunc="@(id => eventsEM.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
                 @foreach (var evt in eventsEM)
@@ -491,11 +492,11 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodas"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!selectedCategoryId.HasValue)"
-                       Label="Seleccionar Alerta(s)"
+                       Label="@Localizer["SeleccionarAlerta"]"
                        Class="dark-field"
                        ToStringFunc="@(id => GetAlertDisplayName(id))">
                 @foreach (var alert in alertsEM)
@@ -513,11 +514,11 @@ else if (selectedTipo == "Insight Monitor")
                        Variant="Variant.Outlined"
                        MultiSelection="true"
                        SelectAll="true"
-                       SelectAllText="Seleccionar todos"
+                       SelectAllText="@Localizer["SeleccionarTodas"]"
                        Clearable
                        FullWidth="true"
                        Disabled="@(!EnableExtensionsSelect)"
-                       Label="Seleccionar Extension(es)"
+                       Label="@Localizer["SeleccionarExtension"]"
                        Class="dark-field"
                        ToStringFunc="@(id => GetExtensionDisplayName(id))">
                 @foreach (var ext in extensions)
@@ -574,7 +575,6 @@ else if (selectedTipo == "Insight Monitor")
     private string authToken = string.Empty;
     private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
 
-    // AM UI State (kept from HEAD)
     // amMode: 1 = Event Task, 2 = Asset
     private int amMode = 2;
 
@@ -643,11 +643,9 @@ else if (selectedTipo == "Insight Monitor")
         var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
         if (ext == null) return extensionId.ToString();
         
-        // Show ID and work zone name (most descriptive field for extensions)
         if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
             return $"#{ext.Id} {ext.WorkZoneName}";
         
-        // Fallback to event name if work zone name is not available
         if (!string.IsNullOrWhiteSpace(ext.EventName))
             return $"#{ext.Id} {ext.EventName}";
         
@@ -659,7 +657,6 @@ else if (selectedTipo == "Insight Monitor")
         var alert = alertsEM.FirstOrDefault(a => a.AlertId == alertId);
         if (alert == null) return alertId.ToString();
         
-        // Show ID and alert name
         if (!string.IsNullOrWhiteSpace(alert.AlertName))
             return $"#{alert.AlertId} {alert.AlertName}";
         
@@ -671,11 +668,9 @@ else if (selectedTipo == "Insight Monitor")
         var instance = eventTaskInstances.FirstOrDefault(e => e.Id == instanceId);
         if (instance == null) return instanceId.ToString();
         
-        // Show ID and subject
         if (!string.IsNullOrWhiteSpace(instance.Subject))
             return $"#{instance.Id} {instance.Subject}";
         
-        // Fallback to EventTaskDto subject if instance subject is empty
         if (instance.EventTaskDto != null && !string.IsNullOrWhiteSpace(instance.EventTaskDto.Subject))
             return $"#{instance.Id} {instance.EventTaskDto.Subject}";
         
@@ -719,6 +714,76 @@ else if (selectedTipo == "Insight Monitor")
         await LoadDataset();
     }
 
+    private async Task OnModuleChanged(string newModule)
+    {
+        selectedTipo = newModule;
+        
+        // Limpiar todos los datos y selecciones previas
+        ClearAllSelections();
+        
+        // Cargar las listas del nuevo módulo
+        switch (newModule)
+        {
+            case "Insight Monitor":
+                await LoadSourcesAndGroups();
+                break;
+            case "Asset Manager":
+                await InitializeAMLists();
+                break;
+            case "Urban Monitor":
+                await InitializeUMLists();
+                break;
+            case "Event Manager":
+                await InitializeEMLists();
+                break;
+        }
+        
+        StateHasChanged();
+    }
+
+    private void ClearAllSelections()
+    {
+        // Clear Insight Monitor
+        selectedSourceId = null;
+        selectedGroupId = null;
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        sources.Clear();
+        deviceGroups.Clear();
+        devices.Clear();
+        sensores.Clear();
+        
+        // Clear Asset Manager
+        selectedAssetTypeId = null;
+        selectedAssetIds.Clear();
+        selectedTaskTypeId = null;
+        selectedEventTaskInstanceIds.Clear();
+        selectedStockIds.Clear();
+        assetTypes.Clear();
+        assets.Clear();
+        taskTypes.Clear();
+        eventTaskInstances.Clear();
+        stocks.Clear();
+        
+        // Clear Urban Monitor
+        selectedZoneId = null;
+        selectedEventIds.Clear();
+        selectedNewsIds.Clear();
+        zones.Clear();
+        events.Clear();
+        newsList.Clear();
+        
+        // Clear Event Manager
+        selectedCategoryId = null;
+        selectedEventEMIds.Clear();
+        selectedAlertIds.Clear();
+        selectedExtensionIds.Clear();
+        categories.Clear();
+        eventsEM.Clear();
+        alertsEM.Clear();
+        extensions.Clear();
+    }
+
     private async Task LoadDataset()
     {
         try
@@ -735,7 +800,6 @@ else if (selectedTipo == "Insight Monitor")
 
             bool datasetFound = false;
 
-            // OPTIMIZATION: If no hint from URL, call the super-fast module identification endpoint
             if (string.IsNullOrEmpty(ModuleHint))
             {
                 try
@@ -1934,6 +1998,7 @@ else if (selectedTipo == "Insight Monitor")
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
+                CategoryIds = selectedCategoryId.HasValue ? new List<int> { selectedCategoryId.Value } : null,
                 EventIds = selectedEventEMIds.Any() ? selectedEventEMIds.ToList() : null,
                 AlertIds = selectedAlertIds.Any() ? selectedAlertIds.ToList() : null,
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
