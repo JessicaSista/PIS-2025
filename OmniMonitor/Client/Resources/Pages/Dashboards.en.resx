@@ -165,6 +165,9 @@
   <data name="Gestiona" xml:space="preserve">
     <value>Manage your dashboards to visualize indicators and metrics.</value>
   </data>
+  <data name="NoResultados" xml:space="preserve">
+    <value>No results found for your search</value>
+  </data>
   <data name="PreguntaEliminar1" xml:space="preserve">
     <value>Are you sure you want to delete the dashboard {0}?</value>
   </data>
