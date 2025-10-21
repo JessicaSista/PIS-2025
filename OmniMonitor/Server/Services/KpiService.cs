@@ -271,6 +271,7 @@ namespace OmniMonitor.Server.Services
 
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = type,
@@ -288,6 +289,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -309,6 +311,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -324,6 +327,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -354,6 +358,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -369,6 +374,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -394,6 +400,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -428,6 +435,7 @@ namespace OmniMonitor.Server.Services
             // 7. Devolver respuesta
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Unit = kpi.Unit,
@@ -447,6 +455,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -468,6 +477,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -483,6 +493,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -513,6 +524,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -528,6 +540,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -552,6 +565,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -584,6 +598,7 @@ namespace OmniMonitor.Server.Services
             // 7. Devolver respuesta
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Unit = kpi.Unit,
@@ -635,6 +650,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -656,6 +672,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -671,6 +688,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -701,6 +719,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -716,6 +735,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -740,6 +760,7 @@ namespace OmniMonitor.Server.Services
             {
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
@@ -772,6 +793,7 @@ namespace OmniMonitor.Server.Services
             // 7. Devolver respuesta
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Unit = kpi.Unit,

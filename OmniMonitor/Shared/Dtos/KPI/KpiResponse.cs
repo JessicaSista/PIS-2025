@@ -4,6 +4,9 @@ namespace OmniMonitor.Shared.Dtos;
 public class KpiResponse
 {
 
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
     [JsonPropertyName("name")]
     public string? Name { get; set; }
 
