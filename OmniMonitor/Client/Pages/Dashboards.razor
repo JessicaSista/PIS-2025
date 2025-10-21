@@ -65,40 +65,86 @@
             margin: 0 auto !important;
         }
     }
+    .mud-container {
+        width: 100%;
+        display: block;
+        box-sizing: border-box;
+        margin-left: 0 !important; 
+        margin-right: auto; 
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .mud-container--gutters {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .mud-container-maxwidth-lg {
+        max-width: 100% !important;
+    }
+
 </style>
 
 <!-- Dashboard grid -->
-<MudContainer Fixed="true" Class="pl-4 pr-6">
-    <MudGrid GutterSize="3">
-        @foreach (var dashboard in filteredDashboards)
+<MudContainer Fixed="false">
+    <MudGrid GutterSize="3" Justify="Justify.FlexStart">
+        @if (dashboards == null)
         {
-            <MudItem xs="12" sm="6" md="4">
-                <div style="position:relative;">
-                    <DashboardCardComponent Dashboard="dashboard"
-                                            OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
-
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                             AnchorOrigin="Origin.TopRight"
-                             TransformOrigin="Origin.TopRight"
-                             Class="position-absolute"
-                             Style="position:absolute; top:8px; right:8px;">
-
-                        <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
-                            @Localizer["Editar"]
-                        </MudMenuItem>
-
-                        <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
-                            @Localizer["Eliminar"]
-                        </MudMenuItem>
-                    </MudMenu>
-                </div>
+            @for (int i = 0; i < 8; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3"> 
+                    <MudCard>
+                        <MudCardContent>
+                            <MudSkeleton Height="150px" Width="100%" />
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        }
+        else if (filteredDashboards.Count == 0)
+        {
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1"
+                         Align="MudBlazor.Align.Center"
+                         Class="mt-6 mb-6"
+                         Style="color:#a5a8b5;">
+                    @Localizer["NoResultados"]
+                </MudText>
             </MudItem>
+        }
+        else
+        {
+            @foreach (var dashboard in filteredDashboards)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3"> 
+                    <div style="position:relative;">
+                        <DashboardCardComponent Dashboard="dashboard"
+                                                OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
+
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                 AnchorOrigin="Origin.TopRight"
+                                 TransformOrigin="Origin.TopRight"
+                                 Class="position-absolute"
+                                 Style="position:absolute; top:8px; right:8px;">
+                            <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
+                                @Localizer["Editar"]
+                            </MudMenuItem>
+
+                            <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
+                                @Localizer["Eliminar"]
+                            </MudMenuItem>
+                        </MudMenu>
+                    </div>
+                </MudItem>
+            }
         }
     </MudGrid>
 </MudContainer>
 
+
 @code {
-    private List<DashboardSummaryResponse> dashboards = new();
+    private List<DashboardSummaryResponse>? dashboards = null;
     private List<DashboardSummaryResponse> filteredDashboards = new();
     private string _searchText = string.Empty;
 
@@ -108,7 +154,30 @@
         set
         {
             _searchText = value ?? string.Empty;
-            FilterDashboards();
+            ApplyFilter();
+        }
+    }
+
+    private void ApplyFilter()
+    {
+        if (dashboards == null)
+        {
+            filteredDashboards = new List<DashboardSummaryResponse>();
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_searchText))
+        {
+            filteredDashboards = dashboards.ToList();
+        }
+        else
+        {
+            var normalizedSearch = NormalizeText(_searchText);
+            filteredDashboards = dashboards
+                .Where(d =>
+                    NormalizeText(d.Nombre).Contains(normalizedSearch) ||
+                    NormalizeText(d.Descripcion ?? string.Empty).Contains(normalizedSearch))
+                .ToList();
         }
     }
 
@@ -123,19 +192,42 @@
             if (string.IsNullOrEmpty(username))
             {
                 Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
-                filteredDashboards = new List<DashboardSummaryResponse>();
+                dashboards = new List<DashboardSummaryResponse>();
+                ApplyFilter();
                 return;
             }
 
-            dashboards = await Http.GetFromJsonAsync<List<DashboardSummaryResponse>>(
-                $"api/Dashboard/GetAllDashboards?token=" + token
-            ) ?? new();
-
-            filteredDashboards = dashboards.ToList();
+            await LoadDashboardsAsync();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading dashboards: {ex.Message}", Severity.Error);
+            dashboards = new List<DashboardSummaryResponse>();
+            ApplyFilter();
+        }
+    }
+
+    private async Task LoadDashboardsAsync()
+    {
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            var result = await Http.GetFromJsonAsync<List<DashboardSummaryResponse>>(
+                $"api/Dashboard/GetAllDashboards?token={token}"
+            );
+
+            dashboards = result ?? new List<DashboardSummaryResponse>();
+            ApplyFilter();
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading dashboards: {ex.Message}", Severity.Error);
+            dashboards = new List<DashboardSummaryResponse>();
+            ApplyFilter();
+            StateHasChanged();
         }
     }
 
@@ -158,7 +250,8 @@
             BackgroundClass = "mud-overlay-dark"
         };
 
-        await DialogService.ShowAsync<CreateDashboardDialog>("Create Dashboard", parameters, options);
+        var title = Localizer["CrearDashboard"];
+        await DialogService.ShowAsync<CreateDashboardDialog>(title, parameters, options);
     }
 
     private async void CreateDashboard(DashboardDto newDashboard)
@@ -173,6 +266,7 @@
             if (string.IsNullOrEmpty(username))
             {
                 Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+                dashboards = dashboards ?? new List<DashboardSummaryResponse>();
                 filteredDashboards = new List<DashboardSummaryResponse>();
                 return;
             }
@@ -190,6 +284,7 @@
                 var created = await response.Content.ReadFromJsonAsync<DashboardResponse>();
                 if (created != null)
                 {
+                    dashboards = dashboards ?? new List<DashboardSummaryResponse>();
                     dashboards.Add(new DashboardSummaryResponse
                     {
                         IdDashboard = created.IdDashboard,
@@ -199,7 +294,8 @@
                         FechaModificacion = created.FechaModificacion,
                         CantidadTarjetas = created.Tarjetas?.Count ?? 0
                     });
-                    filteredDashboards = dashboards.ToList();
+
+                    ApplyFilter();
                     StateHasChanged();
                     await JS.InvokeVoidAsync("equalizeCardHeights");
                     Snackbar.Add($"'{created.Nombre}' created successfully", Severity.Success);
@@ -334,7 +430,7 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    dashboards.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
+                    dashboards?.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
                     filteredDashboards.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
                     Snackbar.Add($"'{dashboard.Nombre}' deleted successfully", Severity.Success);
                 }
@@ -352,20 +448,6 @@
         }
     }
 
-    private void FilterDashboards()
-    {
-        if (string.IsNullOrWhiteSpace(searchText))
-        {
-            filteredDashboards = dashboards.ToList();
-            return;
-        }
-
-        var normalizedSearch = NormalizeText(searchText);
-        filteredDashboards = dashboards
-            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
-            .ToList();
-    }
-
     private string NormalizeText(string text)
     {
         if (string.IsNullOrEmpty(text)) return string.Empty;
@@ -376,7 +458,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (dashboards.Count > 0)
+        if (dashboards != null && dashboards.Count > 0)
         {
             await JS.InvokeVoidAsync("equalizeCardHeights");
         }

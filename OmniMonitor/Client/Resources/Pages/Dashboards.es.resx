@@ -117,55 +117,58 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CrearDashboard" xml:space="preserve">
-    <value>Crear Dashboard</value>
-  </data>
-  <data name="Gestiona" xml:space="preserve">
-    <value>Gestiona tus dashboards para visualizar indicadores y métricas.</value>
-  </data>
   <data name="Buscar" xml:space="preserve">
     <value>Buscar dashboards...</value>
-  </data>
-  <data name="Filtros" xml:space="preserve">
-    <value>Filtros</value>
-  </data>
-  <data name="Editar" xml:space="preserve">
-    <value>Editar</value>
-  </data>
-  <data name="Eliminar" xml:space="preserve">
-    <value>Eliminar</value>
-  </data>
-  <data name="Confirmación" xml:space="preserve">
-    <value>Confirmación</value>
-  </data>
-  <data name="PreguntaEliminar1" xml:space="preserve">
-    <value>¿Seguro que deseas eliminar el dashboard {0}?</value>
   </data>
   <data name="Cancelar" xml:space="preserve">
     <value>Cancelar</value>
   </data>
-  <data name="Eliminado" xml:space="preserve">
-    <value>eliminado correctamente.</value>
+  <data name="Confirmación" xml:space="preserve">
+    <value>Confirmación</value>
   </data>
-  <data name="ErrorUsuario" xml:space="preserve">
-    <value>No se pudo obtener el usuario actual.</value>
-  </data>
-  <data name="ErrorEliminar" xml:space="preserve">
-    <value>Error al eliminar el dashboard:</value>
-  </data>
-  <data name="ErrorCarga" xml:space="preserve">
-    <value>Error al cargar los dashboards:</value>
-  </data>
-  <data name="ErrorInicializar" xml:space="preserve">
-    <value>Error al inicializar la vista de dashboards:</value>
-  </data>
-  <data name="DashboardCreado" xml:space="preserve">
-    <value>El dashboard se creó correctamente.</value>
+  <data name="CrearDashboard" xml:space="preserve">
+    <value>Crear Dashboard</value>
   </data>
   <data name="DashboardActualizado" xml:space="preserve">
     <value>El dashboard se actualizó correctamente.</value>
   </data>
+  <data name="DashboardCreado" xml:space="preserve">
+    <value>El dashboard se creó correctamente.</value>
+  </data>
+  <data name="Editar" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Eliminado" xml:space="preserve">
+    <value>eliminado correctamente.</value>
+  </data>
+  <data name="Eliminar" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="ErrorCarga" xml:space="preserve">
+    <value>Error al cargar los dashboards:</value>
+  </data>
+  <data name="ErrorEliminar" xml:space="preserve">
+    <value>Error al eliminar el dashboard:</value>
+  </data>
   <data name="ErrorGuardar" xml:space="preserve">
     <value>Error al guardar los cambios del dashboard.</value>
+  </data>
+  <data name="ErrorInicializar" xml:space="preserve">
+    <value>Error al inicializar la vista de dashboards:</value>
+  </data>
+  <data name="ErrorUsuario" xml:space="preserve">
+    <value>No se pudo obtener el usuario actual.</value>
+  </data>
+  <data name="Filtros" xml:space="preserve">
+    <value>Filtros</value>
+  </data>
+  <data name="Gestiona" xml:space="preserve">
+    <value>Gestiona tus dashboards para visualizar indicadores y métricas.</value>
+  </data>
+  <data name="NoResultados" xml:space="preserve">
+    <value>No se encontraron resultados para tu búsqueda</value>
+  </data>
+  <data name="PreguntaEliminar1" xml:space="preserve">
+    <value>¿Seguro que deseas eliminar el dashboard {0}?</value>
   </data>
 </root>
