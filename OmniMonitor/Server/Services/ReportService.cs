@@ -2,6 +2,7 @@
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System.Dynamic;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -23,12 +24,17 @@ public class ReportService : IReportService
     private readonly ApplicationDbContext _context;
     private readonly IJoinConfigurationService _joinConfigService;
     private readonly IApiDataService _apiDataService;
+    private readonly ISondaAuthService _sondaAuthService;
+    private readonly ISondaIMService _sondaIMService;
 
-    public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService, IApiDataService ApiDataService)
+    public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService,
+        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService)
     {
         _context = context;
         _joinConfigService = JoinConfigurationService;
         _apiDataService = ApiDataService;
+        _sondaAuthService = SondaAuthService;
+        _sondaIMService = SondaIMService;
     }
 
     /// <summary>
@@ -176,6 +182,11 @@ public class ReportService : IReportService
             throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuración JSON válida.");
         }
 
+        var password = await _context.Users
+        .Where(u => u.Username == username)
+        .Select(u => u.Password)
+        .FirstOrDefaultAsync();
+
         var serializerOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -210,6 +221,25 @@ public class ReportService : IReportService
                     rawData = PrefixDatasetData(datasetData, sourceConfig.EntityName.Value.ToString());
                     break;
 
+                case "device":
+                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.DateFrom.HasValue || !sourceConfig.DateTo.HasValue)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        DateTime dateFrom = DateTime.ParseExact(sourceConfig.DateFrom.Value.ToString(), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
+                        DateTime dateTo = DateTime.ParseExact(sourceConfig.DateTo.Value.ToString(), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
+
+                        var deviceReadings = await _sondaIMService.GetDeviceDataByDate(sourceConfig.SourceId.Value, dateFrom, dateTo, username, password);
+                        rawData = PrefixDatasetData(deviceReadings, "DeviceData");
+                    }
+                    catch (FormatException)
+                    {
+                        continue;
+                    }
+                    break;
                 default:
                     continue;
             }

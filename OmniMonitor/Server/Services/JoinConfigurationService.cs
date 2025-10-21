@@ -151,13 +151,11 @@ public class JoinConfigurationService : IJoinConfigurationService
                 break;
 
             case JoinType.LeftOuter:
-                nestedResults = PerformLeftJoin(leftData, rightData, joinConfig.LeftOperand, joinConfig.RightOperand, leftJoinType, rightJoinType);
+                nestedResults = PerformLeftJoin(leftList, rightList);
                 break;
 
             case JoinType.RightOuter:
-                var rightJoinResults = PerformLeftJoin(rightData, leftData, joinConfig.RightOperand, joinConfig.LeftOperand, leftJoinType, rightJoinType);
-
-                // Re-invertimos el resultado para que 'Left' y 'Right' coincidan con la petición original.
+                var rightJoinResults = PerformLeftJoin(rightList, leftList);
                 nestedResults = rightJoinResults.Select(r =>
                 {
                     var leftValue = r.GetType().GetProperty("Right").GetValue(r, null);
@@ -292,36 +290,21 @@ public class JoinConfigurationService : IJoinConfigurationService
         return "string";
         }
 
-    private List<dynamic> PerformLeftJoin(IEnumerable<dynamic> leftData, IEnumerable<dynamic> rightData, JoinOperand leftOperand, JoinOperand rightOperand, string leftJoinType, string rightJoinType)
+    private List<dynamic> PerformLeftJoin(List<dynamic> leftData, List<dynamic> rightData)
     {
-        // Si los datos de la derecha son nulos o vacíos, los tratamos como una lista vacía para que el GroupJoin funcione.
-        rightData ??= Enumerable.Empty<dynamic>();
-
-        // 1. Usa GroupJoin para agrupar las coincidencias
-        var groupedResults = leftData.AsQueryable().GroupJoin(
-            rightData.AsQueryable(),
-            BuildSelector(leftOperand.JoinPropertyName, leftJoinType),
-            BuildSelector(rightOperand.JoinPropertyName, rightJoinType),
-            "new(outer as Left, inner as RightGroup)"
-        ).ToDynamicList();
-
-        // 2. Aplana los resultados manualmente, añadiendo null si no hay coincidencias
-        var flattenedResults = new List<dynamic>();
-        foreach (dynamic group in groupedResults)
-        {
-            bool hasMatches = false;
-            foreach (var rightItem in group.RightGroup)
+        return leftData.GroupJoin(
+            rightData,
+            outer => ((dynamic)outer).JoinKey, // Accede a la clave pre-procesada
+            inner => ((dynamic)inner).JoinKey, // Accede a la clave pre-procesada
+            (outer, innerGroup) => new { LeftObject = outer, RightGroup = innerGroup }
+        )
+        .SelectMany(
+            group => group.RightGroup.DefaultIfEmpty(), // Crucial para LEFT JOIN: si no hay coincidencias, devuelve un solo 'null'
+            (group, rightItem) => (dynamic)new
             {
-                flattenedResults.Add(new { Left = group.Left, Right = rightItem });
-                hasMatches = true;
+                Left = ((dynamic)group.LeftObject).Data, // Extrae los datos originales
+                Right = rightItem == null ? null : ((dynamic)rightItem).Data // Si no hay coincidencia, Right es null
             }
-
-            if (!hasMatches)
-            {
-                // Si no hubo coincidencias para este elemento izquierdo, añádelo con un nulo a la derecha.
-                flattenedResults.Add(new { Left = group.Left, Right = (object)null });
-            }
-        }
-        return flattenedResults;
+        ).ToList();
     }
 }
