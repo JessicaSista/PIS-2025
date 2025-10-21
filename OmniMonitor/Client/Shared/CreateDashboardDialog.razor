@@ -1,0 +1,61 @@
+﻿@using OmniMonitor.Shared.Dtos
+@inject MudBlazor.ISnackbar Snackbar
+@using MudBlazor.Extensions;
+@using Microsoft.Extensions.Localization;
+@inject IStringLocalizer<CreateDashboardDialog> Localizer
+
+<MudDialog Style="background-color: var(--fondo-dialog); color: var(--text-primary); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="newDashboard.Nombre"
+                          Label="@Localizer["Name"]"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          For="@(() => newDashboard.Nombre)"
+                          Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
+            <MudTextField @bind-Value="newDashboard.Descripcion"
+                          Label="@Localizer["Description"]"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          For="@(() => newDashboard.Descripcion)"
+                          MaxLength="200"
+                          Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Confirm">@Localizer["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    [CascadingParameter] public IMudDialogInstance _mudDialog { get; set; } = default!;
+    [Parameter] public EventCallback<DashboardDto> OnConfirm { get; set; }
+    [Parameter] public string? InitialName { get; set; }
+    [Parameter] public string? InitialDescription { get; set; }
+
+    private DashboardDto newDashboard = new();
+
+    private bool IsFormValid => !string.IsNullOrWhiteSpace(newDashboard.Nombre);
+
+    protected override void OnInitialized()
+    {
+        newDashboard = new DashboardDto
+        {
+            Nombre = InitialName ?? string.Empty,
+            Descripcion = InitialDescription ?? string.Empty
+        };
+    }
+
+    private async Task Confirm()
+    {
+        await OnConfirm.InvokeAsync(newDashboard);
+        _mudDialog.Close(DialogResult.Ok(newDashboard));
+    }
+
+    private void Cancel()
+    {
+        _mudDialog.Cancel();
+    }
+}

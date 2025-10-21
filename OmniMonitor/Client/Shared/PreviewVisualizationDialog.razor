@@ -1,0 +1,82 @@
+@using OmniMonitor.Shared.Dtos
+@using System.Text.Json
+@inject IDialogService DialogService
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ISnackbar Snackbar
+
+<MudDialog Style="background-color: var(--fondo-dialog)">
+    <DialogContent>
+        <MudContainer>
+            @{
+                if (VisualizationType == 1)
+                {
+                    <ChartViewer VisualizationId="VisualizationId"/>
+                }
+                else if (VisualizationType == 2)
+                {
+                    <KpiViewer KpiId="VisualizationId" />
+                }
+
+            
+            
+            // JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+            // System.String chartType = design.RootElement.GetProperty("ChartType").ToString();
+            // System.String datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
+
+            // <MudPaper Class="pa-6" Style="background-color: var(--card);">
+            //         <MudItem>
+            //             <VisualizationCard 
+            //                 visualizationTitle="@visualization.Nombre"
+            //                 visualizationDatasets="@datasetNames"
+            //                 lastUpdated="@DateTime.Now.ToString("g")" 
+            //                 dataCharts="@visualizationData"
+            //                 chartType="@chartType"/>
+            //         </MudItem>
+            // </MudPaper>
+        }
+           
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">Confirmar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public System.Int32 dashboardId {get; set;}
+
+    [Parameter] public int VisualizationId { get; set; }
+
+    [Parameter] public int VisualizationType { get; set; } = new();
+
+    [Parameter] public EventCallback<(int,int)> OnVisualizationCreated { get; set; }
+
+
+    private void Cancel()
+    {
+        MudDialog.Close(DialogResult.Cancel());
+    }
+    
+    private async Task Submit()
+    {
+        try
+        {
+            
+            await OnVisualizationCreated.InvokeAsync(ValueTuple.Create(VisualizationId, VisualizationType));
+        }
+        catch(Exception e)
+        {
+            Snackbar.Add($"Error al agregar visualizacion: {e.Message}", Severity.Error);
+        }
+        finally
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+    }
+}

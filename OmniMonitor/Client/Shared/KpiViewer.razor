@@ -1,0 +1,150 @@
+﻿@using MudBlazor
+@using Blazored.LocalStorage
+@using Microsoft.Extensions.Localization
+@using OmniMonitor.Shared.Dtos
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+@inject IStringLocalizer<VisualizationCard> Localizer
+
+<MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
+
+<MudCard Elevation="0" Style="background-color: transparent; display:flex; flex-direction:column;">
+    <MudCardContent Style="flex-grow:1; display:flex; flex-direction:column;">
+        <MudText Class="mb-4" Typo="Typo.h6">@_kpiName</MudText>
+
+        @if (_kpiValue == "—" || string.IsNullOrEmpty(_kpiValue))
+        {
+            <MudText Typo="Typo.body2" Style="color: var(--card-text-secondary); font-weight: bold;">
+                @Localizer["NoData"]
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.h4">
+                @_kpiValue
+            </MudText>
+        }
+
+        @if (!string.IsNullOrEmpty(_kpiDescription))
+        {
+            <MudText Typo="Typo.body2" Style="color: var(--card-text-secondary); margin-top:4px;">
+                @_kpiDescription
+            </MudText>
+        }
+    </MudCardContent>
+
+    <!-- Footer fijo al fondo -->
+    <MudStack Row Justify="Justify.FlexEnd" Style="margin-top:auto;">
+        <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">
+                @Localizer["Actualizado"]: @(DateTime.Now.ToString("g"))
+        </MudText>
+    </MudStack>
+</MudCard>
+
+</MudPaper>
+
+
+
+@code {
+
+    [Parameter] public int KpiId { get; set; }
+
+    // KPI Variables
+    private string _kpiName { get; set; } = string.Empty;
+    private string _kpiDescription { get; set; } = string.Empty;
+    private string _kpiValue { get; set; } = string.Empty;
+    private string _kpiColor { get; set; } = "#00FFE7"; 
+    private string _lastUpdated { get; set; } = "N/A";
+
+    private string CardStyle => $"background-color:{GetTransparentColor(_kpiColor, 0.15)}; border:2px solid {_kpiColor}; border-radius: 2px; flex-grow: 1;";
+
+    protected override async Task OnInitializedAsync()
+    {
+        string token = await LocalStorage.GetItemAsync<string>("authToken");
+        
+        string requestUri = $"api/KPI/{KpiId}?token={token}";
+
+        try
+        {
+            var response = await Http.GetAsync(requestUri);
+
+            if (response.IsSuccessStatusCode)
+            {
+                KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                if (kpiData != null)
+                {
+                    _kpiName = kpiData.Name;
+                    _kpiDescription = kpiData.Description;
+                    _kpiValue = RenderKpiValue(kpiData.Value);
+                    _kpiColor = kpiData.ActualColor;
+                }
+            }
+            else
+            {
+                // Manejar errores (400, 404, etc.)
+                string errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error al obtener KPI {KpiId}. Código: {response.StatusCode}. Mensaje: {errorContent}");
+                // Snackbar.Add($"Error: {errorContent}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error interno al llamar al endpoint de KPI: {ex.Message}");
+            // Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
+        }
+    }
+
+
+    //Fuinciones para renderizar el valor del KPI con formato adecuado
+    private string RenderKpiValue(object? val)
+    {
+        if (val == null) return "—"; // valor nulo
+        if (val is JsonElement je)
+        {
+            switch (je.ValueKind)
+            {
+                case JsonValueKind.Number:
+                    return je.GetRawText(); // devuelve el número como string
+                case JsonValueKind.String:
+                    return je.GetString() ?? "—";
+                case JsonValueKind.True:
+                    return "1";
+                case JsonValueKind.False:
+                    return "0";
+                default:
+                    return je.ToString() ?? "—";
+            }
+        }
+        return val.ToString() ?? "—";
+    }
+
+    private string GetTransparentColor(string colorInput, double opacity)
+    {
+        if (string.IsNullOrWhiteSpace(colorInput)) return colorInput;
+
+        if (colorInput.StartsWith("#") && (colorInput.Length == 7 || colorInput.Length == 4))
+        {
+            try
+            {
+                string hex = colorInput.Substring(1);
+                if (hex.Length == 3) hex = string.Concat(hex.Select(c => new string(c, 2)));
+
+                int r = int.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                int g = int.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                int b = int.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+                return $"rgba({r},{g},{b},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+            }
+            catch { return colorInput; }
+        }
+
+        var parts = colorInput.Replace("rgb(", "").Replace(")", "").Split(',');
+        if (parts.Length == 3)
+        {
+            return $"rgba({parts[0].Trim()},{parts[1].Trim()},{parts[2].Trim()},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+        }
+
+        return colorInput;
+    }
+}
+

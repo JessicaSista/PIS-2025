@@ -12,12 +12,13 @@ namespace OmniMonitor.Server.Services
     // --- Interfaz para el servicio ---
     public interface IDatasetService
     {
-        Task<Dataset> CreateDatasetAsync(CreateDatasetRequest request);
-        Task<List<Dataset>> GetAllDatasetsAsync(string username);
-        Task<Dataset?> GetDatasetByIdAsync(int datasetId, string username);
-        Task<Dataset?> GetDatasetByIdForEditAsync(int datasetId, string username);
-        Task<Dataset> UpdateDatasetAsync(Dataset dataset);
-        Task DeleteDatasetAsync(int datasetId, string username);
+        Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetRequest request);
+        Task<List<DatasetIM>> GetAllDatasetsIMAsync(string username);
+        Task<DatasetIM?> GetDatasetIMByIdAsync(int datasetId, string username);
+        Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username);
+        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset);
+        Task DeleteDatasetIMAsync(int datasetId, string username);
+        Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username);
     }
 
     // --- Implementación del servicio ---
@@ -35,7 +36,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Crea un nuevo dataset, ya sea uno formal ('S') o uno interno para un solo elemento ('N').
         /// </summary>
-        public async Task<Dataset> CreateDatasetAsync(CreateDatasetRequest request)
+        public async Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetRequest request)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Name))
             {
@@ -43,7 +44,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
-            var existingDataset = await _context.Datasets
+            var existingDataset = await _context.DatasetsIM
                 .FirstOrDefaultAsync(d => d.Username == request.Username && d.Name == request.Name);
             
             if (existingDataset != null)
@@ -51,7 +52,7 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{request.Username}'.");
             }
 
-            var newDataset = new Dataset
+            var newDataset = new DatasetIM
             {
                 Username = request.Username,
                 Name = request.Name,
@@ -91,7 +92,7 @@ namespace OmniMonitor.Server.Services
                 }
             }
 
-            _context.Datasets.Add(newDataset);
+            _context.DatasetsIM.Add(newDataset);
             await _context.SaveChangesAsync();
 
             return newDataset;
@@ -100,9 +101,9 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Obtiene todos los datasets de un usuario específico.
         /// </summary>
-        public async Task<List<Dataset>> GetAllDatasetsAsync(string username)
+        public async Task<List<DatasetIM>> GetAllDatasetsIMAsync(string username)
         {
-            return await _context.Datasets
+            return await _context.DatasetsIM
                 .Where(d => d.Username == username)
                 .ToListAsync();
         }
@@ -110,9 +111,9 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Obtiene un dataset por su ID y nombre de usuario, aplicando la lógica de carga de devices.
         /// </summary>
-        public async Task<Dataset?> GetDatasetByIdAsync(int datasetId, string username)
+        public async Task<DatasetIM?> GetDatasetIMByIdAsync(int datasetId, string username)
         {
-            var dataset = await _context.Datasets
+            var dataset = await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
@@ -199,9 +200,9 @@ namespace OmniMonitor.Server.Services
         /// Obtiene un dataset por su ID y nombre de usuario para edición, SIN aplicar lógica de búsqueda dinámica.
         /// Devuelve el dataset exactamente como está guardado en la base de datos.
         /// </summary>
-        public async Task<Dataset?> GetDatasetByIdForEditAsync(int datasetId, string username)
+        public async Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username)
         {
-            return await _context.Datasets
+            return await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
         }
@@ -209,14 +210,14 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
-        public async Task<Dataset> UpdateDatasetAsync(Dataset dataset)
+        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset)
         {
             if (dataset == null)
             {
                 throw new ArgumentNullException(nameof(dataset), "El dataset no puede ser nulo.");
             }
 
-            var existingDataset = await _context.Datasets
+            var existingDataset = await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
                 .FirstOrDefaultAsync(d => d.Id == dataset.Id);
 
@@ -228,7 +229,7 @@ namespace OmniMonitor.Server.Services
             // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
             if (!string.IsNullOrEmpty(dataset.Name) && dataset.Name != existingDataset.Name)
             {
-                var duplicateDataset = await _context.Datasets
+                var duplicateDataset = await _context.DatasetsIM
                     .FirstOrDefaultAsync(d => d.Username == existingDataset.Username && 
                                             d.Name == dataset.Name && 
                                             d.Id != dataset.Id);
@@ -281,7 +282,7 @@ namespace OmniMonitor.Server.Services
                 }
             }
 
-            _context.Datasets.Update(existingDataset);
+            _context.DatasetsIM.Update(existingDataset);
             await _context.SaveChangesAsync();
 
             return existingDataset;
@@ -290,9 +291,9 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Elimina un dataset y sus relaciones con devices.
         /// </summary>
-        public async Task DeleteDatasetAsync(int datasetId, string username)
+        public async Task DeleteDatasetIMAsync(int datasetId, string username)
         {
-            var dataset = await _context.Datasets
+            var dataset = await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
@@ -312,8 +313,41 @@ namespace OmniMonitor.Server.Services
             }
 
             // Eliminar el dataset
-            _context.Datasets.Remove(dataset);
+            _context.DatasetsIM.Remove(dataset);
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Identifica rápidamente a qué módulo pertenece un dataset chequeando las tablas.
+        /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager", o null si no existe.
+        /// </summary>
+        public async Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username)
+        {
+            // Check Insight Monitor table
+            var existsInIM = await _context.DatasetsIM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInIM)
+                return "Insight Monitor";
+
+            // Check Asset Manager table
+            var existsInAM = await _context.DatasetAM
+                .AnyAsync(d => d.Id_Dataset == datasetId && d.Username == username);
+            if (existsInAM)
+                return "Asset Manager";
+
+            // Check Urban Monitor table
+            var existsInUM = await _context.DatasetsUM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInUM)
+                return "Urban Monitor";
+
+            // Check Event Manager table
+            var existsInEM = await _context.DatasetsEM
+                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+            if (existsInEM)
+                return "Event Manager";
+
+            return null;
         }
     }
 }

@@ -36,10 +36,9 @@
 </body>
 <script>
     window.equalizeCardHeights = () => {
-        const cards = document.querySelectorAll('.dataset-card');
+        const cards = document.querySelectorAll('.dataset-card, .kpi-card');
         let max = 0;
 
-        // reset heights first
         cards.forEach(c => c.style.height = 'auto');
 
         cards.forEach(c => {

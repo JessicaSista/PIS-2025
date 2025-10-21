@@ -1,8 +1,10 @@
 @page "/datasets"
 @attribute [Authorize]
+@implements IDisposable
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @using MudBlazor
+@using Blazored.LocalStorage
 @using OmniMonitor.Shared
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
@@ -13,6 +15,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
+@inject ILocalStorageService LocalStorage
 
 <PageTitle>Datasets</PageTitle>
 
@@ -100,8 +103,9 @@
 @code {
     private List<DatasetDto> datasets = new();
     private List<DatasetDto> filteredDatasets = new();
+    private System.Threading.Timer? _debounceTimer;
 
-    // Propiedad con setter que dispara el filtrado
+    // Propiedad con setter que dispara el filtrado con debounce
     private string _searchText = string.Empty;
     private string searchText
     {
@@ -109,14 +113,23 @@
         set
         {
             _searchText = value ?? string.Empty;
-            FilterDatasets();
+            
+            // Cancelar el timer anterior si existe
+            _debounceTimer?.Dispose();
+            
+            // Crear un nuevo timer que ejecutará la búsqueda después de 500ms
+            _debounceTimer = new System.Threading.Timer(_ =>
+            {
+                InvokeAsync(async () => await LoadDatasetsAsync());
+            }, null, 500, Timeout.Infinite);
         }
     }
 
     private void EditarDataset(DatasetDto dataset)
     {
         if (dataset is null) return;
-        NavigationManager.NavigateTo($"/editarDataset/{dataset.Id}");
+        // Pasar el módulo como parámetro de query para carga más rápida
+        NavigationManager.NavigateTo($"/editarDataset/{dataset.Id}?module={Uri.EscapeDataString(dataset.Module)}");
     }
 
     private async Task ConfirmEliminar(DatasetDto dataset)
@@ -143,6 +156,7 @@
                 // Obtener el usuario actual
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 var username = authState.User.Identity?.Name;
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
 
                 if (string.IsNullOrEmpty(username))
                 {
@@ -150,12 +164,33 @@
                     return;
                 }
 
-                // Eliminar desde el backend
-                var response = await Http.DeleteAsync($"api/Dataset/{dataset.Id}/{username}");
+                HttpResponseMessage response;
+                
+                // Eliminar según el módulo
+                switch (dataset.Module)
+                {
+                    case "Insight Monitor":
+                        response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
+                        break;
+                    case "Asset Manager":
+                        response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
+                        break;
+                    case "Urban Monitor":
+                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
+                        break;
+                    case "Event Manager":
+                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
+                        break;
+                    default:
+                        Snackbar.Add("Módulo desconocido", Severity.Error);
+                        return;
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
-                    datasets.RemoveAll(d => d.Id == dataset.Id);
-                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id);
+                    // Remover solo el dataset que coincide tanto en ID como en Módulo
+                    datasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
+                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
                     Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;
@@ -177,11 +212,38 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadDatasetsAsync();
+
+        // Mostrar snackbar si viene mensaje por query string
+        var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+        if (!string.IsNullOrEmpty(uri.Query))
+        {
+            var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var q in query)
+            {
+                var kv = q.Split('=', 2);
+                if (kv.Length == 2 && kv[0] == "snackbar")
+                {
+                    var mensaje = Uri.UnescapeDataString(kv[1]);
+                    Snackbar.Add(mensaje, Severity.Success, config =>
+                    {
+                        config.SnackbarVariant = Variant.Filled;
+                        config.Action = "OK";
+                        config.ActionColor = MudBlazor.Color.Primary;
+                    });
+                }
+            }
+        }
+    }
+
+    private async Task LoadDatasetsAsync()
+    {
         try
         {
             // Obtener el usuario actual de la sesión
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             Console.WriteLine($"DEBUG: Username obtenido: '{username}'");
 
@@ -192,62 +254,134 @@
                 return;
             }
 
-            // Cargar datasets desde el backend
-            var response = await Http.GetAsync($"api/Dataset/user/{username}");
-            
-            // ⬇️ AGREGAR AQUÍ
-            Console.WriteLine($"DEBUG: Status Code: {response.StatusCode}");
-            
-            if (response.IsSuccessStatusCode)
+            var allDatasets = new List<DatasetDto>();
+
+            // 1. Cargar datasets de Insight Monitor
+            try
             {
-                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<Dataset>>();
-                
-                // ⬇️ AGREGAR AQUÍ
-                Console.WriteLine($"DEBUG: Datasets recibidos: {datasetsFromApi?.Count ?? 0}");
-                
-                // Convertir Dataset a DatasetDto
-                datasets = datasetsFromApi?.Select(d => new DatasetDto
+                var urlIM = $"api/Dataset/user?token={Uri.EscapeDataString(token)}";
+                if (!string.IsNullOrWhiteSpace(searchText))
                 {
-                    Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description
-                }).ToList() ?? new List<DatasetDto>();
-            }
-            else
-            {
-                // ⬇️ REEMPLAZAR estas 2 líneas
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"DEBUG: Error response: {errorContent}");
-                Snackbar.Add($"{Localizer["ErrorCarga"]} {response.StatusCode}", Severity.Error);
-                // ⬆️ Por esta línea antigua: Snackbar.Add("Error al cargar los datasets", Severity.Error);
-                
-                datasets = new List<DatasetDto>();
-            }
+                    urlIM += $"&search={Uri.EscapeDataString(searchText)}";
+                }
 
-
-            // Inicializar la lista filtrada
-            filteredDatasets = datasets.ToList();
-
-            // Mostrar snackbar si viene mensaje por query string
-            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-            if (!string.IsNullOrEmpty(uri.Query))
-            {
-                var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
-                foreach (var q in query)
+                var responseIM = await Http.GetAsync(urlIM);
+                if (responseIM.IsSuccessStatusCode)
                 {
-                    var kv = q.Split('=', 2);
-                    if (kv.Length == 2 && kv[0] == "snackbar")
+                    var datasetsIM = await responseIM.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                    allDatasets.AddRange(datasetsIM?.Select(d => new DatasetDto
                     {
-                        var mensaje = Uri.UnescapeDataString(kv[1]);
-                        Snackbar.Add(mensaje, Severity.Success, config =>
-                        {
-                            config.SnackbarVariant = Variant.Filled;
-                            config.Action = "OK";
-                            config.ActionColor = MudBlazor.Color.Primary;
-                        });
-                    }
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Insight Monitor"
+                    }) ?? new List<DatasetDto>());
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets IM: {ex.Message}");
+            }
+
+            // 2. Cargar datasets de Asset Manager
+            try
+            {
+                var urlAM = $"api/DatasetAM/GetAllDatasetAMs?token={Uri.EscapeDataString(token)}";
+                var responseAM = await Http.GetAsync(urlAM);
+                if (responseAM.IsSuccessStatusCode)
+                {
+                    var datasetsAM = await responseAM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetAM>>();
+                    var filteredAM = datasetsAM ?? new List<OmniMonitor.Shared.Dtos.DatasetAM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredAM = filteredAM.Where(d => NormalizeText(d.Nombre ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredAM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id_Dataset,
+                        Nombre = d.Nombre,
+                        Descripcion = d.Descripcion,
+                        Module = "Asset Manager"
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets AM: {ex.Message}");
+            }
+
+            // 3. Cargar datasets de Urban Monitor
+            try
+            {
+                var urlUM = $"api/DatasetUM/GetAllDatasets?token={Uri.EscapeDataString(token)}";
+                var responseUM = await Http.GetAsync(urlUM);
+                if (responseUM.IsSuccessStatusCode)
+                {
+                    var datasetsUM = await responseUM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetUM>>();
+                    var filteredUM = datasetsUM ?? new List<OmniMonitor.Shared.Dtos.DatasetUM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredUM = filteredUM.Where(d => NormalizeText(d.Name ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredUM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Urban Monitor"
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets UM: {ex.Message}");
+            }
+
+            // 4. Cargar datasets de Event Manager
+            try
+            {
+                var urlEM = $"api/DatasetEM/GetAllDatasets?token={Uri.EscapeDataString(token)}";
+                var responseEM = await Http.GetAsync(urlEM);
+                if (responseEM.IsSuccessStatusCode)
+                {
+                    var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<OmniMonitor.Shared.Dtos.DatasetEM>>();
+                    var filteredEM = datasetsEM ?? new List<OmniMonitor.Shared.Dtos.DatasetEM>();
+                    
+                    // Aplicar filtro de búsqueda si existe
+                    if (!string.IsNullOrWhiteSpace(searchText))
+                    {
+                        var normalizedSearch = NormalizeText(searchText);
+                        filteredEM = filteredEM.Where(d => NormalizeText(d.Name ?? "").Contains(normalizedSearch)).ToList();
+                    }
+                    
+                    allDatasets.AddRange(filteredEM.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name,
+                        Descripcion = d.Description,
+                        Module = "Event Manager"
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando datasets EM: {ex.Message}");
+            }
+
+            datasets = allDatasets;
+            filteredDatasets = allDatasets;
+            
+            Console.WriteLine($"DEBUG: Total datasets cargados: {allDatasets.Count}");
+
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -257,42 +391,30 @@
         }
     }
 
+    // Método obsoleto - ahora el filtrado se hace en el backend
+    // Se mantiene por compatibilidad pero ya no se usa
     private void FilterDatasets()
     {
-        if (string.IsNullOrWhiteSpace(searchText))
-        {
-            filteredDatasets = datasets.ToList();
-            return;
-        }
-
-        var normalizedSearch = NormalizeText(searchText);
-
-        filteredDatasets = datasets
-            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
-            .OrderByDescending(d => NormalizeText(d.Nombre) == normalizedSearch) // exactos primero
-            .ThenByDescending(d => NormalizeText(d.Nombre).StartsWith(normalizedSearch)) // luego prefijo
-            .ThenBy(d => NormalizeText(d.Nombre).IndexOf(normalizedSearch)) // luego por posición de coincidencia
-            .ThenBy(d => d.Nombre) // estable
-            .ToList();
+        // Este método ya no se utiliza porque el filtrado se hace en el backend
+        // Se deja vacío para no romper referencias existentes
     }
 
+    // Método de normalización - se mantiene en caso de necesitarse en el futuro
+    // pero ahora la normalización se hace en el backend
     private string NormalizeText(string text)
     {
         if (string.IsNullOrEmpty(text))
             return string.Empty;
 
-        // 1) Normalizar a FormD y remover diacríticos (acentos)
         var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
         var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
 
-        // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
         withoutDiacritics = withoutDiacritics
             .Replace(" ", string.Empty)
             .Replace("ñ", "n")
             .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
             .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
 
-        // 3) Normalizar de vuelta a FormC
         return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
     }
 
@@ -300,6 +422,11 @@
     private void CrearDataset()
     {
         NavigationManager.NavigateTo("/crearDataset");
+    }
+
+    public void Dispose()
+    {
+        _debounceTimer?.Dispose();
     }
 
    

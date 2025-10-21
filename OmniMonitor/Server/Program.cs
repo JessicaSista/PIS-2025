@@ -100,7 +100,15 @@ builder.Services.AddScoped<ISondaEMService, SondaEMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<IDatasetService, DatasetService>();
+builder.Services.AddScoped<IDatasetAmService, DatasetAmService>();
+builder.Services.AddScoped<IDatasetUMService, DatasetUMService>();
+builder.Services.AddScoped<IDatasetEMService, DatasetEMService>();
 builder.Services.AddScoped<IVisualizacionService, VisualizacionService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IApiDataService, ApiDataService>();
+builder.Services.AddScoped<IJoinConfigurationService, JoinConfigurationService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();

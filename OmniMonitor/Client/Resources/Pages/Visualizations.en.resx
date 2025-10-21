@@ -123,10 +123,25 @@
   <data name="Descripcion" xml:space="preserve">
     <value>Create and manage charts and data visualisations</value>
   </data>
-  <data name="BuscarPlaceholder" xml:space="preserve">
-    <value>Search visualisations</value>
-  </data>
   <data name="AgregarVisualizacion" xml:space="preserve">
-    <value>New Visualisation</value>
+    <value>Create Visualisation</value>
+  </data>
+  <data name="NewVisualization" xml:space="preserve">
+    <value>New visualization</value>
+  </data>
+  <data name="Graficas" xml:space="preserve">
+    <value>Charts</value>
+  </data>
+  <data name="BuscarKpiPlaceholder" xml:space="preserve">
+    <value>Search KPI...</value>
+  </data>
+  <data name="BuscarGraficaPlaceholder" xml:space="preserve">
+    <value>Search chart...</value>
+  </data>
+  <data name="NoChartAvailable" xml:space="preserve">
+    <value>No charts available.</value>
+  </data>
+  <data name="NoKpisAvailable" xml:space="preserve">
+    <value>No KPIs available.</value>
   </data>
 </root>

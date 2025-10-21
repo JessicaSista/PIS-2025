@@ -1,0 +1,368 @@
+﻿@page "/dashboards/edit/{DashboardId:int}"
+@attribute [Authorize]
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+@using OmniMonitor.Shared
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Localization
+@using System.Text.Json;
+@using Blazored.LocalStorage
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+@inject IStringLocalizer<Dashboards> Localizer
+@inject IStringLocalizer<SharedResource> SharedLocalizer
+@inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Dashboards</PageTitle>
+
+<!-- Encabezado -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@(dashName)</MudText>
+    </MudStack>
+
+    <MudButton Variant="Variant.Filled"
+               Color="MudBlazor.Color.Primary"
+               StartIcon="@Icons.Material.Filled.Save"
+               OnClick="GuardarCambiosAsync">
+        Guardar Cambios
+    </MudButton>
+    
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">
+        @(dashDesc)
+    </MudText>
+</MudStack>
+
+<Dashboard CardsData=@(cardsData) 
+           dashboardId="@DashboardId" 
+           OnVisualizationCreated="HandleNewVisualization"
+           UpdateCardSize="UpdateCardSize" 
+           RemoveCard="HandleDeleteVisualization">
+</Dashboard>
+
+<style>
+    @@media (max-width: 768px) {
+        .button-text-filter {
+            display: none !important;
+        }
+
+        .filter-button .mud-button-icon-start,
+        .filter-button .mud-button-icon-start svg {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto !important;
+        }
+    }
+</style>
+
+
+@code {
+    [Parameter] public int DashboardId { get; set; }
+
+    private string dashName = string.Empty;
+    private string dashDesc = string.Empty;
+
+    private List<(int,int)> _visualizationsIDs = new List<(int,int)> { };
+
+    private List<(int,int)> _visulaizationsToSave = new List<(int,int)> { };
+    private List<(int, int)> _visulaizationsToDelete = new List<(int, int)> { };
+
+    // ID, AnchoSm, AnchoMd, AnchoLg, Alto
+    private List<(int Id, int CardType, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new List<(int, int, int, int, int, int)> { };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}&token={token}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                DashboardResponse? dashboardData = await response.Content.ReadFromJsonAsync<DashboardResponse>();
+
+                if (dashboardData != null)
+                {
+                    dashName = dashboardData.Nombre;
+                    dashDesc = dashboardData.Descripcion;
+
+
+                    for (int i = 0; i < dashboardData.Tarjetas.Count; i++)
+                    {
+                        _visualizationsIDs.Add((dashboardData.Tarjetas[i].CardId,dashboardData.Tarjetas[i].TipoCard));
+                        Console.WriteLine($"Dashboard: Agregada visualización con ID,Tipo: {_visualizationsIDs[i]} desde el dashboard.");
+                    }
+                    Console.WriteLine($"Dashboard: Total de visualizaciones cargadas: {dashboardData.Tarjetas.Count}");
+
+                    // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
+                    string jsonDesign = dashboardData.JsonDiseno;
+                    if (string.IsNullOrEmpty(jsonDesign))
+                    {
+                        jsonDesign = @"{ ""cards"": []}";
+                    }
+                    using (JsonDocument design = JsonDocument.Parse(jsonDesign))
+                    {
+                        var root = design.RootElement;
+                        if (root.TryGetProperty("cards", out JsonElement cardsElement) && cardsElement.ValueKind == JsonValueKind.Array)
+                        {
+                            var cardsElementArray = cardsElement.EnumerateArray().ToList();
+                            for (int i = 0; i<_visualizationsIDs.Count; i++)
+                            {
+                                if (i >= cardsElementArray.Count)
+                                {
+                                    break; // Evita errores si hay más IDs de cards que tamaños definidos
+                                }
+                                if (cardsElementArray[i].TryGetProperty("anchoSm", out JsonElement anchoSmElement) && 
+                                    cardsElementArray[i].TryGetProperty("anchoMd", out JsonElement anchoMdElement) &&
+                                    cardsElementArray[i].TryGetProperty("anchoLg", out JsonElement anchoLgElement) &&
+                                    cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
+                                {
+                                    // Agregar el nuevo objeto CardData a la lista de resultados
+                                    var (id, type) = _visualizationsIDs[i];
+                                    cardsData.Add((id,type, anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error recargando dashboard: {ex.Message}");
+        }
+    }
+
+
+    private void HandleNewVisualization((int Id, int Type) newVisualization)
+    {
+        const int DefaultAnchoSm = 6;
+        const int DefaultAnchoMd = 4;
+        const int DefaultAnchoLg = 3;
+        const int DefaultAlto = 400;
+
+        bool alreadyExists = _visualizationsIDs.Contains((newVisualization.Id, newVisualization.Type));
+
+        if (alreadyExists)
+        {
+            // 2. Si ya existe, loguea la advertencia y sale del método.
+            // Console.WriteLine($"ADVERTENCIA: La visualización con ID {newVisualizationId}, Tipo {newVisualizationType} ya existe y no se agregará.");
+            return;
+        }
+        _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
+
+        _visulaizationsToSave.Add((newVisualization.Id, newVisualization.Type));
+
+        cardsData.Add((newVisualization.Id, newVisualization.Type, DefaultAnchoSm, DefaultAnchoMd, DefaultAnchoLg, DefaultAlto));
+
+        StateHasChanged();
+
+        // Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tipo: {newVisualizationType} Tamaño: {DefaultAnchoSm}x{DefaultAlto}. Total Cards: {cardsData.Count}");
+    }
+
+    private void HandleDeleteVisualization((int Id, int Type) deletedVisualization)
+    {
+        // foreach (var card in cardsData)
+        // {
+        //     Se utiliza el descarte (_) para imprimir todos los campos de la tupla.
+        //     var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
+        //     Console.WriteLine($"  Id: {Id}, Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
+        // }
+        // ---------------------------------------------
+
+
+        bool alreadyExists = _visualizationsIDs.Contains((deletedVisualization.Id, deletedVisualization.Type));
+
+        if (!alreadyExists)
+        {
+            Console.WriteLine($"ADVERTENCIA: La visualización con ID {deletedVisualization.Id} Tipo {deletedVisualization.Type} no existe en _visualizationsIDs.");
+            return;
+        }
+
+        _visualizationsIDs.Remove((deletedVisualization.Id, deletedVisualization.Type));
+
+        _visulaizationsToDelete.Add((deletedVisualization.Id, deletedVisualization.Type));
+
+        int countRemoved = cardsData.RemoveAll(card => card.Id == deletedVisualization.Id && card.CardType == deletedVisualization.Type);
+
+        StateHasChanged();
+
+        // *** PRINT DE DIAGNÓSTICO: ESTADO FINAL ***
+        // Console.WriteLine($"Dashboard: Se borró la visualización. ID: {deletedVisualizationId}. Total Cards Removidas: {countRemoved}");
+        // Console.WriteLine($"_visualizationsIDs (Después): {string.Join(", ", _visualizationsIDs)}");
+        // Console.WriteLine("cardsData (Después):");
+        // if (cardsData.Any())
+        // {
+        //     foreach (var card in cardsData)
+        //     {
+        //         var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
+        //         Console.WriteLine($"  Id: {Id}, Type: {Type} Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
+        //     }
+        // }
+        // else
+        // {
+        //     Console.WriteLine("  (Lista de tarjetas vacía)");
+        // }
+        // Console.WriteLine($"Total Cards (Final): {cardsData.Count}");
+        // Console.WriteLine("--- FIN HandleDeleteVisualization ---\n");
+    }
+
+    private void UpdateCardSize((int Id, int Type, int AnchoSm, int AnchoMd, int AnchoLg, int Alto) cardInfo)
+    {
+        for (int i = 0; i < cardsData.Count; i++)
+        {
+            if ((cardsData[i].Id == cardInfo.Id)&&(cardsData[i].CardType == cardInfo.Type))
+            {
+                cardsData[i] = cardInfo;
+                Console.WriteLine($"Tamaño de la tarjeta actualizado. ID: {cardInfo.Id}, Type: {cardInfo.Type} Nuevos Anchos: {cardInfo.AnchoSm}, {cardInfo.AnchoMd}, {cardInfo.AnchoLg}. Alto: {cardInfo.Alto}");
+                break;
+            }
+        }
+    }
+
+
+    private async Task GuardarCambiosAsync()
+    {
+        AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        System.String? username = authState.User.Identity?.Name;
+        bool allNewCardsSaved = true;
+
+        
+        foreach (var (id, type) in _visulaizationsToSave)
+        {
+            try
+            {
+                using (JsonDocument doc = JsonDocument.Parse("{}"))
+                {
+                    OmniMonitor.Shared.Dtos.DashboardCard request = new OmniMonitor.Shared.Dtos.DashboardCard
+                    {
+                        CardId = id,
+                        TipoCard = type,
+                        Props = doc.RootElement.Clone()
+                    };
+
+                    HttpResponseMessage? response = await Http.PostAsJsonAsync($"api/Dashboard/{DashboardId}/card?username={username}", request);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        allNewCardsSaved = false;
+                        string error = await response.Content.ReadAsStringAsync();
+                        Snackbar.Add($"Error al agregar la visualización {id}: {error}", Severity.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                allNewCardsSaved = false;
+                Console.WriteLine($"Error al guardar visualización ID: {id}, Type: {type} en el dashboard: {ex.Message}");
+                Snackbar.Add($"Error interno al guardar visualización ID: {id}, Type: {type}.", Severity.Error);
+            }
+        }
+
+        if (!allNewCardsSaved && _visulaizationsToSave.Any())
+        {
+            Snackbar.Add("Se produjo un error al guardar una o más tarjetas nuevas. Diseño no actualizado.", Severity.Warning);
+            return;
+        }
+
+        foreach (var (id, type) in _visulaizationsToDelete)
+        {
+            try
+            {
+                string deleteUri = $"api/Dashboard/{DashboardId}/card/{id}/{type}?username={username}";
+
+                HttpResponseMessage? response = await Http.DeleteAsync(deleteUri);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string error = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error al eliminar la visualización ID: {id}, Type: {type}: {response.ReasonPhrase}. {error}", Severity.Error);
+                }
+                else
+                {
+                    Console.WriteLine($"Tarjeta eliminada del servidor: ID: {id}, Type: {type}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar visualización  ID: {id}, Type: {type} del dashboard: {ex.Message}");
+                Snackbar.Add($"Error interno al eliminar visualización  ID: {id}, Type: {type}.", Severity.Error);
+            }
+        }
+
+        try
+        {
+            var cardsDesignList = cardsData.Select(card => new
+            {
+                anchoSm = card.AnchoSm,
+                anchoMd = card.AnchoMd,
+                anchoLg = card.AnchoLg,
+                alto = card.Alto
+            }).ToList();
+
+            // Creamos el objeto anónimo raíz que contiene la propiedad "cards"
+            var designRootObject = new { cards = cardsDesignList };
+
+
+            // 2. Serializar el objeto C# A UN STRING JSON temporal
+            string tempJsonString = JsonSerializer.Serialize(designRootObject);
+
+            // 3. Parsear el STRING JSON de vuelta a un JsonDocument
+            using (JsonDocument doc = JsonDocument.Parse(tempJsonString))
+            {
+                // 4. Obtener la JsonElement raíz (que es el objeto JSON completo)
+                JsonElement nuevoJsonDisenoElement = doc.RootElement.Clone();
+
+                // 5. Convertir la JsonElement a STRING usando GetRawText()
+                string newJsonDesign = nuevoJsonDisenoElement.GetRawText();
+
+                Console.WriteLine("Nuevo JSON de Diseño (obtenido vía GetRawText):");
+                Console.WriteLine(newJsonDesign);
+
+                // 6. ENVIAR LA SOLICITUD HTTP PUT A /api/Dashboard/{id}/config
+
+                string requestUri = $"api/Dashboard/{DashboardId}/config?username={username}";
+
+                // Usamos el string final y ESPECIFICAMOS application/json
+
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
+                Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+                var response = await Http.PutAsJsonAsync(requestUri, newJsonDesign);
+
+                // ... (Resto del manejo de la respuesta) ...
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Diseño del Dashboard guardado exitosamente.", Severity.Success);
+                    _visulaizationsToSave.Clear();
+                    _visulaizationsToDelete.Clear();
+                }
+                else
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error al actualizar el diseño: {response.ReasonPhrase}. {errorContent}", Severity.Error);
+                }
+            }
+
+            
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar cambios en el dashboard: {ex.Message}");
+            Snackbar.Add($"Error al guardar el diseño del dashboard: {ex.Message}", Severity.Error);
+        }
+
+    }
+
+
+}

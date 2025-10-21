@@ -162,4 +162,52 @@
   <data name="ChartType" xml:space="preserve">
     <value>Tipo de Gráfica</value>
   </data>
+  <data name="NewChart" xml:space="preserve">
+    <value>Nueva gráfica</value>
+  </data>
+  <data name="NewKPI" xml:space="preserve">
+    <value>Nuevo KPI</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Descripción</value>
+  </data>
+  <data name="Metric" xml:space="preserve">
+    <value>Tipo de métrica</value>
+  </data>
+  <data name="ColorRanges" xml:space="preserve">
+    <value>Rangos de color</value>
+  </data>
+  <data name="MinValue" xml:space="preserve">
+    <value>Valor mínimo</value>
+  </data>
+  <data name="MaxValue" xml:space="preserve">
+    <value>Valor máximo</value>
+  </data>
+  <data name="AddRange" xml:space="preserve">
+    <value>Agregar nuevo rango</value>
+  </data>
+  <data name="DateRange" xml:space="preserve">
+    <value>Rango de fechas</value>
+  </data>
+  <data name="NoData" xml:space="preserve">
+    <value>No hay datos disponibles</value>
+  </data>
+  <data name="ErrorFetchingDatasets" xml:space="preserve">
+    <value>Error al obtener datasets del backend.</value>
+  </data>
+  <data name="ErrorLoadingDatasets" xml:space="preserve">
+    <value>Error al cargar datasets: {0}</value>
+  </data>
+  <data name="KpiNameRequired" xml:space="preserve">
+    <value>El nombre del KPI es obligatorio.</value>
+  </data>
+  <data name="KpiCreated" xml:space="preserve">
+    <value>KPI '{0}' creado correctamente.</value>
+  </data>
+  <data name="ErrorCreatingKpi" xml:space="preserve">
+    <value>Error creando KPI: {0}</value>
+  </data>
+  <data name="ServerConnectionError" xml:space="preserve">
+    <value>Error al conectar con el servidor: {0}</value>
+  </data>
 </root>

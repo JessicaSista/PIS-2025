@@ -1,0 +1,122 @@
+@using MudBlazor
+@inject ISnackbar Snackbar
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject HttpClient Http
+@using OmniMonitor.Shared.Dtos
+
+<MudForm @ref="_form" @bind-IsValid="_formIsValid">
+    <MudDialog>
+        <DialogContent>
+            <MudTextField @bind-Value="_model.Name" Label="Nombre del reporte" Required="true" Disabled="_isSubmitting" />
+            <MudTextField @bind-Value="_model.Description" Label="Descripción" Lines="3" Disabled="_isSubmitting" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel" Disabled="_isSubmitting">Cancelar</MudButton>
+            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_isSubmitting || !_formIsValid">@SubmitButtonText</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudForm>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public string Username { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsEditMode { get; set; }
+
+    [Parameter]
+    public int? ReportId { get; set; }
+
+    [Parameter]
+    public string? InitialName { get; set; }
+
+    [Parameter]
+    public string? InitialDescription { get; set; }
+
+    private MudForm? _form;
+    private bool _formIsValid;
+    private bool _isSubmitting;
+    private readonly CreateReportRequestDto _model = new() { JSON_config = "{}" };
+
+    private string SubmitButtonText => IsEditMode ? "Guardar" : "Siguiente";
+
+    protected override void OnInitialized()
+    {
+        Username ??= string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(InitialName))
+        {
+            _model.Name = InitialName;
+        }
+
+        if (!string.IsNullOrEmpty(InitialDescription))
+        {
+            _model.Description = InitialDescription;
+        }
+
+        _formIsValid = !string.IsNullOrWhiteSpace(_model.Name);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        if (_form == null)
+        {
+            return;
+        }
+
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _isSubmitting = true;
+        try
+        {
+            var trimmedName = _model.Name?.Trim() ?? string.Empty;
+            var trimmedDescription = string.IsNullOrWhiteSpace(_model.Description) ? null : _model.Description.Trim();
+
+            if (IsEditMode && ReportId.HasValue)
+            {
+                var resultPayload = new ReportDialogResult(ReportId.Value, trimmedName, trimmedDescription, true);
+                MudDialog.Close(DialogResult.Ok(resultPayload));
+                return;
+            }
+
+            _model.Username = Username;
+            var payload = new CreateReportRequestDto
+            {
+                Name = trimmedName,
+                Description = trimmedDescription,
+                Username = Username,
+                JSON_config = "{}"
+            };
+
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.PostAsJsonAsync("api/reports", payload);
+            if (response.IsSuccessStatusCode)
+            {
+                var createdReport = await response.Content.ReadFromJsonAsync<ReporteDto>();
+                MudDialog.Close(DialogResult.Ok(createdReport?.Id));
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al crear el reporte: {response.StatusCode}", Severity.Error);
+                Console.WriteLine($"[CreateReportDialog] Error al crear reporte: {error}");
+            }
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public record ReportDialogResult(int ReportId, string Name, string? Description, bool IsEdit);
+}
+
