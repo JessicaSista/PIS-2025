@@ -9,7 +9,7 @@
         {
             var (id, type, anchoSm, anchoMd, anchoLg, alto) = CardsData[i];
 
-            <DashboardCard @key="id"
+            <DashboardCard @key="@($"V{id}_{type}")"
                 dashboardId=@dashboardId 
                 VisualizationId=@id
                 Visualizationtype=@type

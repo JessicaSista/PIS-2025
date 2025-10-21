@@ -4,14 +4,8 @@
 @using Blazored.LocalStorage
 @using System.Globalization
 @* 
-@using Microsoft.Extensions.Localization
-@using static OmniMonitor.Client.Shared.VisualizationCard
 @using System.Reflection.Metadata
-@inject ISnackbar SnackbarService
-@inject IStringLocalizer<DashboardCard> Localizer
-@inject IStringLocalizer<SharedResource> SharedLocalizer
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IDialogService DialogService *@
+@inject ISnackbar SnackbarService*@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 
@@ -51,6 +45,20 @@
     //Parametros
     [Parameter] public int VisualizationId { get; set; }
 
+    // Para recargar la gráfica desde el exterior
+    [Parameter]
+    public int ChartReloadKey
+    {
+        get => _chartKey;
+        set
+        {
+            if (_chartKey != value)
+            {
+                _chartKey = value;
+                StateHasChanged();
+            }
+        }
+    }
 
     // Local Variables
     private string _authenticatedUser = string.Empty;

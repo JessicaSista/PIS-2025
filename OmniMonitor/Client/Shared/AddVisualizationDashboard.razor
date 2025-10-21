@@ -36,7 +36,7 @@
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString();
             <MudButton FullWidth="true"
                     Variant="MudBlazor.Variant.Outlined"
-                    OnClick="@(() => HandleVisualizationClick(visualization))"
+                    OnClick="@(() => HandleVisualizationClick(visualization.IdVisualizacion,1))"
                     Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
                     Class="pa-0">
                 <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
@@ -53,6 +53,7 @@
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
             <MudButton FullWidth="true"
                     Variant="MudBlazor.Variant.Outlined"
+                    OnClick="@(() => HandleVisualizationClick(kpi.Id,2))"
                     Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
                     Class="pa-0">
                 <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
@@ -82,17 +83,19 @@
     private void Cancel() => MudDialog.Cancel();
 
     
-    private async Task HandleVisualizationClick(Visualizacion visualization)
+    private async Task HandleVisualizationClick(int visualizationId, int vissualizationType)
     {
         try
         {
-            List<object>? visualizationData = await GetVisualizationData(visualization);
+            // List<object>? visualizationData = await GetVisualizationData(visualization);
 
             DialogParameters parameters = new DialogParameters
             {
-                ["visualization"] = visualization,
-                ["visualizationData"] = visualizationData,
+                // ["visualization"] = visualization,
+                // ["visualizationData"] = visualizationData,
                 ["dashboardId"] = dashboardId,
+                ["VisualizationId"] = visualizationId,
+                ["VisualizationType"] = vissualizationType,
                 ["OnVisualizationCreated"] = OnVisualizationCreated
             };
 
