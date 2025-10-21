@@ -46,21 +46,36 @@
             </MudButton>
         }
     </MudStack>
+
+    <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
+        @foreach(KpiResponse kpi in _kpiResponses){
+            @* JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+            System.String chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
+            <MudButton FullWidth="true"
+                    Variant="MudBlazor.Variant.Outlined"
+                    Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
+                    Class="pa-0">
+                <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
+                    @* <MudIcon Icon="@GetIcon(chartType)" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/> *@
+                    <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@kpi.Name</MudText>
+                </MudStack>
+            </MudButton>
+        }
+    </MudStack>
 </DialogContent>
 </MudDialog>
 
 @code
 {
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; }
+    [CascadingParameter]  private IMudDialogInstance MudDialog { get; set; }
 
-    [Parameter]
-    [Required]
-    public System.Int32 dashboardId {get; set;}
+    [Parameter] [Required] public System.Int32 dashboardId {get; set;}
 
-    [Parameter] public EventCallback<int> OnVisualizationCreated { get; set; }
+    [Parameter] public EventCallback<(int,int)> OnVisualizationCreated { get; set; }
 
     private List<Visualizacion> _visualizations = new List<Visualizacion>();
+
+    private List<KpiResponse> _kpiResponses = new List<KpiResponse>();
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(true));
 
@@ -152,6 +167,16 @@
                 if (visualizacionesFromApi != null)
                 {
                     _visualizations = visualizacionesFromApi;
+                }
+            }
+
+            HttpResponseMessage? kpiResponse = await Http.GetAsync($"api/KPI/kpis?token={token}");
+            if (kpiResponse.IsSuccessStatusCode)
+            {
+                var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<List<KpiResponse>>();
+                if (kpisFromApi != null)
+                {
+                    _kpiResponses = kpisFromApi;
                 }
             }
         }
