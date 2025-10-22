@@ -78,7 +78,7 @@ public interface ISondaEMService
         string? sort,
         string username,
         string password);
-    Task<CategoryDto?> GetCategorynById(int categoryid, string username, string password);
+    Task<CategoryDto?> GetCategoryById(int categoryid, string username, string password);
 }
 
 
@@ -95,14 +95,14 @@ public class SondaEMService : ISondaEMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<CategoryDto?> GetCategorynById(int categoryid, string username, string password)
+    public async Task<CategoryDto?> GetCategoryById(int categoryid, string username, string password)
     {
         if (categoryid <= 0)
         {
             throw new ArgumentException("El CategoryId debe ser mayor que cero.", nameof(categoryid));
         }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
-        string endpoint = _apiConfig.EndpointsEM["Category"]["GetById"].Replace("{Id}", categoryid.ToString());
+        string endpoint = _apiConfig.EndpointsEM["Category"]["GetById"].Replace("{id}", categoryid.ToString());
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
@@ -140,9 +140,7 @@ public class SondaEMService : ISondaEMService
         {
             throw new ArgumentException("El eventId debe ser positivo.", nameof(eventId));
         }
-
         string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
-
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         Console.WriteLine($"SONDA API TOKEN: {token}");

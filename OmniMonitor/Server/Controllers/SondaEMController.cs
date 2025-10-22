@@ -18,15 +18,16 @@ public class SondaEMController : ControllerBase
         _sondaAuthService = sondaAuthService;
     }
 
-    /*[HttpGet("event/{eventId}")]
+    [HttpGet("event/{eventId}")]
     [ProducesResponseType(typeof(EventDto), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<EventDto>> GetEventById(int eventId, [FromQuery] string user, [FromQuery] string pass)
+    public async Task<ActionResult<EventDto>> GetEventById(int eventId, [FromQuery] string token)
     {
         try
         {
-            var eventDto = await _sondaEMService.GetEventById(eventId, user, pass);
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var eventDto = await _sondaEMService.GetEventById(eventId, username, password);
             if (eventDto == null) return NotFound("No se encontró el evento.");
             return Ok(eventDto);
         }
@@ -34,7 +35,7 @@ public class SondaEMController : ControllerBase
         {
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
-    }*/
+    }
 
     [HttpGet("alert/{alertId}")]
     [ProducesResponseType(typeof(AlertDto), 200)]
@@ -315,5 +316,26 @@ public class SondaEMController : ControllerBase
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
+    [HttpGet("Category/{categoryId}")]
+    [ProducesResponseType(typeof(CategoryDto), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<EventDto>> GetCategoryById(int categoryId, [FromQuery] string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var CategoriaDto = await _sondaEMService.GetCategoryById(categoryId, username, password);
+            if (CategoriaDto == null) return NotFound("No se encontró la categoria.");
+            return Ok(CategoriaDto);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+
 
 }
