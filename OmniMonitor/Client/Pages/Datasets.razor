@@ -176,10 +176,10 @@
                         response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
                         break;
                     case "Urban Monitor":
-                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
+                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
                         break;
                     case "Event Manager":
-                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}/{username}?token={Uri.EscapeDataString(token)}");
+                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
                         break;
                     default:
                         Snackbar.Add("Módulo desconocido", Severity.Error);

@@ -155,7 +155,7 @@ public class DatasetUMController : ControllerBase
     /// <summary>
     /// Elimina un dataset.
     /// </summary>
-    [HttpDelete("{datasetId}/{username}")]
+    [HttpDelete("{datasetId}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
