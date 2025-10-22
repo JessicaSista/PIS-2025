@@ -1720,7 +1720,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var responseEM = await Http.GetAsync($"api/DatasetEM/GetDatasetById?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            var responseEM = await Http.GetAsync($"api/DatasetEM/{id}?datasetId={id}&token={Uri.EscapeDataString(token)}");
             if (responseEM.IsSuccessStatusCode)
             {
                 var existenteEM = await responseEM.Content.ReadFromJsonAsync<DatasetEM>();

@@ -90,12 +90,12 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
-        [HttpGet("GetDatasetById")]
+        [HttpGet("{datasetId}")]
         [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId ,string token)
+        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId, string token)
         {
             try
             {
@@ -144,7 +144,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset EM.
         /// </summary>
-        [HttpDelete("{datasetId}/{username}")]
+        [HttpDelete("{datasetId}")]
         [RequirePermission("Eliminar Datasets EM")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
