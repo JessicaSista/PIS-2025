@@ -4,11 +4,25 @@
 @inject HttpClient Http
 @using OmniMonitor.Shared.Dtos
 
-<MudForm @ref="_form" @bind-IsValid="_formIsValid">
+<MudForm @ref="_form">
     <MudDialog>
         <DialogContent>
-            <MudTextField @bind-Value="_model.Name" Label="Nombre del reporte" Required="true" Disabled="_isSubmitting" />
-            <MudTextField @bind-Value="_model.Description" Label="Descripción" Lines="3" Disabled="_isSubmitting" />
+            <MudTextField T="string"
+                          Value="_name"
+                          ValueChanged="OnNameChanged"
+                          ValueExpression="@(() => _name)"
+                          Label="Nombre del reporte"
+                          Disabled="_isSubmitting"
+                          Immediate="true"
+                          Validation="@((string? value) => ValidateName(value))" />
+            <MudTextField T="string"
+                          Value="_description"
+                          ValueChanged="OnDescriptionChanged"
+                          ValueExpression="@(() => _description)"
+                          Label="Descripción"
+                          Lines="3"
+                          Disabled="_isSubmitting"
+                          Immediate="true" />
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel" Disabled="_isSubmitting">Cancelar</MudButton>
@@ -19,7 +33,7 @@
 
 @code {
     [CascadingParameter]
-    IMudDialogInstance MudDialog { get; set; } = default!;
+    private IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
     public string Username { get; set; } = string.Empty;
@@ -36,31 +50,95 @@
     [Parameter]
     public string? InitialDescription { get; set; }
 
+    [Parameter]
+    public IEnumerable<string> ExistingNames { get; set; } = Array.Empty<string>();
+
     private MudForm? _form;
     private bool _formIsValid;
     private bool _isSubmitting;
-    private readonly CreateReportRequestDto _model = new() { JSON_config = "{}" };
+    private string _name = string.Empty;
+    private string _description = string.Empty;
 
     private string SubmitButtonText => IsEditMode ? "Guardar" : "Siguiente";
 
     protected override void OnInitialized()
     {
         Username ??= string.Empty;
-
-        if (!string.IsNullOrWhiteSpace(InitialName))
-        {
-            _model.Name = InitialName;
-        }
-
-        if (!string.IsNullOrEmpty(InitialDescription))
-        {
-            _model.Description = InitialDescription;
-        }
-
-        _formIsValid = !string.IsNullOrWhiteSpace(_model.Name);
+        _name = InitialName ?? string.Empty;
+        _description = InitialDescription ?? string.Empty;
+        UpdateFormState();
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private Task OnNameChanged(string value)
+    {
+        _name = value ?? string.Empty;
+        UpdateFormState();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnDescriptionChanged(string value)
+    {
+        _description = value ?? string.Empty;
+        UpdateFormState();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private string? ValidateName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "El nombre es obligatorio";
+        }
+
+        var trimmed = value.Trim();
+        var existing = ExistingNames ?? Array.Empty<string>();
+
+        if (!IsEditMode)
+        {
+            if (existing.Any(n => string.Equals(n?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)))
+            {
+                return "Ya existe un reporte con ese nombre";
+            }
+        }
+        else if (ReportId.HasValue)
+        {
+            var initialNameTrimmed = (InitialName ?? string.Empty).Trim();
+            if (!string.Equals(initialNameTrimmed, trimmed, StringComparison.OrdinalIgnoreCase) &&
+                existing.Any(n => string.Equals(n?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)))
+            {
+                return "Ya existe un reporte con ese nombre";
+            }
+        }
+
+        return null;
+    }
+
+    private void UpdateFormState()
+    {
+        var nameValid = ValidateName(_name) is null;
+        _formIsValid = nameValid && HasChanges();
+    }
+
+    private bool HasChanges()
+    {
+        var trimmedName = (_name ?? string.Empty).Trim();
+        var trimmedDescription = (_description ?? string.Empty).Trim();
+
+        if (!IsEditMode)
+        {
+            return !string.IsNullOrEmpty(trimmedName);
+        }
+
+        var initialNameTrimmed = (InitialName ?? string.Empty).Trim();
+        var initialDescriptionTrimmed = (InitialDescription ?? string.Empty).Trim();
+
+        return !string.Equals(initialNameTrimmed, trimmedName, StringComparison.Ordinal) ||
+               !string.Equals(initialDescriptionTrimmed, trimmedDescription, StringComparison.Ordinal);
+    }
 
     private async Task Submit()
     {
@@ -70,7 +148,8 @@
         }
 
         await _form.Validate();
-        if (!_form.IsValid)
+        UpdateFormState();
+        if (!_formIsValid)
         {
             return;
         }
@@ -78,8 +157,21 @@
         _isSubmitting = true;
         try
         {
-            var trimmedName = _model.Name?.Trim() ?? string.Empty;
-            var trimmedDescription = string.IsNullOrWhiteSpace(_model.Description) ? null : _model.Description.Trim();
+            var trimmedName = _name.Trim();
+            var trimmedDescription = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim();
+
+            if (!HasChanges())
+            {
+                Snackbar.Add("No hay cambios para guardar", Severity.Warning);
+                return;
+            }
+
+            var nameValidation = ValidateName(trimmedName);
+            if (!string.IsNullOrEmpty(nameValidation))
+            {
+                Snackbar.Add(nameValidation, Severity.Warning);
+                return;
+            }
 
             if (IsEditMode && ReportId.HasValue)
             {
@@ -88,7 +180,6 @@
                 return;
             }
 
-            _model.Username = Username;
             var payload = new CreateReportRequestDto
             {
                 Name = trimmedName,
@@ -114,6 +205,7 @@
         finally
         {
             _isSubmitting = false;
+            UpdateFormState();
         }
     }
 

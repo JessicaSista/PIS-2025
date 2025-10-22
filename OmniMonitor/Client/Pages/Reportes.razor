@@ -168,7 +168,11 @@
                 ["IsEditMode"] = true,
                 ["ReportId"] = report.Id,
                 ["InitialName"] = report.Name ?? string.Empty,
-                ["InitialDescription"] = report.Description ?? string.Empty
+                ["InitialDescription"] = report.Description ?? string.Empty,
+                ["ExistingNames"] = _reportes
+                    .Where(r => r.Id != id)
+                    .Select(r => r.Nombre ?? string.Empty)
+                    .ToList()
             };
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
@@ -346,53 +350,32 @@
                 return;
             }
 
-            var parameters = new DialogParameters();
-            parameters.Add("Username", username);
+            var parameters = new DialogParameters
+            {
+                ["Username"] = username,
+                ["ExistingNames"] = (_reportes ?? new List<ReporteDto>())
+                    .Select(r => r.Nombre ?? string.Empty)
+                    .ToList()
+            };
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
             var dialog = await DialogService.ShowAsync<CreateReportDialog>("Crear Nuevo Reporte", parameters, options);
-            Console.WriteLine("[DEBUG] Antes de result Dialog.");
             var result = await dialog.Result;
-            Console.WriteLine("[DEBUG] Despues de result Dialog.");
             if (result == null)
             {
-                await JSRuntime.InvokeVoidAsync("console.warn", "[WARN] El diálogo de creación retornó un resultado nulo");
+                Console.WriteLine("[WARN] El diálogo de creación retornó un resultado nulo");
                 return;
             }
 
-            await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] Diálogo cerrado. Cancelado: {result.Canceled}, Tipo de dato: {result.Data?.GetType().Name ?? "null"}");
-            await JSRuntime.InvokeVoidAsync("console.log", "[DEBUG] Contenido completo de result:", result);
-
             if (!result.Canceled)
             {
-                await JSRuntime.InvokeVoidAsync("console.log", "[DEBUG] Result.Data:", result.Data);
-
                 if (result.Data is int reportId)
                 {
-                    await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] reportId como número: {reportId}");
-
                     try
                     {
-                        await JSRuntime.InvokeVoidAsync("console.log", "[DEBUG] Intentando cargar lista de reportes...");
                         await CargarReportes();
-                        await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] Lista de reportes cargada. Total: {_reportes?.Count ?? 0}");
-
-                        var reporteExistente = _reportes?.FirstOrDefault(r => r.Id == reportId);
-
-                        if (reporteExistente != null)
-                        {
-                            await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] Reporte encontrado en la lista - ID: {reporteExistente.Id}, Nombre: {reporteExistente.Nombre}");
-                        }
-                        else
-                        {
-                            var ids = _reportes?.Select(r => r.Id).ToList() ?? new List<int>();
-                            await JSRuntime.InvokeVoidAsync("console.warn", $"[WARN] No se encontró el reporte con ID {reportId} en la lista cargada. IDs disponibles: {string.Join(", ", ids)}");
-                        }
-
-                        await JSRuntime.InvokeVoidAsync("console.log", $"[DEBUG] Intentando navegar a: editarReporte/{reportId}");
                         NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
-                        await JSRuntime.InvokeVoidAsync("console.log", "[DEBUG] Navegación iniciada");
                     }
                     catch (Exception loadEx)
                     {
@@ -408,7 +391,7 @@
             }
             else
             {
-                Console.WriteLine("[DEBUG] El usuario canceló la creación del reporte");
+                Console.WriteLine("[INFO] El usuario canceló la creación del reporte");
             }
         }
         catch (Exception ex)
