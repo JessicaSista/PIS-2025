@@ -172,12 +172,12 @@ namespace OmniMonitor.Client.Services
             try
             {
                 var storedMode = await _localStorage.GetItemAsync<ThemeMode?>(ThemeKey);
-                CurrentMode = storedMode.GetValueOrDefault(ThemeMode.Light);
+                CurrentMode = storedMode.GetValueOrDefault(ThemeMode.Dark);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error al cargar el tema desde LocalStorage: {ex.Message}");
-                CurrentMode = ThemeMode.Light;
+                CurrentMode = ThemeMode.Dark;
             }
 
             NotifyStateChanged();

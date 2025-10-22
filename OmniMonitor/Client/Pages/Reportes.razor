@@ -78,6 +78,7 @@
             {
                 <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
                     <ReportCardComponent Reporte="reporte"
+                                       OnNavigate="@NavigateToEditarReporte"
                                        OnEdit="@EditarReporte"
                                        OnDelete="@EliminarReporte"
                                        Class="flex-grow-1" />
@@ -128,6 +129,12 @@
         string.IsNullOrWhiteSpace(_searchText)
             ? _reportes
             : _reportes.Where(r => r.Nombre.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    private Task NavigateToEditarReporte(int id)
+    {
+        NavigationManager.NavigateTo($"editarReporte/{id}", forceLoad: true);
+        return Task.CompletedTask;
+    }
 
     private async Task EditarReporte(int id)
     {
@@ -282,7 +289,7 @@
                 return;
             }
 
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            string? token = await LocalStorage.GetItemAsync<string>("authToken");
             if (string.IsNullOrEmpty(token))
             {
                 Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
@@ -298,7 +305,7 @@
                 {
                     Id = d.Id,
                     Nombre = d.Name,
-                    Descripcion = d.Description
+                    Descripcion = d.Description ?? string.Empty
                 }).ToList() ?? new List<ReporteDto>();
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)

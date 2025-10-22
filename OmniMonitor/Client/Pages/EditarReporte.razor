@@ -6,6 +6,8 @@
 @inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
+@using OmniMonitor.Shared.Dtos.AM
+@using OmniMonitor.Shared.Dtos.EM
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Authorization
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
@@ -114,9 +116,14 @@
                                 <MudCardHeader>
                                     <CardHeaderContent>
                                         <MudText Typo="Typo.body1">@dataset.Nombre</MudText>
-                                        <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
-                                            @(dataset.Descripcion ?? "Sin descripción")
-                                        </MudChip>
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
+                                                @dataset.Module
+                                            </MudChip>
+                                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                                @(string.IsNullOrWhiteSpace(dataset.Descripcion) ? "Sin descripción" : dataset.Descripcion)
+                                            </MudText>
+                                        </MudStack>
                                     </CardHeaderContent>
                                     <CardHeaderActions>
                                         <MudIconButton 
@@ -128,8 +135,9 @@
                                 <MudCardContent>
                                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                                         <MudText Typo="Typo.caption" Class="mr-2">Entidad</MudText>
-                                        <MudSelect T="EntityName" Dense="true" Value="@GetSelectedEntity(dataset.Id)" ValueChanged="@(e => OnEntityChanged(dataset, e))">
-                                            @foreach (var e in entityOptions)
+                                        <MudSelect T="EntityName" Dense="true" Value="@GetSelectedEntity(dataset)" ValueChanged="@(e => OnEntityChanged(dataset, e))">
+                                            @{ var entityOptionsForDataset = GetEntityOptions(dataset.Module); }
+                                            @foreach (var e in entityOptionsForDataset)
                                             {
                                                 <MudSelectItem Value="@e">@e.ToString()</MudSelectItem>
                                             }
@@ -169,10 +177,17 @@
                                     T="DatasetDto"
                                     OnClick="@(() => ToggleDatasetSelection(dataset))"
                                     Style="cursor: pointer;">
-                                    <MudText>@dataset.Nombre</MudText>
-                                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                                        @(dataset.Descripcion ?? "Sin descripción")
-                                    </MudText>
+                                    <MudStack Spacing="1">
+                                        <MudText>@dataset.Nombre</MudText>
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
+                                                @dataset.Module
+                                            </MudChip>
+                                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                                @(string.IsNullOrWhiteSpace(dataset.Descripcion) ? "Sin descripción" : dataset.Descripcion)
+                                            </MudText>
+                                        </MudStack>
+                                    </MudStack>
                                 </MudListItem>
                             }
                         </MudList>
@@ -328,9 +343,10 @@
                             {
                                 foreach (var join in joins.Where(j => j.ServerJoinId.HasValue))
                                 {
-                                    var joinName = GetJoinDisplayName(join.ServerJoinId!.Value);
+                                    var joinId = join.ServerJoinId!.Value;
+                                    var joinName = GetJoinDisplayName(joinId);
                                     var columnsForJoin = availableColumns
-                                        .Where(c => c.DatasetName == joinName)
+                                        .Where(c => c.IsJoin && c.JoinId == joinId)
                                         .ToList();
 
                                     if (!columnsForJoin.Any())
@@ -339,26 +355,35 @@
                                     }
 
                                     <MudText Typo="Typo.h6" Class="mb-2 mt-4">@joinName</MudText>
-                                    <MudGrid Spacing="2">
-                                        @foreach (var column in columnsForJoin)
+                                    @foreach (var group in columnsForJoin.GroupBy(c => c.GroupLabel))
+                                    {
+                                        if (!string.IsNullOrWhiteSpace(group.Key))
                                         {
-                                            <MudItem Xs="12" Sm="12" Md="12">
-                                                <MudCheckBox T="bool"
-                                                             Label="@column.DisplayName"
-                                                             Checked="@column.IsVisible"
-                                                             @onclick="@(() => ToggleColumnVisibility(column))"
-                                                             Dense="true" />
-                                            </MudItem>
+                                            <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">@group.Key</MudText>
                                         }
-                                    </MudGrid>
+
+                                        <MudGrid Spacing="2">
+                                            @foreach (var column in group)
+                                            {
+                                                <MudItem Xs="12" Sm="12" Md="12">
+                                                    <MudCheckBox T="bool"
+                                                                 Label="@column.DisplayName"
+                                                                 Checked="@column.IsVisible"
+                                                                 @onclick="@(() => ToggleColumnVisibility(column))"
+                                                                 Dense="true" />
+                                                </MudItem>
+                                            }
+                                        </MudGrid>
+                                    }
                                 }
                             }
                             else
                             {
                                 foreach (var dataset in selectedDatasets)
                                 {
+                                    var datasetLabel = GetDatasetDisplayLabel(dataset);
                                     var columnsForDataset = availableColumns
-                                        .Where(c => c.DatasetName == dataset.Nombre)
+                                        .Where(c => !c.IsJoin && c.DatasetId == dataset.Id)
                                         .ToList();
 
                                     if (!columnsForDataset.Any())
@@ -366,7 +391,7 @@
                                         continue;
                                     }
 
-                                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@dataset.Nombre</MudText>
+                                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@datasetLabel</MudText>
                                     <MudGrid Spacing="2">
                                         @foreach (var column in columnsForDataset)
                                         {
@@ -485,9 +510,18 @@
                 }
                 else
                 {
-                    <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">
-                        Vista previa
-                    </MudText>
+                    if (previewExecuted)
+                    {
+                        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height:100%">
+                            <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">No hay datos que cumplan la configuracion elegida.</MudText>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">
+                            Vista previa
+                        </MudText>
+                    }
                 }
             </MudPaper>
         </MudItem>
@@ -500,17 +534,26 @@
         public string Name { get; set; } = string.Empty; // Initialize to avoid null
         public string DisplayName { get; set; } = string.Empty; // Initialize to avoid null
         public string DatasetName { get; set; } = string.Empty; // Initialize to avoid null
+        public string GroupLabel { get; set; } = string.Empty; // Used to display dataset/module grouping
         public bool IsVisible { get; set; } = false;
         public int DatasetId { get; set; }
         public EntityName Entity { get; set; } = EntityName.Device;
         public string PropertyName { get; set; } = string.Empty;
         public bool IsJoin { get; set; }
         public int? JoinId { get; set; }
+        public string? JoinDisplayName { get; set; }
     }
 
     private List<ColumnDefinition> availableColumns = new();
 
-    private readonly EntityName[] entityOptions = new[] { EntityName.Device, EntityName.Source, EntityName.Group, EntityName.Sensor };
+    private static readonly EntityName[] InsightMonitorEntityOptions = new[] { EntityName.Device, EntityName.Source, EntityName.Group, EntityName.Sensor };
+    private static readonly EntityName[] AssetManagerEntityOptions = new[] { EntityName.EventAM, EntityName.Stock, EntityName.Asset };
+    private static readonly EntityName[] EventManagerEntityOptions = new[] { EntityName.Alert, EntityName.EventEM, EntityName.Extension, EntityName.Categoria };
+    private static readonly EntityName[] UrbanMonitorEntityOptions = new[] { EntityName.Zone, EntityName.EventUM, EntityName.New };
+    private const string ModuleInsightMonitor = "Insight Monitor";
+    private const string ModuleAssetManager = "Asset Manager";
+    private const string ModuleUrbanMonitor = "Urban Monitor";
+    private const string ModuleEventManager = "Event Manager";
 
     [Parameter]
     public int ReportId { get; set; }
@@ -518,7 +561,7 @@
     private int currentPage = 1;
     private const int pageSize = 10; 
     private Dictionary<int, DatasetIM> selectedDatasetsIM = new();
-    private Dictionary<int, EntityName> selectedEntities = new();
+    private Dictionary<string, EntityName> selectedEntities = new();
     private List<DatasetDto> selectedDatasets = new();
     private List<DatasetDto> datasets = new();
     private List<DatasetDto> filteredDatasets = new();
@@ -526,16 +569,112 @@
     private string reportDescription = string.Empty;
     private bool isSaving = false;
     private bool isExecuting = false;
+    private bool previewExecuted = false;
     private List<Dictionary<string, string?>> executeRows = new();
     private List<string> executeColumns = new();
     private List<CrossModuleJoinDto> userJoins = new();
     private bool HasJoinColumns => availableColumns.Any(c => c.IsJoin);
+
+    private static string BuildDatasetKey(DatasetDto dataset) => BuildDatasetKey(dataset.Id, dataset.Module);
+    private static string BuildDatasetKey(int datasetId, string? module)
+    {
+        var normalizedModule = string.IsNullOrWhiteSpace(module) ? ModuleInsightMonitor : module;
+        return $"{normalizedModule}|{datasetId}";
+    }
+
+    private static EntityName[] GetEntityOptions(string? module)
+    {
+        if (string.Equals(module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
+        {
+            return AssetManagerEntityOptions;
+        }
+
+        if (string.Equals(module, ModuleEventManager, StringComparison.OrdinalIgnoreCase))
+        {
+            return EventManagerEntityOptions;
+        }
+
+        if (string.Equals(module, ModuleUrbanMonitor, StringComparison.OrdinalIgnoreCase))
+        {
+            return UrbanMonitorEntityOptions;
+        }
+
+        return InsightMonitorEntityOptions;
+    }
+
+    private static EntityName GetDefaultEntityForModule(string? module)
+    {
+        var options = GetEntityOptions(module);
+        return options.Length > 0 ? options[0] : EntityName.Device;
+    }
+
+    private static string GetSourceModuleForDataset(string? module)
+    {
+        if (string.Equals(module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
+        {
+            return ModuleType.AssetManager.ToString();
+        }
+
+        if (string.Equals(module, ModuleUrbanMonitor, StringComparison.OrdinalIgnoreCase))
+        {
+            return ModuleType.UrbanMonitor.ToString();
+        }
+
+        if (string.Equals(module, ModuleEventManager, StringComparison.OrdinalIgnoreCase))
+        {
+            return ModuleType.EventManager.ToString();
+        }
+
+        return ModuleType.InsightMonitor.ToString();
+    }
+
+    private static string GetDatasetDisplayLabel(DatasetDto dataset)
+    {
+        if (dataset == null)
+        {
+            return string.Empty;
+        }
+
+        var moduleLabel = string.IsNullOrWhiteSpace(dataset.Module) ? ModuleInsightMonitor : dataset.Module;
+        return string.IsNullOrWhiteSpace(moduleLabel) ? dataset.Nombre : $"{dataset.Nombre} ({moduleLabel})";
+    }
+
+    private static ModuleType GetModuleTypeForDataset(string? module)
+    {
+        if (string.Equals(module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
+        {
+            return ModuleType.AssetManager;
+        }
+
+        if (string.Equals(module, ModuleUrbanMonitor, StringComparison.OrdinalIgnoreCase))
+        {
+            return ModuleType.UrbanMonitor;
+        }
+
+        if (string.Equals(module, ModuleEventManager, StringComparison.OrdinalIgnoreCase))
+        {
+            return ModuleType.EventManager;
+        }
+
+        return ModuleType.InsightMonitor;
+    }
+
+    private static string GetModuleNameFromType(ModuleType moduleType)
+    {
+        return moduleType switch
+        {
+            ModuleType.AssetManager => ModuleAssetManager,
+            ModuleType.UrbanMonitor => ModuleUrbanMonitor,
+            ModuleType.EventManager => ModuleEventManager,
+            _ => ModuleInsightMonitor
+        };
+    }
     
     private async Task ToggleDatasetSelection(DatasetDto dataset)
     {
         try
         {
-            if (selectedDatasets.Any(d => d.Id == dataset.Id))
+            if (selectedDatasets.Any(d => d.Id == dataset.Id && d.Module == dataset.Module))
             {
                 // If removing a dataset, clear any joins that reference it
                 var joinsToRemove = joins
@@ -547,8 +686,12 @@
                     joins.Remove(join);
                 }
                 
-                selectedDatasets.RemoveAll(d => d.Id == dataset.Id);
-                selectedDatasetsIM.Remove(dataset.Id);
+                selectedDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
+                if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedDatasetsIM.Remove(dataset.Id);
+                }
+                selectedEntities.Remove(BuildDatasetKey(dataset));
                 
                 if (!selectedDatasets.Any())
                 {
@@ -563,19 +706,27 @@
             else
             {
                 selectedDatasets.Add(dataset);
-
-                // Cargar detalles del dataset (opcional) para soporte de columnas/joins
-                var token = await LocalStorage.GetItemAsync<string>("authToken");
-                var responseDataset = !string.IsNullOrEmpty(token)
-                    ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={token}")
-                    : null;
-
-                if (responseDataset != null && responseDataset.IsSuccessStatusCode)
+                var datasetKey = BuildDatasetKey(dataset);
+                if (!selectedEntities.ContainsKey(datasetKey))
                 {
-                    var datasetIM = await responseDataset.Content.ReadFromJsonAsync<DatasetIM>();
-                    if (datasetIM != null)
+                    selectedEntities[datasetKey] = GetDefaultEntityForModule(dataset.Module);
+                }
+
+                if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Cargar detalles del dataset IM (opcional) para soporte de columnas/joins
+                    var token = await LocalStorage.GetItemAsync<string>("authToken");
+                    var responseDataset = !string.IsNullOrEmpty(token)
+                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={token}")
+                        : null;
+
+                    if (responseDataset != null && responseDataset.IsSuccessStatusCode)
                     {
-                        selectedDatasetsIM[dataset.Id] = datasetIM;
+                        var datasetIM = await responseDataset.Content.ReadFromJsonAsync<DatasetIM>();
+                        if (datasetIM != null)
+                        {
+                            selectedDatasetsIM[dataset.Id] = datasetIM;
+                        }
                     }
                 }
             }
@@ -596,7 +747,7 @@
 
     private bool IsSelected(DatasetDto dataset)
     {
-        return selectedDatasets.Any(d => d.Id == dataset.Id);
+        return selectedDatasets.Any(d => d.Id == dataset.Id && d.Module == dataset.Module);
     }
 
     private string _searchText = string.Empty;
@@ -622,7 +773,10 @@
         var normalizedSearch = NormalizeText(searchText);
 
         filteredDatasets = datasets
-            .Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch))
+            .Where(d =>
+                NormalizeText(d.Nombre).Contains(normalizedSearch) ||
+                NormalizeText(d.Module ?? string.Empty).Contains(normalizedSearch) ||
+                NormalizeText(d.Descripcion ?? string.Empty).Contains(normalizedSearch))
             .OrderByDescending(d => NormalizeText(d.Nombre) == normalizedSearch) 
             .ThenByDescending(d => NormalizeText(d.Nombre).StartsWith(normalizedSearch)) 
             .ThenBy(d => NormalizeText(d.Nombre).IndexOf(normalizedSearch)) 
@@ -653,12 +807,12 @@
         public int Id { get; set; }
         // ID del join creado en el backend (CrossModuleJoin.Id). Null si aún no fue persistido
         public int? ServerJoinId { get; set; }
-        public string LeftDataset { get; set; } = "Dataset 1";
-        public string LeftField { get; set; } = "ID";
-        public string Comparison { get; set; } = "Operator";
-        public string JoinType { get; set; } = "Tipo de join";
-        public string RightDataset { get; set; } = "Dataset 2";
-        public string RightField { get; set; } = "ID";
+        public string LeftDataset { get; set; } = string.Empty;
+        public string LeftField { get; set; } = string.Empty;
+        public string Comparison { get; set; } = "Equal";
+        public string JoinType { get; set; } = string.Empty;
+        public string RightDataset { get; set; } = string.Empty;
+        public string RightField { get; set; } = string.Empty;
 
         public JoinDto(int id)
         {
@@ -694,6 +848,7 @@
         public bool IsJoin { get; init; }
         public int? JoinId { get; init; }
         public int DatasetId { get; init; }
+        public string ModuleName { get; init; } = string.Empty;
         public EntityName Entity { get; init; }
         public string PropertyName { get; init; } = string.Empty;
         public string? Alias { get; init; }
@@ -703,9 +858,11 @@
     {
         public int JoinId { get; init; }
         public int LeftDatasetId { get; init; }
+        public ModuleType LeftModuleType { get; init; }
         public EntityName LeftEntity { get; init; }
         public string LeftField { get; init; } = string.Empty;
         public int RightDatasetId { get; init; }
+        public ModuleType RightModuleType { get; init; }
         public EntityName RightEntity { get; init; }
         public string RightField { get; init; } = string.Empty;
         public JoinType JoinType { get; init; }
@@ -751,28 +908,119 @@
                 }
             }
 
-            // Cargar datasets
-            var response = await Http.GetAsync($"api/Dataset/user?token={token}");
+            var aggregatedDatasets = new List<DatasetDto>();
 
-            if (response.IsSuccessStatusCode)
+            // Cargar datasets de Insight Monitor
+            try
             {
-                var datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
-                
-                // Convertir DatasetIM a DatasetDto
-                datasets = datasetsFromApi?.Select(d => new DatasetDto
+                var responseIM = await Http.GetAsync($"api/Dataset/user?token={Uri.EscapeDataString(token)}");
+                if (responseIM.IsSuccessStatusCode)
                 {
-                    Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description ?? "Sin descripción" // Handle null values
-                }).ToList() ?? new List<DatasetDto>();
+                    var datasetsIM = await responseIM.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                    aggregatedDatasets.AddRange(datasetsIM?.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name ?? string.Empty,
+                        Descripcion = d.Description ?? "Sin descripción",
+                        Module = ModuleInsightMonitor
+                    }) ?? new List<DatasetDto>());
+                }
+                else
+                {
+                    Logger?.LogWarning("[EditarReporte] No fue posible cargar datasets IM. Status={StatusCode}", responseIM.StatusCode);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Snackbar.Add("Error al cargar los datasets", Severity.Error);
+                Logger?.LogError(ex, "[EditarReporte] Error cargando datasets IM");
+                Snackbar.Add("Error al cargar datasets de Insight Monitor", Severity.Warning);
             }
 
-            // Inicializar la lista filtrada
+            // Cargar datasets de Asset Manager
+            try
+            {
+                var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs?token={Uri.EscapeDataString(token)}");
+                if (responseAM.IsSuccessStatusCode)
+                {
+                    var datasetsAM = await responseAM.Content.ReadFromJsonAsync<List<DatasetAM>>();
+                    aggregatedDatasets.AddRange(datasetsAM?.Select(d => new DatasetDto
+                    {
+                        Id = d.Id_Dataset,
+                        Nombre = d.Nombre ?? string.Empty,
+                        Descripcion = d.Descripcion ?? "Sin descripción",
+                        Module = ModuleAssetManager
+                    }) ?? new List<DatasetDto>());
+                }
+                else
+                {
+                    Logger?.LogWarning("[EditarReporte] No fue posible cargar datasets AM. Status={StatusCode}", responseAM.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogError(ex, "[EditarReporte] Error cargando datasets AM");
+                Snackbar.Add("Error al cargar datasets de Asset Manager", Severity.Warning);
+            }
+
+            // Cargar datasets de Urban Monitor
+            try
+            {
+                var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets?token={Uri.EscapeDataString(token)}");
+                if (responseUM.IsSuccessStatusCode)
+                {
+                    var datasetsUM = await responseUM.Content.ReadFromJsonAsync<List<DatasetUM>>();
+                    aggregatedDatasets.AddRange(datasetsUM?.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name ?? string.Empty,
+                        Descripcion = d.Description ?? "Sin descripción",
+                        Module = ModuleUrbanMonitor
+                    }) ?? new List<DatasetDto>());
+                }
+                else
+                {
+                    Logger?.LogWarning("[EditarReporte] No fue posible cargar datasets UM. Status={StatusCode}", responseUM.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogError(ex, "[EditarReporte] Error cargando datasets UM");
+                Snackbar.Add("Error al cargar datasets de Urban Monitor", Severity.Warning);
+            }
+
+            // Cargar datasets de Event Manager
+            try
+            {
+                var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets?token={Uri.EscapeDataString(token)}");
+                if (responseEM.IsSuccessStatusCode)
+                {
+                    var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<DatasetEM>>();
+                    aggregatedDatasets.AddRange(datasetsEM?.Select(d => new DatasetDto
+                    {
+                        Id = d.Id,
+                        Nombre = d.Name ?? string.Empty,
+                        Descripcion = d.Description ?? "Sin descripción",
+                        Module = ModuleEventManager
+                    }) ?? new List<DatasetDto>());
+                }
+                else
+                {
+                    Logger?.LogWarning("[EditarReporte] No fue posible cargar datasets EM. Status={StatusCode}", responseEM.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogError(ex, "[EditarReporte] Error cargando datasets EM");
+                Snackbar.Add("Error al cargar datasets de Event Manager", Severity.Warning);
+            }
+
+            datasets = aggregatedDatasets
+                .OrderBy(d => d.Module)
+                .ThenBy(d => d.Nombre)
+                .ToList();
+
             filteredDatasets = datasets.ToList();
+            FilterDatasets();
         }
         catch (Exception ex)
         {
@@ -876,6 +1124,9 @@
                 return;
             }
 
+            var appliedJoins = 0;
+            var encounteredErrors = false;
+
             foreach (var join in joins)
             {
                 try
@@ -886,23 +1137,49 @@
                         continue;
                     }
 
+                    if (string.IsNullOrWhiteSpace(join.LeftDataset) || string.IsNullOrWhiteSpace(join.RightDataset))
+                    {
+                        Snackbar.Add($"Seleccione los datasets izquierdo y derecho para el join #{join.Id}", Severity.Warning);
+                        encounteredErrors = true;
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(join.LeftField) || string.IsNullOrWhiteSpace(join.RightField))
+                    {
+                        Snackbar.Add($"Seleccione los campos del join #{join.Id}", Severity.Warning);
+                        encounteredErrors = true;
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(join.JoinType))
+                    {
+                        Snackbar.Add($"Seleccione el tipo de join para #{join.Id}", Severity.Warning);
+                        encounteredErrors = true;
+                        continue;
+                    }
+
                     var leftDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.LeftDataset);
                     var rightDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.RightDataset);
 
                     if (leftDataset == null || rightDataset == null)
                     {
                         Snackbar.Add($"Datasets no encontrados para el join: {join.LeftDataset} - {join.RightDataset}", Severity.Error);
+                        encounteredErrors = true;
                         continue;
                     }
 
-                    var leftEntity = GetSelectedEntity(leftDataset.Id);
-                    var rightEntity = GetSelectedEntity(rightDataset.Id);
+                    var leftEntity = GetSelectedEntity(leftDataset);
+                    var rightEntity = GetSelectedEntity(rightDataset);
 
                     if (!Enum.TryParse<JoinType>(join.JoinType, true, out var joinType))
                     {
                         Snackbar.Add($"Tipo de join desconocido para #{join.Id}: {join.JoinType}", Severity.Error);
+                        encounteredErrors = true;
                         continue;
                     }
+
+                    var leftModuleType = GetModuleTypeForDataset(leftDataset.Module);
+                    var rightModuleType = GetModuleTypeForDataset(rightDataset.Module);
 
                     var createJoinRequest = new CreateJoinRequestDto
                     {
@@ -911,14 +1188,14 @@
                         JoinType = joinType,
                         LeftOperand = new JoinOperandDto
                         {
-                            ModuleType = ModuleType.InsightMonitor,  
+                            ModuleType = leftModuleType,
                             DatasetId = leftDataset.Id,
                             EntityName = leftEntity,
                             JoinPropertyName = join.LeftField
                         },
                         RightOperand = new JoinOperandDto
                         {
-                            ModuleType = ModuleType.InsightMonitor,  
+                            ModuleType = rightModuleType,
                             DatasetId = rightDataset.Id,
                             EntityName = rightEntity,
                             JoinPropertyName = join.RightField
@@ -932,7 +1209,8 @@
                     {
                         var error = await createJoinResponse.Content.ReadAsStringAsync();
                         Snackbar.Add($"Error al crear la configuración del join #{join.Id}: {error}", Severity.Error);
-                        return; // Detener si falla la creación de un join
+                        encounteredErrors = true;
+                        continue;
                     }
 
                     try
@@ -949,27 +1227,44 @@
                             if (createdLink?.CrossModuleJoinId > 0)
                             {
                                 join.ServerJoinId = createdLink.CrossModuleJoinId;
+                                appliedJoins++;
                                 await LogJoinExecutionAsync(createdLink.CrossModuleJoinId);
+                            }
+                            else
+                            {
+                                encounteredErrors = true;
                             }
                         }
                         else
                         {
                             Logger?.LogWarning("[EditarReporte] create-and-add join #{JoinId} devolvió un cuerpo vacío", join.Id);
+                            encounteredErrors = true;
                         }
                     }
                     catch (Exception ex)
                     {
                         Logger?.LogWarning(ex, "[EditarReporte] No fue posible procesar la respuesta de create-and-add del join #{JoinId}", join.Id);
+                        encounteredErrors = true;
                     }
                 }
                 catch (Exception ex)
                 {
                     Snackbar.Add($"Error al aplicar join: {ex.Message}", Severity.Error);
+                    encounteredErrors = true;
                 }
             }
 
             await LoadAvailableJoinsAsync(token);
+
+            if (!encounteredErrors)
+            {
+                var message = appliedJoins > 0 ? "Joins guardados correctamente." : "Joins actualizados correctamente.";
+                Snackbar.Add(message, Severity.Success);
+            }
+
+            activeTab = "columnas";
             UpdateAvailableColumns();
+            StateHasChanged();
         }
 
     // --- Métodos de Filtros ---
@@ -1086,49 +1381,67 @@
 
     private void AddColumnsForJoin(string joinDisplayName, int joinId, JoinDto join, Dictionary<string, bool> previousVisibility, List<ColumnDefinition> target)
     {
-        var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var datasetSides = new (string? DatasetName, string SideKey)[]
+        var leftDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.LeftDataset);
+        var rightDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.RightDataset);
+
+        EntityName? leftEntity = leftDataset != null ? GetSelectedEntity(leftDataset) : (EntityName?)null;
+        EntityName? rightEntity = rightDataset != null ? GetSelectedEntity(rightDataset) : (EntityName?)null;
+
+        var useSharedColumns = leftDataset != null
+            && rightDataset != null
+            && string.Equals(leftDataset.Module, rightDataset.Module, StringComparison.OrdinalIgnoreCase)
+            && leftEntity.HasValue
+            && rightEntity.HasValue
+            && leftEntity.Value == rightEntity.Value;
+
+        var sides = new List<(DatasetDto Dataset, EntityName Entity, string SideKey)>();
+
+        if (leftDataset != null && leftEntity.HasValue)
         {
-            (join.LeftDataset, "left"),
-            (join.RightDataset, "right")
-        };
+            sides.Add((leftDataset, leftEntity.Value, "left"));
+        }
 
-        foreach (var (datasetName, sideKey) in datasetSides)
+        if (rightDataset != null && rightEntity.HasValue)
         {
-            if (string.IsNullOrWhiteSpace(datasetName))
-            {
-                continue;
-            }
+            sides.Add((rightDataset, rightEntity.Value, "right"));
+        }
 
-            var dataset = selectedDatasets.FirstOrDefault(d => d.Nombre == datasetName);
-            if (dataset == null)
-            {
-                continue;
-            }
-
-            var entity = GetSelectedEntity(dataset.Id);
+        foreach (var (dataset, entity, sideKey) in sides)
+        {
+            var datasetLabel = GetDatasetDisplayLabel(dataset);
             foreach (var prop in GetEntityPropertyNames(entity))
             {
-                var mergeKey = $"{entity}.{prop}";
-                if (!processedKeys.Add(mergeKey))
+                var columnName = $"{joinDisplayName}.{entity}.{prop}";
+
+                if (useSharedColumns)
                 {
-                    continue;
+                    var existingColumn = target.FirstOrDefault(c => string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase));
+                    if (existingColumn != null)
+                    {
+                        var extraVisibility = GetVisibilityForJoinColumn(previousVisibility, joinDisplayName, dataset, prop, columnName, sideKey);
+                        if (extraVisibility && !existingColumn.IsVisible)
+                        {
+                            existingColumn.IsVisible = true;
+                        }
+                        continue;
+                    }
                 }
 
-                var columnName = $"{joinDisplayName}.{entity}.{prop}";
                 var isVisible = GetVisibilityForJoinColumn(previousVisibility, joinDisplayName, dataset, prop, columnName, sideKey);
 
                 target.Add(new ColumnDefinition
                 {
                     Name = columnName,
                     DisplayName = prop,
-                    DatasetName = joinDisplayName,
+                    DatasetName = dataset.Nombre,
+                    GroupLabel = datasetLabel,
                     IsVisible = isVisible,
                     DatasetId = dataset.Id,
                     Entity = entity,
                     PropertyName = prop,
                     IsJoin = true,
-                    JoinId = joinId
+                    JoinId = joinId,
+                    JoinDisplayName = joinDisplayName
                 });
             }
         }
@@ -1161,8 +1474,9 @@
 
     private void AddColumnsForDataset(DatasetDto dataset, Dictionary<string, bool> previousVisibility, List<ColumnDefinition> target)
     {
-        var entity = GetSelectedEntity(dataset.Id);
+        var entity = GetSelectedEntity(dataset);
         var props = GetEntityPropertyNames(entity);
+        var datasetLabel = GetDatasetDisplayLabel(dataset);
         foreach (var prop in props)
         {
             var columnKey = $"{dataset.Nombre}.{prop}";
@@ -1172,12 +1486,14 @@
                 Name = columnKey,
                 DisplayName = prop,
                 DatasetName = dataset.Nombre,
+                GroupLabel = datasetLabel,
                 IsVisible = isVisible,
                 DatasetId = dataset.Id,
                 Entity = entity,
                 PropertyName = prop,
                 IsJoin = false,
-                JoinId = null
+                JoinId = null,
+                JoinDisplayName = null
             });
         }
     }
@@ -1195,8 +1511,8 @@
         if (leftDataset == null || rightDataset == null)
             return false;
 
-        var leftEntity = GetSelectedEntity(leftDataset.Id);
-        var rightEntity = GetSelectedEntity(rightDataset.Id);
+    var leftEntity = GetSelectedEntity(leftDataset);
+    var rightEntity = GetSelectedEntity(rightDataset);
 
         if (!Enum.TryParse<JoinType>(join.JoinType, true, out var joinType))
             return false;
@@ -1297,13 +1613,13 @@
 
         joins.Clear();
         selectedDatasets.Clear();
-    selectedDatasetsIM.Clear();
-    selectedEntities.Clear();
+        selectedDatasetsIM.Clear();
+        selectedEntities.Clear();
         availableColumns.Clear();
         JoinDto.ResetIdCounter();
 
-        var datasetIds = new HashSet<int>();
-        var entityOverrides = new Dictionary<int, EntityName>();
+    var datasetSelections = new List<(int DatasetId, string ModuleName)>();
+    var entityOverrides = new Dictionary<string, EntityName>(StringComparer.OrdinalIgnoreCase);
         var joinDetails = new List<JoinConfigDetails>();
         var columnSelections = new List<ColumnSelectionSpec>();
 
@@ -1316,11 +1632,17 @@
 
             if (string.Equals(source.SourceType, "dataset", StringComparison.OrdinalIgnoreCase) && source.SourceId.HasValue)
             {
-                datasetIds.Add(source.SourceId.Value);
+                var moduleType = source.SourceModule ?? ModuleType.InsightMonitor;
+                var moduleName = GetModuleNameFromType(moduleType);
+                if (!datasetSelections.Any(d => d.DatasetId == source.SourceId.Value && string.Equals(d.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    datasetSelections.Add((source.SourceId.Value, moduleName));
+                }
 
                 if (source.EntityName.HasValue)
                 {
-                    entityOverrides[source.SourceId.Value] = source.EntityName.Value;
+                    var overrideKey = BuildDatasetKey(source.SourceId.Value, moduleName);
+                    entityOverrides[overrideKey] = source.EntityName.Value;
                 }
 
                 foreach (var column in source.Columns ?? Enumerable.Empty<ReportColumnConfig>())
@@ -1334,6 +1656,7 @@
                     {
                         IsJoin = false,
                         DatasetId = source.SourceId.Value,
+                        ModuleName = moduleName,
                         Entity = entity,
                         PropertyName = property,
                         Alias = column?.As
@@ -1353,10 +1676,20 @@
                     continue;
                 }
 
-                datasetIds.Add(detail.LeftDatasetId);
-                datasetIds.Add(detail.RightDatasetId);
-                entityOverrides[detail.LeftDatasetId] = detail.LeftEntity;
-                entityOverrides[detail.RightDatasetId] = detail.RightEntity;
+                var leftModuleName = GetModuleNameFromType(detail.LeftModuleType);
+                if (!datasetSelections.Any(d => d.DatasetId == detail.LeftDatasetId && string.Equals(d.ModuleName, leftModuleName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    datasetSelections.Add((detail.LeftDatasetId, leftModuleName));
+                }
+
+                var rightModuleName = GetModuleNameFromType(detail.RightModuleType);
+                if (!datasetSelections.Any(d => d.DatasetId == detail.RightDatasetId && string.Equals(d.ModuleName, rightModuleName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    datasetSelections.Add((detail.RightDatasetId, rightModuleName));
+                }
+
+                entityOverrides[BuildDatasetKey(detail.LeftDatasetId, leftModuleName)] = detail.LeftEntity;
+                entityOverrides[BuildDatasetKey(detail.RightDatasetId, rightModuleName)] = detail.RightEntity;
                 joinDetails.Add(detail);
 
                 foreach (var column in source.Columns ?? Enumerable.Empty<ReportColumnConfig>())
@@ -1370,6 +1703,7 @@
                     {
                         IsJoin = true,
                         JoinId = joinId,
+                        ModuleName = string.Empty,
                         Entity = entity,
                         PropertyName = property,
                         Alias = column?.As
@@ -1378,20 +1712,29 @@
             }
         }
 
-        foreach (var datasetId in datasetIds)
+        foreach (var selectionEntry in datasetSelections)
         {
-            await EnsureDatasetSelectedAsync(datasetId, token);
+            await EnsureDatasetSelectedAsync(selectionEntry.DatasetId, selectionEntry.ModuleName, token);
         }
 
         foreach (var kvp in entityOverrides)
         {
-            selectedEntities[kvp.Key] = kvp.Value;
+            var dataset = selectedDatasets.FirstOrDefault(d => string.Equals(BuildDatasetKey(d), kvp.Key, StringComparison.OrdinalIgnoreCase));
+            if (dataset == null)
+            {
+                continue;
+            }
+            var options = GetEntityOptions(dataset.Module);
+            var entityToApply = options.Contains(kvp.Value) ? kvp.Value : GetDefaultEntityForModule(dataset.Module);
+            selectedEntities[BuildDatasetKey(dataset)] = entityToApply;
         }
 
         foreach (var detail in joinDetails)
         {
-            var leftDataset = selectedDatasets.FirstOrDefault(d => d.Id == detail.LeftDatasetId);
-            var rightDataset = selectedDatasets.FirstOrDefault(d => d.Id == detail.RightDatasetId);
+            var leftModuleName = GetModuleNameFromType(detail.LeftModuleType);
+            var rightModuleName = GetModuleNameFromType(detail.RightModuleType);
+            var leftDataset = selectedDatasets.FirstOrDefault(d => d.Id == detail.LeftDatasetId && string.Equals(d.Module, leftModuleName, StringComparison.OrdinalIgnoreCase));
+            var rightDataset = selectedDatasets.FirstOrDefault(d => d.Id == detail.RightDatasetId && string.Equals(d.Module, rightModuleName, StringComparison.OrdinalIgnoreCase));
 
             if (leftDataset == null || rightDataset == null)
             {
@@ -1437,9 +1780,11 @@
         {
             JoinId = joinId,
             LeftDatasetId = cross.LeftOperand.DatasetId,
+            LeftModuleType = cross.LeftOperand.ModuleType,
             LeftEntity = cross.LeftOperand.EntityName,
             LeftField = cross.LeftOperand.JoinPropertyName,
             RightDatasetId = cross.RightOperand.DatasetId,
+            RightModuleType = cross.RightOperand.ModuleType,
             RightEntity = cross.RightOperand.EntityName,
             RightField = cross.RightOperand.JoinPropertyName,
             JoinType = cross.JoinType
@@ -1458,35 +1803,51 @@
         {
             JoinId = joinId,
             LeftDatasetId = join.LeftOperand.DatasetId,
+            LeftModuleType = join.LeftOperand.ModuleType,
             LeftEntity = join.LeftOperand.EntityName,
             LeftField = join.LeftOperand.JoinPropertyName,
             RightDatasetId = join.RightOperand.DatasetId,
+            RightModuleType = join.RightOperand.ModuleType,
             RightEntity = join.RightOperand.EntityName,
             RightField = join.RightOperand.JoinPropertyName,
             JoinType = join.JoinType
         };
     }
 
-    private async Task EnsureDatasetSelectedAsync(int datasetId, string token)
+    private async Task EnsureDatasetSelectedAsync(int datasetId, string moduleName, string token)
     {
-        if (selectedDatasets.Any(d => d.Id == datasetId))
+        var moduleComparer = StringComparer.OrdinalIgnoreCase;
+
+        if (selectedDatasets.Any(d => d.Id == datasetId && moduleComparer.Equals(d.Module, moduleName)))
         {
-            if (!selectedDatasetsIM.ContainsKey(datasetId) && !string.IsNullOrEmpty(token))
+            var existingDataset = selectedDatasets.First(d => d.Id == datasetId && moduleComparer.Equals(d.Module, moduleName));
+            var existingKey = BuildDatasetKey(existingDataset);
+            if (!selectedEntities.ContainsKey(existingKey))
             {
-                var existingDataset = selectedDatasets.First(d => d.Id == datasetId);
+                selectedEntities[existingKey] = GetDefaultEntityForModule(existingDataset.Module);
+            }
+            if (string.Equals(existingDataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase)
+                && !selectedDatasetsIM.ContainsKey(datasetId)
+                && !string.IsNullOrEmpty(token))
+            {
                 await PrefetchDatasetDetailsAsync(existingDataset, token);
             }
             return;
         }
 
-        var dataset = datasets.FirstOrDefault(d => d.Id == datasetId);
+        var dataset = datasets.FirstOrDefault(d => d.Id == datasetId && moduleComparer.Equals(d.Module, moduleName));
         if (dataset == null)
         {
-            Logger?.LogWarning("[EditarReporte] Dataset {DatasetId} no está disponible para restaurar la configuración", datasetId);
+            Logger?.LogWarning("[EditarReporte] Dataset {DatasetId} ({Module}) no está disponible para restaurar la configuración", datasetId, moduleName);
             return;
         }
 
         selectedDatasets.Add(dataset);
+        var datasetKey = BuildDatasetKey(dataset);
+        if (!selectedEntities.ContainsKey(datasetKey))
+        {
+            selectedEntities[datasetKey] = EntityName.Device;
+        }
 
         if (!string.IsNullOrEmpty(token))
         {
@@ -1496,6 +1857,10 @@
 
     private async Task PrefetchDatasetDetailsAsync(DatasetDto dataset, string token)
     {
+        if (!string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
         try
         {
             var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
@@ -1535,9 +1900,22 @@
             }
             else
             {
+                DatasetDto? datasetForSelection = null;
+                if (!string.IsNullOrWhiteSpace(selection.ModuleName))
+                {
+                    datasetForSelection = selectedDatasets.FirstOrDefault(d => d.Id == selection.DatasetId && string.Equals(d.Module, selection.ModuleName, StringComparison.OrdinalIgnoreCase))
+                        ?? datasets.FirstOrDefault(d => d.Id == selection.DatasetId && string.Equals(d.Module, selection.ModuleName, StringComparison.OrdinalIgnoreCase));
+                }
+                else
+                {
+                    datasetForSelection = selectedDatasets.FirstOrDefault(d => d.Id == selection.DatasetId)
+                        ?? datasets.FirstOrDefault(d => d.Id == selection.DatasetId);
+                }
+
                 column = availableColumns.FirstOrDefault(c =>
                     !c.IsJoin &&
                     c.DatasetId == selection.DatasetId &&
+                    (datasetForSelection == null || string.Equals(c.DatasetName, datasetForSelection.Nombre, StringComparison.OrdinalIgnoreCase)) &&
                     c.Entity == selection.Entity &&
                     string.Equals(c.PropertyName, selection.PropertyName, StringComparison.OrdinalIgnoreCase));
             }
@@ -1684,11 +2062,14 @@
                 }
 
                 var entity = group.First().Entity;
+                var selectedDataset = selectedDatasets.FirstOrDefault(d => d.Id == group.Key)
+                    ?? datasets.FirstOrDefault(d => d.Id == group.Key);
+                var sourceModule = GetSourceModuleForDataset(selectedDataset?.Module);
 
                 sources.Add(new
                 {
                     sourceType = "dataset",
-                    sourceModule = "InsightMonitor",
+                    sourceModule,
                     sourceId = group.Key,
                     entityName = entity.ToString(),
                     columns
@@ -1711,6 +2092,15 @@
                 WriteIndented = true
             });
 
+            try
+            {
+                await JS.InvokeVoidAsync("console.log", "UpdateReport JSON_config payload", json);
+            }
+            catch (Exception ex)
+            {
+                Logger?.LogWarning(ex, "[EditarReporte] No fue posible registrar JSON_config en la consola del navegador");
+            }
+
             // Guardar en backend (UpdateReport) y luego ejecutar
             var token = await LocalStorage.GetItemAsync<string>("authToken");
             if (string.IsNullOrEmpty(token))
@@ -1722,8 +2112,9 @@
             isSaving = true;
             StateHasChanged();
 
+            Console.WriteLine($"UpdateReport JSON_config payload: {json}");
+
             var url = $"api/reports/UpdateReport?id={ReportId}&name={Uri.EscapeDataString(reportName ?? string.Empty)}&description={Uri.EscapeDataString(reportDescription ?? string.Empty)}&JSON_config={Uri.EscapeDataString(json)}&token={Uri.EscapeDataString(token)}";
-            // No más logs de URL/token
             var putResp = await Http.PutAsync(url, null);
             isSaving = false;
 
@@ -1753,6 +2144,7 @@
             isExecuting = true;
             executeRows.Clear();
             executeColumns.Clear();
+            previewExecuted = false;
             StateHasChanged();
 
             var execUrl = $"api/reports/{ReportId}/execute?id={ReportId}&token={Uri.EscapeDataString(token)}";
@@ -1800,6 +2192,7 @@
                     }
 
                     executeColumns = columns.OrderBy(c => c).ToList();
+                    previewExecuted = true;
                 }
                 else
                 {
@@ -1825,14 +2218,32 @@
         }
     }
 
-    private EntityName GetSelectedEntity(int datasetId)
+    private EntityName GetSelectedEntity(DatasetDto dataset)
     {
-        return selectedEntities.TryGetValue(datasetId, out var e) ? e : EntityName.Device;
+        var key = BuildDatasetKey(dataset);
+        if (selectedEntities.TryGetValue(key, out var e))
+        {
+            var allowed = GetEntityOptions(dataset.Module);
+            if (allowed.Contains(e))
+            {
+                return e;
+            }
+        }
+
+        var defaultEntity = GetDefaultEntityForModule(dataset.Module);
+        selectedEntities[key] = defaultEntity;
+        return defaultEntity;
     }
 
     private void OnEntityChanged(DatasetDto dataset, EntityName entity)
     {
-        selectedEntities[dataset.Id] = entity;
+        var options = GetEntityOptions(dataset.Module);
+        if (!options.Contains(entity))
+        {
+            entity = GetDefaultEntityForModule(dataset.Module);
+        }
+
+        selectedEntities[BuildDatasetKey(dataset)] = entity;
         UpdateAvailableColumns();
         StateHasChanged();
     }
@@ -1841,7 +2252,7 @@
     {
         var ds = selectedDatasets.FirstOrDefault(d => d.Nombre == datasetName);
         if (ds == null) return Enumerable.Empty<string>();
-        var entity = GetSelectedEntity(ds.Id);
+        var entity = GetSelectedEntity(ds);
         return GetEntityPropertyNames(entity);
     }
 
@@ -1853,6 +2264,16 @@
             EntityName.Source => typeof(Source),
             EntityName.Group => typeof(DeviceGroup),
             EntityName.Sensor => typeof(Sensor),
+            EntityName.EventAM => typeof(EventTaskDto),
+            EntityName.Stock => typeof(StockDto),
+            EntityName.Asset => typeof(AssetDto),
+            EntityName.Alert => typeof(AlertDto),
+            EntityName.EventEM => typeof(EventDto),
+            EntityName.Extension => typeof(ExtensionDto),
+            EntityName.Categoria => typeof(CategoryDto),
+            EntityName.Zone => typeof(Zone),
+            EntityName.EventUM => typeof(Event),
+            EntityName.New => typeof(News),
             _ => null
         };
 

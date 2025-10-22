@@ -40,7 +40,12 @@
     </MudText>
 </MudStack>
 
-<Dashboard CardsData=@(cardsData) dashboardId="@DashboardId" OnVisualizationCreated="HandleNewVisualization" UpdateCardSize="UpdateCardSize" RemoveCard="HandleDeleteVisualization"></Dashboard>
+<Dashboard CardsData=@(cardsData) 
+           dashboardId="@DashboardId" 
+           OnVisualizationCreated="HandleNewVisualization"
+           UpdateCardSize="UpdateCardSize" 
+           RemoveCard="HandleDeleteVisualization">
+</Dashboard>
 
 <style>
     @@media (max-width: 768px) {
@@ -65,13 +70,13 @@
     private string dashName = string.Empty;
     private string dashDesc = string.Empty;
 
-    private List<int> _visualizationsIDs = new List<int> { };
+    private List<(int,int)> _visualizationsIDs = new List<(int,int)> { };
 
-    private List<int> _visulaizationsToSave = new List<int> { };
-    private List<int> _visulaizationsToDelete = new List<int> { };
+    private List<(int,int)> _visulaizationsToSave = new List<(int,int)> { };
+    private List<(int, int)> _visulaizationsToDelete = new List<(int, int)> { };
 
     // ID, AnchoSm, AnchoMd, AnchoLg, Alto
-    private List<(int Id, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new List<(int, int, int, int, int)> { };
+    private List<(int Id, int CardType, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new List<(int, int, int, int, int, int)> { };
 
 
     protected override async Task OnInitializedAsync()
@@ -94,8 +99,8 @@
 
                     for (int i = 0; i < dashboardData.Tarjetas.Count; i++)
                     {
-                        _visualizationsIDs.Add(dashboardData.Tarjetas[i].Visualizacion.IdVisualizacion);
-                        Console.WriteLine($"Dashboard: Agregada visualización con ID {_visualizationsIDs[i]} desde el dashboard.");
+                        _visualizationsIDs.Add((dashboardData.Tarjetas[i].CardId,dashboardData.Tarjetas[i].TipoCard));
+                        Console.WriteLine($"Dashboard: Agregada visualización con ID,Tipo: {_visualizationsIDs[i]} desde el dashboard.");
                     }
                     Console.WriteLine($"Dashboard: Total de visualizaciones cargadas: {dashboardData.Tarjetas.Count}");
 
@@ -123,7 +128,8 @@
                                     cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
                                 {
                                     // Agregar el nuevo objeto CardData a la lista de resultados
-                                    cardsData.Add((_visualizationsIDs[i], anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
+                                    var (id, type) = _visualizationsIDs[i];
+                                    cardsData.Add((id,type, anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
                                 }
                             }
                         }
@@ -138,93 +144,87 @@
     }
 
 
-    private void HandleNewVisualization(int newVisualizationId)
+    private void HandleNewVisualization((int Id, int Type) newVisualization)
     {
         const int DefaultAnchoSm = 6;
         const int DefaultAnchoMd = 4;
         const int DefaultAnchoLg = 3;
         const int DefaultAlto = 400;
 
-        bool alreadyExists = _visualizationsIDs.Contains(newVisualizationId);
+        bool alreadyExists = _visualizationsIDs.Contains((newVisualization.Id, newVisualization.Type));
 
         if (alreadyExists)
         {
             // 2. Si ya existe, loguea la advertencia y sale del método.
-            Console.WriteLine($"ADVERTENCIA: La visualización con ID {newVisualizationId} ya existe y no se agregará.");
+            // Console.WriteLine($"ADVERTENCIA: La visualización con ID {newVisualizationId}, Tipo {newVisualizationType} ya existe y no se agregará.");
             return;
         }
-        _visualizationsIDs.Add(newVisualizationId);
+        _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
 
-        _visulaizationsToSave.Add(newVisualizationId);
+        _visulaizationsToSave.Add((newVisualization.Id, newVisualization.Type));
 
-        cardsData.Add((newVisualizationId, DefaultAnchoSm, DefaultAnchoMd, DefaultAnchoLg, DefaultAlto));
+        cardsData.Add((newVisualization.Id, newVisualization.Type, DefaultAnchoSm, DefaultAnchoMd, DefaultAnchoLg, DefaultAlto));
 
         StateHasChanged();
 
-        Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tamaño: {DefaultAnchoSm}x{DefaultAlto}. Total Cards: {cardsData.Count}");
+        // Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tipo: {newVisualizationType} Tamaño: {DefaultAnchoSm}x{DefaultAlto}. Total Cards: {cardsData.Count}");
     }
 
-    private void HandleDeleteVisualization(int deletedVisualizationId)
+    private void HandleDeleteVisualization((int Id, int Type) deletedVisualization)
     {
-        // *** PRINT DE DIAGNÓSTICO: ESTADO INICIAL ***
-        Console.WriteLine("\n--- INICIO HandleDeleteVisualization ---");
-        Console.WriteLine($"ID a eliminar: {deletedVisualizationId}");
-        Console.WriteLine($"_visualizationsIDs (Antes): {string.Join(", ", _visualizationsIDs)}");
-        Console.WriteLine("cardsData (Antes):");
-        foreach (var card in cardsData)
-        {
-            // Se utiliza el descarte (_) para imprimir todos los campos de la tupla.
-            var (Id, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
-            Console.WriteLine($"  Id: {Id}, Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
-        }
+        // foreach (var card in cardsData)
+        // {
+        //     Se utiliza el descarte (_) para imprimir todos los campos de la tupla.
+        //     var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
+        //     Console.WriteLine($"  Id: {Id}, Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
+        // }
         // ---------------------------------------------
 
 
-        bool alreadyExists = _visualizationsIDs.Contains(deletedVisualizationId);
+        bool alreadyExists = _visualizationsIDs.Contains((deletedVisualization.Id, deletedVisualization.Type));
 
         if (!alreadyExists)
         {
-            // 2. Si no existe, loguea la advertencia y sale del método.
-            Console.WriteLine($"ADVERTENCIA: La visualización con ID {deletedVisualizationId} no existe en _visualizationsIDs.");
+            Console.WriteLine($"ADVERTENCIA: La visualización con ID {deletedVisualization.Id} Tipo {deletedVisualization.Type} no existe en _visualizationsIDs.");
             return;
         }
 
-        _visualizationsIDs.Remove(deletedVisualizationId);
+        _visualizationsIDs.Remove((deletedVisualization.Id, deletedVisualization.Type));
 
-        _visulaizationsToDelete.Add(deletedVisualizationId);
+        _visulaizationsToDelete.Add((deletedVisualization.Id, deletedVisualization.Type));
 
-        int countRemoved = cardsData.RemoveAll(card => card.Id == deletedVisualizationId);
+        int countRemoved = cardsData.RemoveAll(card => card.Id == deletedVisualization.Id && card.CardType == deletedVisualization.Type);
 
         StateHasChanged();
 
         // *** PRINT DE DIAGNÓSTICO: ESTADO FINAL ***
-        Console.WriteLine($"Dashboard: Se borró la visualización. ID: {deletedVisualizationId}. Total Cards Removidas: {countRemoved}");
-        Console.WriteLine($"_visualizationsIDs (Después): {string.Join(", ", _visualizationsIDs)}");
-        Console.WriteLine("cardsData (Después):");
-        if (cardsData.Any())
-        {
-            foreach (var card in cardsData)
-            {
-                var (Id, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
-                Console.WriteLine($"  Id: {Id}, Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("  (Lista de tarjetas vacía)");
-        }
-        Console.WriteLine($"Total Cards (Final): {cardsData.Count}");
-        Console.WriteLine("--- FIN HandleDeleteVisualization ---\n");
+        // Console.WriteLine($"Dashboard: Se borró la visualización. ID: {deletedVisualizationId}. Total Cards Removidas: {countRemoved}");
+        // Console.WriteLine($"_visualizationsIDs (Después): {string.Join(", ", _visualizationsIDs)}");
+        // Console.WriteLine("cardsData (Después):");
+        // if (cardsData.Any())
+        // {
+        //     foreach (var card in cardsData)
+        //     {
+        //         var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
+        //         Console.WriteLine($"  Id: {Id}, Type: {Type} Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
+        //     }
+        // }
+        // else
+        // {
+        //     Console.WriteLine("  (Lista de tarjetas vacía)");
+        // }
+        // Console.WriteLine($"Total Cards (Final): {cardsData.Count}");
+        // Console.WriteLine("--- FIN HandleDeleteVisualization ---\n");
     }
 
-    private void UpdateCardSize((int Id, int AnchoSm, int AnchoMd, int AnchoLg, int Alto) cardInfo)
+    private void UpdateCardSize((int Id, int Type, int AnchoSm, int AnchoMd, int AnchoLg, int Alto) cardInfo)
     {
         for (int i = 0; i < cardsData.Count; i++)
         {
-            if (cardsData[i].Id == cardInfo.Id)
+            if ((cardsData[i].Id == cardInfo.Id)&&(cardsData[i].CardType == cardInfo.Type))
             {
                 cardsData[i] = cardInfo;
-                Console.WriteLine($"Tamaño de la tarjeta actualizado. ID: {cardInfo.Id}, Nuevos Anchos: {cardInfo.AnchoSm}, {cardInfo.AnchoMd}, {cardInfo.AnchoLg}. Alto: {cardInfo.Alto}");
+                Console.WriteLine($"Tamaño de la tarjeta actualizado. ID: {cardInfo.Id}, Type: {cardInfo.Type} Nuevos Anchos: {cardInfo.AnchoSm}, {cardInfo.AnchoMd}, {cardInfo.AnchoLg}. Alto: {cardInfo.Alto}");
                 break;
             }
         }
@@ -238,7 +238,7 @@
         bool allNewCardsSaved = true;
 
         
-        foreach (var visualizationId in _visulaizationsToSave)
+        foreach (var (id, type) in _visulaizationsToSave)
         {
             try
             {
@@ -246,8 +246,8 @@
                 {
                     OmniMonitor.Shared.Dtos.DashboardCard request = new OmniMonitor.Shared.Dtos.DashboardCard
                     {
-                        CardId = visualizationId,
-                        TipoCard = 1,
+                        CardId = id,
+                        TipoCard = type,
                         Props = doc.RootElement.Clone()
                     };
 
@@ -257,15 +257,15 @@
                     {
                         allNewCardsSaved = false;
                         string error = await response.Content.ReadAsStringAsync();
-                        Snackbar.Add($"Error al agregar la visualización {visualizationId}: {error}", Severity.Error);
+                        Snackbar.Add($"Error al agregar la visualización {id}: {error}", Severity.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
                 allNewCardsSaved = false;
-                Console.WriteLine($"Error al guardar visualización {visualizationId} en el dashboard: {ex.Message}");
-                Snackbar.Add($"Error interno al guardar visualización {visualizationId}.", Severity.Error);
+                Console.WriteLine($"Error al guardar visualización ID: {id}, Type: {type} en el dashboard: {ex.Message}");
+                Snackbar.Add($"Error interno al guardar visualización ID: {id}, Type: {type}.", Severity.Error);
             }
         }
 
@@ -275,29 +275,28 @@
             return;
         }
 
-        foreach (var visualizationId in _visulaizationsToDelete)
+        foreach (var (id, type) in _visulaizationsToDelete)
         {
             try
             {
-                int TipoCardVisualizacion = 1;
-                string deleteUri = $"api/Dashboard/{DashboardId}/card/{visualizationId}/{TipoCardVisualizacion}?username={username}";
+                string deleteUri = $"api/Dashboard/{DashboardId}/card/{id}/{type}?username={username}";
 
                 HttpResponseMessage? response = await Http.DeleteAsync(deleteUri);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     string error = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add($"Error al eliminar la visualización {visualizationId}: {response.ReasonPhrase}. {error}", Severity.Error);
+                    Snackbar.Add($"Error al eliminar la visualización ID: {id}, Type: {type}: {response.ReasonPhrase}. {error}", Severity.Error);
                 }
                 else
                 {
-                    Console.WriteLine($"Tarjeta eliminada del servidor: ID {visualizationId}");
+                    Console.WriteLine($"Tarjeta eliminada del servidor: ID: {id}, Type: {type}.");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al eliminar visualización {visualizationId} del dashboard: {ex.Message}");
-                Snackbar.Add($"Error interno al eliminar visualización {visualizationId}.", Severity.Error);
+                Console.WriteLine($"Error al eliminar visualización  ID: {id}, Type: {type} del dashboard: {ex.Message}");
+                Snackbar.Add($"Error interno al eliminar visualización  ID: {id}, Type: {type}.", Severity.Error);
             }
         }
 
