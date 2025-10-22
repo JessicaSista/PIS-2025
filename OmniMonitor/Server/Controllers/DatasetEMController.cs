@@ -90,7 +90,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
-        [HttpGet("{datasetId}/{username}")]
+        [HttpGet("GetDatasetById")]
         [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
@@ -112,6 +112,7 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
             }
         }
+        
 
 
         /// <summary>

@@ -173,7 +173,7 @@
         },
         "Category": {
             "GetAll": "/api/Category",
-            "GetById": "api/Category/{id}"
+            "GetById": "/api/Category/{id}"
         }
     },
     "EndpointsUM": {
