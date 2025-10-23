@@ -12,9 +12,9 @@ export const options = {
   tags: { test_type: 'smoke', domain: 'datasets' }
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:5000';
-const USER = __ENV.LOGIN_USER || 'admin';
-const PASS = __ENV.LOGIN_PASS || 'Secret123';
+const BASE_URL = 'https://web-smartplatform-dev-c0cdendhffa2ghf2.mexicocentral-01.azurewebsites.net/';
+const USER = 'admin';
+const PASS = 'admin';
 
 function login() {
   if (__ENV.TOKEN) {
