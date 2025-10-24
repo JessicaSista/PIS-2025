@@ -14,6 +14,9 @@ namespace OmniMonitor.Server.Services
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password);
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
+        Task DeleteKpiAsync(int kpiId, string? username = null);
+        Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null);
+
     }
 
     public class KpiService : IKpiService
@@ -23,12 +26,15 @@ namespace OmniMonitor.Server.Services
         private readonly ISondaEMService _sondaEMService;
         private readonly ISondaIMService _sondaIMService;
         private readonly ISondaAuthService _sondaAuthService;
-        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
+        private readonly IKpiAMService _kpiAMService;
+
+        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, IKpiAMService kpiAMService)
         {
             _context = context;
             _datasetService = datasetService;
             _sondaEMService = sondaEMService;
             _sondaIMService = sondaIMService;
+            _kpiAMService = kpiAMService;
             _sondaAuthService = sondaAuthService;
         }
 
@@ -58,6 +64,50 @@ namespace OmniMonitor.Server.Services
             return newKpi;
         }
 
+        public async Task DeleteKpiAsync(int kpiId, string? username = null)
+        {
+            var kpi = await _context.Kpi.FirstOrDefaultAsync(k => k.Id == kpiId);
+
+            if (kpi == null)
+                throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+
+            //verificar que el usuario sea dueño del KPI
+            if (!string.IsNullOrEmpty(username) && kpi.Username != username)
+                throw new UnauthorizedAccessException("No tiene permisos para eliminar este KPI.");
+
+            _context.Kpi.Remove(kpi);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            var existingKpi = await _context.Kpi.FindAsync(kpiId);
+            if (existingKpi == null)
+                throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+
+            if (!string.IsNullOrEmpty(username) && existingKpi.Username != username)
+                throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
+
+            if (request.Name != null) existingKpi.Name = request.Name;
+            if (request.Description != null) existingKpi.Description = request.Description;
+            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule;
+            if (request.DatasetId != null) existingKpi.DatasetId = request.DatasetId;
+            if (request.Unit != null) existingKpi.Unit = request.Unit;
+            if (request.Metric != null) existingKpi.Metric = request.Metric;
+            if (request.Multiplier != null) existingKpi.Multiplier = request.Multiplier;
+            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor;
+            if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
+            if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
+
+            _context.Kpi.Update(existingKpi);
+            await _context.SaveChangesAsync();
+
+            return existingKpi;
+        }
+
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
             var kpi = await _context.Kpi.FindAsync(kpiId);
@@ -77,7 +127,7 @@ namespace OmniMonitor.Server.Services
             switch (kpi.SourceModule.ToUpper())
             {
                 case "AM":
-                    response = await CalculateAmKpiAsync(kpi, username, password);
+                    response = await _kpiAMService.CalculateAmKpiAsync(kpi, username, password);
                     break;
 
                 case "EM":
