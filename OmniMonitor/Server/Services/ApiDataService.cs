@@ -265,7 +265,11 @@ public class ApiDataService : IApiDataService
                         var resultingCategorias = new List<dynamic>();
                         foreach (var datasetCategoria in datasetEM.DatasetCategory)
                         {
-                            var category = _sondaEMService.GetCategoryById(datasetCategoria.Id_Category, username, password);
+                            var category = await _sondaEMService.GetCategoryById(datasetCategoria.Id_Category, username, password);
+                            if (category != null)
+                            {
+                                resultingCategorias.Add(category);
+                            }
                         }
                         return resultingCategorias;
                     default:
