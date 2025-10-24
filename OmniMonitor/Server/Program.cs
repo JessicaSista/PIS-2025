@@ -99,7 +99,7 @@ builder.Services.AddScoped<ISondaAMService, SondaAMService>();
 builder.Services.AddScoped<ISondaEMService, SondaEMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
-builder.Services.AddScoped<IDatasetService, DatasetService>();
+builder.Services.AddScoped<IDatasetService, DatasetIMService>();
 builder.Services.AddScoped<IDatasetAmService, DatasetAmService>();
 builder.Services.AddScoped<IDatasetUMService, DatasetUMService>();
 builder.Services.AddScoped<IDatasetEMService, DatasetEMService>();

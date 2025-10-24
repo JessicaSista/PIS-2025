@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OmniMonitor.Server.Context;
 
@@ -11,9 +12,11 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251023190128_Datasets")]
+    partial class Datasets
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -194,7 +197,7 @@ namespace OmniMonitor.Server.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<int>("DatasetId")
+                    b.Property<int?>("DatasetsId")
                         .HasColumnType("int");
 
                     b.Property<string>("Descripcion")
@@ -227,7 +230,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id_Dataset");
 
-                    b.HasIndex("DatasetId");
+                    b.HasIndex("DatasetsId");
 
                     b.ToTable("DatasetAM");
                 });
@@ -328,7 +331,7 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("ContentType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DatasetId")
+                    b.Property<int?>("DatasetsId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -352,7 +355,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DatasetId");
+                    b.HasIndex("DatasetsId");
 
                     b.ToTable("DatasetsEM");
                 });
@@ -452,7 +455,7 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("ContentType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DatasetId")
+                    b.Property<int?>("DatasetsId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -485,7 +488,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DatasetId");
+                    b.HasIndex("DatasetsId");
 
                     b.ToTable("DatasetsIM");
                 });
@@ -543,7 +546,7 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("ContentType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("DatasetId")
+                    b.Property<int?>("DatasetsId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -570,7 +573,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DatasetId");
+                    b.HasIndex("DatasetsId");
 
                     b.ToTable("DatasetsUM");
                 });
@@ -1338,13 +1341,9 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Datasets")
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", null)
                         .WithMany("DatasetAM")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Datasets");
+                        .HasForeignKey("DatasetsId");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
@@ -1393,13 +1392,9 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Datasets")
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", null)
                         .WithMany("DatasetEM")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Datasets");
+                        .HasForeignKey("DatasetsId");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEvent", b =>
@@ -1448,13 +1443,9 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetIM", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Datasets")
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", null)
                         .WithMany("DatasetIM")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Datasets");
+                        .HasForeignKey("DatasetsId");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetNews", b =>
@@ -1481,13 +1472,9 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Datasets")
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", null)
                         .WithMany("DatasetUM")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Datasets");
+                        .HasForeignKey("DatasetsId");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>

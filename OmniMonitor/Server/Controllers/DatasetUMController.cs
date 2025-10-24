@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using System;
@@ -13,9 +15,11 @@ public class DatasetUMController : ControllerBase
 {
     private readonly IDatasetUMService _datasetUMService;
     private readonly ISondaAuthService _sondaAuthService;
+    private readonly ApplicationDbContext _context;
 
-    public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService)
+    public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService,ApplicationDbContext context)
     {
+        _context = context;
         _datasetUMService = datasetUMService;
         _sondaAuthService = sondaAuthService;
     }
@@ -47,8 +51,10 @@ public class DatasetUMController : ControllerBase
 
             if (!IsUserAuthorized(request.Username))
                 return Forbid();
-
-            var newDataset = await _datasetUMService.CreateDatasetUMAsync(request);
+            var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
+            var Dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+            var newDataset = await _datasetUMService.CreateDatasetUMAsync(request,Dataset.Id);
+            await _datasetUMService.UpdateDatasetAsyncUM(Dataset.Id, requestDataset, newDataset);
             return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
         }
         catch (ArgumentException ex)
@@ -134,8 +140,10 @@ public class DatasetUMController : ControllerBase
 
             if (!IsUserAuthorized(request.Username))
                 return Forbid();
-
+            var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
             var updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
+            var id = updatedDataset.DatasetId;
+            var Dataset = await _datasetUMService.UpdateDatasetAsyncUM(id, requestDataset, updatedDataset);
             return Ok(updatedDataset);
         }
         catch (ArgumentException ex)
@@ -171,13 +179,36 @@ public class DatasetUMController : ControllerBase
             var dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
             if (dataset == null)
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
-
+            var id= await _context.DatasetsUM
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
             await _datasetUMService.DeleteDatasetUMAsync(datasetId, username);
+            await _datasetUMService.DeleteDatasetAsync(id.DatasetId, username);
             return NoContent();
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno al eliminar el dataset: {ex.Message}");
+        }
+    }
+
+    [HttpGet("GetAllDataset")]
+    [ProducesResponseType(typeof(List<Datasets>), 200)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<DatasetUM>>> GetAllDataset(string token)
+    {
+        try
+        {
+            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (!IsUserAuthorized(username))
+                return Forbid();
+
+            var datasets = await _datasetUMService.GetAllDatasetsAsync(username);
+            return Ok(datasets);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
         }
     }
 }

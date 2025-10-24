@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -9,11 +11,15 @@ public class DatasetController : ControllerBase
     private readonly IDatasetService _datasetService;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ISondaIMService _sondaIMService;
-    public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService, ISondaIMService sondaIMService)
+    private readonly IDatasetUMService _datasetUMService;
+    private readonly ApplicationDbContext _context;
+    public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService, ISondaIMService sondaIMService, IDatasetUMService datasetUMService,ApplicationDbContext context)
     {
         _datasetService = datasetService;
         _sondaAuthService = sondaAuthService;
         _sondaIMService = sondaIMService;
+        _datasetUMService = datasetUMService;
+        _context = context;
     }
 
     /// <summary>
@@ -23,7 +29,7 @@ public class DatasetController : ControllerBase
     [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
     [ProducesResponseType(400)] // Bad Request
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetIM>> CreateDataset([FromBody] CreateDatasetRequest request)
+    public async Task<ActionResult<DatasetIM>> CreateDataset([FromBody] CreateDatasetIMRequest request)
     {
         try
         {
@@ -31,8 +37,10 @@ public class DatasetController : ControllerBase
             {
                 return BadRequest(ModelState);
             }
-
-            var newDataset = await _datasetService.CreateDatasetIMAsync(request);
+            var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+            var Dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+            var newDataset = await _datasetService.CreateDatasetIMAsync(request,Dataset.Id);
+            await _datasetUMService.UpdateDatasetAsyncIM(Dataset.Id, requestDataset, newDataset);
             // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
             return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
         }
@@ -167,7 +175,7 @@ public class DatasetController : ControllerBase
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetRequest request)
+    public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetIMRequest request)
     {
         try
         {
@@ -182,40 +190,11 @@ public class DatasetController : ControllerBase
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
             }
 
-            // Crear un dataset temporal con los nuevos valores para la validación
-            var datasetToUpdate = new DatasetIM
-            {
-                Id = existingDataset.Id,
-                Name = request.Name,
-                Description = request.Description,
-                Id_Source = request.SourceId,
-                Id_Group = request.GroupId,
-                SensorName = request.SensorName,
-                Is_Dataset = request.IsDataset,
-                ContentType = request.ContentType,
-                Username = existingDataset.Username
-            };
-
-            // Actualizar los devices si se proporcionaron
-            if (request.DeviceIds != null && request.DeviceIds.Any())
-            {
-                datasetToUpdate.DatasetDevices = new List<DatasetDevice>();
-                foreach (var deviceId in request.DeviceIds)
-                {
-                    datasetToUpdate.DatasetDevices.Add(new DatasetDevice 
-                    { 
-                        DatasetId = existingDataset.Id,
-                        Id_device = deviceId 
-                    });
-                }
-            }
-            else
-            {
-                datasetToUpdate.DatasetDevices = new List<DatasetDevice>();
-            }
 
             // Llamar al servicio que incluye la validación de nombres únicos
-            var updatedDataset = await _datasetService.UpdateDatasetIMAsync(datasetToUpdate);
+            var updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset,request);
+            var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
+            var Dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
             return Ok(updatedDataset);
         }
         catch (ArgumentException ex)
@@ -249,8 +228,10 @@ public class DatasetController : ControllerBase
             {
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
             }
-
+            var id = await _context.DatasetsIM
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
             await _datasetService.DeleteDatasetIMAsync(datasetId, username);
+            await _datasetUMService.DeleteDatasetAsync(id.DatasetId, username);
             return NoContent();
         }
         catch (Exception ex)
