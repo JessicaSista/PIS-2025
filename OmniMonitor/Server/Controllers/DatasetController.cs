@@ -68,7 +68,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             
             // Por ahora usamos el método sin búsqueda y filtramos en memoria
             // TODO: Implementar búsqueda en el servicio cuando sea necesario
@@ -126,7 +126,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
             
             if (module == null)
@@ -153,7 +153,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
@@ -222,7 +222,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
@@ -249,7 +249,7 @@ public async Task<ActionResult<string>> GetSensorType(int datasetId, [FromQuery]
     try
     {
         Console.WriteLine($"[TRACE] Token recibido: {token}");
-        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
         Console.WriteLine($"[TRACE] Usuario: {username}");
 
         var dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
@@ -264,7 +264,7 @@ public async Task<ActionResult<string>> GetSensorType(int datasetId, [FromQuery]
         }
 
 
-        var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+        var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
         Console.WriteLine($"[TRACE] Source encontrado: {source?.Id}");
         if (source == null)
             return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
@@ -275,7 +275,7 @@ public async Task<ActionResult<string>> GetSensorType(int datasetId, [FromQuery]
             foreach (var dev in source.Devices)
             {
                 Console.WriteLine($"[TRACE] Device: {dev.Id}, Name: {dev.Name}");
-                var fullDevice = await _sondaIMService.GetDeviceById(dev.Id, username, password);
+                var fullDevice = await _sondaIMService.GetDeviceById(dev.Id, username);
                 if (fullDevice == null)
                 {
                     Console.WriteLine($"[TRACE] No se pudo obtener el device completo para ID {dev.Id}");

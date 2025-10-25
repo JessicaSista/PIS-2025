@@ -77,7 +77,7 @@ namespace OmniMonitor.Server.Services
             // Lógica de carga dinámica (igual que antes)
             if (dataset.Is_Dataset == "S" && !dataset.DatasetEvents.Any() && !dataset.DatasetNews.Any())
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                     return null;
 
@@ -87,13 +87,13 @@ namespace OmniMonitor.Server.Services
 
                 if (dataset.Id_Zone.HasValue)
                 {
-                    var allEvents = await _sondaUMService.GetAllEvents(user.Username, user.Password);
+                    var allEvents = await _sondaUMService.GetAllEvents(user.UserName);
                     eventsFromZone = allEvents.Where(e => e.Location != null).ToList();
                 }
                 if (dataset.DatasetNews != null && dataset.DatasetNews.Any())
                 {
                     var newsIds = dataset.DatasetNews.Select(n => n.Id_news).ToList();
-                    var allEvents = await _sondaUMService.GetAllEvents(user.Username, user.Password);
+                    var allEvents = await _sondaUMService.GetAllEvents(user.UserName);
                     eventsFromNews = allEvents.Where(e => newsIds.Contains(e.Id)).ToList();
                 }
 
@@ -113,7 +113,7 @@ namespace OmniMonitor.Server.Services
                 }
                 else
                 {
-                    finalEventList = await _sondaUMService.GetAllEvents(user.Username, user.Password) ?? new List<Event>();
+                    finalEventList = await _sondaUMService.GetAllEvents(user.UserName) ?? new List<Event>();
                 }
 
                 // 3. Buscar News dinámicamente
@@ -122,13 +122,13 @@ namespace OmniMonitor.Server.Services
 
                 if (dataset.Id_Zone.HasValue)
                 {
-                    var newsResponse = await _sondaUMService.GetAllNews(user.Username, user.Password, 1, null, null, 1000);
+                    var newsResponse = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000);
                     newsFromZone = newsResponse.Where(n => n.Zone?.Id == dataset.Id_Zone.Value).ToList();
                 }
                 if (dataset.DatasetNews != null && dataset.DatasetNews.Any())
                 {
                     var newsIds = dataset.DatasetNews.Select(n => n.Id_news).ToList();
-                    var newsResponse = await _sondaUMService.GetAllNews(user.Username, user.Password, 1, null, null, 1000);
+                    var newsResponse = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000);
                     newsFromEvent = newsResponse.Where(n => newsIds.Contains(n.Id)).ToList();
                 }
 
@@ -148,7 +148,7 @@ namespace OmniMonitor.Server.Services
                 }
                 else
                 {
-                    finalNewsList = await _sondaUMService.GetAllNews(user.Username, user.Password, 1, null, null, 1000) ?? new List<News>();
+                    finalNewsList = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000) ?? new List<News>();
                 }
 
                 // 5. Agregar events encontrados al dataset

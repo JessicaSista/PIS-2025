@@ -8,11 +8,62 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class usersPass : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "AspNetRoles",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUsers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SondaTokenIM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationIM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenAM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationAM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenUM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationUM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenEM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationEM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    SondaTokenOM = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    TokenExpirationOM = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "bit", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Dashboards",
                 columns: table => new
@@ -33,68 +84,18 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DatasetAM",
-                columns: table => new
-                {
-                    Id_Dataset = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
-                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Nombre = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ContentType = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    Type_Dataset = table.Column<int>(type: "int", nullable: false),
-                    Id_Event_Task = table.Column<int>(type: "int", nullable: true),
-                    Id_Asset_Type = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DatasetAM", x => x.Id_Dataset);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DatasetsEM",
+                name: "Datasets",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Id_Alert = table.Column<int>(type: "int", nullable: true),
-                    Id_Event = table.Column<int>(type: "int", nullable: true),
-                    Id_Extension = table.Column<int>(type: "int", nullable: true),
-                    Id_Category = table.Column<int>(type: "int", nullable: true),
-                    AlertState = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    EventState = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ExtensionState = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CategoryState = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    NameDataset = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TipoDataset = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DatasetsEM", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DatasetsIM",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Id_Source = table.Column<int>(type: "int", nullable: true),
-                    Id_Group = table.Column<int>(type: "int", nullable: true),
-                    SensorName = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DatasetsIM", x => x.Id);
+                    table.PrimaryKey("PK_Datasets", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -109,26 +110,6 @@ namespace OmniMonitor.Server.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DatasetsOfReports", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DatasetsUM",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Id_Zone = table.Column<int>(type: "int", nullable: true),
-                    Id_News = table.Column<int>(type: "int", nullable: true),
-                    EventName = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DatasetsUM", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -215,30 +196,6 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Users",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SondaTokenIM = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TokenExpirationIM = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    SondaTokenAM = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TokenExpirationAM = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    SondaTokenUM = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TokenExpirationUM = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    SondaTokenEM = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TokenExpirationEM = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    SondaTokenOM = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TokenExpirationOM = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Users", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Visualizaciones",
                 columns: table => new
                 {
@@ -253,6 +210,351 @@ namespace OmniMonitor.Server.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Visualizaciones", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetRoleClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserLogins",
+                columns: table => new
+                {
+                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UserId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserRoles",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUserTokens",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
+                    table.ForeignKey(
+                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DatasetAM",
+                columns: table => new
+                {
+                    Id_Dataset = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    Nombre = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Descripcion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ContentType = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
+                    Type_Dataset = table.Column<int>(type: "int", nullable: false),
+                    Id_Event_Task = table.Column<int>(type: "int", nullable: true),
+                    Id_Asset_Type = table.Column<int>(type: "int", nullable: true),
+                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatasetAM", x => x.Id_Dataset);
+                    table.ForeignKey(
+                        name: "FK_DatasetAM_Datasets_DatasetId",
+                        column: x => x.DatasetId,
+                        principalTable: "Datasets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DatasetsEM",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatasetsEM", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DatasetsEM_Datasets_DatasetId",
+                        column: x => x.DatasetId,
+                        principalTable: "Datasets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DatasetsIM",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id_Source = table.Column<int>(type: "int", nullable: true),
+                    Id_Group = table.Column<int>(type: "int", nullable: true),
+                    SensorName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatasetsIM", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DatasetsIM_Datasets_DatasetId",
+                        column: x => x.DatasetId,
+                        principalTable: "Datasets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DatasetsUM",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Is_Dataset = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id_Zone = table.Column<int>(type: "int", nullable: true),
+                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatasetsUM", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DatasetsUM_Datasets_DatasetId",
+                        column: x => x.DatasetId,
+                        principalTable: "Datasets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CrossModuleJoins",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    JoinType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LeftOperandId = table.Column<int>(type: "int", nullable: false),
+                    RightOperandId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CrossModuleJoins", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CrossModuleJoins_JoinOperands_LeftOperandId",
+                        column: x => x.LeftOperandId,
+                        principalTable: "JoinOperands",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CrossModuleJoins_JoinOperands_RightOperandId",
+                        column: x => x.RightOperandId,
+                        principalTable: "JoinOperands",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DatasetReports",
+                columns: table => new
+                {
+                    ReportId = table.Column<int>(type: "int", nullable: false),
+                    DatasetsOfReportsId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatasetReports", x => new { x.ReportId, x.DatasetsOfReportsId });
+                    table.ForeignKey(
+                        name: "FK_DatasetReports_DatasetsOfReports_DatasetsOfReportsId",
+                        column: x => x.DatasetsOfReportsId,
+                        principalTable: "DatasetsOfReports",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DatasetReports_Reports_ReportId",
+                        column: x => x.ReportId,
+                        principalTable: "Reports",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserRoles",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserRoles", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserRoles_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserRoles_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "GrupoVisualizaciones",
+                columns: table => new
+                {
+                    id_grupo_visualizacion = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    grupo_visualizacion = table.Column<int>(type: "int", nullable: false),
+                    id_visualizacion = table.Column<int>(type: "int", nullable: false),
+                    tipo_card = table.Column<int>(type: "int", nullable: false),
+                    props_configuracion = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    fecha_agregado = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    orden = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GrupoVisualizaciones", x => x.id_grupo_visualizacion);
+                    table.ForeignKey(
+                        name: "FK_GrupoVisualizaciones_Dashboards_grupo_visualizacion",
+                        column: x => x.grupo_visualizacion,
+                        principalTable: "Dashboards",
+                        principalColumn: "id_dashboard",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GrupoVisualizaciones_Visualizaciones_id_visualizacion",
+                        column: x => x.id_visualizacion,
+                        principalTable: "Visualizaciones",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -396,6 +698,33 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "GrupoDatasets",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id_visualizacion = table.Column<int>(type: "int", nullable: false),
+                    id_dataset = table.Column<int>(type: "int", nullable: false),
+                    JSON_design = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GrupoDatasets", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_GrupoDatasets_DatasetsIM_id_dataset",
+                        column: x => x.id_dataset,
+                        principalTable: "DatasetsIM",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GrupoDatasets_Visualizaciones_Id_visualizacion",
+                        column: x => x.Id_visualizacion,
+                        principalTable: "Visualizaciones",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DatasetEvents",
                 columns: table => new
                 {
@@ -436,189 +765,6 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CrossModuleJoins",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    JoinType = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LeftOperandId = table.Column<int>(type: "int", nullable: false),
-                    RightOperandId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CrossModuleJoins", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CrossModuleJoins_JoinOperands_LeftOperandId",
-                        column: x => x.LeftOperandId,
-                        principalTable: "JoinOperands",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_CrossModuleJoins_JoinOperands_RightOperandId",
-                        column: x => x.RightOperandId,
-                        principalTable: "JoinOperands",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DatasetReports",
-                columns: table => new
-                {
-                    ReportId = table.Column<int>(type: "int", nullable: false),
-                    DatasetsOfReportsId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DatasetReports", x => new { x.ReportId, x.DatasetsOfReportsId });
-                    table.ForeignKey(
-                        name: "FK_DatasetReports_DatasetsOfReports_DatasetsOfReportsId",
-                        column: x => x.DatasetsOfReportsId,
-                        principalTable: "DatasetsOfReports",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_DatasetReports_Reports_ReportId",
-                        column: x => x.ReportId,
-                        principalTable: "Reports",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "RolePermissions",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleId = table.Column<int>(type: "int", nullable: false),
-                    PermissionId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_Permissions_PermissionId",
-                        column: x => x.PermissionId,
-                        principalTable: "Permissions",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_RolePermissions_Roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UserRoles",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserRoles", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_UserRoles_Roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_UserRoles_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "GrupoDatasets",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Id_visualizacion = table.Column<int>(type: "int", nullable: false),
-                    id_dataset = table.Column<int>(type: "int", nullable: false),
-                    JSON_design = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GrupoDatasets", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_GrupoDatasets_DatasetsIM_id_dataset",
-                        column: x => x.id_dataset,
-                        principalTable: "DatasetsIM",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_GrupoDatasets_Visualizaciones_Id_visualizacion",
-                        column: x => x.Id_visualizacion,
-                        principalTable: "Visualizaciones",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "GrupoVisualizaciones",
-                columns: table => new
-                {
-                    id_grupo_visualizacion = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    grupo_visualizacion = table.Column<int>(type: "int", nullable: false),
-                    id_visualizacion = table.Column<int>(type: "int", nullable: false),
-                    tipo_card = table.Column<int>(type: "int", nullable: false),
-                    props_configuracion = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
-                    fecha_agregado = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    orden = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GrupoVisualizaciones", x => x.id_grupo_visualizacion);
-                    table.ForeignKey(
-                        name: "FK_GrupoVisualizaciones_Dashboards_grupo_visualizacion",
-                        column: x => x.grupo_visualizacion,
-                        principalTable: "Dashboards",
-                        principalColumn: "id_dashboard",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_GrupoVisualizaciones_Visualizaciones_id_visualizacion",
-                        column: x => x.id_visualizacion,
-                        principalTable: "Visualizaciones",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DatasetStock",
-                columns: table => new
-                {
-                    Grupo_Stock = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Id_Stock = table.Column<int>(type: "int", nullable: false),
-                    DatasetEventTaskInstanceId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DatasetStock", x => x.Grupo_Stock);
-                    table.ForeignKey(
-                        name: "FK_DatasetStock_DatasetEventTaskInstance_DatasetEventTaskInstanceId",
-                        column: x => x.DatasetEventTaskInstanceId,
-                        principalTable: "DatasetEventTaskInstance",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ReportJoins",
                 columns: table => new
                 {
@@ -639,6 +785,26 @@ namespace OmniMonitor.Server.Migrations
                         name: "FK_ReportJoins_Reports_ReportId",
                         column: x => x.ReportId,
                         principalTable: "Reports",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DatasetStock",
+                columns: table => new
+                {
+                    Grupo_Stock = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id_Stock = table.Column<int>(type: "int", nullable: false),
+                    DatasetEventTaskInstanceId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatasetStock", x => x.Grupo_Stock);
+                    table.ForeignKey(
+                        name: "FK_DatasetStock_DatasetEventTaskInstance_DatasetEventTaskInstanceId",
+                        column: x => x.DatasetEventTaskInstanceId,
+                        principalTable: "DatasetEventTaskInstance",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -680,15 +846,6 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Users",
-                columns: new[] { "Id", "Password", "SondaTokenAM", "SondaTokenEM", "SondaTokenIM", "SondaTokenOM", "SondaTokenUM", "TokenExpirationAM", "TokenExpirationEM", "TokenExpirationIM", "TokenExpirationOM", "TokenExpirationUM", "Username" },
-                values: new object[,]
-                {
-                    { 1, "admin", null, null, null, null, null, null, null, null, null, null, "admin" },
-                    { 2, "visitante", null, null, null, null, null, null, null, null, null, null, "visitante" }
-                });
-
-            migrationBuilder.InsertData(
                 table: "RolePermissions",
                 columns: new[] { "Id", "PermissionId", "RoleId" },
                 values: new object[,]
@@ -722,14 +879,44 @@ namespace OmniMonitor.Server.Migrations
                     { 31, 17, 2 }
                 });
 
-            migrationBuilder.InsertData(
-                table: "UserRoles",
-                columns: new[] { "Id", "RoleId", "UserId" },
-                values: new object[,]
-                {
-                    { 1, 1, 1 },
-                    { 2, 2, 2 }
-                });
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetRoleClaims_RoleId",
+                table: "AspNetRoleClaims",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "RoleNameIndex",
+                table: "AspNetRoles",
+                column: "NormalizedName",
+                unique: true,
+                filter: "[NormalizedName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserClaims_UserId",
+                table: "AspNetUserClaims",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserLogins_UserId",
+                table: "AspNetUserLogins",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserRoles_RoleId",
+                table: "AspNetUserRoles",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "EmailIndex",
+                table: "AspNetUsers",
+                column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "UserNameIndex",
+                table: "AspNetUsers",
+                column: "NormalizedUserName",
+                unique: true,
+                filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CrossModuleJoins_LeftOperandId",
@@ -755,6 +942,11 @@ namespace OmniMonitor.Server.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_DatasetAlerts_DatasetId",
                 table: "DatasetAlerts",
+                column: "DatasetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DatasetAM_DatasetId",
+                table: "DatasetAM",
                 column: "DatasetId");
 
             migrationBuilder.CreateIndex(
@@ -803,9 +995,24 @@ namespace OmniMonitor.Server.Migrations
                 column: "DatasetsOfReportsId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DatasetsEM_DatasetId",
+                table: "DatasetsEM",
+                column: "DatasetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DatasetsIM_DatasetId",
+                table: "DatasetsIM",
+                column: "DatasetId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DatasetStock_DatasetEventTaskInstanceId",
                 table: "DatasetStock",
                 column: "DatasetEventTaskInstanceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DatasetsUM_DatasetId",
+                table: "DatasetsUM",
+                column: "DatasetId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GrupoDatasets_id_dataset",
@@ -853,17 +1060,26 @@ namespace OmniMonitor.Server.Migrations
                 table: "UserRoles",
                 columns: new[] { "UserId", "RoleId" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Username",
-                table: "Users",
-                column: "Username",
-                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AspNetRoleClaims");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserClaims");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserLogins");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserRoles");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUserTokens");
+
             migrationBuilder.DropTable(
                 name: "DatasetAlerts");
 
@@ -913,6 +1129,9 @@ namespace OmniMonitor.Server.Migrations
                 name: "UserRoles");
 
             migrationBuilder.DropTable(
+                name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
                 name: "DatasetsEM");
 
             migrationBuilder.DropTable(
@@ -943,16 +1162,19 @@ namespace OmniMonitor.Server.Migrations
                 name: "Permissions");
 
             migrationBuilder.DropTable(
-                name: "Roles");
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "Roles");
 
             migrationBuilder.DropTable(
                 name: "DatasetAM");
 
             migrationBuilder.DropTable(
                 name: "JoinOperands");
+
+            migrationBuilder.DropTable(
+                name: "Datasets");
         }
     }
 }

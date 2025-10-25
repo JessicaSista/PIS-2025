@@ -127,7 +127,7 @@ namespace OmniMonitor.Server.Services
             if (dataset.Is_Dataset == "S" && !dataset.DatasetDevices.Any())
             {
                 // Para llamar a la API externa, necesitamos las credenciales del usuario.
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                 {
                     // No se puede proceder si el usuario no existe en la base de datos local.
@@ -141,11 +141,11 @@ namespace OmniMonitor.Server.Services
                 // 1. Obtener las listas de dispositivos de la API según los filtros proporcionados.
                 if (dataset.Id_Source.HasValue)
                 {
-                    devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.Username, user.Password);
+                    devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.UserName);
                 }
                 if (dataset.Id_Group.HasValue)
                 {
-                    devicesFromGroup = await _sondaIMService.GetDeviceOfGroup(dataset.Id_Group.Value, user.Username, user.Password);
+                    devicesFromGroup = await _sondaIMService.GetDeviceOfGroup(dataset.Id_Group.Value, user.UserName);
                 }
 
                 // 2. Determinar la lista final de dispositivos a partir de las listas obtenidas.
@@ -170,7 +170,7 @@ namespace OmniMonitor.Server.Services
                 else
                 {
                     // Fallback: si no hay ni source ni grupo, obtener todos.
-                    finalDeviceList = await _sondaIMService.GetAllDevices(user.Username, user.Password) ?? new List<Device>();
+                    finalDeviceList = await _sondaIMService.GetAllDevices(user.UserName) ?? new List<Device>();
                 }
 
                 if (finalDeviceList.Any())

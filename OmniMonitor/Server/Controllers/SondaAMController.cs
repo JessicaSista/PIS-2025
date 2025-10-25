@@ -31,8 +31,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var assets = await _sondaAMService.GetAssetsBasicData(page, queryString, pageSize, bundleId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var assets = await _sondaAMService.GetAssetsBasicData(page, queryString, pageSize, bundleId, username);
             if (assets == null || assets.Count == 0) return NotFound("No se encontraron assets básicos.");
             return Ok(assets);
         }
@@ -58,8 +58,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var assets = await _sondaAMService.GetAssets(page, queryString, bundles, assetTypeId, sort, pageSize, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var assets = await _sondaAMService.GetAssets(page, queryString, bundles, assetTypeId, sort, pageSize, username);
             if (assets == null || assets.Count == 0) return NotFound("No se encontraron assets.");
             return Ok(assets);
         }
@@ -77,8 +77,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var stock = await _sondaAMService.GetStockById(stockId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var stock = await _sondaAMService.GetStockById(stockId, username);
             if (stock == null) return NotFound($"No se encontró el stock {stockId}");
             return Ok(stock);
         }
@@ -96,8 +96,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var bundle = await _sondaAMService.GetStockParametersByBundleId(bundleId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var bundle = await _sondaAMService.GetStockParametersByBundleId(bundleId, username);
                 if (bundle == null) return NotFound("No se encontró bundle para ese bundleId.");
                 return Ok(bundle);
         }
@@ -116,8 +116,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var asset = await _sondaAMService.GetAssetById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var asset = await _sondaAMService.GetAssetById(id, username);
             if (asset == null) return NotFound($"No se encontró el asset {id}");
             return Ok(asset);
         }
@@ -141,8 +141,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var stocks = await _sondaAMService.GetAllStock(page, queryString, sort, pageSize, bundlesId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var stocks = await _sondaAMService.GetAllStock(page, queryString, sort, pageSize, bundlesId, username);
             if (stocks == null || stocks.Count == 0) return NotFound("No se encontraron stocks.");
             return Ok(stocks);
         }
@@ -165,8 +165,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var assets = await _sondaAMService.GetAssetRelations(assetId, page, pageSize, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var assets = await _sondaAMService.GetAssetRelations(assetId, page, pageSize, username);
             if (assets == null || assets.Count == 0) return NotFound("No se encontraron relaciones para ese asset.");
             return Ok(assets);
         }
@@ -189,8 +189,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var bundles = await _sondaAMService.GetBundles(page, queryString, sort, pageSize, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var bundles = await _sondaAMService.GetBundles(page, queryString, sort, pageSize, username);
             if (bundles == null || bundles.Count == 0) return NotFound("No se encontraron bundles.");
             return Ok(bundles);
         }
@@ -233,8 +233,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var result = await _sondaAMService.GetEventTaskInstanceById(eventTaskInstanceId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var result = await _sondaAMService.GetEventTaskInstanceById(eventTaskInstanceId, username);
             if (result == null)
             {
                 return NotFound(new { error = "No se encontraron eventtaskinstances" });
@@ -266,8 +266,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString, bundleId, state, sort, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString, bundleId, state, sort, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username);
             if (result == null || result.Count == 0)
             {
                 return NotFound(new { error = "No se encontraron eventtasks" });
@@ -288,8 +288,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var actions = await _sondaAMService.GetEventTaskInstanceActions(taskInstanceId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var actions = await _sondaAMService.GetEventTaskInstanceActions(taskInstanceId, username);
             if (actions == null || actions.Count == 0) return NotFound("No se encontraron acciones para esa instancia de tarea.");
             return Ok(actions);
         }
@@ -307,8 +307,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var stocks = await _sondaAMService.GetEventTaskInstanceStock(taskInstanceId, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var stocks = await _sondaAMService.GetEventTaskInstanceStock(taskInstanceId, username);
             if (stocks == null || stocks.Count == 0) return NotFound("No se encontró stock para esa instancia de tarea.");
             return Ok(stocks);
         }
@@ -324,8 +324,8 @@ public class SondaAMController : ControllerBase
     [HttpGet("typeDtos")]
     public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string token)
     {
-        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-        var typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username, password);
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        var typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username);
         return Ok(typeDtos);
     }
 
@@ -337,8 +337,8 @@ public class SondaAMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var types = await _sondaAMService.GetAllAssetTypes(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var types = await _sondaAMService.GetAllAssetTypes(username);
             if (types == null || types.Count == 0) return NotFound("No se encontraron tipos de asset.");
             return Ok(types);
         }

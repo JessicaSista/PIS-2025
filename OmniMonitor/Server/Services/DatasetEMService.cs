@@ -88,7 +88,7 @@ namespace OmniMonitor.Server.Services
                  !dataset.DatasetCategory.Any())
             {
                 // Obtener usuario y credenciales
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                     return null;
 

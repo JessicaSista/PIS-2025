@@ -51,7 +51,7 @@ public class ReportsController : ControllerBase
 
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             var createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
 
             return Ok(createdLink);
@@ -70,7 +70,7 @@ public class ReportsController : ControllerBase
     [ProducesResponseType(typeof(List<Report>), 200)]
     public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
     {
-        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var reports = await _reportService.GetAllReportsByUsernameAsync(username);
         return Ok(reports);
     }
@@ -84,7 +84,7 @@ public class ReportsController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetReportById(int id, [FromQuery] string token)
     {
-        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var report = await _reportService.GetReportByIdAsync(id, username);
         if (report == null)
         {
@@ -110,7 +110,7 @@ public class ReportsController : ControllerBase
         {
             return BadRequest(ModelState);
         }
-        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var createdJoin = await _joinConfigService.CreateJoinAsync(request, username);
         return Ok(createdJoin);
     }
@@ -123,7 +123,7 @@ public class ReportsController : ControllerBase
     [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
     public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
     {
-        var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
         var joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
         return Ok(joins);
     }
@@ -158,7 +158,7 @@ public class ReportsController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrWhiteSpace(username))
             {
                 return Unauthorized(new { message = "Token inválido." });
@@ -188,7 +188,7 @@ public class ReportsController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrWhiteSpace(username))
             {
                 return Unauthorized(new { message = "Token inválido." });
@@ -220,7 +220,7 @@ public class ReportsController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrWhiteSpace(username))
             {
                 return Unauthorized(new { message = "Token inválido." });
@@ -250,7 +250,7 @@ public class ReportsController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrWhiteSpace(username))
             {
                 return Unauthorized(new { message = "Token inválido." });
