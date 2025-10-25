@@ -21,6 +21,7 @@ namespace OmniMonitor.Server.Context
         public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Permission> Permissions { get; set; }
+        public DbSet<Datasets> Datasets { get; set; }
         public DbSet<DatasetIM> DatasetsIM { get; set; }
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
         public DbSet<DatasetUM> DatasetsUM { get; set; }
