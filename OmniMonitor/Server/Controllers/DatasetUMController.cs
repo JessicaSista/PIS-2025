@@ -43,7 +43,7 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
             if (!ModelState.IsValid)
@@ -82,7 +82,7 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 
@@ -107,7 +107,7 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 
@@ -172,7 +172,7 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 
@@ -199,7 +199,7 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (!IsUserAuthorized(username))
                 return Forbid();
 

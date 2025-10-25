@@ -32,7 +32,7 @@ public class KPIController : ControllerBase
                 return BadRequest("El objeto KPI es nulo.");
 
             // Validar token y obtener usuario
-            var (username, _) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
@@ -64,12 +64,12 @@ public class KPIController : ControllerBase
         try
         {
             // Validar token y obtener usuario
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
             // Buscar KPI en la base de datos
-            var kpi = await _kpiService.CalculateKpiValueAsync(id, username, password);
+            var kpi = await _kpiService.CalculateKpiValueAsync(id, username);
             if (kpi == null)
                 return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
 
@@ -92,7 +92,7 @@ public class KPIController : ControllerBase
     {
         try
         {
-            var (username, _) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
@@ -133,7 +133,7 @@ public class KPIController : ControllerBase
             if (!string.IsNullOrEmpty(token))
             {
                 // Obtener usuario del token
-                var (user, _) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string user = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 if (string.IsNullOrEmpty(user))
                     return BadRequest("Token inválido.");
                 username = user;
@@ -167,11 +167,11 @@ public class KPIController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
-            var kpis = await _kpiService.CalculateAllKpisForUserAsync(username, password);
+            var kpis = await _kpiService.CalculateAllKpisForUserAsync(username);
             return Ok(kpis);
         }
         catch (Exception ex)
@@ -221,7 +221,7 @@ public class KPIController : ControllerBase
             DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
             DateTime dateTo = DateTime.UtcNow;               // ahora
 
-            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username, password);
+            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
 
             if (data == null || data.Count == 0)
                 return Ok("No se encontraron datos para el rango de fechas.");

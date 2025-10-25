@@ -11,7 +11,7 @@ namespace OmniMonitor.Server.Services
 {
     public interface IKpiAMService
     {
-        Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username, string password);
+        Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username);
         
     }
 
@@ -30,7 +30,7 @@ namespace OmniMonitor.Server.Services
 
         }
 
-        public async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username, string password)
+        public async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username)
         {
             // Lógica para crear un KPI AM
             var dataset = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
@@ -48,16 +48,16 @@ namespace OmniMonitor.Server.Services
                 switch (kpi.Metric?.ToLower())
                 {
                         case "count":
-                            response = await CountStateETI(kpi, eventTaskInstances, username, password);
+                            response = await CountStateETI(kpi, eventTaskInstances, username);
                             break;
                         case "porcentaje":
-                            response = await CalculateAverageETI(kpi, eventTaskInstances, username, password);
+                            response = await CalculateAverageETI(kpi, eventTaskInstances, username);
                             break;
                         case "state":
-                            response = await StateETI(kpi, eventTaskInstances, username, password);
+                            response = await StateETI(kpi, eventTaskInstances, username);
                             break;
                         case "count_stocks":
-                            response = await CountStocksETI(kpi, eventTaskInstances, username, password);
+                            response = await CountStocksETI(kpi, eventTaskInstances, username);
                             break;
                     default:
                         throw new ArgumentException($"Métrica no soportada para AM: {kpi.Metric}");
@@ -71,13 +71,13 @@ namespace OmniMonitor.Server.Services
                 switch (kpi.Metric?.ToLower())
                 {
                     case "count":
-                        response = await CountStateAM(kpi, assets, username, password);
+                        response = await CountStateAM(kpi, assets, username);
                         break;
                     case "porcentaje":
-                        response = await CalculateAverageKpiAMAsync(kpi, assets, username, password);
+                        response = await CalculateAverageKpiAMAsync(kpi, assets, username);
                         break;
                     case "state":
-                        response = await CalculateMinKpiAMAsync(kpi, assets, username, password);
+                        response = await CalculateMinKpiAMAsync(kpi, assets, username);
                         break;
                     default:
                         throw new ArgumentException($"Métrica no soportada para AM: {kpi.Metric}");
@@ -89,7 +89,7 @@ namespace OmniMonitor.Server.Services
         }
 
         // Calcula el último valor para los assets AM
-        private async Task<KpiResponse> CountStateAM(Kpi kpi, List<DatasetAsset> assets, string username, string password)
+        private async Task<KpiResponse> CountStateAM(Kpi kpi, List<DatasetAsset> assets, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             int count = 0;
@@ -97,7 +97,7 @@ namespace OmniMonitor.Server.Services
             {
                 if (int.TryParse(asset.Id_Asset, out int assetId))
                 {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username, password);
+                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
                     if (assetDto != null && assetDto.StateDto != null && assetDto.StateDto.Name == estadoNecesario)
                     {
                         count++;
@@ -116,7 +116,7 @@ namespace OmniMonitor.Server.Services
         }
 
         // Calcula el porcentaje de assets con estado necesario sobre el total
-        private async Task<KpiResponse> CalculateAverageKpiAMAsync(Kpi kpi, List<DatasetAsset> assets, string username, string password)
+        private async Task<KpiResponse> CalculateAverageKpiAMAsync(Kpi kpi, List<DatasetAsset> assets, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             int count = 0;
@@ -124,7 +124,7 @@ namespace OmniMonitor.Server.Services
             {
                 if (int.TryParse(asset.Id_Asset, out int assetId))
                 {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username, password);
+                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
                     if (assetDto != null && assetDto.StateDto != null && assetDto.StateDto.Name == estadoNecesario)
                     {
                         count++;
@@ -143,14 +143,14 @@ namespace OmniMonitor.Server.Services
         }
 
         // Calcula el mínimo para los assets AM (cuenta los que tienen el estado dado en ExtraInfo o retorna el estado si es uno solo)
-        private async Task<KpiResponse> CalculateMinKpiAMAsync(Kpi kpi, List<DatasetAsset> assets, string username, string password)
+        private async Task<KpiResponse> CalculateMinKpiAMAsync(Kpi kpi, List<DatasetAsset> assets, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             if (assets.Count == 1)
             {
                 if (int.TryParse(assets[0].Id_Asset, out int assetId))
                 {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username, password);
+                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
                     if (assetDto != null && assetDto.StateDto != null)
                     {
                         return new KpiResponse
@@ -177,7 +177,7 @@ namespace OmniMonitor.Server.Services
             {
                 if (int.TryParse(asset.Id_Asset, out int assetId))
                 {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username, password);
+                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
                     if (assetDto != null && assetDto.StateDto != null && assetDto.StateDto.Name == estadoNecesario)
                     {
                         count++;
@@ -195,13 +195,13 @@ namespace OmniMonitor.Server.Services
         }
 
         // Cuenta los eventTaskInstances con el estado igual a ExtraInfo usando el endpoint
-        private async Task<KpiResponse> CountStateETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username, string password)
+        private async Task<KpiResponse> CountStateETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             int count = 0;
             foreach (var eti in etis)
             {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username, password);
+                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username);
                 if (etiDto != null && etiDto.State == estadoNecesario)
                 {
                     count++;
@@ -218,13 +218,13 @@ namespace OmniMonitor.Server.Services
         }
 
         // Calcula el porcentaje de eventTaskInstances con estado igual a ExtraInfo usando el endpoint
-        private async Task<KpiResponse> CalculateAverageETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username, string password)
+        private async Task<KpiResponse> CalculateAverageETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             int count = 0;
             foreach (var eti in etis)
             {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username, password);
+                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username);
                 if (etiDto != null && etiDto.State == estadoNecesario)
                 {
                     count++;
@@ -242,11 +242,11 @@ namespace OmniMonitor.Server.Services
         }
 
         // Si hay un solo eventTaskInstance, retorna su estado usando el endpoint
-        private async Task<KpiResponse> StateETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username, string password)
+        private async Task<KpiResponse> StateETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
         {
             if (etis.Count == 1)
             {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(etis[0].Id_Event_Task_Instance, username, password);
+                var etiDto = await _sondaAMService.GetEventTaskInstanceById(etis[0].Id_Event_Task_Instance, username);
                 return new KpiResponse
                 {
                     Name = kpi.Name,
@@ -260,7 +260,7 @@ namespace OmniMonitor.Server.Services
             int count = 0;
             foreach (var eti in etis)
             {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username, password);
+                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username);
                 if (etiDto != null && etiDto.State == estadoNecesario)
                 {
                     count++;
@@ -277,13 +277,13 @@ namespace OmniMonitor.Server.Services
         }
 
         // Devuelve el stock del resource indicado en ExtraInfo usando el endpoint
-        private async Task<KpiResponse> CountStocksETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username, string password)
+        private async Task<KpiResponse> CountStocksETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
         {
             var stockName = kpi.ExtraInfo ?? "";
             int totalQuantity = 0;
             foreach (var eti in etis)
             {
-                var stocks = await _sondaAMService.GetEventTaskInstanceStock(eti.Id_Event_Task_Instance, username, password);
+                var stocks = await _sondaAMService.GetEventTaskInstanceStock(eti.Id_Event_Task_Instance, username);
                 if (stocks != null)
                 {
                     foreach (var stock in stocks)

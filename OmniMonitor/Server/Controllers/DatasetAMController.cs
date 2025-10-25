@@ -75,7 +75,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var datasets = await _datasetAmService.GetAllDatasetAMsAsync(username);
                 return Ok(datasets);
             }
@@ -96,7 +96,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dataset = await _datasetAmService.GetDatasetAMByIdAsync(id, username);
                 if (dataset == null)
                 {
@@ -121,7 +121,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, username);
                 if (dataset == null)
                 {
@@ -193,7 +193,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var datasetid = await _context.DatasetAM
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
                 await _datasetAmService.DeleteDatasetAMAsync(id, username);

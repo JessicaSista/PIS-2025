@@ -92,7 +92,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dashboard = await _dashboardService.GetDashboardByIdAsync(id, username);
                 if (dashboard == null)
                 {
@@ -124,7 +124,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 var dashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
                 return Ok(dashboards);
             }

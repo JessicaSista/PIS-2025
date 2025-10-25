@@ -139,7 +139,7 @@ namespace OmniMonitor.Server.Services
             // Si es un dataset formal ('S') y no tiene relaciones hijas, buscar dinámicamente
             if (datasetAM.Is_Dataset == "S")
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                 {
                     return datasetAM;
@@ -161,8 +161,7 @@ namespace OmniMonitor.Server.Services
                         null,                                      // pageSize
                         false,                                     // tasksAssignedToMe
                         false,                                     // tasksPendingApproval
-                        user.Username,
-                        user.Password
+                        user.UserName
                     );
                     if (eventTaskInstances != null && eventTaskInstances.Any())
                     {
@@ -180,7 +179,7 @@ namespace OmniMonitor.Server.Services
                     // Ejemplo (ajusta el método según tu ISondaAMService):
                     // Llamada actualizada para coincidir con la firma de ISondaAMService
                     // page, queryString, bundles, assetTypeId, sort, pageSize, username, password
-                    var assets = await _sondaAMService.GetAssets(null, null, null, datasetAM.Id_Asset_Type, null, null, user.Username, user.Password);
+                    var assets = await _sondaAMService.GetAssets(null, null, null, datasetAM.Id_Asset_Type, null, null, user.UserName);
                     if (assets != null)
                     {
                         datasetAM.Grupo_Asset = assets.Select(a => new DatasetAsset
@@ -193,11 +192,11 @@ namespace OmniMonitor.Server.Services
                     var eventTaskInstance = datasetAM.Grupo_Event_Task_Instance.First();
                     if (eventTaskInstance.Grupo_Stock == null || !eventTaskInstance.Grupo_Stock.Any())
                     {
-                        var userDb = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                        var userDb = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                         if (userDb != null)
                         {
                             // Llama a la API externa para obtener stocks asociados a ese event task instance
-                            var stocks = await _sondaAMService.GetEventTaskInstanceStock(eventTaskInstance.Id_Event_Task_Instance, userDb.Username, userDb.Password);
+                            var stocks = await _sondaAMService.GetEventTaskInstanceStock(eventTaskInstance.Id_Event_Task_Instance, userDb.UserName);
                             if (stocks != null)
                             {
                                 eventTaskInstance.Grupo_Stock = stocks.Select(s => new DatasetStock { Id_Stock = s.Id }).ToList();

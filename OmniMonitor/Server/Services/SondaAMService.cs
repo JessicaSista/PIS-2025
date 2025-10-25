@@ -14,52 +14,52 @@ public interface ISondaAMService
 
     //****************DEVICES***************
     // GET all devices
-    Task<AssetDto?> GetAssetById(int id, string username, string password);
+    Task<AssetDto?> GetAssetById(int id, string username);
 
     // GET all stock
-    Task<List<StockDto>> GetAllStock(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username, string password);
+    Task<List<StockDto>> GetAllStock(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username);
 
     // GET stock parameters by bundleId
-    Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username, string password);
+    Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username);
 
     // GET stock by id
-    Task<StockDto?> GetStockById(int stockId, string username, string password);
+    Task<StockDto?> GetStockById(int stockId, string username);
 
         // GET assets paginados y filtrados
-    Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username, string password);
+    Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username);
 
      // GET assets basic data paginados y filtrados
-    Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username, string password);
+    Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username);
 
       // GET linked assets paginados y filtrados
-    Task<List<AssetDto>> GetLinkedAssets(int? page, string? queryString, string? sort, int? pageSize, string username, string password);
+    Task<List<AssetDto>> GetLinkedAssets(int? page, string? queryString, string? sort, int? pageSize, string username);
 
         // GET asset relations paginados y filtrados
-    Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username, string password);
+    Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username);
 
         // GET bundles paginados y filtrados
-    Task<List<BundleDto>> GetBundles(int? page, string? queryString, string? sort, int? pageSize, string username, string password);
+    Task<List<BundleDto>> GetBundles(int? page, string? queryString, string? sort, int? pageSize, string username);
 
         // GET asset history paginado y filtrado
-    Task<List<AssetDto>> GetAssetHistory(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username, string password);
+    Task<List<AssetDto>> GetAssetHistory(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username);
 
         // GET event task instance by id
-    Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username, string password);
+    Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username);
 
     // GET event tasks filtrados y paginados
-    Task<List<EventTaskInstanceDto>> GetEventTaskInstances(string dates, int? page, string queryString, int? bundleId, string state, string sort, int? taskTypeId, int? groupId, int? pageSize, bool tasksAssignedToMe, bool tasksPendingApproval, string username, string password);
+    Task<List<EventTaskInstanceDto>> GetEventTaskInstances(string dates, int? page, string queryString, int? bundleId, string state, string sort, int? taskTypeId, int? groupId, int? pageSize, bool tasksAssignedToMe, bool tasksPendingApproval, string username);
 
         // GET actions for event task instance
-    Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username, string password);
+    Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username);
 
     // GET stock for event task instance
-    Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username, string password);
+    Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username);
 
-    Task<List<int>> GetTypeDtoIdsFromEventTaskInstances(string username, string password);
-    Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username, string password);
+    Task<List<int>> GetTypeDtoIdsFromEventTaskInstances(string username);
+    Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username);
 
     // GET all asset types
-    Task<List<AssetTypeDto>> GetAllAssetTypes(string username, string password);
+    Task<List<AssetTypeDto>> GetAllAssetTypes(string username);
 }
 
 
@@ -76,7 +76,7 @@ public class SondaAMService : ISondaAMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<AssetDto?> GetAssetById(int id, string username, string password)
+    public async Task<AssetDto?> GetAssetById(int id, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["GetById"];
@@ -85,7 +85,7 @@ public class SondaAMService : ISondaAMService
             throw new ArgumentException("El ID debe ser positivo.", nameof(id));
         }
 
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         string getDataUrl = baseUrl + endpoint + "?assetId=" + id;
         var client = _httpClientFactory.CreateClient();
@@ -114,13 +114,13 @@ public class SondaAMService : ISondaAMService
         return JsonSerializer.Deserialize<AssetDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username, string password)
+    public async Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username)
     {
         if (bundleId <= 0)
             throw new ArgumentException("El parámetro 'bundleId' debe ser mayor que cero.", nameof(bundleId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Bundle"]["GetByBundleId"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         string getDataUrl = $"{baseUrl}{endpoint}?bundleId={bundleId}";
         var client = _httpClientFactory.CreateClient();
@@ -151,11 +151,11 @@ public class SondaAMService : ISondaAMService
         return JsonSerializer.Deserialize<BundleDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<List<StockDto>> GetAllStock(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username, string password)
+    public async Task<List<StockDto>> GetAllStock(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Stock"]["GetAll"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value}");
@@ -205,13 +205,13 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-    public async Task<StockDto?> GetStockById(int stockId, string username, string password)
+    public async Task<StockDto?> GetStockById(int stockId, string username)
     {
         if (stockId <= 0)
             throw new ArgumentException("El parámetro 'stockId' debe ser mayor que cero.", nameof(stockId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Stock"]["GetById"].Replace("{stockId}", stockId.ToString());
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -246,11 +246,11 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-        public async Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username, string password)
+        public async Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["GetAssets"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value}");
@@ -308,7 +308,7 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-     public async Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username, string password)
+     public async Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username)
     {
         // Validaciones de parámetros requeridos
         if (!page.HasValue)
@@ -326,7 +326,7 @@ public class SondaAMService : ISondaAMService
 
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["GetAssetsBasicData"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value}");
@@ -366,11 +366,11 @@ public class SondaAMService : ISondaAMService
     }
 
     
-    public async Task<List<AssetDto>> GetLinkedAssets(int? page, string? queryString, string? sort, int? pageSize, string username, string password)
+    public async Task<List<AssetDto>> GetLinkedAssets(int? page, string? queryString, string? sort, int? pageSize, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["GetLinkedAssets"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value}");
@@ -410,7 +410,7 @@ public class SondaAMService : ISondaAMService
     }
 
     
-    public async Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username, string password)
+    public async Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username)
     {
         if (assetId <= 0)
         {
@@ -418,7 +418,7 @@ public class SondaAMService : ISondaAMService
         }
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Relation"]["GetAssetRelations"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
@@ -491,11 +491,11 @@ public class SondaAMService : ISondaAMService
     }
 
     
-    public async Task<List<BundleDto>> GetBundles(int? page, string? queryString, string? sort, int? pageSize, string username, string password)
+    public async Task<List<BundleDto>> GetBundles(int? page, string? queryString, string? sort, int? pageSize, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Bundle"]["GetBundles"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value}");
@@ -551,11 +551,11 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-    public async Task<List<AssetDto>> GetAssetHistory(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username, string password)
+    public async Task<List<AssetDto>> GetAssetHistory(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["History"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (page.HasValue) queryParams.Add($"page={page.Value}");
@@ -589,11 +589,11 @@ public class SondaAMService : ISondaAMService
         return apiResponse?.Results ?? new List<AssetDto>();
     }
 
-    public async Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username, string password)
+    public async Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetById"].Replace("{eventTaskInstanceId}", eventTaskInstanceId.ToString());
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -619,11 +619,11 @@ public class SondaAMService : ISondaAMService
         return System.Text.Json.JsonSerializer.Deserialize<EventTaskInstanceDto>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<List<EventTaskInstanceDto>> GetEventTaskInstances(string dates, int? page, string queryString, int? bundleId, string state, string sort, int? taskTypeId, int? groupId, int? pageSize, bool tasksAssignedToMe, bool tasksPendingApproval, string username, string password)
+    public async Task<List<EventTaskInstanceDto>> GetEventTaskInstances(string dates, int? page, string queryString, int? bundleId, string state, string sort, int? taskTypeId, int? groupId, int? pageSize, bool tasksAssignedToMe, bool tasksPendingApproval, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetAll"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         var queryParams = new List<string>();
         if (!string.IsNullOrEmpty(dates)) queryParams.Add($"dates={Uri.EscapeDataString(dates)}");
@@ -679,14 +679,14 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-    public async Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username, string password)
+    public async Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username)
     {
         if (taskInstanceId <= 0)
             throw new ArgumentException("El parámetro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         // Asegúrate que la clave y endpoint existan en tu ApiConfig.json
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetActions"].Replace("{taskInstanceId}", taskInstanceId.ToString());
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -714,13 +714,13 @@ public class SondaAMService : ISondaAMService
         return actions ?? new List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>();
     }
 
-        public async Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username, string password)
+        public async Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username)
         {
             if (taskInstanceId <= 0)
                 throw new ArgumentException("El parámetro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
             string baseUrl = _apiConfig.BaseUrl.UrlAM;
             string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetStock"].Replace("{taskInstanceId}", taskInstanceId.ToString());
-            string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+            string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
             string getDataUrl = baseUrl + endpoint;
             var client = _httpClientFactory.CreateClient();
@@ -747,7 +747,7 @@ public class SondaAMService : ISondaAMService
         }
 
         // Devuelve una lista de IDs de los typeDto de cada EventTaskInstanceDto de la lista
-public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string username, string password)
+public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string username)
 {
     var eventTaskInstances = await GetEventTaskInstances(
         "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
@@ -761,8 +761,7 @@ public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string usernam
         null,                                      // pageSize
         false,                                     // tasksAssignedToMe
         false,                                     // tasksPendingApproval
-        username,
-        password
+        username
     );
 
     var ids = new List<int>();
@@ -777,7 +776,7 @@ public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string usernam
     return ids.Distinct().ToList();
 }
 
-public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username, string password)
+public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username)
 {
     var eventTaskInstances = await GetEventTaskInstances(
         "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
@@ -791,8 +790,7 @@ public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(strin
         null,                                      // pageSize
         false,                                     // tasksAssignedToMe
         false,                                     // tasksPendingApproval
-        username,
-        password
+        username
     );
 
     var typeDtos = new List<TaskTypeDto>();
@@ -808,11 +806,11 @@ public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(strin
     return typeDtos.GroupBy(t => t.Id).Select(g => g.First()).ToList();
 }
 
-public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username, string password)
+public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["AssetType"]["GetAll"];
-        string token = await _sondaAuthService.GetUserTokenAMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
