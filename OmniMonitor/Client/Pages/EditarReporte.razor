@@ -2071,63 +2071,108 @@
             }
 
             var sources = new List<object>();
+            var datasetColumns = visibleColumns.Where(c => !c.IsJoin).ToList();
+            var joinColumns = visibleColumns.Where(c => c.IsJoin).ToList();
 
-            string ResolveDatasetModule(ColumnDefinition column)
+            if (datasetColumns.Any())
             {
-                var dataset = selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
-                    ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
-                    ?? selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId)
-                    ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId);
+                string ResolveDatasetModule(ColumnDefinition column)
+                {
+                    var dataset = selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
+                        ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
+                        ?? selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId)
+                        ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId);
 
-                return dataset?.Module ?? string.Empty;
+                    return dataset?.Module ?? string.Empty;
+                }
+
+                var datasetGroups = datasetColumns
+                    .GroupBy(c => new
+                    {
+                        DatasetId = c.DatasetId,
+                        Module = ResolveDatasetModule(c)
+                    });
+
+                foreach (var group in datasetGroups)
+                {
+                    if (group.Key.DatasetId <= 0)
+                    {
+                        continue;
+                    }
+
+                    var columns = group.Select(c =>
+                    {
+                        var alias = string.IsNullOrWhiteSpace(c.DisplayName) ? c.PropertyName : c.DisplayName;
+                        var attribute = $"{c.Entity}_{c.PropertyName}";
+                        return new Dictionary<string, string>
+                        {
+                            ["attribute"] = attribute,
+                            ["as"] = alias
+                        };
+                    }).ToList();
+
+                    if (!columns.Any())
+                    {
+                        continue;
+                    }
+
+                    var representative = group.First();
+                    var entity = representative.Entity;
+                    var selectedDataset = selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
+                        ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
+                        ?? selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId)
+                        ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId);
+                    var sourceModule = GetSourceModuleForDataset(selectedDataset?.Module);
+
+                    sources.Add(new
+                    {
+                        sourceType = "dataset",
+                        sourceModule,
+                        sourceId = group.Key.DatasetId,
+                        entityName = entity.ToString(),
+                        columns
+                    });
+                }
             }
 
-            var datasetGroups = visibleColumns
-                .GroupBy(c => new
-                {
-                    DatasetId = c.DatasetId,
-                    Module = ResolveDatasetModule(c)
-                });
-
-            foreach (var group in datasetGroups)
+            if (joinColumns.Any())
             {
-                if (group.Key.DatasetId <= 0)
+                var unresolvedJoinColumns = joinColumns.Where(c => !c.JoinId.HasValue).ToList();
+                if (unresolvedJoinColumns.Any())
                 {
-                    continue;
+                    Snackbar.Add("Hay columnas de joins sin un join aplicado. Guarde los joins antes de generar el reporte.", Severity.Warning);
+                    Logger?.LogWarning("[EditarReporte] Columnas de join sin JoinId: {Columns}", string.Join(", ", unresolvedJoinColumns.Select(c => c.Name)));
                 }
 
-                var columns = group.Select(c =>
+                var joinGroups = joinColumns
+                    .Where(c => c.JoinId.HasValue)
+                    .GroupBy(c => c.JoinId!.Value);
+
+                foreach (var group in joinGroups)
                 {
-                    var alias = string.IsNullOrWhiteSpace(c.DisplayName) ? c.PropertyName : c.DisplayName;
-                    var attribute = $"{c.Entity}_{c.PropertyName}";
-                    return new Dictionary<string, string>
+                    var columns = group.Select(c =>
                     {
-                        ["attribute"] = attribute,
-                        ["as"] = alias
-                    };
-                }).ToList();
+                        var alias = string.IsNullOrWhiteSpace(c.DisplayName) ? c.PropertyName : c.DisplayName;
+                        var attribute = $"{c.Entity}_{c.PropertyName}";
+                        return new Dictionary<string, string>
+                        {
+                            ["attribute"] = attribute,
+                            ["as"] = alias
+                        };
+                    }).ToList();
 
-                if (!columns.Any())
-                {
-                    continue;
+                    if (!columns.Any())
+                    {
+                        continue;
+                    }
+
+                    sources.Add(new
+                    {
+                        sourceType = "join",
+                        sourceId = group.Key,
+                        columns
+                    });
                 }
-
-                var representative = group.First();
-                var entity = representative.Entity;
-                var selectedDataset = selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
-                    ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
-                    ?? selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId)
-                    ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId);
-                var sourceModule = GetSourceModuleForDataset(selectedDataset?.Module);
-
-                sources.Add(new
-                {
-                    sourceType = "dataset",
-                    sourceModule,
-                    sourceId = group.Key.DatasetId,
-                    entityName = entity.ToString(),
-                    columns
-                });
             }
 
             if (!sources.Any())
