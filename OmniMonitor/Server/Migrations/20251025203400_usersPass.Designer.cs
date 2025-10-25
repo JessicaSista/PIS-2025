@@ -12,7 +12,7 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251025195859_usersPass")]
+    [Migration("20251025203400_usersPass")]
     partial class usersPass
     {
         /// <inheritdoc />
