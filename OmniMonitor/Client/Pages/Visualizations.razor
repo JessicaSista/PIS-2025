@@ -7,6 +7,8 @@
 @inject IStringLocalizer<Visualizations> Localizer
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JS
+@inject NavigationManager Nav
+
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using Blazored.LocalStorage
@@ -229,6 +231,13 @@
 
     private async Task OpenDialogCreateVisualization()
     {
+        // If we're returning from dataset creation flow, bypass chooser and open the creation card directly
+        var returnTo = GetQueryParam("returnTo");
+        if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+        {
+            await OpenDialogCreateVisualizationCard();
+            return;
+        }
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
 
 
@@ -297,6 +306,19 @@
                 Console.WriteLine($"Error procesando KPI creado: {ex.Message}");
             }
         }
+    }
+
+    private async Task OpenDialogCreateVisualizationCard()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var returnTo = GetQueryParam("returnTo");
+        var newDatasetIdStr = GetQueryParam("newDatasetId");
+        DialogParameters parameters = new DialogParameters
+        {
+            ["ReturnTo"] = returnTo,
+            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var nid) ? nid : (int?)null
+        };
+        await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
     }
 
     private async Task RecargarVisualizacionesAsync()
@@ -528,6 +550,42 @@
         finally
         {
             _isLoading = false;
+            await HandleReturnToVisualizationCreateAsync();
         }
+    }
+
+    private async Task HandleReturnToVisualizationCreateAsync()
+    {
+        try
+        {
+            var returnTo = GetQueryParam("returnTo");
+            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+            {
+                await OpenDialogCreateVisualizationCard();
+            }
+        }
+        catch { }
+    }
+
+    private static Dictionary<string, string> ParseQueryString(string? query)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(query)) return result;
+        var q = query.StartsWith("?") ? query.Substring(1) : query;
+        foreach (var pair in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(kv[0]);
+            var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : string.Empty;
+            result[key] = value;
+        }
+        return result;
+    }
+
+    private string? GetQueryParam(string key)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var dict = ParseQueryString(uri.Query);
+        return dict.TryGetValue(key, out var v) ? v : null;
     }
 }

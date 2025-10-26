@@ -68,7 +68,6 @@ else if (selectedTipo == "Insight Monitor")
                       @bind-Value="addDesc"
                       Placeholder="@Localizer["AgregarDescripcion"]"
                       Variant="Variant.Outlined"
-                      TextFieldType="MudBlazor.TextFieldType.Multiline"
                       Lines="3"
                       Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
                       MaxLength="200"
