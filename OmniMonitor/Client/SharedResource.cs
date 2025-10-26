@@ -1,3 +1,6 @@
-﻿public class SharedResource
+﻿namespace OmniMonitor.Client
 {
+    public class SharedResource
+    {
+    }
 }

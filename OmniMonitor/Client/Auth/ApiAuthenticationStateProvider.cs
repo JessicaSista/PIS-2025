@@ -1,13 +1,15 @@
-﻿using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components.Authorization;
-using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Threading.Tasks;
 
+using Blazored.LocalStorage;
+
+using Microsoft.AspNetCore.Components.Authorization;
+
+// using System;
+// using System.Collections.Generic;
+// using System.Threading.Tasks;
+// using System.Linq;
 namespace OmniMonitor.Client.Auth
 {
     public class ApiAuthenticationStateProvider : AuthenticationStateProvider
@@ -26,8 +28,7 @@ namespace OmniMonitor.Client.Auth
         {
             try
             {
-                var token = await _localStorage.GetItemAsync<string>("authToken");
-
+                string? token = await _localStorage.GetItemAsync<string>("authToken");
 
                 // Si no hay token
                 if (string.IsNullOrWhiteSpace(token))
@@ -37,11 +38,10 @@ namespace OmniMonitor.Client.Auth
                 }
 
                 // Si hay token lo parseamos
-                var jsonToken = _tokenHandler.ReadToken(token) as JwtSecurityToken;
-
-
+                // var jsonToken = _tokenHandler.ReadToken(token) as JwtSecurityToken;
                 // Si el jsonToken es null o ha expirado
-                if (jsonToken == null || jsonToken.ValidTo < DateTime.UtcNow)
+                // if (jsonToken == null || jsonToken.ValidTo < DateTime.UtcNow)
+                if (_tokenHandler.ReadToken(token) is not JwtSecurityToken jsonToken || jsonToken.ValidTo < DateTime.UtcNow)
                 {
                     await _localStorage.RemoveItemAsync("authToken");
                     _httpClient.DefaultRequestHeaders.Authorization = null;
@@ -53,9 +53,10 @@ namespace OmniMonitor.Client.Auth
                 // (e.g., "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier").
                 // We manually map them here to ensure compatibility.
                 var claims = new List<Claim>();
-                foreach (var claim in jsonToken.Claims)
+                foreach (Claim claim in jsonToken.Claims)
                 {
-                    var newClaim = claim;
+                    Claim newClaim = claim;
+
                     // Map the short claim types to the standard ClaimTypes constants
                     switch (claim.Type)
                     {
@@ -68,13 +69,15 @@ namespace OmniMonitor.Client.Auth
                         case "role":
                             newClaim = new Claim(ClaimTypes.Role, claim.Value);
                             break;
+                        default:
+                            break;
                     }
+
                     claims.Add(newClaim);
                 }
 
                 var identity = new ClaimsIdentity(claims, "jwt");
                 var user = new ClaimsPrincipal(identity);
-
                 return new AuthenticationState(user);
             }
             catch
@@ -89,7 +92,7 @@ namespace OmniMonitor.Client.Auth
         {
             await _localStorage.SetItemAsync("authToken", token);
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            var authState = await GetAuthenticationStateAsync();
+            AuthenticationState authState = await GetAuthenticationStateAsync();
             NotifyAuthenticationStateChanged(Task.FromResult(authState));
         }
 
@@ -98,9 +101,8 @@ namespace OmniMonitor.Client.Auth
             await _localStorage.RemoveItemAsync("authToken");
             _httpClient.DefaultRequestHeaders.Authorization = null;
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
-            var authState = Task.FromResult(new AuthenticationState(anonymousUser));
+            Task<AuthenticationState> authState = Task.FromResult(new AuthenticationState(anonymousUser));
             NotifyAuthenticationStateChanged(authState);
         }
     }
 }
-

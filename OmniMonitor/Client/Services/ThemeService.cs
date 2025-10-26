@@ -1,15 +1,28 @@
 ﻿using Blazored.LocalStorage;
+
 using MudBlazor;
-using System;
-using System.Threading.Tasks;
 
 namespace OmniMonitor.Client.Services
 {
-    public enum ThemeMode { Light, Dark }
-    
+    /// <summary>
+    /// Specifies the theme mode.
+    /// </summary>
+    public enum ThemeMode
+    {
+        /// <summary>
+        /// Represents the light theme mode.
+        /// </summary>
+        Light,
+
+        /// <summary>
+        /// Represents the dark theme mode.
+        /// </summary>
+        Dark,
+    }
+
     public class ThemeService
     {
-        private const string ThemeKey = "currentThemeMode";
+        private const string _themeKey = "currentThemeMode";
         private readonly ILocalStorageService _localStorage;
 
         private readonly string _lightModeVars = @"
@@ -108,24 +121,10 @@ namespace OmniMonitor.Client.Services
             --fondo-drawer: #1A1818;
         ";
 
-        public string CurrentThemeVariables => (CurrentMode==ThemeMode.Dark) ? _darkModeVars : _lightModeVars;
-
-        // Evento específico para el cambio de Tema
-        public event Action? OnThemeChange;
-
-        
-
-        // Propiedades de estado
-        public bool IsDarkMode => CurrentMode == ThemeMode.Dark;
-        public MudTheme CurrentTheme { get; }
-        public ThemeMode CurrentMode { get; private set; } = ThemeMode.Light;
-
-
-
         public ThemeService(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
-            
+
             // 1. Inicializamos CurrentTheme UNA SOLA VEZ, definiendo AMBAS paletas.
             CurrentTheme = new MudTheme()
             {
@@ -142,11 +141,11 @@ namespace OmniMonitor.Client.Services
                     Secondary = "#424242",
                     Error = "#8F1515",
 
-                    
-                    //Surface = "#FFFFFF",
-                    //ActionDefault = "#6200EE"
-                    //Background = "#E3F2FD",
+                    // Surface = "#FFFFFF",
+                    // ActionDefault = "#6200EE"
+                    // Background = "#E3F2FD",
                 },
+
                 // Paleta para el Modo Oscuro
                 PaletteDark = new PaletteDark()
                 {
@@ -160,18 +159,30 @@ namespace OmniMonitor.Client.Services
                     Secondary = "#C2C2C3",
                     Error = "#8F1515",
 
-                    //Surface = "#1E1E1E",
-                    //ActionDefault = "#BB86FC"
-                    //Background = "#121212",
-                }
+                    // Surface = "#1E1E1E",
+                    // ActionDefault = "#BB86FC"
+                    // Background = "#121212",
+                },
             };
         }
+
+        // Evento específico para el cambio de Tema
+        public event Action? OnThemeChange;
+
+        public string CurrentThemeVariables => (CurrentMode == ThemeMode.Dark) ? _darkModeVars : _lightModeVars;
+
+        // Propiedades de estado
+        public bool IsDarkMode => CurrentMode == ThemeMode.Dark;
+
+        public ThemeMode CurrentMode { get; private set; } = ThemeMode.Light;
+
+        public MudTheme CurrentTheme { get; }
 
         public async Task InitializeThemeAsync()
         {
             try
             {
-                var storedMode = await _localStorage.GetItemAsync<ThemeMode?>(ThemeKey);
+                ThemeMode? storedMode = await _localStorage.GetItemAsync<ThemeMode?>(_themeKey);
                 CurrentMode = storedMode.GetValueOrDefault(ThemeMode.Dark);
             }
             catch (Exception ex)
@@ -183,18 +194,18 @@ namespace OmniMonitor.Client.Services
             NotifyStateChanged();
         }
 
-
         public async Task ToggleThemeAsync()
         {
             CurrentMode = IsDarkMode ? ThemeMode.Light : ThemeMode.Dark;
 
-            await _localStorage.SetItemAsync(ThemeKey, CurrentMode);
+            await _localStorage.SetItemAsync(_themeKey, CurrentMode);
 
             NotifyStateChanged();
         }
 
-        private void NotifyStateChanged() => OnThemeChange?.Invoke();
-
-
+        private void NotifyStateChanged()
+        {
+            OnThemeChange?.Invoke();
+        }
     }
 }

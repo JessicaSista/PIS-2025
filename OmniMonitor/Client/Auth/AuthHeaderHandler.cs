@@ -1,8 +1,6 @@
-﻿using Blazored.LocalStorage;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Net.Http.Headers;
+
+using Blazored.LocalStorage;
 
 namespace OmniMonitor.Client.Auth
 {
@@ -22,7 +20,7 @@ namespace OmniMonitor.Client.Auth
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             // Get the token from local storage
-            var token = await _localStorage.GetItemAsync<string>("authToken", cancellationToken);
+            string? token = await _localStorage.GetItemAsync<string>("authToken", cancellationToken);
 
             // If the token exists, add it to the request's Authorization header
             if (!string.IsNullOrEmpty(token))
