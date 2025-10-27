@@ -1,20 +1,28 @@
 using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Data;
 
 namespace OmniMonitor.Server.Services
 {
     public interface IDatasetUMService
     {
-        Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request);
+        Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request, int dataset);
         Task<List<DatasetUM>> GetAllDatasetsUMAsync(string username);
         Task<DatasetUM?> GetDatasetUMByIdAsync(int datasetId, string username);
         Task<DatasetUM?> GetDatasetUMByIdForEditAsync(int datasetId, string username);
         Task<DatasetUM> UpdateDatasetUMAsync(int datasetId, CreateDatasetUMRequest request);
         Task DeleteDatasetUMAsync(int datasetId, string username);
+        Task<Datasets> CreateDatasetAsync(CreateDatasetRequest request);
+        Task<List<Datasets>> GetAllDatasetsAsync(string username);
+        Task<Datasets?> GetDatasetByIdForEditAsync(int datasetId, string username);
+        Task<Datasets> UpdateDatasetAsyncUM(int datasetId, CreateDatasetRequest request, DatasetUM datasetUM);
+        Task<Datasets> UpdateDatasetAsyncIM(int datasetId, CreateDatasetRequest request, DatasetIM datasetIM);
+        Task<Datasets> UpdateDatasetAsyncAM(int datasetId, CreateDatasetRequest request, DatasetAM datasetAM);
+        Task<Datasets> UpdateDatasetAsyncEM(int datasetId, CreateDatasetRequest request, DatasetEM datasetEM);
+        Task DeleteDatasetAsync(int datasetId, string username);
+
+
     }
 
     public class DatasetUMService : IDatasetUMService
@@ -28,10 +36,8 @@ namespace OmniMonitor.Server.Services
             _sondaUMService = sondaUMService;
         }
 
-        public async Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request)
+        public async Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request, int dataset)
         {
-            await ValidateDuplicateName(request.Name, request.Username);
-
             var newDataset = new DatasetUM
             {
                 Username = request.Username,
@@ -39,8 +45,7 @@ namespace OmniMonitor.Server.Services
                 Description = request.Description,
                 Is_Dataset = request.IsDataset,
                 Id_Zone = request.ZoneId,
-                Id_News = request.NewsId,
-                EventName = request.EventName,
+                DatasetId = dataset,
                 ContentType = GetContentType(request)
             };
 
@@ -72,7 +77,7 @@ namespace OmniMonitor.Server.Services
             // Lógica de carga dinámica (igual que antes)
             if (dataset.Is_Dataset == "S" && !dataset.DatasetEvents.Any() && !dataset.DatasetNews.Any())
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                     return null;
 
@@ -82,13 +87,14 @@ namespace OmniMonitor.Server.Services
 
                 if (dataset.Id_Zone.HasValue)
                 {
-                    var allEvents = await _sondaUMService.GetAllEvents(user.Username, user.Password);
+                    var allEvents = await _sondaUMService.GetAllEvents(user.UserName);
                     eventsFromZone = allEvents.Where(e => e.Location != null).ToList();
                 }
-                if (dataset.Id_News.HasValue)
+                if (dataset.DatasetNews != null && dataset.DatasetNews.Any())
                 {
-                    var allEvents = await _sondaUMService.GetAllEvents(user.Username, user.Password);
-                    eventsFromNews = allEvents.Where(e => e.Id == dataset.Id_News.Value).ToList();
+                    var newsIds = dataset.DatasetNews.Select(n => n.Id_news).ToList();
+                    var allEvents = await _sondaUMService.GetAllEvents(user.UserName);
+                    eventsFromNews = allEvents.Where(e => newsIds.Contains(e.Id)).ToList();
                 }
 
                 List<Event> finalEventList = new List<Event>();
@@ -107,7 +113,7 @@ namespace OmniMonitor.Server.Services
                 }
                 else
                 {
-                    finalEventList = await _sondaUMService.GetAllEvents(user.Username, user.Password) ?? new List<Event>();
+                    finalEventList = await _sondaUMService.GetAllEvents(user.UserName) ?? new List<Event>();
                 }
 
                 // 3. Buscar News dinámicamente
@@ -116,13 +122,14 @@ namespace OmniMonitor.Server.Services
 
                 if (dataset.Id_Zone.HasValue)
                 {
-                    var newsResponse = await _sondaUMService.GetAllNews(user.Username, user.Password, 1, null, null, 1000);
+                    var newsResponse = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000);
                     newsFromZone = newsResponse.Where(n => n.Zone?.Id == dataset.Id_Zone.Value).ToList();
                 }
-                if (dataset.Id_News.HasValue)
+                if (dataset.DatasetNews != null && dataset.DatasetNews.Any())
                 {
-                    var newsResponse = await _sondaUMService.GetAllNews(user.Username, user.Password, 1, null, null, 1000);
-                    newsFromEvent = newsResponse.Where(n => n.Id == dataset.Id_News.Value).ToList();
+                    var newsIds = dataset.DatasetNews.Select(n => n.Id_news).ToList();
+                    var newsResponse = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000);
+                    newsFromEvent = newsResponse.Where(n => newsIds.Contains(n.Id)).ToList();
                 }
 
                 List<News> finalNewsList = new List<News>();
@@ -141,17 +148,19 @@ namespace OmniMonitor.Server.Services
                 }
                 else
                 {
-                    finalNewsList = await _sondaUMService.GetAllNews(user.Username, user.Password, 1, null, null, 1000) ?? new List<News>();
+                    finalNewsList = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000) ?? new List<News>();
                 }
 
                 // 5. Agregar events encontrados al dataset
                 if (finalEventList.Any())
                 {
                     IEnumerable<Event> filteredEvents = finalEventList;
-                    if (!string.IsNullOrEmpty(dataset.EventName))
+                    if (dataset.DatasetEvents != null && dataset.DatasetEvents.Any())
                     {
-                        string eventNameToFind = dataset.EventName;
-                        filteredEvents = filteredEvents.Where(e => e.Name.Contains(eventNameToFind));
+                        var eventIds = dataset.DatasetEvents.Select(ev => ev.Id_event).ToList();
+                        filteredEvents = filteredEvents
+                            .Where(e => eventIds.Contains(e.Id))
+                            .ToList();
                     }
                     var foundEventIds = filteredEvents.Select(e => e.Id).ToList();
                     foreach (var eventId in foundEventIds)
@@ -192,7 +201,7 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            await ValidateDuplicateName(request.Name, request.Username, datasetId);
+           
 
             // Actualizar campos básicos
             existingDataset.Name = request.Name;
@@ -200,8 +209,6 @@ namespace OmniMonitor.Server.Services
             existingDataset.Is_Dataset = request.IsDataset;
             existingDataset.ContentType = GetContentType(request);
             existingDataset.Id_Zone = request.ZoneId;
-            existingDataset.Id_News = request.NewsId;
-            existingDataset.EventName = request.EventName;
 
             // Eliminar relaciones existentes (si no tienes Cascade Delete, si lo tienes puedes solo limpiar)
             _context.DatasetEvents.RemoveRange(existingDataset.DatasetEvents);
@@ -247,10 +254,171 @@ namespace OmniMonitor.Server.Services
             return null;
         }
 
-        private async Task ValidateDuplicateName(string name, string username, int? excludeId = null)
+
+
+        
+
+        public async Task<Datasets> CreateDatasetAsync(CreateDatasetRequest request)
         {
-            var query = _context.DatasetsUM
-                .Where(d => d.Name == name && d.Username == username);
+            await ValidateDuplicateNameDataset(request.Name, request.Username);
+
+            var newDataset = new Datasets
+            {
+                Username = request.Username,
+                NameDataset = request.Name,
+                TipoDataset = request.TipoDataset
+            };
+
+            _context.Datasets.Add(newDataset);
+            await _context.SaveChangesAsync();
+
+            return newDataset;
+        }
+
+        public async Task<List<Datasets>> GetAllDatasetsAsync(string username)
+        {
+            return await _context.Datasets
+                .Where(d => d.Username == username)
+                .ToListAsync();
+        }
+
+
+        public async Task<Datasets?> GetDatasetByIdForEditAsync(int datasetId, string username)
+        {
+            var query = _context.Datasets.Where(d => d.Id == datasetId && d.Username == username);
+            if (query == null)
+            {
+                return null;
+            }
+            var tipoModulo = await query.Select(d => d.TipoDataset).FirstOrDefaultAsync();
+
+            if (tipoModulo == ModuleType.UrbanMonitor)
+            {
+                query = query.Include(d => d.DatasetUM);
+            }
+            else if (tipoModulo == ModuleType.EventManager)
+            {
+                query = query.Include(d => d.DatasetEM);
+            }
+            else if (tipoModulo == ModuleType.AssetManager)
+            {
+                query = query.Include(d => d.DatasetAM);
+            }
+            else if (tipoModulo == ModuleType.InsightMonitor)
+            {
+                query = query.Include(d => d.DatasetIM);
+            }
+
+            var dataset = await query.FirstOrDefaultAsync();
+            return dataset;
+        }
+
+        public async Task<Datasets> UpdateDatasetAsyncUM(int datasetId, CreateDatasetRequest request, DatasetUM datasetUM)
+        {
+            var existingDataset = await _context.Datasets
+            .Include(d => d.DatasetUM)
+            .FirstOrDefaultAsync(d => d.Id == datasetId);
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+
+            // Actualizar campos básicos
+            existingDataset.NameDataset = request.Name;
+            existingDataset.Username = request.Username;
+
+            existingDataset.DatasetUM.Clear();
+
+            // Agregar nuevas relaciones
+            existingDataset.DatasetUM.Add(datasetUM);
+            await _context.SaveChangesAsync();
+            return existingDataset;
+        }
+
+        public async Task<Datasets> UpdateDatasetAsyncIM(int datasetId, CreateDatasetRequest request, DatasetIM datasetIM)
+        {
+            var existingDataset = await _context.Datasets
+            .Include(d => d.DatasetIM)
+            .FirstOrDefaultAsync(d => d.Id == datasetId);
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+
+            // Actualizar campos básicos
+            existingDataset.NameDataset = request.Name;
+            existingDataset.Username = request.Username;
+
+            existingDataset.DatasetIM.Clear();
+
+            // Agregar nuevas relaciones
+            existingDataset.DatasetIM.Add(datasetIM);
+            await _context.SaveChangesAsync();
+            return existingDataset;
+        }
+
+        public async Task<Datasets> UpdateDatasetAsyncAM(int datasetId, CreateDatasetRequest request, DatasetAM datasetAM)
+        {
+            var existingDataset = await _context.Datasets
+            .Include(d => d.DatasetAM)
+            .FirstOrDefaultAsync(d => d.Id == datasetId);
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+
+            // Actualizar campos básicos
+            existingDataset.NameDataset = request.Name;
+            existingDataset.Username = request.Username;
+
+            existingDataset.DatasetAM.Clear();
+
+            // Agregar nuevas relaciones
+            existingDataset.DatasetAM.Add(datasetAM);
+            await _context.SaveChangesAsync();
+            return existingDataset;
+        }
+
+        public async Task<Datasets> UpdateDatasetAsyncEM(int datasetId, CreateDatasetRequest request, DatasetEM datasetEM)
+        {
+            var existingDataset = await _context.Datasets
+            .Include(d => d.DatasetEM)
+            .FirstOrDefaultAsync(d => d.Id == datasetId);
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+
+            // Actualizar campos básicos
+            existingDataset.NameDataset = request.Name;
+            existingDataset.Username = request.Username;
+
+            existingDataset.DatasetEM.Clear();
+
+            // Agregar nuevas relaciones
+            existingDataset.DatasetEM.Add(datasetEM);
+            await _context.SaveChangesAsync();
+            return existingDataset;
+        }
+
+        public async Task DeleteDatasetAsync(int datasetId, string username)
+        {
+            var dataset = await _context.Datasets
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+
+            if (dataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+
+            _context.Datasets.Remove(dataset);
+            await _context.SaveChangesAsync();
+        }
+
+        // --- Helpers ---
+
+        private async Task ValidateDuplicateNameDataset(string name, string username, int? excludeId = null)
+        {
+            var query = _context.Datasets
+                .Where(d => d.NameDataset == name && d.Username == username);
 
             if (excludeId.HasValue)
                 query = query.Where(d => d.Id != excludeId.Value);

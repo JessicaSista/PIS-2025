@@ -32,7 +32,7 @@ public class KPIController : ControllerBase
                 return BadRequest("El objeto KPI es nulo.");
 
             // Validar token y obtener usuario
-            var (username, _) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
@@ -53,8 +53,7 @@ public class KPIController : ControllerBase
 
 
 
-
-    //Obtener kpi por id
+    //Obtener KPI por id
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(KpiResponse), 200)]
     [ProducesResponseType(400)]
@@ -65,12 +64,12 @@ public class KPIController : ControllerBase
         try
         {
             // Validar token y obtener usuario
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
             // Buscar KPI en la base de datos
-            var kpi = await _kpiService.CalculateKpiValueAsync(id, username, password);
+            var kpi = await _kpiService.CalculateKpiValueAsync(id, username);
             if (kpi == null)
                 return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
 
@@ -83,6 +82,82 @@ public class KPIController : ControllerBase
     }
 
 
+    // Eliminar KPI por ID
+    [HttpDelete("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult> DeleteKpi(int id, [FromQuery] string? token)
+    {
+        try
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (string.IsNullOrEmpty(username))
+                return BadRequest("Token inválido.");
+
+            await _kpiService.DeleteKpiAsync(id, username);
+
+            return Ok(new { Message = $"KPI con ID {id} eliminado correctamente." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { Message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(403, new { Message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = $"Error interno: {ex.Message}" });
+        }
+    }
+
+
+
+    [HttpPatch("{id}")]
+    [ProducesResponseType(typeof(Kpi), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<Kpi>> UpdateKpiPartial(int id, [FromBody] KpiRequest request, [FromQuery] string? token)
+    {
+        if (request == null)
+            return BadRequest("El objeto KPI es nulo.");
+
+        try
+        {
+            string? username = null;
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                // Obtener usuario del token
+                string user = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(user))
+                    return BadRequest("Token inválido.");
+                username = user;
+            }
+
+            var updatedKpi = await _kpiService.UpdateKpiAsync(id, request, username);
+            return Ok(updatedKpi);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
+
+
     // Obtener todos los KPIs del usuario
     [HttpGet("kpis")]
     [ProducesResponseType(typeof(List<KpiResponse>), 200)]
@@ -92,11 +167,11 @@ public class KPIController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
-            var kpis = await _kpiService.CalculateAllKpisForUserAsync(username, password);
+            var kpis = await _kpiService.CalculateAllKpisForUserAsync(username);
             return Ok(kpis);
         }
         catch (Exception ex)
@@ -131,12 +206,6 @@ public class KPIController : ControllerBase
 
 
 
-
-
-
-
-
-    // ⚙️ Endpoint temporal para probar GetDeviceDataByDate
     [HttpGet("testDates")]
     [ProducesResponseType(typeof(List<DeviceData>), 200)]
     [ProducesResponseType(500)]
@@ -152,7 +221,7 @@ public class KPIController : ControllerBase
             DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
             DateTime dateTo = DateTime.UtcNow;               // ahora
 
-            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username, password);
+            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
 
             if (data == null || data.Count == 0)
                 return Ok("No se encontraron datos para el rango de fechas.");

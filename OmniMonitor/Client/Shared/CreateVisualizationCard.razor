@@ -287,7 +287,7 @@
             }
             else
             {
-                _mudDialog.Close(DialogResult.Ok(true));
+                _mudDialog.Close(DialogResult.Ok(1));
                 Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
                 // Clear return parameters from URL after success
                 Nav.NavigateTo("/visualizaciones", forceLoad: false);

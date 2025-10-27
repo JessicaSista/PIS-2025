@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
+using OmniMonitor.Shared.Dtos;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -33,7 +35,18 @@ if (OperatingSystem.IsWindows())
 builder.Logging.AddAzureWebAppDiagnostics();
 
 // --- Add services to the container ---
-builder.Services.AddDbContext<ApplicationDbContext>();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 2. ASP.NET Core Identity Configuration (AÑADIDO)
+builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
+    options.Password.RequireDigit = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 string corsPolicy = "CORSPolicy";
 builder.Services.AddCors(options =>
@@ -99,7 +112,7 @@ builder.Services.AddScoped<ISondaAMService, SondaAMService>();
 builder.Services.AddScoped<ISondaEMService, SondaEMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
-builder.Services.AddScoped<IDatasetService, DatasetService>();
+builder.Services.AddScoped<IDatasetService, DatasetIMService>();
 builder.Services.AddScoped<IDatasetAmService, DatasetAmService>();
 builder.Services.AddScoped<IDatasetUMService, DatasetUMService>();
 builder.Services.AddScoped<IDatasetEMService, DatasetEMService>();
@@ -109,6 +122,7 @@ builder.Services.AddScoped<IApiDataService, ApiDataService>();
 builder.Services.AddScoped<IJoinConfigurationService, JoinConfigurationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
+builder.Services.AddScoped<IKpiAMService, KpiAMService>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -118,6 +132,73 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var userManager = services.GetRequiredService<UserManager<User>>();
+        var context = services.GetRequiredService<ApplicationDbContext>();
+
+        logger.LogInformation("Iniciando seeding de usuarios...");
+
+        await context.Database.MigrateAsync();
+
+        // --- Crear usuario 'admin' ---
+        string adminUsername = "admin";
+        string adminPassword = "adminadmin";
+        if (await userManager.FindByNameAsync(adminUsername) == null)
+        {
+            var adminUser = new User
+            {
+                UserName = adminUsername,
+                Email = "IgnacioLavagnino@omnimonitor.com",
+                EmailConfirmed = true
+            };
+            var result = await userManager.CreateAsync(adminUser, adminPassword);
+            if (result.Succeeded)
+            {
+                logger.LogInformation($"Usuario '{adminUsername}' creado exitosamente.");
+            }
+            else
+            {
+                logger.LogError($"Error al crear usuario '{adminUsername}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+        else { logger.LogInformation($"Usuario '{adminUsername}' ya existe."); }
+
+        // --- Crear usuario 'visitante' ---
+        string visitorUsername = "visitante";
+        string visitorPassword = "visitante";
+        if (await userManager.FindByNameAsync(visitorUsername) == null)
+        {
+            var visitorUser = new User
+            {
+                UserName = visitorUsername,
+                Email = "visitante@omnimonitor.com",
+                EmailConfirmed = true
+            };
+            var result = await userManager.CreateAsync(visitorUser, visitorPassword);
+            if (result.Succeeded)
+            {
+                logger.LogInformation($"Usuario '{visitorUsername}' creado exitosamente.");
+            }
+            else
+            {
+                logger.LogError($"Error al crear usuario '{visitorUsername}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+        }
+        else { logger.LogInformation($"Usuario '{visitorUsername}' ya existe."); }
+
+        logger.LogInformation("Seeding de usuarios completado.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Ocurrió un error durante el seeding de la base de datos.");
+    }
+}
 
 // --- Configure the HTTP request pipeline ---
 if (app.Environment.IsDevelopment())

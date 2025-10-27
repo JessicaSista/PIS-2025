@@ -57,25 +57,5 @@ namespace OmniMonitor.Server.Controllers
                 });
             }
         }
-
-        [HttpPost("validate")]
-        public async Task<ActionResult<bool>> ValidateUser([FromBody] LoginRequest loginRequest)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(false);
-                }
-
-                var isValid = await _authService.ValidateUserAsync(loginRequest.Username, loginRequest.Password);
-                return Ok(isValid);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error durante la validación para usuario: {loginRequest.Username}");
-                return StatusCode(500, false);
-            }
-        }
     }
 }

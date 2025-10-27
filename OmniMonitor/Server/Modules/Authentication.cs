@@ -14,18 +14,18 @@ public interface ISondaAuthService
 {
 
     // Para obtener el token de usuario del módulo IM
-    Task<string> GetUserTokenIMAsync(string username, string password);
+    Task<string> GetUserTokenIMAsync(string username);
 
     //Para obtener el token de usuario del módulo UM
-    Task<string> GetUserTokenUMAsync(string username, string password);
+    Task<string> GetUserTokenUMAsync(string username);
 
     //Para obtener el token de usuario del módulo AM
-    Task<string> GetUserTokenAMAsync(string username, string password);
+    Task<string> GetUserTokenAMAsync(string username);
 
     //Para obtener el token de usuario del módulo EM
-    Task<string> GetUserTokenEMAsync(string username, string password);
+    Task<string> GetUserTokenEMAsync(string username);
 
-    Task<(string Username, string Password)> GetUserByTokenOMAsync(string token);
+    Task<string> GetUserByTokenOMAsync(string token);
 
 }
 
@@ -46,26 +46,20 @@ public class SondaAuthService : ISondaAuthService
     //**************************************** IM **************************************
 
     // Para obtener el token de un usuario
-    public async Task<string> GetUserTokenIMAsync(string username, string password)
+    public async Task<string> GetUserTokenIMAsync(string username)
     {
         // 1. Buscar usuario en DB
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-        
-        // 2. Validar credenciales
-        if (user == null || user.Password != password)
-        {
-            throw new AuthenticationException("Invalid email or password.");
-        }
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
         
         // 3. Verificar si el token es válido y no está cerca de expirar (5 minutos de margen).
         if (!string.IsNullOrEmpty(user.SondaTokenIM) && user.TokenExpirationIM > DateTime.UtcNow.AddMinutes(5))
         {
-            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.Username);
+            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.UserName);
             return user.SondaTokenIM;
         }
 
         // 4. Si el token no es válido o está por expirar, solicitar uno nuevo.
-        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.Username);
+        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.UserName);
         return await RefreshAndStoreTokenIMAsync(user);
     }
 
@@ -107,7 +101,7 @@ public class SondaAuthService : ISondaAuthService
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
 
-        Console.WriteLine(">>>> New token saved to the database for user: " + user.Username);
+        Console.WriteLine(">>>> New token saved to the database for user: " + user.UserName);
 
         return user.SondaTokenIM;
     }
@@ -117,26 +111,20 @@ public class SondaAuthService : ISondaAuthService
     //**************************************** UM **************************************
 
     // Para obtener el token de un usuario del módulo UM    
-    public async Task<string> GetUserTokenUMAsync(string username, string password)
+    public async Task<string> GetUserTokenUMAsync(string username)
     {
         // 1. Buscar usuario en DB
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
-        // 2. Validar credenciales
-        if (user == null || user.Password != password)
-        {
-            throw new AuthenticationException("Invalid email or password.");
-        }
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
 
         // 3. Verificar si el token es válido y no está cerca de expirar (5 minutos de margen).
         if (!string.IsNullOrEmpty(user.SondaTokenUM) && user.TokenExpirationUM > DateTime.UtcNow.AddMinutes(5))
         {
-            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.Username);
+            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.UserName);
             return user.SondaTokenUM;
         }
 
         // 4. Si el token no es válido o está por expirar, solicitar uno nuevo.
-        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.Username);
+        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.UserName);
         return await RefreshAndStoreTokenUMAsync(user);
     }
 
@@ -179,7 +167,7 @@ public class SondaAuthService : ISondaAuthService
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
 
-        Console.WriteLine(">>>> New token saved to the database for user: " + user.Username);
+        Console.WriteLine(">>>> New token saved to the database for user: " + user.UserName);
 
         return user.SondaTokenUM;
     }
@@ -190,26 +178,20 @@ public class SondaAuthService : ISondaAuthService
     //**************************************** AM **************************************
 
     // Para obtener el token de un usuario del módulo AM    
-    public async Task<string> GetUserTokenAMAsync(string username, string password)
+    public async Task<string> GetUserTokenAMAsync(string username)
     {
         // 1. Buscar usuario en DB
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
-        // 2. Validar credenciales
-        if (user == null || user.Password != password)
-        {
-            throw new AuthenticationException("Invalid email or password.");
-        }
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
 
         // 3. Verificar si el token es válido y no está cerca de expirar (5 minutos de margen).
         if (!string.IsNullOrEmpty(user.SondaTokenAM) && user.TokenExpirationAM > DateTime.UtcNow.AddMinutes(5))
         {
-            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.Username);
+            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.UserName);
             return user.SondaTokenAM;
         }
 
         // 4. Si el token no es válido o está por expirar, solicitar uno nuevo.
-        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.Username);
+        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.UserName);
         return await RefreshAndStoreTokenAMAsync(user);
     }
 
@@ -251,7 +233,7 @@ public class SondaAuthService : ISondaAuthService
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
 
-        Console.WriteLine(">>>> New token saved to the database for user: " + user.Username);
+        Console.WriteLine(">>>> New token saved to the database for user: " + user.UserName);
 
         return user.SondaTokenAM;
     }
@@ -261,26 +243,20 @@ public class SondaAuthService : ISondaAuthService
     //**************************************** EM **************************************
 
     // Para obtener el token de un usuario del módulo EM
-    public async Task<string> GetUserTokenEMAsync(string username, string password)
+    public async Task<string> GetUserTokenEMAsync(string username)
     {
         // 1. Buscar usuario en DB
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-
-        // 2. Validar credenciales
-        if (user == null || user.Password != password)
-        {
-            throw new AuthenticationException("Invalid email or password.");
-        }
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
 
         // 3. Verificar si el token es válido y no está cerca de expirar (5 minutos de margen).
         if (!string.IsNullOrEmpty(user.SondaTokenEM) && user.TokenExpirationEM > DateTime.UtcNow.AddMinutes(5))
         {
-            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.Username);
+            Console.WriteLine(">>>> Returning cached token from DB for user: " + user.UserName);
             return user.SondaTokenEM;
         }
 
         // 4. Si el token no es válido o está por expirar, solicitar uno nuevo.
-        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.Username);
+        Console.WriteLine(">>>> Token is invalid or expired. Requesting a new one for user: " + user.UserName);
         return await RefreshAndStoreTokenEMAsync(user);
     }
     private async Task<string> RefreshAndStoreTokenEMAsync(User user)
@@ -320,12 +296,12 @@ public class SondaAuthService : ISondaAuthService
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
 
-        Console.WriteLine(">>>> New token saved to the database for user: " + user.Username);
+        Console.WriteLine(">>>> New token saved to the database for user: " + user.UserName);
 
         return user.SondaTokenEM;
     }
 
-      public async Task<(string Username, string Password)> GetUserByTokenOMAsync(string token)
+      public async Task<string> GetUserByTokenOMAsync(string token)
     {
         if (string.IsNullOrWhiteSpace(token))
             throw new ArgumentException("Token must be provided.", nameof(token));
@@ -340,7 +316,7 @@ public class SondaAuthService : ISondaAuthService
             throw new InvalidOperationException("El token OM está expirado.");
 
         // Devolver username y password (normalmente hash)
-        return (user.Username, user.Password);
+        return user.UserName;
     }
 
 

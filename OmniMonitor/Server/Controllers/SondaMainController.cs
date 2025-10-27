@@ -27,8 +27,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var devices = await _sondaIMApiService.GetAllDevices(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var devices = await _sondaIMApiService.GetAllDevices(username);
             return Ok(devices);
         }
         catch (Exception ex)
@@ -45,8 +45,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var device = await _sondaIMApiService.GetDeviceById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var device = await _sondaIMApiService.GetDeviceById(id, username);
             if (device == null) return NotFound($"No se encontró el dispositivo {id}");
             return Ok(device);
         }
@@ -64,8 +64,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var deviceData = await _sondaIMApiService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var deviceData = await _sondaIMApiService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
             if (deviceData == null || !deviceData.Any())
             {
                 return NotFound($"No se encontraron datos para el dispositivo {deviceId} en el rango de fechas especificado.");
@@ -87,8 +87,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var groups = await _sondaIMApiService.GetAllDeviceGroups(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var groups = await _sondaIMApiService.GetAllDeviceGroups(username);
             return Ok(groups);
         }
         catch (Exception ex)
@@ -105,8 +105,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var group = await _sondaIMApiService.GetDeviceGroupById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var group = await _sondaIMApiService.GetDeviceGroupById(id, username);
             if (group == null) return NotFound($"No se encontró el DeviceGroup {id}");
             return Ok(group);
         }
@@ -124,8 +124,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var devices = await _sondaIMApiService.GetDeviceOfGroup(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var devices = await _sondaIMApiService.GetDeviceOfGroup(id, username);
             if (devices == null || !devices.Any())
             {
                 return NotFound($"No se encontraron dispositivos para el grupo con ID {id}.");
@@ -146,8 +146,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var sources = await _sondaIMApiService.GetAllSources(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var sources = await _sondaIMApiService.GetAllSources(username);
             return Ok(sources);
         }
         catch (Exception ex)
@@ -164,8 +164,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var source = await _sondaIMApiService.GetSourceById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var source = await _sondaIMApiService.GetSourceById(id, username);
             if (source == null) return NotFound($"No se encontró el Source {id}");
             return Ok(source);
         }
@@ -183,8 +183,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var devices = await _sondaIMApiService.GetDeviceOfSource(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var devices = await _sondaIMApiService.GetDeviceOfSource(id, username);
             if (devices == null || !devices.Any())
             {
                 return NotFound($"No se encontraron dispositivos para el source con ID {id}.");
@@ -218,8 +218,8 @@ public class SondaMainController : ControllerBase
             
             foreach (var deviceId in deviceIds)
             {
-                var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var device = await _sondaIMApiService.GetDeviceById(deviceId, username, password);
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var device = await _sondaIMApiService.GetDeviceById(deviceId, username);
                 if (device != null && device.Sensors != null && device.Sensors.Any())
                 {
                     var sensorNames = device.Sensors
@@ -260,9 +260,9 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             // Obtener todos los dispositivos de la fuente
-            var devices = await _sondaIMApiService.GetDeviceOfSource(sourceId, username, password);
+            var devices = await _sondaIMApiService.GetDeviceOfSource(sourceId, username);
             
             if (devices == null || !devices.Any())
             {
@@ -299,8 +299,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var sensorData = await _sondaIMApiService.GetSensorDataByDate(deviceId, sensorName, dateFrom, dateTo, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var sensorData = await _sondaIMApiService.GetSensorDataByDate(deviceId, sensorName, dateFrom, dateTo, username);
             if (sensorData == null || !sensorData.Any())
             {
                 return NotFound($"No se encontraron datos para el sensor '{sensorName}' del dispositivo {deviceId} en el rango de fechas especificado.");
@@ -313,28 +313,6 @@ public class SondaMainController : ControllerBase
         }
     }
 
-    [HttpGet("um")]
-    [ProducesResponseType(typeof(string), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<IActionResult> TestUMAPI()
-    {
-        try
-        {
-            Console.WriteLine("TEST UM API");
-            var source = await _sondaUMApiService.TestUMAPI("admin", "admin");
-
-            if (string.IsNullOrEmpty(source))
-                return NotFound("No se pudo obtener token.");
-
-            return Ok(source);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
     [HttpGet("zones")]
     [ProducesResponseType(typeof(List<Zone>), 200)]
     [ProducesResponseType(500)]
@@ -342,8 +320,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var zones = await _sondaUMApiService.GetAllZones(username,password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var zones = await _sondaUMApiService.GetAllZones(username);
             return Ok(zones);
         }
         catch (Exception ex)
@@ -359,8 +337,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var zone = await _sondaUMApiService.GetZoneById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var zone = await _sondaUMApiService.GetZoneById(id, username);
             if (zone == null) return NotFound($"No se encontró la zona {id}");
             return Ok(zone);
         }
@@ -384,8 +362,8 @@ public class SondaMainController : ControllerBase
         try
         {
             // Pasar los parámetros al servicio
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var news = await _sondaUMApiService.GetAllNews(username, password, startIndex, queryString, sort, count);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var news = await _sondaUMApiService.GetAllNews(username, startIndex, queryString, sort, count);
             return Ok(news);
         }
         catch (Exception ex)
@@ -401,8 +379,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var newsItem = await _sondaUMApiService.GetNewsById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var newsItem = await _sondaUMApiService.GetNewsById(id, username);
             if (newsItem == null) return NotFound($"No se encontró la noticia {id}");
             return Ok(newsItem);
         }
@@ -427,8 +405,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var news = await _sondaUMApiService.GetNewsByZoneId(id, username, password, startIndex, queryString, sort, count);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var news = await _sondaUMApiService.GetNewsByZoneId(id, username, startIndex, queryString, sort, count);
             if (news == null || !news.Any())
             {
                 return NotFound($"No se encontraron noticias para la zona {id}.");
@@ -448,8 +426,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var events = await _sondaUMApiService.GetAllEvents(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var events = await _sondaUMApiService.GetAllEvents(username);
             return Ok(events);
         }
         catch (Exception ex)
@@ -465,8 +443,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var eventItem = await _sondaUMApiService.GetEventById(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var eventItem = await _sondaUMApiService.GetEventById(id, username);
             if (eventItem == null) return NotFound($"No se encontró el evento {id}");
             return Ok(eventItem);
         }
@@ -484,8 +462,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var events = await _sondaUMApiService.GetEventsByZoneId(id, username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var events = await _sondaUMApiService.GetEventsByZoneId(id, username);
             if (events == null || !events.Any())
             {
                 return NotFound($"No se encontraron eventos para la zona {id}.");
@@ -505,8 +483,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var count = await _sondaIMApiService.GetSSDeviceCount(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var count = await _sondaIMApiService.GetSSDeviceCount(username);
             return Ok(count);
         }
         catch (Exception ex)
@@ -523,8 +501,8 @@ public class SondaMainController : ControllerBase
     {
         try
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var count = await _sondaIMApiService.GetSSDataStatus(username, password);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var count = await _sondaIMApiService.GetSSDataStatus(username);
             return Ok(count);
         }
         catch (Exception ex)

@@ -1,5 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Shared.Dtos;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace OmniMonitor.Server.Context
 {
@@ -7,20 +10,25 @@ namespace OmniMonitor.Server.Context
     /// This DbContext is configured to read the connection string directly from IConfiguration.
     /// </summary>
     // Using a primary constructor to inject IConfiguration.
-    public class ApplicationDbContext(IConfiguration configuration) : DbContext
+    public class ApplicationDbContext: IdentityDbContext<User, IdentityRole<int>, int>
     {
-        
+
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+        {
+        }
+
 
         // No longer need a private field, the 'configuration' parameter is available throughout the class.
 
         // Add this line inside your ApplicationDbContext.cs
 
         // Entidades del sistema de roles y permisos
-        public DbSet<User> Users { get; set; }
+        //public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Permission> Permissions { get; set; }
+        public DbSet<Datasets> Datasets { get; set; }
         public DbSet<DatasetIM> DatasetsIM { get; set; }
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
         public DbSet<DatasetUM> DatasetsUM { get; set; }
@@ -49,15 +57,6 @@ namespace OmniMonitor.Server.Context
         /// Configuration step using the injected IConfiguration.
         /// </summary>
     public DbSet<Kpi> Kpi { get; set; }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            // Check if the options are not already configured (e.g., by a unit test).
-            if (!optionsBuilder.IsConfigured)
-            {
-                // Use the connection string named "DatabaseConnection" from your appsettings.json
-                optionsBuilder.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
-            }
-        }
 
         /// <summary>
         /// Model creation step
@@ -314,18 +313,6 @@ namespace OmniMonitor.Server.Context
                 new RolePermission { Id = 25, RoleId = 2, PermissionId = 11 },
                 new RolePermission { Id = 26, RoleId = 2, PermissionId = 14 },
                 new RolePermission { Id = 31, RoleId = 2, PermissionId = 17 }
-            );
-
-            // Usuarios de prueba
-            builder.Entity<User>().HasData(
-                new User { Id = 1, Username = "admin", Password = "admin" },
-                new User { Id = 2, Username = "visitante", Password = "visitante" }
-            );
-
-            // Asignar roles a usuarios
-            builder.Entity<UserRole>().HasData(
-                new UserRole { Id = 1, UserId = 1, RoleId = 1 }, // admin -> Administrador
-                new UserRole { Id = 2, UserId = 2, RoleId = 2 }  // visitante -> Visitante
             );
         }
     }

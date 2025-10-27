@@ -182,11 +182,6 @@ public class ReportService : IReportService
             throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuración JSON válida.");
         }
 
-        var password = await _context.Users
-        .Where(u => u.Username == username)
-        .Select(u => u.Password)
-        .FirstOrDefaultAsync();
-
         var serializerOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
@@ -232,7 +227,7 @@ public class ReportService : IReportService
                         DateTime dateFrom = DateTime.ParseExact(sourceConfig.DateFrom.Value.ToString(), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
                         DateTime dateTo = DateTime.ParseExact(sourceConfig.DateTo.Value.ToString(), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
 
-                        var deviceReadings = await _sondaIMService.GetDeviceDataByDate(sourceConfig.SourceId.Value, dateFrom, dateTo, username, password);
+                        var deviceReadings = await _sondaIMService.GetDeviceDataByDate(sourceConfig.SourceId.Value, dateFrom, dateTo, username);
                         rawData = PrefixDatasetData(deviceReadings, "DeviceData");
                     }
                     catch (FormatException)

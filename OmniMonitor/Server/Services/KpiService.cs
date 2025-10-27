@@ -11,9 +11,12 @@ namespace OmniMonitor.Server.Services
     {
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
-        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password);
-        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password);
+        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
+        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
+        Task DeleteKpiAsync(int kpiId, string? username = null);
+        Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null);
+
     }
 
     public class KpiService : IKpiService
@@ -23,12 +26,15 @@ namespace OmniMonitor.Server.Services
         private readonly ISondaEMService _sondaEMService;
         private readonly ISondaIMService _sondaIMService;
         private readonly ISondaAuthService _sondaAuthService;
-        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
+        private readonly IKpiAMService _kpiAMService;
+
+        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, IKpiAMService kpiAMService)
         {
             _context = context;
             _datasetService = datasetService;
             _sondaEMService = sondaEMService;
             _sondaIMService = sondaIMService;
+            _kpiAMService = kpiAMService;
             _sondaAuthService = sondaAuthService;
         }
 
@@ -58,6 +64,50 @@ namespace OmniMonitor.Server.Services
             return newKpi;
         }
 
+        public async Task DeleteKpiAsync(int kpiId, string? username = null)
+        {
+            var kpi = await _context.Kpi.FirstOrDefaultAsync(k => k.Id == kpiId);
+
+            if (kpi == null)
+                throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+
+            //verificar que el usuario sea dueño del KPI
+            if (!string.IsNullOrEmpty(username) && kpi.Username != username)
+                throw new UnauthorizedAccessException("No tiene permisos para eliminar este KPI.");
+
+            _context.Kpi.Remove(kpi);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null)
+        {
+            if (request == null)
+                throw new ArgumentNullException(nameof(request));
+
+            var existingKpi = await _context.Kpi.FindAsync(kpiId);
+            if (existingKpi == null)
+                throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+
+            if (!string.IsNullOrEmpty(username) && existingKpi.Username != username)
+                throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
+
+            if (request.Name != null) existingKpi.Name = request.Name;
+            if (request.Description != null) existingKpi.Description = request.Description;
+            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule;
+            if (request.DatasetId != null) existingKpi.DatasetId = request.DatasetId;
+            if (request.Unit != null) existingKpi.Unit = request.Unit;
+            if (request.Metric != null) existingKpi.Metric = request.Metric;
+            if (request.Multiplier != null) existingKpi.Multiplier = request.Multiplier;
+            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor;
+            if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
+            if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
+
+            _context.Kpi.Update(existingKpi);
+            await _context.SaveChangesAsync();
+
+            return existingKpi;
+        }
+
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
             var kpi = await _context.Kpi.FindAsync(kpiId);
@@ -68,7 +118,7 @@ namespace OmniMonitor.Server.Services
             return kpi;
         }
 
-        public async Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password)
+        public async Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username)
         {
             var kpi = await GetKpiDefinitionAsync(kpiId);
 
@@ -77,19 +127,19 @@ namespace OmniMonitor.Server.Services
             switch (kpi.SourceModule.ToUpper())
             {
                 case "AM":
-                    response = await CalculateAmKpiAsync(kpi, username, password);
+                    response = await _kpiAMService.CalculateAmKpiAsync(kpi, username);
                     break;
 
                 case "EM":
-                    response = await CalculateEmKpiAsync(kpi, username, password);
+                    response = await CalculateEmKpiAsync(kpi, username);
                     break;
 
                 case "IM":
-                    response = await CalculateImKpiAsync(kpi, username, password);
+                    response = await CalculateImKpiAsync(kpi, username);
                     break;
 
                 case "UM":
-                    response = await CalculateUmKpiAsync(kpi, username, password);
+                    response = await CalculateUmKpiAsync(kpi, username);
                     break;
 
                 default:
@@ -102,7 +152,7 @@ namespace OmniMonitor.Server.Services
             return response;
         }
 
-        public async Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password)
+        public async Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username)
         {
             // Obtener todos los KPIs del usuario desde la base de datos
             var kpis = await _context.Kpi
@@ -115,7 +165,7 @@ namespace OmniMonitor.Server.Services
             {
                 try
                 {
-                    var response = await CalculateKpiValueAsync(kpi.Id, username, password);
+                    var response = await CalculateKpiValueAsync(kpi.Id, username);
                     results.Add(response);
                 }
                 catch (Exception ex)
@@ -127,7 +177,7 @@ namespace OmniMonitor.Server.Services
             return results;
         }
 
-        private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username, string password)
+        private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username)
         {
             // Obtener dataset asociado al KPI
             var dataset = await _datasetService.GetDatasetIMByIdAsync(kpi.DatasetId, kpi.Username);
@@ -140,19 +190,19 @@ namespace OmniMonitor.Server.Services
             switch (kpi.Metric?.ToLower())
             {
                 case "lastvalue":
-                    response = await CalculateLastValueIM(kpi, dataset, username, password);
+                    response = await CalculateLastValueIM(kpi, dataset, username);
                     break;
 
                 case "average":
-                    response = await CalculateAverageKpiIMAsync(kpi,dataset, username, password);
+                    response = await CalculateAverageKpiIMAsync(kpi,dataset, username);
                     break;
 
                 case "min":
-                    response = await CalculateMinKpiIMAsync(kpi, dataset, username, password);
+                    response = await CalculateMinKpiIMAsync(kpi, dataset, username);
                     break;
 
                 case "max":
-                    response = await CalculateMaxKpiIMAsync(kpi, dataset, username, password);
+                    response = await CalculateMaxKpiIMAsync(kpi, dataset, username);
                     break;
 
                 default:
@@ -164,7 +214,7 @@ namespace OmniMonitor.Server.Services
 
 
         // Funciones privadas por módulo
-        private async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username, string password)
+        private async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username)
         {
             // TODO: lógica de cálculo para AM
             return new KpiResponse
@@ -175,7 +225,7 @@ namespace OmniMonitor.Server.Services
             };
         }
 
-        private async Task<KpiResponse> CalculateEmKpiAsync(Kpi kpi, string username, string password)
+        private async Task<KpiResponse> CalculateEmKpiAsync(Kpi kpi, string username)
         {
             // TODO: lógica de cálculo para EM
             return new KpiResponse
@@ -187,7 +237,7 @@ namespace OmniMonitor.Server.Services
         }
 
 
-        private async Task<KpiResponse> CalculateUmKpiAsync(Kpi kpi, string username, string password)
+        private async Task<KpiResponse> CalculateUmKpiAsync(Kpi kpi, string username)
         {
             // TODO: lógica de cálculo para UM
             return new KpiResponse
@@ -199,12 +249,12 @@ namespace OmniMonitor.Server.Services
         }
 
 
-        private async Task<KpiResponse> CalculateLastValueIM(Kpi kpi, DatasetIM dataset, string username, string password)
+        private async Task<KpiResponse> CalculateLastValueIM(Kpi kpi, DatasetIM dataset, string username)
         {
             string? rawValue = null;
             string? type = null;
 
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null)
                 throw new Exception($"No se encontró el source con ID {dataset.Id_Source}.");
 
@@ -213,7 +263,7 @@ namespace OmniMonitor.Server.Services
 
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null)
                     continue;
 
@@ -282,7 +332,7 @@ namespace OmniMonitor.Server.Services
         }
 
 
-        private async Task<KpiResponse> CalculateAverageKpiIMAsync(Kpi kpi, DatasetIM dataset, string username, string password)
+        private async Task<KpiResponse> CalculateAverageKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
             // Si no tiene extraInfo o dates, dejamos en pendiente
             if (string.IsNullOrEmpty(kpi.ExtraInfo))
@@ -322,7 +372,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 2. Obtener el source del dataset
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
                 return new KpiResponse
@@ -342,7 +392,7 @@ namespace OmniMonitor.Server.Services
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null) continue;
 
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
@@ -369,7 +419,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 4. Obtener datos del sensor (solo Data y Time)
-            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
                 return new KpiResponse
@@ -448,7 +498,7 @@ namespace OmniMonitor.Server.Services
 
 
 
-        private async Task<KpiResponse> CalculateMinKpiIMAsync(Kpi kpi, DatasetIM dataset, string username, string password)
+        private async Task<KpiResponse> CalculateMinKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
             // Si no tiene extraInfo o dates, dejamos en pendiente
             if (string.IsNullOrEmpty(kpi.ExtraInfo))
@@ -488,7 +538,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 2. Obtener el source del dataset
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
                 return new KpiResponse
@@ -508,7 +558,7 @@ namespace OmniMonitor.Server.Services
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null) continue;
 
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
@@ -535,7 +585,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 4. Obtener datos del sensor
-            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
                 return new KpiResponse
@@ -643,7 +693,7 @@ namespace OmniMonitor.Server.Services
 
 
 
-        private async Task<KpiResponse> CalculateMaxKpiIMAsync(Kpi kpi, DatasetIM dataset, string username, string password)
+        private async Task<KpiResponse> CalculateMaxKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
             // Si no tiene extraInfo o dates, dejamos en pendiente
             if (string.IsNullOrEmpty(kpi.ExtraInfo))
@@ -683,7 +733,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 2. Obtener el source del dataset
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
                 return new KpiResponse
@@ -703,7 +753,7 @@ namespace OmniMonitor.Server.Services
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null) continue;
 
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
@@ -730,7 +780,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 4. Obtener datos del sensor
-            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
                 return new KpiResponse
