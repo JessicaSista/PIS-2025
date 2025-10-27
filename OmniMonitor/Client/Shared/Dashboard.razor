@@ -2,6 +2,7 @@
 @using System.ComponentModel.DataAnnotations
 @inject IStringLocalizer<Dashboard> Localizer
 @inject IDialogService DialogService
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <MudBreakpointProvider>
     <MudGrid Class="pa-10 dashboard" Spacing="6">
@@ -9,16 +10,19 @@
         {
             var (id, type, anchoSm, anchoMd, anchoLg, alto) = CardsData[i];
 
-            <DashboardCard @key="@($"V{id}_{type}")"
+            <DashboardCard @key=@($"V{id}_{type}")
                 dashboardId=@dashboardId 
                 VisualizationId=@id
-                Visualizationtype=@type
+                VisualizationType=@type
+                Index=@i
                 WidthXs=@anchoSm 
                 WidthMd=@anchoMd 
                 WidthLg=@anchoLg 
                 Height=@alto 
                 UpdateCardSize="UpdateCardSize" 
-                RemoveCard="RemoveCard">
+                RemoveCard="RemoveCard"
+                DragStarted="OnCardDragStart"
+                DroppedOn="OnCardDroppedOn">
             </DashboardCard>
         }
         <MudItem xs="12" lg="3" md="6" @onclick="OpenDialogCreateCard">
@@ -54,6 +58,33 @@
     [Parameter] public EventCallback<(int Id, int Type)> OnVisualizationCreated { get; set; }
     [Parameter] public EventCallback<(int,int,int,int,int,int)> UpdateCardSize { get; set; }
     [Parameter] public EventCallback<(int,int)> RemoveCard { get; set; }
+
+    private int? _draggingId;
+
+    private void OnCardDragStart(int visualizationId)
+    {
+        _draggingId = visualizationId;
+    }
+
+    private async Task OnCardDroppedOn(int targetVisualizationId)
+    {
+        if (_draggingId == null || _draggingId == targetVisualizationId)
+            return;
+
+        int fromIndex = CardsData.FindIndex(t => t.Item1 == _draggingId.Value);
+        int toIndex = CardsData.FindIndex(t => t.Item1 == targetVisualizationId);
+        if (fromIndex < 0 || toIndex < 0)
+            return;
+
+        // Swap items
+        var temp = CardsData[fromIndex];
+        CardsData[fromIndex] = CardsData[toIndex];
+        CardsData[toIndex] = temp;
+
+        _draggingId = null;
+        try { await JS.InvokeVoidAsync("console.log", $"Dashboard swap: swapped indices {fromIndex} and {toIndex}"); } catch {}
+        StateHasChanged();
+    }
 
 
     private async Task OpenDialogCreateCard()

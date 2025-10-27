@@ -6,6 +6,7 @@
 @using static OmniMonitor.Client.Shared.VisualizationCard
 @using Blazored.LocalStorage
 @using System.Reflection.Metadata
+@using Microsoft.AspNetCore.Components.Web
 @inject ISnackbar SnackbarService
 @inject IStringLocalizer<DashboardCard> Localizer
 @inject IStringLocalizer<SharedResource> SharedLocalizer
@@ -16,7 +17,17 @@
 
 
 <MudItem lg=@WidthLg md=@WidthMd sm="@WidthXs" xs=@WidthXs>
-    <MudCard Style="@($"background-color: var(--card); color: var(--card-text-primary); height: {Height}px; border: 1px solid #374151; border-radius:7px;")"
+    <div style="cursor: move;" draggable="true" data-drag-ghost="card"
+         @ondragstart="HandleDragStart"
+         @ondragend="HandleDragEnd"
+         @ondragenter:preventDefault
+         @ondragover:preventDefault
+         @ondragover="HandleDragOver"
+         @ondrop:preventDefault
+         @ondragenter="HandleDragEnter"
+         @ondragleave="HandleDragLeave"
+         @ondrop="HandleDrop">
+    <MudCard Style="@($"background-color: var(--card); color: var(--card-text-primary); height: {Height}px; border: 1px solid {_borderColor}; border-radius:7px;")"
              Outlined="true">
 
         <MudCardHeader Class="d-flex justify-space-between pt-5 pl-3 pr-2"
@@ -29,6 +40,9 @@
                 <MudIconButton @onclick="ResizeLeft" Icon="@Icons.Material.Filled.KeyboardArrowLeft" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit" />
                 <MudIconButton @onclick="ResizeRight" Icon="@Icons.Material.Filled.KeyboardArrowRight" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit" />
             </MudStack>
+            <!-- <span style="position:absolute; left:56px; top:8px; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:2px 6px; font-size:12px; line-height:1;">
+                @VisualizationId
+            </span> -->
             <MudMenu Icon="@Icons.Material.Filled.MoreVert"
                      AnchorOrigin="Origin.TopRight"
                      TransformOrigin="Origin.TopRight"
@@ -116,6 +130,7 @@
 
         }
     </MudCard>
+    </div>
 </MudItem>
 
 @code{
@@ -126,6 +141,7 @@
     [Parameter] public int dashboardId { get; set; }
     [Parameter] public int VisualizationId { get; set; }
     [Parameter] public int VisualizationType { get; set; }
+    [Parameter] public int Index { get; set; }
     [Parameter] public int WidthLg { get; set; }
     [Parameter] public int WidthMd { get; set; }
     [Parameter] public int WidthXs { get; set; }
@@ -133,10 +149,15 @@
 
     [Parameter] public EventCallback<(int, int, int, int, int, int)> UpdateCardSize { get; set; }
     [Parameter] public EventCallback<(int, int)> RemoveCard { get; set; }
+    [Parameter] public EventCallback<int> DragStarted { get; set; }
+    [Parameter] public EventCallback<int> DroppedOn { get; set; }
 
 
     // Variables Locales
     private bool _esKPI {get; set;} = false;
+    private bool _isDragOver = false;
+    private bool _isDraggingSelf = false;
+    private string _borderColor => _isDragOver ? "#22c55e" : "#374151";
     private string _authenticatedUser = string.Empty;
 
     // private System.String _title { get; set; } = string.Empty;
@@ -555,5 +576,60 @@
         {
             RemoveCard.InvokeAsync((VisualizationId,VisualizationType));
         }
+    }
+
+    private Task HandleDragStart(DragEventArgs e)
+    {
+        try
+        {
+            if (e.DataTransfer != null)
+            {
+                e.DataTransfer.EffectAllowed = "move";
+                e.DataTransfer.DropEffect = "move";
+            }
+        }
+        catch {}
+        _isDraggingSelf = true;
+        return DragStarted.InvokeAsync(VisualizationId);
+    }
+
+    private void HandleDragEnd(DragEventArgs e)
+    {
+        _isDraggingSelf = false;
+        _isDragOver = false;
+        StateHasChanged();
+    }
+
+    private Task HandleDrop(DragEventArgs e)
+    {
+        _isDragOver = false;
+        _isDraggingSelf = false;
+        return DroppedOn.InvokeAsync(VisualizationId);
+    }
+
+    private void HandleDragEnter(DragEventArgs e)
+    {
+        if (_isDraggingSelf) return;
+        _isDragOver = true;
+        StateHasChanged();
+    }
+
+    private void HandleDragLeave(DragEventArgs e)
+    {
+        _isDragOver = false;
+        StateHasChanged();
+    }
+
+    private void HandleDragOver(DragEventArgs e)
+    {
+        try
+        {
+            if (e.DataTransfer != null)
+            {
+                e.DataTransfer.DropEffect = "move";
+            }
+        }
+        catch {}
+        if (_isDraggingSelf) return;
     }
 }
