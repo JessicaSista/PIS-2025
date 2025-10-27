@@ -7,6 +7,8 @@
 @inject IStringLocalizer<Visualizations> Localizer
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JS
+@inject NavigationManager Nav
+
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using Blazored.LocalStorage
@@ -249,6 +251,13 @@
 
     private async Task OpenDialogCreateVisualization()
     {
+        // If we're returning from dataset creation flow, bypass chooser and open the creation card directly
+        var returnTo = GetQueryParam("returnTo");
+        if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+        {
+            await OpenDialogCreateVisualizationCard();
+            return;
+        }
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
 
         var dialogRef = await DialogService.ShowAsync<SelectVisualizationTypeDialog>(Localizer["NewVisualization"], options);
@@ -315,173 +324,18 @@
         }
     }
 
-    // private async Task RecargarVisualizacionesAsync()
-    // {
-    //     try
-    //     {
-    //         _isLoading = true;
-    //         StateHasChanged();
-
-    //         string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-    //         HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
-
-    //         if (response.IsSuccessStatusCode)
-    //         {
-    //             List<Visualizacion>? visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
-    //             if (visualizacionesFromApi != null)
-    //             {
-    //                 _visualizations = visualizacionesFromApi;
-    //                 _visualizationDataCache.Clear();
-    //                 await CargarDatosVisualizacionesAsync();
-    //             }
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
-    //     }
-    //     finally
-    //     {
-    //         _isLoading = false;
-    //         StateHasChanged();
-    //     }
-    // }
-
-    // private List<object> GetVisualizationData(int visualizationId)
-    // {
-    //     if (_visualizationDataCache.ContainsKey(visualizationId))
-    //     {
-    //         return _visualizationDataCache[visualizationId];
-    //     }
-    //     return new List<object>();
-    // }
-
-    // private async Task CargarDatosVisualizacionesAsync()
-    // {
-    //     foreach (var visualization in _visualizations)
-    //     {
-    //         var allData = new List<object>();
-
-    //         try
-    //         {
-    //             var dateFrom = visualization.FechaDesde;
-    //             var dateTo = visualization.FechaHasta;
-
-    //             foreach (var grupoDataset in visualization.GrupoDatasets)
-    //             {
-    //                 try
-    //                 {
-    //                     decimal multiplier = 1.0M;
-    //                     string color = "#00FFE7";
-
-    //                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
-    //                     {
-    //                         try
-    //                         {
-    //                             var designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
-    //                             if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
-    //                             {
-    //                                 multiplier = multProp.GetDecimal();
-    //                                 Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.Name}: {multiplier}");
-    //                             }
-    //                             if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
-    //                             {
-    //                                 color = colorProp.GetString() ?? "#00FFE7";
-    //                                 Console.WriteLine($"Color for dataset {grupoDataset.Dataset.Name}: {color}");
-    //                             }
-    //                         }
-    //                         catch {Console.WriteLine("fallo"); }
-    //                     }
-
-    //                     string token = await LocalStorage.GetItemAsync<string>("authToken");
-    //                     HttpResponseMessage? response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
-
-    //                     if (response.IsSuccessStatusCode)
-    //                     {
-    //                         var dataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
-
-    //                         if (dataset != null)
-    //                         {
-    //                             if (dataset.DatasetDevices.Any())
-    //                             {
-    //                                 foreach (var datasetDevice in dataset.DatasetDevices)
-    //                                 {
-    //                                     try
-    //                                     {
-    //                                         var sensorDataResponse = await Http.GetAsync(
-    //                                             $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token=" + token
-
-    //                                         );
-
-    //                                         if (sensorDataResponse.IsSuccessStatusCode)
-    //                                         {
-    //                                             var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
-
-    //                                             if (sensorData != null && sensorData.Any())
-    //                                             {
-    //                                                 foreach (var data in sensorData)
-    //                                                 {
-    //                                                     decimal numericValue;
-
-    //                                                     if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
-    //                                                     {
-    //                                                         numericValue = parsedDecimal;
-    //                                                     }
-    //                                                     else
-    //                                                     {
-    //                                                         numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-    //                                                     }
-
-    //                                                     allData.Add(new
-    //                                                     {
-    //                                                         Timestamp = data.Time,
-    //                                                         Value = numericValue * multiplier,
-    //                                                         Color = color,
-    //                                                         DatasetName = dataset.Name,
-    //                                                         SensorName = dataset.SensorName,
-    //                                                         DeviceId = datasetDevice.Id_device
-    //                                                     });
-    //                                                 }
-    //                                             }
-    //                                         }
-    //                                     }
-    //                                     catch (Exception ex)
-    //                                     {
-    //                                         Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
-    //                                     }
-    //                                 }
-    //                             }
-    //                             else
-    //                             {
-    //                                 Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 catch (Exception ex)
-    //                 {
-    //                     Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
-    //                 }
-    //             }
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine($"Error procesando visualización {visualization.IdVisualizacion}: {ex.Message}");
-    //         }
-
-    //         _visualizationDataCache[visualization.IdVisualizacion] = allData
-    //             .OrderBy(d => 
-    //             {
-    //                 var type = d.GetType();
-    //                 var timestampProp = type.GetProperty("Timestamp");
-    //                 return timestampProp?.GetValue(d);
-    //             })
-    //             .ToList();
-    //     }
-
-    //     StateHasChanged();
-    // }
+    private async Task OpenDialogCreateVisualizationCard()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var returnTo = GetQueryParam("returnTo");
+        var newDatasetIdStr = GetQueryParam("newDatasetId");
+        DialogParameters parameters = new DialogParameters
+        {
+            ["ReturnTo"] = returnTo,
+            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var nid) ? nid : (int?)null
+        };
+        await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
+    }
 
     private async Task CargarChartsAsync()
     {
@@ -535,4 +389,39 @@
         }
     }
 
+
+    private async Task HandleReturnToVisualizationCreateAsync()
+    {
+        try
+        {
+            var returnTo = GetQueryParam("returnTo");
+            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+            {
+                await OpenDialogCreateVisualizationCard();
+            }
+        }
+        catch { }
+    }
+
+    private static Dictionary<string, string> ParseQueryString(string? query)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(query)) return result;
+        var q = query.StartsWith("?") ? query.Substring(1) : query;
+        foreach (var pair in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(kv[0]);
+            var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : string.Empty;
+            result[key] = value;
+        }
+        return result;
+    }
+
+    private string? GetQueryParam(string key)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var dict = ParseQueryString(uri.Query);
+        return dict.TryGetValue(key, out var v) ? v : null;
+    }
 }
