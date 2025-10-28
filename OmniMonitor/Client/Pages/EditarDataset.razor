@@ -1181,7 +1181,7 @@ else if (selectedTipo == "Insight Monitor")
             }
             else
             {
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={GetEncodedToken()}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?token={GetEncodedToken()}");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -1904,7 +1904,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -1925,7 +1925,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var url = $"api/SondaEM/Category/alert?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {

@@ -1066,7 +1066,7 @@
             else
             {
                 // Si no hay filtros, mostrar todos los devices
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={GetEncodedToken()}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?token={GetEncodedToken()}");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -1475,7 +1475,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&token={GetEncodedToken()}";
             Console.WriteLine($"[DEBUG EM Events] Calling: {url}");
             var resp = await Http.GetAsync(url);
             Console.WriteLine($"[DEBUG EM Events] Response status: {resp.StatusCode}");
@@ -1504,7 +1504,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/alert?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
