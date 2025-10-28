@@ -198,7 +198,7 @@
             {
                 var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
                 var updateUrl =
-                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&JSON_config={Uri.EscapeDataString(jsonConfig)}&token={Uri.EscapeDataString(token)}";
+                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}&token={Uri.EscapeDataString(token)}";
 
                 var updateResponse = await Http.PutAsync(updateUrl, null);
                 if (updateResponse.IsSuccessStatusCode)
