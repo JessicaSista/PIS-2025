@@ -322,6 +322,16 @@
         {
             await JS.InvokeVoidAsync("equalizeCardHeights");
         }
+
+        if (firstRender)
+        {
+            var returnTo = GetQueryParam("returnTo");
+            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+            {
+                await Task.Yield();
+                await OpenDialogCreateVisualizationCard();
+            }
+        }
     }
 
     private async Task OpenDialogCreateVisualizationCard()
