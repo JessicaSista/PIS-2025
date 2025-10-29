@@ -67,7 +67,7 @@ namespace OmniMonitor.Server.Services
                 Name = request.Name,
                 Description = request.Description,
                 SourceModule = request.SourceModule,
-                DatasetId = request.DatasetId,
+                DatasetId = request.DatasetId.Value,
                 Unit = request.Unit,
                 Metric = request.Metric,
                 Multiplier = request.Multiplier,
@@ -179,14 +179,82 @@ namespace OmniMonitor.Server.Services
             if (!string.IsNullOrEmpty(username) && existingKpi.Username != username)
                 throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
 
-            if (request.Name != null) existingKpi.Name = request.Name;
-            if (request.Description != null) existingKpi.Description = request.Description;
-            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule;
-            if (request.DatasetId != null) existingKpi.DatasetId = request.DatasetId;
-            if (request.Unit != null) existingKpi.Unit = request.Unit;
-            if (request.Metric != null) existingKpi.Metric = request.Metric;
-            if (request.Multiplier != null) existingKpi.Multiplier = request.Multiplier;
-            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor;
+            if (request.Name != null && string.IsNullOrWhiteSpace(request.Name))
+                throw new ArgumentException("Name provisto pero vacío.", nameof(request.Name));
+
+            if (request.SourceModule != null && string.IsNullOrWhiteSpace(request.SourceModule))
+                throw new ArgumentException("SourceModule provisto pero vacío.", nameof(request.SourceModule));
+
+            if (request.DatasetId.HasValue && request.DatasetId.Value <= 0)
+                throw new ArgumentOutOfRangeException(nameof(request.DatasetId), "DatasetId debe ser mayor que 0.");
+
+            if (request.Unit != null && string.IsNullOrWhiteSpace(request.Unit))
+                throw new ArgumentException("Unit provisto pero vacío.", nameof(request.Unit));
+
+            if (request.Metric != null && string.IsNullOrWhiteSpace(request.Metric))
+                throw new ArgumentException("Metric provisto pero vacío.", nameof(request.Metric));
+
+            if (request.Multiplier.HasValue && request.Multiplier.Value <= 0)
+                throw new ArgumentOutOfRangeException(nameof(request.Multiplier), "Multiplier debe ser mayor que 0.");
+
+            if (request.DefaultColor != null && !IsValidHexColor(request.DefaultColor))
+                throw new ArgumentException("DefaultColor no es un color hex válido (ej. #RRGGBB).", nameof(request.DefaultColor));
+
+            if (request.ColorRanges != null)
+            {
+                try
+                {
+                    // validamos que sea una lista de ColorRange válida
+                    var ranges = JsonSerializer.Deserialize<List<ColorRange>>(request.ColorRanges);
+                    if (ranges == null)
+                        throw new ArgumentException("ColorRanges inválido o vacío.", nameof(request.ColorRanges));
+                }
+                catch (JsonException)
+                {
+                    throw new ArgumentException("ColorRanges no es JSON válido.", nameof(request.ColorRanges));
+                }
+            }
+
+            // Si la métrica (efectiva) requiere extraInfo (rango de fechas), validamos que exista y sea correcto.
+            var effectiveMetric = (request.Metric ?? existingKpi.Metric)?.Trim().ToLower();
+            if (!string.IsNullOrEmpty(effectiveMetric) &&
+                (effectiveMetric == "average" || effectiveMetric == "min" || effectiveMetric == "max" ||
+                 effectiveMetric == "minvalue" || effectiveMetric == "maxvalue"))
+            {
+                // extraInfo puede venir en el request (si se está actualizando) o ya existir en el KPI
+                var extraInfoToCheck = request.ExtraInfo ?? existingKpi.ExtraInfo;
+                if (string.IsNullOrWhiteSpace(extraInfoToCheck))
+                    throw new ArgumentException($"ExtraInfo requerida para la métrica '{effectiveMetric}'.", nameof(request.ExtraInfo));
+
+                try
+                {
+                    var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(extraInfoToCheck);
+                    if (extra == null || !extra.ContainsKey("dateFrom") || !extra.ContainsKey("dateTo"))
+                        throw new ArgumentException("ExtraInfo debe contener dateFrom y dateTo en formato ISO.", nameof(request.ExtraInfo));
+
+                    // intentamos parsear fechas
+                    DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                }
+                catch (JsonException)
+                {
+                    throw new ArgumentException("ExtraInfo no es JSON válido.", nameof(request.ExtraInfo));
+                }
+                catch (FormatException)
+                {
+                    throw new ArgumentException("Las fechas en ExtraInfo no tienen un formato válido (ISO).", nameof(request.ExtraInfo));
+                }
+            }
+
+            // --- APLICAR CAMBIOS (sólo si vinieron valores válidos; strings se trimmed)
+            if (request.Name != null) existingKpi.Name = request.Name.Trim();
+            if (request.Description != null) existingKpi.Description = request.Description.Trim();
+            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule.Trim();
+            if (request.DatasetId.HasValue) existingKpi.DatasetId = request.DatasetId.Value;
+            if (request.Unit != null) existingKpi.Unit = request.Unit.Trim();
+            if (request.Metric != null) existingKpi.Metric = request.Metric.Trim();
+            if (request.Multiplier.HasValue) existingKpi.Multiplier = request.Multiplier.Value;
+            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor.Trim();
             if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
             if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
 
@@ -195,6 +263,17 @@ namespace OmniMonitor.Server.Services
 
             return existingKpi;
         }
+
+        // Helper privado para validar formato hex (#RRGGBB o #RGB)
+        private bool IsValidHexColor(string color)
+        {
+            if (string.IsNullOrWhiteSpace(color)) return false;
+            color = color.Trim();
+            if (!color.StartsWith("#")) return false;
+            var hex = color.Substring(1);
+            return hex.Length == 3 || hex.Length == 6 && System.Text.RegularExpressions.Regex.IsMatch(hex, @"\A\b[0-9a-fA-F]+\b\Z");
+        }
+
 
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {

@@ -8,17 +8,19 @@
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using Blazored.LocalStorage
 @using System.Globalization
 @using Microsoft.Extensions.Localization
-
+@using System.Net;
+@using System.Net.Http.Json;
 <style>
     .tab-toggle-container {
         display: inline-flex;
-        border-radius: 9999px; 
+        border-radius: 9999px;
         overflow: hidden;
     }
 
@@ -35,7 +37,6 @@
             background-color: color-mix(in srgb, var(--card) 60%, transparent);
         }
 
-        /* Izquierdo: redondeado solo a la izquierda */
         .tab-toggle-btn.left {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
@@ -44,7 +45,6 @@
             border-bottom-left-radius: 9999px;
         }
 
-        /* Derecho: redondeado solo a la derecha */
         .tab-toggle-btn.right {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
@@ -52,7 +52,6 @@
             border-bottom-right-radius: 9999px;
         }
 
-        /* Estado activo */
         .tab-toggle-btn.active {
             background-color: color-mix(in srgb, var(--card) 80%, transparent);
             color: var(--text-primary);
@@ -125,8 +124,28 @@
                                     v.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
                     {
                         <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"KPI_{kpi.Id}")">
-                            <KpiViewer Kpi="kpi" />
+                            <div style="position: relative;">
+                                <!-- KPI Card -->
+                                <KpiViewer Kpi="kpi" />
+
+                                <!-- Menu -->
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                         AnchorOrigin="Origin.TopRight"
+                                         TransformOrigin="Origin.TopRight"
+                                         Class="position-absolute"
+                                         Style="position:absolute; top:8px; right:8px; z-index:10; background-color:transparent;">
+
+                                    <MudMenuItem OnClick="@(() => EditarKpi(kpi))">
+                                        @Localizer["Editar"]
+                                    </MudMenuItem>
+
+                                    <MudMenuItem OnClick="@(() => ConfirmEliminarKpi(kpi))">
+                                        @Localizer["Eliminar"]
+                                    </MudMenuItem>
+                                </MudMenu>
+                            </div>
                         </MudItem>
+
                     }
                 }
                 else
@@ -161,14 +180,14 @@
                     {
 
                         @* JsonDocument design = JsonDocument.Parse(visualization.JsonDesign); *@
-                        @* var datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name)); *@
+                        @* var KpiNames = string.Join(", ", visualization.GrupoKpis.Select(gd => gd.Kpi.Name)); *@
                         @* var chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
                         @* var visualizationData = GetVisualizationData(visualization.IdVisualizacion); *@
 
                         @* 
                     <MudItem xs="12" sm="12" md="6" lg="4">
                         <VisualizationCard visualizationTitle="@visualization.Nombre"
-                                           visualizationDatasets="@datasetNames"
+                                           visualizationKpis="@KpiNames"
                                            lastUpdated="@DateTime.Now.ToString("g")"
                                            dataCharts="@visualizationData"
                                            chartType="@chartType" />
@@ -179,7 +198,7 @@
                                 <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
 
-                                    <ChartViewer VisualizationId="@chartId" ShowIcon="true" ShowDatasetsInfo="true" ShowLastUpdatedInfo="true" />
+                                    <ChartViewer VisualizationId="@chartId" ShowIcon="true" ShowKpisInfo="true" ShowLastUpdatedInfo="true" />
 
 
                                 </MudCard>
@@ -203,7 +222,7 @@
 
     </MudTabs>
 
-   
+
 
 </MudContainer>
 
@@ -211,7 +230,7 @@
 @code {
     private string _searchQuery = "";
     private List<(int Id, string Nombre)> _charts = new();
-    private List<KpiResponse> _kpis = new(); 
+    private List<KpiResponse> _kpis = new();
     private bool _isLoadingKpis = false;
     private bool _isLoadingCharts = false;
     private int _activeTabIndex = 0;
@@ -243,7 +262,9 @@
         {
             _isLoadingKpis = true;
             string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/KPI/kpis?token={token}");
+            var url = $"api/KPI/kpis?token={Uri.EscapeDataString(token ?? "")}";
+
+            var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
                 var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
@@ -252,13 +273,21 @@
             else
             {
                 _kpis = new();
+                var txt = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error cargando KPIs: {response.StatusCode} - {txt}");
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            _kpis = new();
         }
         finally
         {
             _isLoadingKpis = false;
         }
     }
+
 
     private async Task CargarChartsAsync()
     {
@@ -346,11 +375,11 @@
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         var returnTo = GetQueryParam("returnTo");
-        var newDatasetIdStr = GetQueryParam("newDatasetId");
+        var newKpiIdStr = GetQueryParam("newKpiId");
         DialogParameters parameters = new DialogParameters
         {
             ["ReturnTo"] = returnTo,
-            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var nid) ? nid : (int?)null
+            ["NewKpiId"] = int.TryParse(newKpiIdStr, out var nid) ? nid : (int?)null
         };
         await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
 
@@ -393,4 +422,98 @@
         var dict = ParseQueryString(uri.Query);
         return dict.TryGetValue(key, out var v) ? v : null;
     }
+
+    private async Task EditarKpi(KpiResponse kpi)
+    {
+        Console.WriteLine($"Editar KPI: {kpi.Id} - {kpi.Name}");
+
+        var parameters = new DialogParameters
+        {
+            ["ExistingKpi"] = new KpiResponse
+            {
+                Id = kpi.Id,
+                Name = kpi.Name,
+                Description = kpi.Description,
+                ActualColor = kpi.ActualColor
+            }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialogRef = await DialogService.ShowAsync<EditKpiCard>(
+            "Editar KPI", parameters, options);
+
+        var result = await dialogRef.Result;
+
+
+        if (!result.Canceled)
+        {
+            await CargarKpisAsync();
+            StateHasChanged();
+        }
+
+    }
+
+
+
+    private async Task ConfirmEliminarKpi(KpiResponse kpi)
+    {
+        bool? confirmed = await DialogService.ShowMessageBox(
+            "Confirmar eliminación",
+            $"¿Seguro que querés eliminar el KPI \"{kpi.Name}\"?",
+            yesText: "Eliminar", cancelText: "Cancelar");
+
+        if (confirmed == true)
+        {
+            await EliminarKpiAsync(kpi.Id);
+        }
+    }
+
+    private async Task EliminarKpiAsync(int kpiId)
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            var url = $"api/KPI/{kpiId}?token={Uri.EscapeDataString(token ?? "")}";
+            var response = await Http.DeleteAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await CargarKpisAsync();
+                Snackbar.Add(Localizer["KpiDeletedSuccess"], Severity.Success);
+            }
+            else if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                Snackbar.Add(Localizer["NoPermission"], Severity.Error);
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                Snackbar.Add(Localizer["KpiNotFound"], Severity.Warning);
+                await CargarKpisAsync();
+            }
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var txt = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(txt, Severity.Error);
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(Localizer["KpiDeletedError"], Severity.Error);
+                Console.WriteLine($"Delete KPI error: {err}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["InternError"], Severity.Error);
+            Console.WriteLine(ex);
+        }
+    }
+
 }
