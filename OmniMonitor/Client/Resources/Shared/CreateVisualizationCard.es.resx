@@ -249,4 +249,10 @@
   <data name="DateRangeInvalid" xml:space="preserve">
     <value>El rango de fechas no es válido</value>
   </data>
+  <data name="EditKPI" xml:space="preserve">
+    <value>Editar KPI</value>
+  </data>
+  <data name="KpiUpdatedSuccess" xml:space="preserve">
+    <value>KPI actualizado correctamente.</value>
+  </data>
 </root>
