@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+
+using Microsoft.AspNetCore.Mvc;
 
 namespace OmniMonitor.Server.Controllers
 {
