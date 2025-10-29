@@ -43,6 +43,25 @@ namespace OmniMonitor.Server.Services
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new ArgumentException("KPI name is required.");
+
+            if (string.IsNullOrWhiteSpace(request.SourceModule))
+                throw new ArgumentException("SourceModule is required.");
+
+            if (request.DatasetId == null)
+                throw new ArgumentException("DatasetId is required.");
+
+            switch (request.SourceModule.ToUpperInvariant())
+            {
+                case "IM":
+                    await ValidateImKpiRequestAsync(request, username);
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
+            }
+
             var newKpi = new Kpi
             {
                 Name = request.Name,
@@ -62,6 +81,75 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
 
             return newKpi;
+        }
+
+        private async Task ValidateImKpiRequestAsync(KpiRequest request, string? username)
+        {
+            // 1. ExtraInfo required
+            if (string.IsNullOrEmpty(request.ExtraInfo))
+                throw new ArgumentException("ExtraInfo is required for IM KPIs.");
+
+            // 2. Parse dates (accept both dateFrom/dateTo and startDate/endDate)
+            DateTime dateFrom, dateTo;
+            try
+            {
+                var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(request.ExtraInfo);
+                if (extra == null)
+                    throw new FormatException("ExtraInfo could not be parsed.");
+
+                if (extra.ContainsKey("dateFrom") && extra.ContainsKey("dateTo"))
+                {
+                    dateFrom = DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    dateTo = DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                }
+                else
+                {
+                    throw new ArgumentException("ExtraInfo must contain dateFrom/dateTo or startDate/endDate.");
+                }
+            }
+            catch (Exception ex) when (ex is JsonException || ex is FormatException || ex is ArgumentException)
+            {
+                throw new ArgumentException($"Invalid ExtraInfo date format: {ex.Message}", ex);
+            }
+
+            // 2.1 Validate ordering: dateFrom must be <= dateTo
+            if (dateFrom > dateTo)
+                throw new ArgumentException("Invalid date range: 'dateFrom' must be earlier than or equal to 'dateTo'.");
+
+            // 3. Validate dataset exists (assumes DatasetIM is a DbSet in your context)
+            var dataset = await _context.Set<DatasetIM>().FindAsync(request.DatasetId);
+            if (dataset == null)
+                throw new InvalidOperationException($"Dataset with ID {request.DatasetId} not found.");
+
+            // 4. Validate source and devices
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
+            if (source == null)
+                throw new InvalidOperationException($"Source with ID {dataset.Id_Source} not found.");
+
+            if (source.Devices == null || source.Devices.Count == 0)
+                throw new InvalidOperationException($"No devices found for source {dataset.Id_Source}.");
+
+            // 5. Validate sensor presence
+            bool sensorFound = false;
+            foreach (var deviceSummary in source.Devices)
+            {
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
+                if (device?.Sensors == null) continue;
+                if (device.Sensors.Any(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    sensorFound = true;
+                    break;
+                }
+            }
+
+            if (!sensorFound)
+                throw new InvalidOperationException($"Sensor '{dataset.SensorName}' not found in source {dataset.Id_Source}.");
+
+            // 6. Validate metric supported for IM
+            var metric = request.Metric?.ToLowerInvariant();
+            var supportedMetrics = new[] { "lastvalue", "average", "min", "max" };
+            if (!supportedMetrics.Any(m => string.Equals(m, metric, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"Unsupported metric '{request.Metric}' for IM KPIs.");
         }
 
         public async Task DeleteKpiAsync(int kpiId, string? username = null)

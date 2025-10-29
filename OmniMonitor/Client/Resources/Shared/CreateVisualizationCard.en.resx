@@ -246,4 +246,7 @@
   <data name="ServerConnectionError" xml:space="preserve">
     <value>Error connecting to server: {0}</value>
   </data>
+  <data name="DateRangeInvalid" xml:space="preserve">
+    <value>Date range is invalid</value>
+  </data>
 </root>
