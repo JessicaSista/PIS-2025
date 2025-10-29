@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Shared.Dtos.AM;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -268,6 +269,92 @@ public class KPIController : ControllerBase
         };
 
         return Ok(response);
+    }
+
+    // Devuelve los tipos de campos posibles para un KPI según el módulo
+    [HttpGet("field-types")]
+    [ProducesResponseType(typeof(List<string>), 200)]
+    [ProducesResponseType(400)]
+    public ActionResult<List<string>> GetKpiFieldTypes([FromQuery] string modulo, [FromQuery] int choice)
+    {
+        if (string.IsNullOrWhiteSpace(modulo))
+            return BadRequest("Debe especificar el módulo.");
+
+        List<string> fieldTypes = new List<string>();
+        switch (modulo.ToLower())
+        {
+            case "am":
+                if (choice == 1)
+                    fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMDTO).GetProperties().Select(p => p.Name).ToList();
+                else
+                    fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMEventsDTO).GetProperties().Select(p => p.Name).ToList();
+                break;
+            case "em":
+                // Puedes elegir el DTO según el tipo de dato que quieras mostrar
+                if (choice ==1)
+                    fieldTypes = typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO).GetProperties().Select(p => p.Name).ToList();
+                else if (choice == 2)  
+                        fieldTypes.AddRange(typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO).GetProperties().Select(p => p.Name));
+                    else
+                        fieldTypes.AddRange(typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO).GetProperties().Select(p => p.Name));
+                
+                fieldTypes = fieldTypes.Distinct().ToList();
+                break;
+            case "um":
+                if (choice == 1)
+                    fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventUMDTO).GetProperties().Select(p => p.Name).ToList();
+                else
+                    fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO).GetProperties().Select(p => p.Name).ToList();
+                break;
+            default:
+                fieldTypes.Add("Tipo de módulo no soportado");
+                break;
+        }
+        return Ok(fieldTypes);
+    }
+
+    [HttpGet("field-values")]
+    [ProducesResponseType(typeof(List<string>), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<string>>> GetFieldValues(
+        [FromQuery] int datasetId, 
+        [FromQuery] string modulo, 
+        [FromQuery] string campo,
+        [FromQuery] int choice,
+        [FromQuery] string token)
+    {
+        try
+        {
+            if (datasetId <= 0)
+                return BadRequest("Debe especificar un ID de dataset válido.");
+
+            if (string.IsNullOrWhiteSpace(modulo))
+                return BadRequest("Debe especificar el módulo.");
+
+            if (string.IsNullOrWhiteSpace(campo))
+                return BadRequest("Debe especificar el campo.");
+
+            // Validar token y obtener usuario
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (string.IsNullOrEmpty(username))
+                return BadRequest("Token inválido.");
+
+            List<string> fieldValues = await _kpiService.GetFieldValuesAsync(datasetId, modulo, campo, choice, username);
+
+            if (fieldValues == null || !fieldValues.Any())
+                return Ok(new List<string>()); // Retornar lista vacía en lugar de NotFound
+
+            return Ok(fieldValues);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
     }
 }
 

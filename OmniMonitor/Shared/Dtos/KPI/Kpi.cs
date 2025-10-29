@@ -40,8 +40,14 @@ namespace OmniMonitor.Shared.Dtos
         [JsonPropertyName("username")]
         public string? Username { get; set; }
 
+        [JsonPropertyName("atributo")]   
+        public string Atributo { get; set; }
+
         [JsonPropertyName("extraInfo")]
         public string? ExtraInfo { get; set; }
+
+        [JsonPropertyName("type")]
+        public int? Type { get; set; }  
 
 
     }

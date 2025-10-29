@@ -4,6 +4,8 @@ using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OmniMonitor.Shared.Dtos.AM;
+using OmniMonitor.Shared.Dtos.EM;
 
 namespace OmniMonitor.Server.Services
 {
@@ -16,19 +18,25 @@ namespace OmniMonitor.Server.Services
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
         Task DeleteKpiAsync(int kpiId, string? username = null);
         Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null);
+    Task<List<string>> GetFieldValuesAsync(int datasetId, string modulo, string campo, int choice, string username);
 
     }
 
     public class KpiService : IKpiService
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IDatasetService _datasetService;
-        private readonly ISondaEMService _sondaEMService;
-        private readonly ISondaIMService _sondaIMService;
-        private readonly ISondaAuthService _sondaAuthService;
-        private readonly IKpiAMService _kpiAMService;
+    private readonly ApplicationDbContext _context;
+    private readonly IDatasetService _datasetService;
+    private readonly ISondaEMService _sondaEMService;
+    private readonly ISondaIMService _sondaIMService;
+    private readonly ISondaAuthService _sondaAuthService;
+    private readonly IKpiAMService _kpiAMService;
+    private readonly IDatasetAmService _datasetAmService;
+    private readonly IDatasetUMService _datasetUMService;
+    private readonly ISondaUMService _sondaUMService;
+    private readonly ISondaAMService _sondaAMService;
+    private readonly IDatasetEMService _datasetEmService;
 
-        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, IKpiAMService kpiAMService)
+        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, IKpiAMService kpiAMService, IDatasetAmService datasetAmService, IDatasetUMService datasetUMService, ISondaUMService sondaUMService, ISondaAMService sondaAMService, IDatasetEMService datasetEmService)
         {
             _context = context;
             _datasetService = datasetService;
@@ -36,6 +44,11 @@ namespace OmniMonitor.Server.Services
             _sondaIMService = sondaIMService;
             _kpiAMService = kpiAMService;
             _sondaAuthService = sondaAuthService;
+            _datasetAmService = datasetAmService;
+            _datasetUMService = datasetUMService;
+            _sondaUMService = sondaUMService;
+            _sondaAMService = sondaAMService;
+            _datasetEmService = datasetEmService;
         }
 
         public async Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null)
@@ -55,7 +68,9 @@ namespace OmniMonitor.Server.Services
                 DefaultColor = request.DefaultColor,
                 ColorRanges = request.ColorRanges,
                 ExtraInfo = request.ExtraInfo,
+                Atributo = request.Atributo,
                 Username = username ?? string.Empty,
+                Type = request.Type
             };
 
             _context.Kpi.Add(newKpi);
@@ -127,7 +142,7 @@ namespace OmniMonitor.Server.Services
             switch (kpi.SourceModule.ToUpper())
             {
                 case "AM":
-                    response = await _kpiAMService.CalculateAmKpiAsync(kpi, username);
+                    response = await CalculateAmKpiAsync(kpi, username);
                     break;
 
                 case "EM":
@@ -216,7 +231,51 @@ namespace OmniMonitor.Server.Services
         // Funciones privadas por módulo
         private async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username)
         {
-            // TODO: lógica de cálculo para AM
+            // Lógica para AM según Type
+            var dataset = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
+            if (dataset == null)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Dataset AM no encontrado"
+                };
+            }
+            KpiResponse? response;
+            if (kpi.Type == 1)
+            {
+                // Buscar assets relacionados al dataset
+                var reducedAssets = await _datasetAmService.GetReducedAssetsByDatasetIdAsync(kpi.DatasetId, username);
+                response = await _kpiAMService.CalculateAmKpiAsync(kpi, username, reducedAssets);
+            }
+            else if (kpi.Type == 2)
+            {
+                // Buscar event task instances relacionados al dataset
+                /*var eventTasks = new List<EventTaskInstanceDto>();
+                if (dataset.Grupo_Event_Task_Instance != null)
+                {
+                    foreach (var etiRef in dataset.Grupo_Event_Task_Instance)
+                    {
+                        var eventTask = await _sondaAMService.GetEventTaskInstanceById(etiRef.Id_Event_Task_Instance, username);
+                        if (eventTask != null)
+                            eventTasks.Add(eventTask);
+                    }
+                }
+                // Imprimir la lista enviada
+                Console.WriteLine("Lista de EventTaskInstanceDto enviada a CalculateAmKpiAsync:");
+                foreach (var et in eventTasks)
+                {
+                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(et));
+                }*/
+                var eventTasks = await _datasetAmService.GetReducedEventsByDatasetIdAsync(kpi.DatasetId, username);
+                var result = await _kpiAMService.CalculateAmKpiAsync(kpi, username, eventTasks);
+                // Imprimir el resultado devuelto
+                Console.WriteLine("Resultado devuelto por CalculateAmKpiAsync:");
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
+                return result;
+            }
+            // Otros tipos o default
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -227,7 +286,87 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateEmKpiAsync(Kpi kpi, string username)
         {
-            // TODO: lógica de cálculo para EM
+            // Lógica para EM según Type
+            var dataset = await _datasetEmService.GetDatasetEMByIdAsync(kpi.DatasetId, username);
+            if (dataset == null)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Dataset EM no encontrado"
+                };
+            }
+
+            if (kpi.Type == 1)
+            {
+                
+                var alertIds = datasetEM.DatasetAlerts.Select(a => a.Id_alert).ToList();
+                var alertDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO>();
+                foreach (var id in alertIds)
+                        {
+                            var alert = await _sondaEMService.GetAlertById(id, username);
+                            if (alert != null)
+                            {
+                                alertDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO
+                                {
+                                    Nombre = alert.AlertName,
+                                    Fuente = alert.SourceId.ToString(),
+                                    Estado = alert.AlertState,
+                                    SourceAddress = alert.SourceAddress
+                                });
+                            }
+                        }
+
+
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, alertDtos);
+            }
+            else if (kpi.Type == 2)
+            {
+                // Buscar alertas relacionadas al dataset
+                var eventIds = datasetEM.DatasetEvents.Select(e => e.Id_event).ToList();
+                        var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
+                        foreach (var id in eventIds)
+                        {
+                            var evento = await _sondaEMService.GetEventById(id, username);
+                            if (evento != null)
+                            {
+                                eventDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO
+                                {
+                                    Nombre = evento.Name,
+                                    Origen = evento.Origin,
+                                    Estado = evento.State,
+                                    Direccion = evento.Address?.DisplayName
+                                });
+                            }
+                        }
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, eventDtos);
+            }
+            else if (kpi.Type == 3)
+            {
+                // Buscar extensiones relacionadas al dataset
+                var extIds = datasetEM.DatasetExtensions.Select(x => x.Id_extension).ToList();
+                        var extDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO>();
+                        foreach (var id in extIds)
+                        {
+                            var extension = await _sondaEMService.GetExtensionById(id, username);
+                            if (extension != null)
+                            {
+                                extDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO
+                                {
+                                    Estado = extension.State,
+                                    TakenBy = extension.TakenBy?.Name,
+                                    CreatedBy = extension.CreatedBy?.Name,
+                                    WorkZone = extension.WorkZoneName,
+                                    Nombre = extension.EventName,
+                                    Origen = extension.EventOrigin,
+                                    Direccion = extension.Address?.DisplayName
+                                });
+                            }
+                        }
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, extDtos);
+            }
+            // Otros tipos o default
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -239,7 +378,77 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateUmKpiAsync(Kpi kpi, string username)
         {
-            // TODO: lógica de cálculo para UM
+            // Lógica para UM según Type
+            var datasetUM = await _datasetUMService.GetDatasetUMByIdAsync(kpi.DatasetId, username);
+            if (datasetUM == null)
+            {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    ActualColor = kpi.DefaultColor,
+                    Value = "Dataset UM no encontrado"
+                };
+            }
+            if (kpi.Type == 1)
+            {
+                // Buscar eventos por los IDs del dataset
+                var eventIds = datasetUM.DatasetEvents.Select(e => e.Id_event).ToList();
+                        var eventDtos = new List<OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO>();
+                        foreach (var id in eventIds)
+                        {
+                            var evento = await _sondaUMService.GetEventById(id, username);
+                            if (evento != null)
+                            {
+                                eventDtos.Add(new OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO
+                                {
+                                    Nombre = evento.Name,
+                                    Descripcion = evento.Description,
+                                    Tipo = evento.Type?.Name,
+                                    Fecha = evento.Date?.ToString("yyyy-MM-dd HH:mm:ss"),
+                                    Aprobacion = evento.ApprovalState == "Aprobado"
+                                });
+                            }
+                        }
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, eventDtos);
+            }
+            else if (kpi.Type == 2)
+            {
+                // Buscar noticias por los IDs del dataset
+                var newsIds = datasetUM.DatasetNews.Select(n => n.Id_news).ToList();
+                        var newsDtos = new List<OmniMonitor.Shared.Dtos.UM.DatasetReducedNewsUMDTO>();
+                        foreach (var id in newsIds)
+                        {
+                            var news = await _sondaUMService.GetNewsById(id, username);
+                            if (news != null)
+                            {
+                                if (campo == "Categoria" && news.Categories != null)
+                                {
+                                    foreach (var category in news.Categories)
+                                    {
+                                        newsDtos.Add(new OmniMonitor.Shared.Dtos.UM.DatasetReducedNewsUMDTO
+                                        {
+                                            Titulo = news.Title,
+                                            Resumen = news.Summary,
+                                            Descripcion = news.Description,
+                                            Categoria = category.Name
+                                        });
+                                    }
+                                }
+                                else
+                                {
+                                    newsDtos.Add(new OmniMonitor.Shared.Dtos.UM.DatasetReducedNewsUMDTO
+                                    {
+                                        Titulo = news.Title,
+                                        Resumen = news.Summary,
+                                        Descripcion = news.Description,
+                                        Categoria = null
+                                    });
+                                }
+                            }
+                        }
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, newsDtos);
+            }
+            // Otros tipos o default
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -876,6 +1085,220 @@ namespace OmniMonitor.Server.Services
             return defaultColor;
         }
 
+        public async Task<List<string>> GetFieldValuesAsync(int datasetId, string modulo, string campo, int choice, string username)
+        {
+            if (datasetId <= 0)
+                throw new ArgumentException("El ID del dataset debe ser mayor que 0.");
+
+            if (string.IsNullOrWhiteSpace(modulo))
+                throw new ArgumentException("El módulo no puede estar vacío.");
+
+            if (string.IsNullOrWhiteSpace(campo))
+                throw new ArgumentException("El campo no puede estar vacío.");
+
+            List<string> fieldValues = new List<string>();
+
+            switch (modulo.ToUpperInvariant())
+            {
+                case "AM":
+                    var datasetAM = await _context.DatasetAM.FirstOrDefaultAsync(d => d.DatasetId == datasetId);
+                    if (datasetAM == null)
+                        throw new ArgumentException($"No se encontró un dataset AM con ID {datasetId}.");
+
+                    if (choice == 1) // Assets
+                    {
+                        var assetsData = await _datasetAmService.GetReducedAssetsByDatasetIdAsync(datasetId, username);
+                        fieldValues = await _kpiAMService.GetFieldValuesAsync(assetsData, campo);
+                    }
+                    else if (choice == 2) // Events
+                    {
+                        var eventsData = await _datasetAmService.GetReducedEventsByDatasetIdAsync(datasetId, username);
+                        fieldValues = await _kpiAMService.GetFieldValuesAsync(eventsData, campo);
+                    }
+                    break;
+
+                case "EM":
+                    var datasetEM = await _datasetEmService.GetDatasetEMByIdAsync(datasetId, username);
+                    if (datasetEM == null)
+                        throw new ArgumentException($"No se encontró un dataset EM con ID {datasetId}.");
+
+                    // Alerts
+                    if (choice == 1 && datasetEM.DatasetAlerts != null && datasetEM.DatasetAlerts.Any())
+                    {
+                        var alertIds = datasetEM.DatasetAlerts.Select(a => a.Id_alert).ToList();
+                        var alertDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO>();
+                        foreach (var id in alertIds)
+                        {
+                            var alert = await _sondaEMService.GetAlertById(id, username);
+                            if (alert != null)
+                            {
+                                alertDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO
+                                {
+                                    Nombre = alert.AlertName,
+                                    Fuente = alert.SourceId.ToString(),
+                                    Estado = alert.AlertState,
+                                    SourceAddress = alert.SourceAddress
+                                });
+                            }
+                        }
+                        fieldValues = ExtractFieldValuesFromList(alertDtos, campo);
+                    }
+                    // Events
+                    else if (choice == 2 && datasetEM.DatasetEvents != null && datasetEM.DatasetEvents.Any())
+                    {
+                        var eventIds = datasetEM.DatasetEvents.Select(e => e.Id_event).ToList();
+                        var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
+                        foreach (var id in eventIds)
+                        {
+                            var evento = await _sondaEMService.GetEventById(id, username);
+                            if (evento != null)
+                            {
+                                eventDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO
+                                {
+                                    Nombre = evento.Name,
+                                    Origen = evento.Origin,
+                                    Estado = evento.State,
+                                    Direccion = evento.Address?.DisplayName
+                                });
+                            }
+                        }
+                        fieldValues = ExtractFieldValuesFromList(eventDtos, campo);
+                    }
+                    // Extensions
+                    else if (choice == 3 && datasetEM.DatasetExtensions != null && datasetEM.DatasetExtensions.Any())
+                    {
+                        var extIds = datasetEM.DatasetExtensions.Select(x => x.Id_extension).ToList();
+                        var extDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO>();
+                        foreach (var id in extIds)
+                        {
+                            var extension = await _sondaEMService.GetExtensionById(id, username);
+                            if (extension != null)
+                            {
+                                extDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO
+                                {
+                                    Estado = extension.State,
+                                    TakenBy = extension.TakenBy?.Name,
+                                    CreatedBy = extension.CreatedBy?.Name,
+                                    WorkZone = extension.WorkZoneName,
+                                    Nombre = extension.EventName,
+                                    Origen = extension.EventOrigin,
+                                    Direccion = extension.Address?.DisplayName
+                                });
+                            }
+                        }
+                        fieldValues = ExtractFieldValuesFromList(extDtos, campo);
+                    }
+                    else
+                    {
+                        fieldValues = ExtractFieldValuesFromList(new List<DatasetEM> { datasetEM }, campo);
+                    }
+                    break;
+
+                case "UM":
+                    var datasetUM = await _datasetUMService.GetDatasetUMByIdAsync(datasetId, username);
+                    if (datasetUM == null)
+                        throw new ArgumentException($"No se encontró un dataset UM con ID {datasetId}.");
+
+                    // Events
+                    if (choice == 1 && datasetUM.DatasetEvents != null && datasetUM.DatasetEvents.Any())
+                    {
+                        var eventIds = datasetUM.DatasetEvents.Select(e => e.Id_event).ToList();
+                        var eventDtos = new List<OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO>();
+                        foreach (var id in eventIds)
+                        {
+                            var evento = await _sondaUMService.GetEventById(id, username);
+                            if (evento != null)
+                            {
+                                eventDtos.Add(new OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO
+                                {
+                                    Nombre = evento.Name,
+                                    Descripcion = evento.Description,
+                                    Tipo = evento.Type?.Name,
+                                    Fecha = evento.Date?.ToString("yyyy-MM-dd HH:mm:ss"),
+                                    Aprobacion = evento.ApprovalState == "Aprobado"
+                                });
+                            }
+                        }
+                        fieldValues = ExtractFieldValuesFromList(eventDtos, campo);
+                    }
+                    // News
+                    else if (choice == 2 && datasetUM.DatasetNews != null && datasetUM.DatasetNews.Any())
+                    {
+                        var newsIds = datasetUM.DatasetNews.Select(n => n.Id_news).ToList();
+                        var newsDtos = new List<OmniMonitor.Shared.Dtos.UM.DatasetReducedNewsUMDTO>();
+                        foreach (var id in newsIds)
+                        {
+                            var news = await _sondaUMService.GetNewsById(id, username);
+                            if (news != null)
+                            {
+                                if (campo == "Categoria" && news.Categories != null)
+                                {
+                                    foreach (var category in news.Categories)
+                                    {
+                                        newsDtos.Add(new OmniMonitor.Shared.Dtos.UM.DatasetReducedNewsUMDTO
+                                        {
+                                            Titulo = news.Title,
+                                            Resumen = news.Summary,
+                                            Descripcion = news.Description,
+                                            Categoria = category.Name
+                                        });
+                                    }
+                                }
+                                else
+                                {
+                                    newsDtos.Add(new OmniMonitor.Shared.Dtos.UM.DatasetReducedNewsUMDTO
+                                    {
+                                        Titulo = news.Title,
+                                        Resumen = news.Summary,
+                                        Descripcion = news.Description,
+                                        Categoria = null
+                                    });
+                                }
+                            }
+                        }
+                        fieldValues = ExtractFieldValuesFromList(newsDtos, campo);
+                    }
+                    else
+                    {
+                        fieldValues = ExtractFieldValuesFromList(new List<DatasetUM> { datasetUM }, campo);
+                    }
+                    break;
+                
+                case "IM":
+                    throw new NotSupportedException("El módulo IM no soporta este tipo de consulta.");
+
+                default:
+                    throw new ArgumentException($"Módulo '{modulo}' no soportado.");
+            }
+
+            return fieldValues.Distinct().OrderBy(v => v).ToList();
+        }
+
+        private List<string> ExtractFieldValuesFromList<T>(List<T> dataList, string fieldName)
+        {
+            var values = new List<string>();
+
+            if (dataList == null || !dataList.Any())
+                return values;
+
+            var type = typeof(T);
+            var property = type.GetProperty(fieldName);
+
+            if (property == null)
+                throw new ArgumentException($"El campo '{fieldName}' no existe en el tipo {type.Name}.");
+
+            foreach (var item in dataList)
+            {
+                var value = property.GetValue(item);
+                if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
+                {
+                    values.Add(value.ToString()!);
+                }
+            }
+
+            return values;
+        }
+
         
         public class ColorRange
         {
@@ -891,6 +1314,6 @@ namespace OmniMonitor.Server.Services
 
     }
 
+        }
 
 
-}

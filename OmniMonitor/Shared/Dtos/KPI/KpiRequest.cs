@@ -34,8 +34,14 @@ namespace OmniMonitor.Shared.Dtos
         [JsonPropertyName("colorRanges")]
         public string? ColorRanges { get; set; }
 
+        [JsonPropertyName("atributo")]
+        public string? Atributo { get; set; }
+
         [JsonPropertyName("extraInfo")]
         public string? ExtraInfo { get; set; }
+
+    [JsonPropertyName("type")]
+    public int? Type { get; set; }
 
     }
 
