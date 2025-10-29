@@ -107,7 +107,7 @@
 
         <MudTabPanel Text="@Localizer["KPIs"]">
             <MudGrid Spacing="4">
-                @if (_isLoading)
+                @if (_isLoadingKpis)
                 {
                     @for (int i = 0; i < 3; i++)
                     {
@@ -120,17 +120,12 @@
                 }
                 else if (_kpis != null && _kpis.Any())
                 {
-                    @foreach (var (kpiId, kpiName) in _kpis
+                    @foreach (var kpi in _kpis
                                     .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
-                                    v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
+                                    v.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
                     {
-                        <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"V{kpiId}_2")">
-                            @* <KpiCard Title="@kpi.Name"
-                                 Value="@RenderKpiValue(kpi.Value)"
-                                 Description="@kpi.Description"
-                                 LastUpdated="@DateTime.Now.ToString("g")"
-                                 Color="@kpi.ActualColor" /> *@
-                            <KpiViewer KpiId="kpiId" />
+                        <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"KPI_{kpi.Id}")">
+                            <KpiViewer Kpi="kpi" />
                         </MudItem>
                     }
                 }
@@ -147,7 +142,7 @@
 
         <MudTabPanel Text="@Localizer["Gráficas"]">
             <MudGrid Spacing="4">
-                @if (_isLoading)
+                @if (_isLoadingCharts)
                 {
                     @for (int i = 0; i < 3; i++)
                     {
@@ -214,78 +209,91 @@
 
 
 @code {
-    private string _searchQuery { get; set; } = "";
-    // private List<(int,string)> _visualizations = new();
+    private string _searchQuery = "";
     private List<(int Id, string Nombre)> _charts = new();
-    private List<(int Id, string Nombre)> _kpis = new();
-    // private List<KpiResponse> _kpis = new();
-    private bool _isLoading = true;
-    private string _authenticatedUser = string.Empty;
-    private Dictionary<int, List<object>> _visualizationDataCache = new();
-    private int _activeTabIndex = 0; // 0: KPI, 1: Chart
-
-
-
-
+    private List<KpiResponse> _kpis = new(); 
+    private bool _isLoadingKpis = false;
+    private bool _isLoadingCharts = false;
+    private int _activeTabIndex = 0;
 
     protected override async Task OnInitializedAsync()
     {
+        _isLoadingKpis = _isLoadingCharts = true;
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync()
+    {
         try
         {
-            await CargarKpisAsync();
-
-            await CargarChartsAsync();
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
+            _isLoadingKpis = _isLoadingCharts = true;
+            await Task.WhenAll(CargarKpisAsync(), CargarChartsAsync());
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingKpis = _isLoadingCharts = false;
+            StateHasChanged();
         }
     }
 
 
+    private async Task CargarKpisAsync()
+    {
+        try
+        {
+            _isLoadingKpis = true;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.GetAsync($"api/KPI/kpis?token={token}");
+            if (response.IsSuccessStatusCode)
+            {
+                var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
+                _kpis = kpisFromApi ?? new();
+            }
+            else
+            {
+                _kpis = new();
+            }
+        }
+        finally
+        {
+            _isLoadingKpis = false;
+        }
+    }
+
+    private async Task CargarChartsAsync()
+    {
+        try
+        {
+            _isLoadingCharts = true;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token={token}");
+            if (response.IsSuccessStatusCode)
+            {
+                var chartsFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
+                _charts = chartsFromApi?.Select(v => (v.IdVisualizacion, v.Nombre)).ToList() ?? new();
+            }
+        }
+        finally
+        {
+            _isLoadingCharts = false;
+        }
+    }
 
     private async Task OpenDialogCreateVisualization()
     {
-        // If we're returning from dataset creation flow, bypass chooser and open the creation card directly
-        var returnTo = GetQueryParam("returnTo");
-        if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
-        {
-            await OpenDialogCreateVisualizationCard();
-            return;
-        }
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-
         var dialogRef = await DialogService.ShowAsync<SelectVisualizationTypeDialog>(Localizer["NewVisualization"], options);
-
         var result = await dialogRef.Result;
 
-        if (result is not null && result.Data is int intValue)
+        if (result?.Data is int type)
         {
-            if (intValue == 1)
-            {
+            if (type == 1)
                 await CargarChartsAsync();
-                Console.WriteLine("Gráficas cargadas después de crear una nueva.");
-                StateHasChanged();
-            }
-            else if (intValue == 2)
-            {
+            else if (type == 2)
                 await CargarKpisAsync();
-                Console.WriteLine("KPI cargados después de crear uno nuevo.");
-                StateHasChanged();
-            }
-            else {
-                Console.WriteLine("Tipo de visualización desconocido seleccionado.");
-            }
+
+            StateHasChanged();
         }
-        else {
-            Console.WriteLine("null or non int.");
-        }
-        
     }
 
 
@@ -345,58 +353,9 @@
             ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var nid) ? nid : (int?)null
         };
         await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
-    }
 
-    private async Task CargarChartsAsync()
-    {
-        AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
-        string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-        HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
-
-        if (response.IsSuccessStatusCode)
-        {
-            List<Visualizacion>? visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
-            _charts.Clear();
-            if (visualizacionesFromApi != null)
-            {
-                foreach (var visualization in visualizacionesFromApi)
-                {
-                    _charts.Add((visualization.IdVisualizacion,visualization.Nombre));
-                }
-            }
-        }
-    }
-
-
-    private async Task CargarKpisAsync()
-    {
-        try
-        {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/KPI/kpis?token={token}");
-            if (response.IsSuccessStatusCode)
-            {
-                List<KpiResponse>? kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
-                _kpis.Clear();
-                if (kpisFromApi != null)
-                {
-                    foreach (var kpi in kpisFromApi)
-                    {
-                        _kpis.Add((kpi.Id, kpi.Name));
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("Error cargando KPIs: " + await response.Content.ReadAsStringAsync());
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error cargando KPIs: {ex.Message}");
-        }
+        await CargarKpisAsync();
+        StateHasChanged();
     }
 
 
