@@ -1,351 +1,396 @@
 using Microsoft.AspNetCore.Mvc;
+
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
-using System;
-using System.Threading.Tasks;
 
-
-[ApiController]
-[Route("api/[controller]")]
-public class SondaAMController : ControllerBase
+namespace OmniMonitor.Server.Controllers
 {
-    private readonly ISondaAMService _sondaAMService;
-    private readonly ISondaAuthService _sondaAuthService;
-    public SondaAMController(ISondaAMService sondaAMService, ISondaAuthService sondaAuthService)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class SondaAMController : ControllerBase
     {
-        _sondaAMService = sondaAMService;
-        _sondaAuthService = sondaAuthService;
-    }
-    
-    
-    [HttpGet("asset/assetsBasicData")]
-    [ProducesResponseType(typeof(List<AssetDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<AssetDto>>> GetAssetsBasicData(
-        [FromQuery] int? page,
-        [FromQuery] string? queryString,
-        [FromQuery] int? pageSize,
-        [FromQuery] int? bundleId,
-        [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var assets = await _sondaAMService.GetAssetsBasicData(page, queryString, pageSize, bundleId, username);
-            if (assets == null || assets.Count == 0) return NotFound("No se encontraron assets básicos.");
-            return Ok(assets);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-    
+        private readonly ISondaAMService _sondaAMService;
+        private readonly ISondaAuthService _sondaAuthService;
 
-    [HttpGet("asset/assets")]
-    [ProducesResponseType(typeof(List<AssetDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<AssetDto>>> GetAssets(
-        [FromQuery] int? page,
-        [FromQuery] string? queryString,
-        [FromQuery] string? bundles,
-        [FromQuery] int? assetTypeId,
-        [FromQuery] string? sort,
-        [FromQuery] int? pageSize,
-        [FromQuery] string token)
-    {
-        try
+        public SondaAMController(ISondaAMService sondaAMService, ISondaAuthService sondaAuthService)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var assets = await _sondaAMService.GetAssets(page, queryString, bundles, assetTypeId, sort, pageSize, username);
-            if (assets == null || assets.Count == 0) return NotFound("No se encontraron assets.");
-            return Ok(assets);
+            _sondaAMService = sondaAMService;
+            _sondaAuthService = sondaAuthService;
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
 
-    [HttpGet("stock/{stockId}")]
-    [ProducesResponseType(typeof(StockDto), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<StockDto>> GetStockById(int stockId, [FromQuery] string token)
-    {
-        try
+        [HttpGet("asset/assetsBasicData")]
+        [ProducesResponseType(typeof(List<AssetDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<AssetDto>>> GetAssetsBasicData(
+            [FromQuery] int? page,
+            [FromQuery] string? queryString,
+            [FromQuery] int? pageSize,
+            [FromQuery] int? bundleId,
+            [FromQuery] string token)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var stock = await _sondaAMService.GetStockById(stockId, username);
-            if (stock == null) return NotFound($"No se encontró el stock {stockId}");
-            return Ok(stock);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<AssetDto> assets = await _sondaAMService.GetAssetsBasicData(page, queryString, pageSize, bundleId, username);
+                if (assets == null || assets.Count == 0)
+                {
+                    return NotFound("No se encontraron assets básicos.");
+                }
 
-    [HttpGet("bundle")]
-    [ProducesResponseType(typeof(List<BundleDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
+                return Ok(assets);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("asset/assets")]
+        [ProducesResponseType(typeof(List<AssetDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<AssetDto>>> GetAssets(
+            [FromQuery] int? page,
+            [FromQuery] string? queryString,
+            [FromQuery] string? bundles,
+            [FromQuery] int? assetTypeId,
+            [FromQuery] string? sort,
+            [FromQuery] int? pageSize,
+            [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<AssetDto> assets = await _sondaAMService.GetAssets(page, queryString, bundles, assetTypeId, sort, pageSize, username);
+                if (assets == null || assets.Count == 0)
+                {
+                    return NotFound("No se encontraron assets.");
+                }
+
+                return Ok(assets);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("stock/{stockId}")]
+        [ProducesResponseType(typeof(StockDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<StockDto>> GetStockById(int stockId, [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                StockDto? stock = await _sondaAMService.GetStockById(stockId, username);
+                if (stock == null)
+                {
+                    return NotFound($"No se encontró el stock {stockId}");
+                }
+
+                return Ok(stock);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("bundle")]
+        [ProducesResponseType(typeof(List<BundleDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
         public async Task<ActionResult<BundleDto>> GetStockParametersByBundleId([FromQuery] int bundleId, [FromQuery] string token)
-    {
-        try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var bundle = await _sondaAMService.GetStockParametersByBundleId(bundleId, username);
-                if (bundle == null) return NotFound("No se encontró bundle para ese bundleId.");
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                BundleDto bundle = await _sondaAMService.GetStockParametersByBundleId(bundleId, username);
+                if (bundle == null)
+                {
+                    return NotFound("No se encontró bundle para ese bundleId.");
+                }
+
                 return Ok(bundle);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-    // Ejemplo: Obtener un asset por ID
-    [HttpGet("asset/{id}")]
-    [ProducesResponseType(typeof(AssetDto), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<AssetDto>> GetAssetById(int id, [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var asset = await _sondaAMService.GetAssetById(id, username);
-            if (asset == null) return NotFound($"No se encontró el asset {id}");
-            return Ok(asset);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-    [HttpGet("stock")]
-    [ProducesResponseType(typeof(List<StockDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<StockDto>>> GetAllStock(
-        [FromQuery] int? page,
-        [FromQuery] string? queryString,
-        [FromQuery] string? sort,
-        [FromQuery] int? pageSize,
-        [FromQuery] string? bundlesId,
-        [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var stocks = await _sondaAMService.GetAllStock(page, queryString, sort, pageSize, bundlesId, username);
-            if (stocks == null || stocks.Count == 0) return NotFound("No se encontraron stocks.");
-            return Ok(stocks);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-    
-    [HttpGet("relation/asset/{assetId}")]
-    [ProducesResponseType(typeof(List<RelatedAssetDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<RelatedAssetDto>>> GetAssetRelations(
-        int assetId,
-        [FromQuery] int? page,
-        [FromQuery] int? pageSize,
-        [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var assets = await _sondaAMService.GetAssetRelations(assetId, page, pageSize, username);
-            if (assets == null || assets.Count == 0) return NotFound("No se encontraron relaciones para ese asset.");
-            return Ok(assets);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-    [HttpGet("bundle/bundles")]
-    [ProducesResponseType(typeof(List<BundleDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<BundleDto>>> GetBundles(
-        [FromQuery] int? page,
-        [FromQuery] string? queryString,
-        [FromQuery] string? sort,
-        [FromQuery] int? pageSize,
-        [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var bundles = await _sondaAMService.GetBundles(page, queryString, sort, pageSize, username);
-            if (bundles == null || bundles.Count == 0) return NotFound("No se encontraron bundles.");
-            return Ok(bundles);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-    /*    [HttpGet("asset/history")]
-    [ProducesResponseType(typeof(List<AssetDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<AssetDto>>> GetAssetHistory(
-        [FromQuery] int? page,
-        [FromQuery] string? queryString,
-        [FromQuery] string? sort,
-        [FromQuery] int? pageSize,
-        [FromQuery] string? bundlesId,
-        [FromQuery] string user,
-        [FromQuery] string pass)
-    {
-        try
-        {
-            var assets = await _sondaAMService.GetAssetHistory(page, queryString, sort, pageSize, bundlesId, user, pass);
-            if (assets == null || assets.Count == 0) return NotFound("No se encontraron historial de assets.");
-            return Ok(assets);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }*/
-
-    [HttpGet("eventTaskInstance/{eventTaskInstanceId}")]
-    [ProducesResponseType(typeof(EventTaskInstanceDto), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<EventTaskInstanceDto>> GetEventTaskInstanceById(int eventTaskInstanceId, [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var result = await _sondaAMService.GetEventTaskInstanceById(eventTaskInstanceId, username);
-            if (result == null)
-            {
-                return NotFound(new { error = "No se encontraron eventtaskinstances" });
             }
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-    [HttpGet("eventTaskInstances")]
-    [ProducesResponseType(typeof(List<EventTaskInstanceDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<EventTaskInstanceDto>>> GetEventTasks(
-        [FromQuery] string dates,
-        [FromQuery] int? page,
-        [FromQuery] string? queryString,
-        [FromQuery] int? bundleId,
-        [FromQuery] string? state,
-        [FromQuery] string? sort,
-        [FromQuery] int? taskTypeId,
-        [FromQuery] int? groupId,
-        [FromQuery] int? pageSize,
-        [FromQuery] string token,
-        [FromQuery] bool tasksAssignedToMe = false,
-        [FromQuery] bool tasksPendingApproval = false)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString, bundleId, state, sort, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username);
-            if (result == null || result.Count == 0)
+            catch (Exception ex)
             {
-                return NotFound(new { error = "No se encontraron eventtasks" });
+                return StatusCode(500, $"Error interno: {ex.Message}");
             }
-            return Ok(result);
         }
-        catch (Exception ex)
+
+        // Ejemplo: Obtener un asset por ID
+        [HttpGet("asset/{id}")]
+        [ProducesResponseType(typeof(AssetDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<AssetDto>> GetAssetById(int id, [FromQuery] string token)
         {
-            return BadRequest(ex.Message);
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                AssetDto? asset = await _sondaAMService.GetAssetById(id, username);
+                if (asset == null)
+                {
+                    return NotFound($"No se encontró el asset {id}");
+                }
+
+                return Ok(asset);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
         }
-    }
+
+        [HttpGet("stock")]
+        [ProducesResponseType(typeof(List<StockDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<StockDto>>> GetAllStock(
+            [FromQuery] int? page,
+            [FromQuery] string? queryString,
+            [FromQuery] string? sort,
+            [FromQuery] int? pageSize,
+            [FromQuery] string? bundlesId,
+            [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<StockDto> stocks = await _sondaAMService.GetAllStock(page, queryString, sort, pageSize, bundlesId, username);
+                if (stocks == null || stocks.Count == 0)
+                {
+                    return NotFound("No se encontraron stocks.");
+                }
+
+                return Ok(stocks);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("relation/asset/{assetId}")]
+        [ProducesResponseType(typeof(List<RelatedAssetDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<RelatedAssetDto>>> GetAssetRelations(
+            int assetId,
+            [FromQuery] int? page,
+            [FromQuery] int? pageSize,
+            [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<RelatedAssetDto> assets = await _sondaAMService.GetAssetRelations(assetId, page, pageSize, username);
+                if (assets == null || assets.Count == 0)
+                {
+                    return NotFound("No se encontraron relaciones para ese asset.");
+                }
+
+                return Ok(assets);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("bundle/bundles")]
+        [ProducesResponseType(typeof(List<BundleDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<BundleDto>>> GetBundles(
+            [FromQuery] int? page,
+            [FromQuery] string? queryString,
+            [FromQuery] string? sort,
+            [FromQuery] int? pageSize,
+            [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<BundleDto> bundles = await _sondaAMService.GetBundles(page, queryString, sort, pageSize, username);
+                if (bundles == null || bundles.Count == 0)
+                {
+                    return NotFound("No se encontraron bundles.");
+                }
+
+                return Ok(bundles);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        /*    [HttpGet("asset/history")]
+        [ProducesResponseType(typeof(List<AssetDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<AssetDto>>> GetAssetHistory(
+            [FromQuery] int? page,
+            [FromQuery] string? queryString,
+            [FromQuery] string? sort,
+            [FromQuery] int? pageSize,
+            [FromQuery] string? bundlesId,
+            [FromQuery] string user,
+            [FromQuery] string pass)
+        {
+            try
+            {
+                var assets = await _sondaAMService.GetAssetHistory(page, queryString, sort, pageSize, bundlesId, user, pass);
+                if (assets == null || assets.Count == 0) return NotFound("No se encontraron historial de assets.");
+                return Ok(assets);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }*/
+
+        [HttpGet("eventTaskInstance/{eventTaskInstanceId}")]
+        [ProducesResponseType(typeof(EventTaskInstanceDto), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<EventTaskInstanceDto>> GetEventTaskInstanceById(int eventTaskInstanceId, [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                EventTaskInstanceDto? result = await _sondaAMService.GetEventTaskInstanceById(eventTaskInstanceId, username);
+                if (result == null)
+                {
+                    return NotFound(new { error = "No se encontraron eventtaskinstances" });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("eventTaskInstances")]
+        [ProducesResponseType(typeof(List<EventTaskInstanceDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<EventTaskInstanceDto>>> GetEventTasks(
+            [FromQuery] string dates,
+            [FromQuery] int? page,
+            [FromQuery] string? queryString,
+            [FromQuery] int? bundleId,
+            [FromQuery] string? state,
+            [FromQuery] string? sort,
+            [FromQuery] int? taskTypeId,
+            [FromQuery] int? groupId,
+            [FromQuery] int? pageSize,
+            [FromQuery] string token,
+            [FromQuery] bool tasksAssignedToMe = false,
+            [FromQuery] bool tasksPendingApproval = false)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<EventTaskInstanceDto> result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString!, bundleId, state!, sort!, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username);
+                if (result == null || result.Count == 0)
+                {
+                    return NotFound(new { error = "No se encontraron eventtasks" });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpGet("eventTaskInstance/actions/{taskInstanceId}")]
-    [ProducesResponseType(typeof(List<EventTaskActionDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<EventTaskActionDto>>> GetEventTaskInstanceActions(int taskInstanceId, [FromQuery] string token)
-    {
-        try
+        [ProducesResponseType(typeof(List<EventTaskActionDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<EventTaskActionDto>>> GetEventTaskInstanceActions(int taskInstanceId, [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<EventTaskActionDto> actions = await _sondaAMService.GetEventTaskInstanceActions(taskInstanceId, username);
+                if (actions == null || actions.Count == 0)
+                {
+                    return NotFound("No se encontraron acciones para esa instancia de tarea.");
+                }
+
+                return Ok(actions);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("eventTaskInstance/stock/{taskInstanceId}")]
+        [ProducesResponseType(typeof(List<EventTaskInstanceStockDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<EventTaskInstanceStockDto>>> GetEventTaskInstanceStock(int taskInstanceId, [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<EventTaskInstanceStockDto> stocks = await _sondaAMService.GetEventTaskInstanceStock(taskInstanceId, username);
+                if (stocks == null || stocks.Count == 0)
+                {
+                    return NotFound("No se encontró stock para esa instancia de tarea.");
+                }
+
+                return Ok(stocks);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
+        /// </summary>
+        [HttpGet("typeDtos")]
+        public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string token)
         {
             string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var actions = await _sondaAMService.GetEventTaskInstanceActions(taskInstanceId, username);
-            if (actions == null || actions.Count == 0) return NotFound("No se encontraron acciones para esa instancia de tarea.");
-            return Ok(actions);
+            List<TaskTypeDto> typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username);
+            return Ok(typeDtos);
         }
-        catch (Exception ex)
+
+        [HttpGet("asset/types")]
+        [ProducesResponseType(typeof(List<AssetTypeDto>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes([FromQuery] string token)
         {
-            return StatusCode(500, $"Error interno: {ex.Message}");
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                List<AssetTypeDto> types = await _sondaAMService.GetAllAssetTypes(username);
+                if (types == null || types.Count == 0)
+                {
+                    return NotFound("No se encontraron tipos de asset.");
+                }
+
+                return Ok(types);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
         }
     }
-
-    [HttpGet("eventTaskInstance/stock/{taskInstanceId}")]
-    [ProducesResponseType(typeof(List<EventTaskInstanceStockDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<EventTaskInstanceStockDto>>> GetEventTaskInstanceStock(int taskInstanceId, [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var stocks = await _sondaAMService.GetEventTaskInstanceStock(taskInstanceId, username);
-            if (stocks == null || stocks.Count == 0) return NotFound("No se encontró stock para esa instancia de tarea.");
-            return Ok(stocks);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
-    /// </summary>
-    [HttpGet("typeDtos")]
-    public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string token)
-    {
-        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-        var typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username);
-        return Ok(typeDtos);
-    }
-
-    [HttpGet("asset/types")]
-    [ProducesResponseType(typeof(List<AssetTypeDto>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes([FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            var types = await _sondaAMService.GetAllAssetTypes(username);
-            if (types == null || types.Count == 0) return NotFound("No se encontraron tipos de asset.");
-            return Ok(types);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
 }

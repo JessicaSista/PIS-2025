@@ -56,12 +56,31 @@ namespace OmniMonitor.Server.Services
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
+            if (string.IsNullOrWhiteSpace(request.Name))
+                throw new ArgumentException("KPI name is required.");
+
+            if (string.IsNullOrWhiteSpace(request.SourceModule))
+                throw new ArgumentException("SourceModule is required.");
+
+            if (request.DatasetId == null)
+                throw new ArgumentException("DatasetId is required.");
+
+            switch (request.SourceModule.ToUpperInvariant())
+            {
+                case "IM":
+                    await ValidateImKpiRequestAsync(request, username);
+                    break;
+
+                default:
+                    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
+            }
+
             var newKpi = new Kpi
             {
                 Name = request.Name,
                 Description = request.Description,
                 SourceModule = request.SourceModule,
-                DatasetId = request.DatasetId,
+                DatasetId = request.DatasetId.Value,
                 Unit = request.Unit,
                 Metric = request.Metric,
                 Multiplier = request.Multiplier,
@@ -77,6 +96,75 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
 
             return newKpi;
+        }
+
+        private async Task ValidateImKpiRequestAsync(KpiRequest request, string? username)
+        {
+            // 1. ExtraInfo required
+            if (string.IsNullOrEmpty(request.ExtraInfo))
+                throw new ArgumentException("ExtraInfo is required for IM KPIs.");
+
+            // 2. Parse dates (accept both dateFrom/dateTo and startDate/endDate)
+            DateTime dateFrom, dateTo;
+            try
+            {
+                var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(request.ExtraInfo);
+                if (extra == null)
+                    throw new FormatException("ExtraInfo could not be parsed.");
+
+                if (extra.ContainsKey("dateFrom") && extra.ContainsKey("dateTo"))
+                {
+                    dateFrom = DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    dateTo = DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                }
+                else
+                {
+                    throw new ArgumentException("ExtraInfo must contain dateFrom/dateTo or startDate/endDate.");
+                }
+            }
+            catch (Exception ex) when (ex is JsonException || ex is FormatException || ex is ArgumentException)
+            {
+                throw new ArgumentException($"Invalid ExtraInfo date format: {ex.Message}", ex);
+            }
+
+            // 2.1 Validate ordering: dateFrom must be <= dateTo
+            if (dateFrom > dateTo)
+                throw new ArgumentException("Invalid date range: 'dateFrom' must be earlier than or equal to 'dateTo'.");
+
+            // 3. Validate dataset exists (assumes DatasetIM is a DbSet in your context)
+            var dataset = await _context.Set<DatasetIM>().FindAsync(request.DatasetId);
+            if (dataset == null)
+                throw new InvalidOperationException($"Dataset with ID {request.DatasetId} not found.");
+
+            // 4. Validate source and devices
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
+            if (source == null)
+                throw new InvalidOperationException($"Source with ID {dataset.Id_Source} not found.");
+
+            if (source.Devices == null || source.Devices.Count == 0)
+                throw new InvalidOperationException($"No devices found for source {dataset.Id_Source}.");
+
+            // 5. Validate sensor presence
+            bool sensorFound = false;
+            foreach (var deviceSummary in source.Devices)
+            {
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
+                if (device?.Sensors == null) continue;
+                if (device.Sensors.Any(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase)))
+                {
+                    sensorFound = true;
+                    break;
+                }
+            }
+
+            if (!sensorFound)
+                throw new InvalidOperationException($"Sensor '{dataset.SensorName}' not found in source {dataset.Id_Source}.");
+
+            // 6. Validate metric supported for IM
+            var metric = request.Metric?.ToLowerInvariant();
+            var supportedMetrics = new[] { "lastvalue", "average", "min", "max" };
+            if (!supportedMetrics.Any(m => string.Equals(m, metric, StringComparison.OrdinalIgnoreCase)))
+                throw new ArgumentException($"Unsupported metric '{request.Metric}' for IM KPIs.");
         }
 
         public async Task DeleteKpiAsync(int kpiId, string? username = null)
@@ -106,14 +194,82 @@ namespace OmniMonitor.Server.Services
             if (!string.IsNullOrEmpty(username) && existingKpi.Username != username)
                 throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
 
-            if (request.Name != null) existingKpi.Name = request.Name;
-            if (request.Description != null) existingKpi.Description = request.Description;
-            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule;
-            if (request.DatasetId != null) existingKpi.DatasetId = request.DatasetId;
-            if (request.Unit != null) existingKpi.Unit = request.Unit;
-            if (request.Metric != null) existingKpi.Metric = request.Metric;
-            if (request.Multiplier != null) existingKpi.Multiplier = request.Multiplier;
-            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor;
+            if (request.Name != null && string.IsNullOrWhiteSpace(request.Name))
+                throw new ArgumentException("Name provisto pero vacío.", nameof(request.Name));
+
+            if (request.SourceModule != null && string.IsNullOrWhiteSpace(request.SourceModule))
+                throw new ArgumentException("SourceModule provisto pero vacío.", nameof(request.SourceModule));
+
+            if (request.DatasetId.HasValue && request.DatasetId.Value <= 0)
+                throw new ArgumentOutOfRangeException(nameof(request.DatasetId), "DatasetId debe ser mayor que 0.");
+
+            if (request.Unit != null && string.IsNullOrWhiteSpace(request.Unit))
+                throw new ArgumentException("Unit provisto pero vacío.", nameof(request.Unit));
+
+            if (request.Metric != null && string.IsNullOrWhiteSpace(request.Metric))
+                throw new ArgumentException("Metric provisto pero vacío.", nameof(request.Metric));
+
+            if (request.Multiplier.HasValue && request.Multiplier.Value <= 0)
+                throw new ArgumentOutOfRangeException(nameof(request.Multiplier), "Multiplier debe ser mayor que 0.");
+
+            if (request.DefaultColor != null && !IsValidHexColor(request.DefaultColor))
+                throw new ArgumentException("DefaultColor no es un color hex válido (ej. #RRGGBB).", nameof(request.DefaultColor));
+
+            if (request.ColorRanges != null)
+            {
+                try
+                {
+                    // validamos que sea una lista de ColorRange válida
+                    var ranges = JsonSerializer.Deserialize<List<ColorRange>>(request.ColorRanges);
+                    if (ranges == null)
+                        throw new ArgumentException("ColorRanges inválido o vacío.", nameof(request.ColorRanges));
+                }
+                catch (JsonException)
+                {
+                    throw new ArgumentException("ColorRanges no es JSON válido.", nameof(request.ColorRanges));
+                }
+            }
+
+            // Si la métrica (efectiva) requiere extraInfo (rango de fechas), validamos que exista y sea correcto.
+            var effectiveMetric = (request.Metric ?? existingKpi.Metric)?.Trim().ToLower();
+            if (!string.IsNullOrEmpty(effectiveMetric) &&
+                (effectiveMetric == "average" || effectiveMetric == "min" || effectiveMetric == "max" ||
+                 effectiveMetric == "minvalue" || effectiveMetric == "maxvalue"))
+            {
+                // extraInfo puede venir en el request (si se está actualizando) o ya existir en el KPI
+                var extraInfoToCheck = request.ExtraInfo ?? existingKpi.ExtraInfo;
+                if (string.IsNullOrWhiteSpace(extraInfoToCheck))
+                    throw new ArgumentException($"ExtraInfo requerida para la métrica '{effectiveMetric}'.", nameof(request.ExtraInfo));
+
+                try
+                {
+                    var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(extraInfoToCheck);
+                    if (extra == null || !extra.ContainsKey("dateFrom") || !extra.ContainsKey("dateTo"))
+                        throw new ArgumentException("ExtraInfo debe contener dateFrom y dateTo en formato ISO.", nameof(request.ExtraInfo));
+
+                    // intentamos parsear fechas
+                    DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+                }
+                catch (JsonException)
+                {
+                    throw new ArgumentException("ExtraInfo no es JSON válido.", nameof(request.ExtraInfo));
+                }
+                catch (FormatException)
+                {
+                    throw new ArgumentException("Las fechas en ExtraInfo no tienen un formato válido (ISO).", nameof(request.ExtraInfo));
+                }
+            }
+
+            // --- APLICAR CAMBIOS (sólo si vinieron valores válidos; strings se trimmed)
+            if (request.Name != null) existingKpi.Name = request.Name.Trim();
+            if (request.Description != null) existingKpi.Description = request.Description.Trim();
+            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule.Trim();
+            if (request.DatasetId.HasValue) existingKpi.DatasetId = request.DatasetId.Value;
+            if (request.Unit != null) existingKpi.Unit = request.Unit.Trim();
+            if (request.Metric != null) existingKpi.Metric = request.Metric.Trim();
+            if (request.Multiplier.HasValue) existingKpi.Multiplier = request.Multiplier.Value;
+            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor.Trim();
             if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
             if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
 
@@ -122,6 +278,17 @@ namespace OmniMonitor.Server.Services
 
             return existingKpi;
         }
+
+        // Helper privado para validar formato hex (#RRGGBB o #RGB)
+        private bool IsValidHexColor(string color)
+        {
+            if (string.IsNullOrWhiteSpace(color)) return false;
+            color = color.Trim();
+            if (!color.StartsWith("#")) return false;
+            var hex = color.Substring(1);
+            return hex.Length == 3 || hex.Length == 6 && System.Text.RegularExpressions.Regex.IsMatch(hex, @"\A\b[0-9a-fA-F]+\b\Z");
+        }
+
 
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
