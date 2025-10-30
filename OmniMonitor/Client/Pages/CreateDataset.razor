@@ -969,7 +969,7 @@
                 StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetAM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetAM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1186,7 +1186,7 @@
                 DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
-            var response = await Http.PostAsJsonAsync("api/Dataset", request);
+            var response = await Http.PostAsJsonAsync($"api/Dataset?token={GetEncodedToken()}", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1248,7 +1248,7 @@
             var encodedToken = GetEncodedToken();
 
             // Load Zones
-            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={encodedToken}");
+            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={GetEncodedToken()}");
             if (respZones.IsSuccessStatusCode)
             {
                 zones = await respZones.Content.ReadFromJsonAsync<List<Zone>>() ?? new List<Zone>();
@@ -1594,7 +1594,7 @@
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetEM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetEM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();

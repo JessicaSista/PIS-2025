@@ -10,7 +10,6 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class DatasetUMController : ControllerBase
     {
         private readonly IDatasetUMService _datasetUMService;
@@ -37,20 +36,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
 
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                if (!IsUserAuthorized(request.Username))
-                {
-                    return Forbid();
-                }
 
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
@@ -84,11 +75,6 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
-
                 List<DatasetUM> datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
                 return Ok(datasets);
             }
@@ -111,11 +97,6 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
-
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -148,10 +129,15 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(ModelState);
                 }
 
-                if (!IsUserAuthorized(request.Username))
+                // Obtener el dataset existente para obtener el DatasetId
+                DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, request.Username);
+                if (existingDataset == null)
                 {
-                    return Forbid();
+                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
+
+                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
+                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
 
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
                 DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
@@ -186,10 +172,6 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
 
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
@@ -218,10 +200,6 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
 
                 List<Datasets> datasets = await _datasetUMService.GetAllDatasetsAsync(username);
                 return Ok(datasets);
@@ -232,11 +210,145 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        private bool IsUserAuthorized(string username)
+        /// <summary>
+        /// Obtiene todos los datasets de todos los módulos en formato unificado desde la tabla general.
+        /// </summary>
+        [HttpGet("GetAllDatasetsDto")]
+        [ProducesResponseType(typeof(List<DatasetDto>), 200)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<DatasetDto>>> GetAllDatasetsDto(string token, [FromQuery] string? search = null)
         {
-            // Ajusta según tu claim de usuario si es necesario
-            return string.Equals(User.Identity?.Name, username, StringComparison.OrdinalIgnoreCase)
-                   || User.IsInRole("Admin");
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+
+                var datasetDtos = new List<DatasetDto>();
+
+                // Obtener datasets IM
+                var datasetsIM = await _context.Datasets
+                    .Include(d => d.DatasetIM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsIM)
+                {
+                    if (dataset.DatasetIM.Any())
+                    {
+                        var imDataset = dataset.DatasetIM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = imDataset.Id,
+                            Nombre = imDataset.Name,
+                            Descripcion = imDataset.Description ?? string.Empty,
+                            Module = "Insight Monitor"
+                        });
+                    }
+                }
+
+                // Obtener datasets UM
+                var datasetsUM = await _context.Datasets
+                    .Include(d => d.DatasetUM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsUM)
+                {
+                    if (dataset.DatasetUM.Any())
+                    {
+                        var umDataset = dataset.DatasetUM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = umDataset.Id,
+                            Nombre = umDataset.Name,
+                            Descripcion = umDataset.Description ?? string.Empty,
+                            Module = "Urban Monitor"
+                        });
+                    }
+                }
+
+                // Obtener datasets AM
+                var datasetsAM = await _context.Datasets
+                    .Include(d => d.DatasetAM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsAM)
+                {
+                    if (dataset.DatasetAM.Any())
+                    {
+                        var amDataset = dataset.DatasetAM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = amDataset.Id_Dataset,
+                            Nombre = amDataset.Nombre,
+                            Descripcion = amDataset.Descripcion ?? string.Empty,
+                            Module = "Asset Manager"
+                        });
+                    }
+                }
+
+                // Obtener datasets EM
+                var datasetsEM = await _context.Datasets
+                    .Include(d => d.DatasetEM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsEM)
+                {
+                    if (dataset.DatasetEM.Any())
+                    {
+                        var emDataset = dataset.DatasetEM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = emDataset.Id,
+                            Nombre = emDataset.Name,
+                            Descripcion = emDataset.Description ?? string.Empty,
+                            Module = "Event Manager"
+                        });
+                    }
+                }
+
+                // Aplicar filtro de búsqueda si existe
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string normalizedSearch = NormalizeText(search);
+                    datasetDtos = datasetDtos.Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                return Ok(datasetDtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
+        /// </summary>
+        private static string NormalizeText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            // 1) Normalizar a FormD y remover diacríticos (acentos)
+            string formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+            string withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+
+            // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
+            withoutDiacritics = withoutDiacritics
+                .Replace(" ", string.Empty, StringComparison.Ordinal)
+                .Replace("ñ", "n", StringComparison.Ordinal)
+                .Replace("₀", "0", StringComparison.Ordinal).Replace("₁", "1", StringComparison.Ordinal).Replace("₂", "2", StringComparison.Ordinal)
+                .Replace("₃", "3", StringComparison.Ordinal).Replace("₄", "4", StringComparison.Ordinal).Replace("₅", "5", StringComparison.Ordinal)
+                .Replace("₆", "6", StringComparison.Ordinal).Replace("₇", "7", StringComparison.Ordinal).Replace("₈", "8", StringComparison.Ordinal)
+                .Replace("₉", "9", StringComparison.Ordinal);
+
+            // 3) Normalizar de vuelta a FormC
+            return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
         }
     }
 }

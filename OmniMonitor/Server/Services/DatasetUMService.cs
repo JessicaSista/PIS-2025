@@ -21,6 +21,7 @@ namespace OmniMonitor.Server.Services
         Task<Datasets> UpdateDatasetAsyncAM(int datasetId, CreateDatasetRequest request, DatasetAM datasetAM);
         Task<Datasets> UpdateDatasetAsyncEM(int datasetId, CreateDatasetRequest request, DatasetEM datasetEM);
         Task DeleteDatasetAsync(int datasetId, string username);
+        Task ValidateDatasetNameAsync(string name, string username, ModuleType tipoDataset, int? excludeId = null);
 
 
     }
@@ -201,7 +202,8 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-           
+            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncUM)
+            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos básicos
             existingDataset.Name = request.Name;
@@ -260,7 +262,7 @@ namespace OmniMonitor.Server.Services
 
         public async Task<Datasets> CreateDatasetAsync(CreateDatasetRequest request)
         {
-            await ValidateDuplicateNameDataset(request.Name, request.Username);
+            await ValidateDuplicateNameDataset(request.Name, request.Username, request.TipoDataset);
 
             var newDataset = new Datasets
             {
@@ -321,7 +323,7 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+            // La validación ya se hizo en el controlador antes de llamar a este método
 
             // Actualizar campos básicos
             existingDataset.NameDataset = request.Name;
@@ -343,7 +345,7 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+            // La validación ya se hizo en el controlador antes de llamar a este método
 
             // Actualizar campos básicos
             existingDataset.NameDataset = request.Name;
@@ -365,7 +367,7 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+            // La validación ya se hizo en el controlador antes de llamar a este método
 
             // Actualizar campos básicos
             existingDataset.NameDataset = request.Name;
@@ -387,7 +389,7 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            await ValidateDuplicateNameDataset(request.Name, request.Username, datasetId);
+            // La validación ya se hizo en el controlador antes de llamar a este método
 
             // Actualizar campos básicos
             existingDataset.NameDataset = request.Name;
@@ -413,10 +415,24 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task ValidateDatasetNameAsync(string name, string username, ModuleType tipoDataset, int? excludeId = null)
+        {
+            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
+            var query = _context.Datasets
+                .Where(d => d.NameDataset == name && d.Username == username);
+
+            if (excludeId.HasValue)
+                query = query.Where(d => d.Id != excludeId.Value);
+
+            if (await query.AnyAsync())
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+        }
+
         // --- Helpers ---
 
-        private async Task ValidateDuplicateNameDataset(string name, string username, int? excludeId = null)
+        private async Task ValidateDuplicateNameDataset(string name, string username, ModuleType tipoDataset, int? excludeId = null)
         {
+            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
             var query = _context.Datasets
                 .Where(d => d.NameDataset == name && d.Username == username);
 
