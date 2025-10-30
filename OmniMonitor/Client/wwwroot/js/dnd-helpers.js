@@ -69,6 +69,10 @@
         const clientY = (typeof ev.clientY === 'number' && ev.clientY !== 0) ? ev.clientY : lastPointer.y;
         let offsetX = clientX - rect.left;
         let offsetY = clientY - rect.top;
+        // Apply requested adjustment: move ghost 100px left and 300px up
+        // This is achieved by increasing the offsets (cursor is further inside the image)
+        offsetX += 100; // shift ghost to the left
+        offsetY += 300; // shift ghost upwards
         // Clamp offsets to the card bounds
         if (offsetX < 0) offsetX = 0; else if (offsetX > rect.width) offsetX = rect.width;
         if (offsetY < 0) offsetY = 0; else if (offsetY > rect.height) offsetY = rect.height;

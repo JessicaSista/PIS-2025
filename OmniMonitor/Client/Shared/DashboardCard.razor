@@ -157,13 +157,13 @@
     private bool _esKPI {get; set;} = false;
     private bool _isDragOver = false;
     private bool _isDraggingSelf = false;
+    private int _dragOverDepth = 0;
     private string _borderColor => _isDragOver ? "#22c55e" : "#374151";
     private string _authenticatedUser = string.Empty;
 
 
     private int _chartViewerKey = 0; //cuando se modifica esta variable, el ChartViewer vuelve a pedir los datos
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
-
 
 
     protected override async Task OnInitializedAsync()
@@ -300,12 +300,14 @@
     private void HandleDragEnd(DragEventArgs e)
     {
         _isDraggingSelf = false;
+        _dragOverDepth = 0;
         _isDragOver = false;
         StateHasChanged();
     }
 
     private Task HandleDrop(DragEventArgs e)
     {
+        _dragOverDepth = 0;
         _isDragOver = false;
         _isDraggingSelf = false;
         return DroppedOn.InvokeAsync(VisualizationId);
@@ -314,13 +316,15 @@
     private void HandleDragEnter(DragEventArgs e)
     {
         if (_isDraggingSelf) return;
-        _isDragOver = true;
+        _dragOverDepth++;
+        _isDragOver = _dragOverDepth > 0;
         StateHasChanged();
     }
 
     private void HandleDragLeave(DragEventArgs e)
     {
-        _isDragOver = false;
+        if (_dragOverDepth > 0) _dragOverDepth--;
+        _isDragOver = _dragOverDepth > 0;
         StateHasChanged();
     }
 
