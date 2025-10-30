@@ -12,11 +12,13 @@ namespace OmniMonitor.Server.Controllers
     {
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IKpiService _kpiService;
+        private readonly ISondaIMService _sondaIMService;
 
-        public KPIController(ISondaAuthService sondaAuthService, IKpiService kpiService)
+        public KPIController(ISondaAuthService sondaAuthService, IKpiService kpiService, ISondaIMService sondaIMService)
         {
             _sondaAuthService = sondaAuthService;
             _kpiService = kpiService;
+            _sondaIMService = sondaIMService;
         }
 
         [HttpPost("")]
