@@ -7,16 +7,20 @@
 @inject IStringLocalizer<Visualizations> Localizer
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using Blazored.LocalStorage
 @using System.Globalization
 @using Microsoft.Extensions.Localization
-
+@using System.Net;
+@using System.Net.Http.Json;
 <style>
     .tab-toggle-container {
         display: inline-flex;
-        border-radius: 9999px; 
+        border-radius: 9999px;
         overflow: hidden;
     }
 
@@ -33,7 +37,6 @@
             background-color: color-mix(in srgb, var(--card) 60%, transparent);
         }
 
-        /* Izquierdo: redondeado solo a la izquierda */
         .tab-toggle-btn.left {
             border-top-right-radius: 0;
             border-bottom-right-radius: 0;
@@ -42,7 +45,6 @@
             border-bottom-left-radius: 9999px;
         }
 
-        /* Derecho: redondeado solo a la derecha */
         .tab-toggle-btn.right {
             border-top-left-radius: 0;
             border-bottom-left-radius: 0;
@@ -50,7 +52,6 @@
             border-bottom-right-radius: 9999px;
         }
 
-        /* Estado activo */
         .tab-toggle-btn.active {
             background-color: color-mix(in srgb, var(--card) 80%, transparent);
             color: var(--text-primary);
@@ -105,7 +106,7 @@
 
         <MudTabPanel Text="@Localizer["KPIs"]">
             <MudGrid Spacing="4">
-                @if (_isLoading)
+                @if (_isLoadingKpis)
                 {
                     @for (int i = 0; i < 3; i++)
                     {
@@ -118,18 +119,33 @@
                 }
                 else if (_kpis != null && _kpis.Any())
                 {
-                    @foreach (var (kpiId, kpiName) in _kpis
+                    @foreach (var kpi in _kpis
                                     .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
-                                    v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
+                                    v.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
                     {
-                        <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"V{kpiId}_2")">
-                            @* <KpiCard Title="@kpi.Name"
-                                 Value="@RenderKpiValue(kpi.Value)"
-                                 Description="@kpi.Description"
-                                 LastUpdated="@DateTime.Now.ToString("g")"
-                                 Color="@kpi.ActualColor" /> *@
-                            <KpiViewer KpiId="kpiId" />
+                        <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"KPI_{kpi.Id}")">
+                            <div style="position: relative;">
+                                <!-- KPI Card -->
+                                <KpiViewer Kpi="kpi" />
+
+                                <!-- Menu -->
+                                <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                         AnchorOrigin="Origin.TopRight"
+                                         TransformOrigin="Origin.TopRight"
+                                         Class="position-absolute"
+                                         Style="position:absolute; top:8px; right:8px; z-index:10; background-color:transparent;">
+
+                                    <MudMenuItem OnClick="@(() => EditarKpi(kpi))">
+                                        @Localizer["Editar"]
+                                    </MudMenuItem>
+
+                                    <MudMenuItem OnClick="@(() => ConfirmEliminarKpi(kpi))">
+                                        @Localizer["Eliminar"]
+                                    </MudMenuItem>
+                                </MudMenu>
+                            </div>
                         </MudItem>
+
                     }
                 }
                 else
@@ -145,7 +161,7 @@
 
         <MudTabPanel Text="@Localizer["Gráficas"]">
             <MudGrid Spacing="4">
-                @if (_isLoading)
+                @if (_isLoadingCharts)
                 {
                     @for (int i = 0; i < 3; i++)
                     {
@@ -164,14 +180,14 @@
                     {
 
                         @* JsonDocument design = JsonDocument.Parse(visualization.JsonDesign); *@
-                        @* var datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name)); *@
+                        @* var KpiNames = string.Join(", ", visualization.GrupoKpis.Select(gd => gd.Kpi.Name)); *@
                         @* var chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
                         @* var visualizationData = GetVisualizationData(visualization.IdVisualizacion); *@
 
                         @* 
                     <MudItem xs="12" sm="12" md="6" lg="4">
                         <VisualizationCard visualizationTitle="@visualization.Nombre"
-                                           visualizationDatasets="@datasetNames"
+                                           visualizationKpis="@KpiNames"
                                            lastUpdated="@DateTime.Now.ToString("g")"
                                            dataCharts="@visualizationData"
                                            chartType="@chartType" />
@@ -182,7 +198,7 @@
                                 <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
 
-                                    <ChartViewer VisualizationId="@chartId" ShowIcon="true" ShowDatasetsInfo="true" ShowLastUpdatedInfo="true" />
+                                    <ChartViewer VisualizationId="@chartId" ShowIcon="true" ShowKpisInfo="true" ShowLastUpdatedInfo="true" />
 
 
                                 </MudCard>
@@ -206,77 +222,107 @@
 
     </MudTabs>
 
-   
+
 
 </MudContainer>
 
 
 @code {
-    private string _searchQuery { get; set; } = "";
-    // private List<(int,string)> _visualizations = new();
+    private string _searchQuery = "";
     private List<(int Id, string Nombre)> _charts = new();
-    private List<(int Id, string Nombre)> _kpis = new();
-    // private List<KpiResponse> _kpis = new();
-    private bool _isLoading = true;
-    private string _authenticatedUser = string.Empty;
-    private Dictionary<int, List<object>> _visualizationDataCache = new();
-    private int _activeTabIndex = 0; // 0: KPI, 1: Chart
-
-
-
-
+    private List<KpiResponse> _kpis = new();
+    private bool _isLoadingKpis = false;
+    private bool _isLoadingCharts = false;
+    private int _activeTabIndex = 0;
 
     protected override async Task OnInitializedAsync()
     {
+        _isLoadingKpis = _isLoadingCharts = true;
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync()
+    {
         try
         {
-            await CargarKpisAsync();
-
-            await CargarChartsAsync();
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
+            _isLoadingKpis = _isLoadingCharts = true;
+            await Task.WhenAll(CargarKpisAsync(), CargarChartsAsync());
         }
         finally
         {
-            _isLoading = false;
+            _isLoadingKpis = _isLoadingCharts = false;
+            StateHasChanged();
         }
     }
 
 
+    private async Task CargarKpisAsync()
+    {
+        try
+        {
+            _isLoadingKpis = true;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            var url = $"api/KPI/kpis?token={Uri.EscapeDataString(token ?? "")}";
+
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
+                _kpis = kpisFromApi ?? new();
+            }
+            else
+            {
+                _kpis = new();
+                var txt = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error cargando KPIs: {response.StatusCode} - {txt}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            _kpis = new();
+        }
+        finally
+        {
+            _isLoadingKpis = false;
+        }
+    }
+
+
+    private async Task CargarChartsAsync()
+    {
+        try
+        {
+            _isLoadingCharts = true;
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            var response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token={token}");
+            if (response.IsSuccessStatusCode)
+            {
+                var chartsFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
+                _charts = chartsFromApi?.Select(v => (v.IdVisualizacion, v.Nombre)).ToList() ?? new();
+            }
+        }
+        finally
+        {
+            _isLoadingCharts = false;
+        }
+    }
 
     private async Task OpenDialogCreateVisualization()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
-
         var dialogRef = await DialogService.ShowAsync<SelectVisualizationTypeDialog>(Localizer["NewVisualization"], options);
-
         var result = await dialogRef.Result;
 
-        if (result is not null && result.Data is int intValue)
+        if (result?.Data is int type)
         {
-            if (intValue == 1)
-            {
+            if (type == 1)
                 await CargarChartsAsync();
-                Console.WriteLine("Gráficas cargadas después de crear una nueva.");
-                StateHasChanged();
-            }
-            else if (intValue == 2)
-            {
+            else if (type == 2)
                 await CargarKpisAsync();
-                Console.WriteLine("KPI cargados después de crear uno nuevo.");
-                StateHasChanged();
-            }
-            else {
-                Console.WriteLine("Tipo de visualización desconocido seleccionado.");
-            }
+
+            StateHasChanged();
         }
-        else {
-            Console.WriteLine("null or non int.");
-        }
-        
     }
 
 
@@ -313,225 +359,174 @@
         {
             await JS.InvokeVoidAsync("equalizeCardHeights");
         }
-    }
 
-    // private async Task RecargarVisualizacionesAsync()
-    // {
-    //     try
-    //     {
-    //         _isLoading = true;
-    //         StateHasChanged();
-
-    //         string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-    //         HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
-
-    //         if (response.IsSuccessStatusCode)
-    //         {
-    //             List<Visualizacion>? visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
-    //             if (visualizacionesFromApi != null)
-    //             {
-    //                 _visualizations = visualizacionesFromApi;
-    //                 _visualizationDataCache.Clear();
-    //                 await CargarDatosVisualizacionesAsync();
-    //             }
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
-    //     }
-    //     finally
-    //     {
-    //         _isLoading = false;
-    //         StateHasChanged();
-    //     }
-    // }
-
-    // private List<object> GetVisualizationData(int visualizationId)
-    // {
-    //     if (_visualizationDataCache.ContainsKey(visualizationId))
-    //     {
-    //         return _visualizationDataCache[visualizationId];
-    //     }
-    //     return new List<object>();
-    // }
-
-    // private async Task CargarDatosVisualizacionesAsync()
-    // {
-    //     foreach (var visualization in _visualizations)
-    //     {
-    //         var allData = new List<object>();
-
-    //         try
-    //         {
-    //             var dateFrom = visualization.FechaDesde;
-    //             var dateTo = visualization.FechaHasta;
-
-    //             foreach (var grupoDataset in visualization.GrupoDatasets)
-    //             {
-    //                 try
-    //                 {
-    //                     decimal multiplier = 1.0M;
-    //                     string color = "#00FFE7";
-
-    //                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
-    //                     {
-    //                         try
-    //                         {
-    //                             var designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
-    //                             if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
-    //                             {
-    //                                 multiplier = multProp.GetDecimal();
-    //                                 Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.Name}: {multiplier}");
-    //                             }
-    //                             if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
-    //                             {
-    //                                 color = colorProp.GetString() ?? "#00FFE7";
-    //                                 Console.WriteLine($"Color for dataset {grupoDataset.Dataset.Name}: {color}");
-    //                             }
-    //                         }
-    //                         catch {Console.WriteLine("fallo"); }
-    //                     }
-
-    //                     string token = await LocalStorage.GetItemAsync<string>("authToken");
-    //                     HttpResponseMessage? response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
-
-    //                     if (response.IsSuccessStatusCode)
-    //                     {
-    //                         var dataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
-
-    //                         if (dataset != null)
-    //                         {
-    //                             if (dataset.DatasetDevices.Any())
-    //                             {
-    //                                 foreach (var datasetDevice in dataset.DatasetDevices)
-    //                                 {
-    //                                     try
-    //                                     {
-    //                                         var sensorDataResponse = await Http.GetAsync(
-    //                                             $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token=" + token
-
-    //                                         );
-
-    //                                         if (sensorDataResponse.IsSuccessStatusCode)
-    //                                         {
-    //                                             var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
-
-    //                                             if (sensorData != null && sensorData.Any())
-    //                                             {
-    //                                                 foreach (var data in sensorData)
-    //                                                 {
-    //                                                     decimal numericValue;
-
-    //                                                     if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
-    //                                                     {
-    //                                                         numericValue = parsedDecimal;
-    //                                                     }
-    //                                                     else
-    //                                                     {
-    //                                                         numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-    //                                                     }
-
-    //                                                     allData.Add(new
-    //                                                     {
-    //                                                         Timestamp = data.Time,
-    //                                                         Value = numericValue * multiplier,
-    //                                                         Color = color,
-    //                                                         DatasetName = dataset.Name,
-    //                                                         SensorName = dataset.SensorName,
-    //                                                         DeviceId = datasetDevice.Id_device
-    //                                                     });
-    //                                                 }
-    //                                             }
-    //                                         }
-    //                                     }
-    //                                     catch (Exception ex)
-    //                                     {
-    //                                         Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
-    //                                     }
-    //                                 }
-    //                             }
-    //                             else
-    //                             {
-    //                                 Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 catch (Exception ex)
-    //                 {
-    //                     Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
-    //                 }
-    //             }
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine($"Error procesando visualización {visualization.IdVisualizacion}: {ex.Message}");
-    //         }
-
-    //         _visualizationDataCache[visualization.IdVisualizacion] = allData
-    //             .OrderBy(d => 
-    //             {
-    //                 var type = d.GetType();
-    //                 var timestampProp = type.GetProperty("Timestamp");
-    //                 return timestampProp?.GetValue(d);
-    //             })
-    //             .ToList();
-    //     }
-
-    //     StateHasChanged();
-    // }
-
-    private async Task CargarChartsAsync()
-    {
-        AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
-        string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-        HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
-
-        if (response.IsSuccessStatusCode)
+        if (firstRender)
         {
-            List<Visualizacion>? visualizacionesFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
-            _charts.Clear();
-            if (visualizacionesFromApi != null)
+            var returnTo = GetQueryParam("returnTo");
+            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
             {
-                foreach (var visualization in visualizacionesFromApi)
-                {
-                    _charts.Add((visualization.IdVisualizacion,visualization.Nombre));
-                }
+                await Task.Yield();
+                await OpenDialogCreateVisualizationCard();
             }
         }
     }
 
+    private async Task OpenDialogCreateVisualizationCard()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var returnTo = GetQueryParam("returnTo");
+        var newKpiIdStr = GetQueryParam("newKpiId");
+        DialogParameters parameters = new DialogParameters
+        {
+            ["ReturnTo"] = returnTo,
+            ["NewKpiId"] = int.TryParse(newKpiIdStr, out var nid) ? nid : (int?)null
+        };
+        await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
 
-    private async Task CargarKpisAsync()
+        await CargarKpisAsync();
+        StateHasChanged();
+    }
+
+
+    private async Task HandleReturnToVisualizationCreateAsync()
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/KPI/kpis?token={token}");
+            var returnTo = GetQueryParam("returnTo");
+            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+            {
+                await OpenDialogCreateVisualizationCard();
+            }
+        }
+        catch { }
+    }
+
+    private static Dictionary<string, string> ParseQueryString(string? query)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(query)) return result;
+        var q = query.StartsWith("?") ? query.Substring(1) : query;
+        foreach (var pair in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(kv[0]);
+            var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : string.Empty;
+            result[key] = value;
+        }
+        return result;
+    }
+
+    private string? GetQueryParam(string key)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var dict = ParseQueryString(uri.Query);
+        return dict.TryGetValue(key, out var v) ? v : null;
+    }
+
+    private async Task EditarKpi(KpiResponse kpi)
+    {
+        Console.WriteLine($"Editar KPI: {kpi.Id} - {kpi.Name}");
+
+        var parameters = new DialogParameters
+        {
+            ["ExistingKpi"] = new KpiResponse
+            {
+                Id = kpi.Id,
+                Name = kpi.Name,
+                Description = kpi.Description,
+                ActualColor = kpi.ActualColor
+            }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialogRef = await DialogService.ShowAsync<EditKpiCard>(
+            "Editar KPI", parameters, options);
+
+        var result = await dialogRef.Result;
+
+
+        if (!result.Canceled)
+        {
+            await CargarKpisAsync();
+            StateHasChanged();
+        }
+
+    }
+
+
+
+    private async Task ConfirmEliminarKpi(KpiResponse kpi)
+    {
+        if (kpi is null) return;
+
+        var titulo = Localizer["Confirmación"];
+        var mensaje = (MarkupString)string.Format(
+            Localizer["PreguntaEliminar1"],
+            $"<b>{kpi.Name}</b>"
+        );
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        bool? result = await DialogService.ShowMessageBox(
+            titulo,
+            mensaje,
+            yesText: Localizer["Eliminar"],
+            cancelText: Localizer["Cancelar"],
+            options: options
+        );
+
+        if (result != true)
+            return;
+
+        await EliminarKpiAsync(kpi.Id);
+
+        StateHasChanged();
+    }
+
+
+    private async Task EliminarKpiAsync(int kpiId)
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            var url = $"api/KPI/{kpiId}?token={Uri.EscapeDataString(token ?? "")}";
+            var response = await Http.DeleteAsync(url);
+
             if (response.IsSuccessStatusCode)
             {
-                List<KpiResponse>? kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
-                _kpis.Clear();
-                if (kpisFromApi != null)
-                {
-                    foreach (var kpi in kpisFromApi)
-                    {
-                        _kpis.Add((kpi.Id, kpi.Name));
-                    }
-                }
+                await CargarKpisAsync();
+                Snackbar.Add(Localizer["KpiDeletedSuccess"], Severity.Success);
+            }
+            else if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                Snackbar.Add(Localizer["NoPermission"], Severity.Error);
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                Snackbar.Add(Localizer["KpiNotFound"], Severity.Warning);
+                await CargarKpisAsync();
+            }
+            else if (response.StatusCode == HttpStatusCode.BadRequest)
+            {
+                var txt = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(txt, Severity.Error);
             }
             else
             {
-                Console.WriteLine("Error cargando KPIs: " + await response.Content.ReadAsStringAsync());
+                var err = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(Localizer["KpiDeletedError"], Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error cargando KPIs: {ex.Message}");
+            Snackbar.Add(Localizer["InternError"], Severity.Error);
         }
     }
 

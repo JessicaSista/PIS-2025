@@ -118,10 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Titulo" xml:space="preserve">
-    <value>Visualisations</value>
+    <value>Visualizations</value>
   </data>
   <data name="Descripcion" xml:space="preserve">
-    <value>Create and manage charts and data visualisations</value>
+    <value>Create and manage charts and data visualizations</value>
   </data>
   <data name="AgregarVisualizacion" xml:space="preserve">
     <value>Create Visualisation</value>
@@ -143,5 +143,17 @@
   </data>
   <data name="NoKpisAvailable" xml:space="preserve">
     <value>No KPIs available.</value>
+  </data>
+  <data name="Confirmación" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="PreguntaEliminar1" xml:space="preserve">
+    <value>Are you sure you want to delete the KPI {0}?</value>
+  </data>
+  <data name="Eliminar" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Cancelar" xml:space="preserve">
+    <value>Cancel</value>
   </data>
 </root>

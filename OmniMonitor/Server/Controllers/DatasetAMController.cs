@@ -1,17 +1,12 @@
-
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
-using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace OmniMonitor.Server.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     public class DatasetAMController : ControllerBase
@@ -44,9 +39,10 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest(ModelState);
                 }
+
                 var requestDataset = new CreateDatasetRequest(request.Nombre, request.Username, ModuleType.AssetManager);
-                var newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                var newDatasetAM = await _datasetAmService.CreateDatasetAMAsync(request, newDataset.Id);
+                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+                DatasetAM newDatasetAM = await _datasetAmService.CreateDatasetAMAsync(request, newDataset.Id);
                 await _datasetUMService.UpdateDatasetAsyncAM(newDataset.Id, requestDataset, newDatasetAM);
 
                 return CreatedAtAction(nameof(GetDatasetAMByIdForEdit), new { id = newDatasetAM.Id_Dataset, username = newDatasetAM.Username }, newDatasetAM);
@@ -76,7 +72,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var datasets = await _datasetAmService.GetAllDatasetAMsAsync(username);
+                List<DatasetAM> datasets = await _datasetAmService.GetAllDatasetAMsAsync(username);
                 return Ok(datasets);
             }
             catch (Exception ex)
@@ -97,11 +93,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var dataset = await _datasetAmService.GetDatasetAMByIdAsync(id, username);
+                DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdAsync(id, username);
                 if (dataset == null)
                 {
                     return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {username}.");
                 }
+
                 return Ok(dataset);
             }
             catch (Exception ex)
@@ -122,11 +119,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var dataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, username);
+                DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, username);
                 if (dataset == null)
                 {
                     return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {username}.");
                 }
+
                 return Ok(dataset);
             }
             catch (Exception ex)
@@ -152,16 +150,16 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var existingDataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, request.Username);
+                DatasetAM? existingDataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, request.Username);
                 if (existingDataset == null)
                 {
                     return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {request.Username}.");
                 }
 
                 // Llamar al servicio que incluye la validación de nombres únicos
-                var updatedDataset = await _datasetAmService.UpdateDatasetAMAsync(existingDataset, request);
+                DatasetAM updatedDataset = await _datasetAmService.UpdateDatasetAMAsync(existingDataset, request);
                 var requestDataset = new CreateDatasetRequest(existingDataset.Nombre, request.Username, ModuleType.AssetManager);
-                var newDataset = await _datasetUMService.UpdateDatasetAsyncAM(updatedDataset.DatasetId, requestDataset, updatedDataset);
+                Datasets newDataset = await _datasetUMService.UpdateDatasetAsyncAM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }
             catch (ArgumentException ex)
@@ -174,9 +172,6 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[UpdateDatasetAM] Exception: {ex.Message}\n{ex.StackTrace}");
-                if (ex.InnerException != null)
-                    Console.WriteLine($"[UpdateDatasetAM] Inner: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}");
                 return StatusCode(500, $"Error interno al actualizar el DatasetAM: {ex.Message}");
             }
         }
@@ -194,10 +189,10 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var datasetid = await _context.DatasetAM
+                DatasetAM? datasetid = await _context.DatasetAM
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
                 await _datasetAmService.DeleteDatasetAMAsync(id, username);
-                await _datasetUMService.DeleteDatasetAsync(datasetid.DatasetId, username);
+                await _datasetUMService.DeleteDatasetAsync(datasetid!.DatasetId, username);
                 return NoContent();
             }
             catch (Exception ex)
