@@ -30,7 +30,6 @@ namespace OmniMonitor.Server.Controllers
         /// Crea un nuevo dataset EM.
         /// </summary>
         [HttpPost]
-        [RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
@@ -79,7 +78,6 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
         [HttpGet("GetAllDatasets")]
-        [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -101,7 +99,6 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
         [HttpGet("{datasetId}")]
-        [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -137,6 +134,16 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                // Obtener el dataset existente para obtener el DatasetId
+                DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, request.Username);
+                if (existingDataset == null)
+                {
+                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                }
+
+                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
+                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.EventManager, existingDataset.DatasetId);
+
                 DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, request);
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncEM(updatedDataset.DatasetId, requestDataset, updatedDataset);
@@ -156,7 +163,6 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dataset EM.
         /// </summary>
         [HttpDelete("{datasetId}")]
-        [RequirePermission("Eliminar Datasets EM")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

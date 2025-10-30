@@ -171,9 +171,14 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
 
-                // Llamar al servicio que incluye la validación de nombres únicos
+                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
+                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.InsightMonitor, existingDataset.DatasetId);
+
+                // Actualizar la tabla específica del módulo
                 DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request);
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
+                
+                // Luego actualizar la tabla general
+                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }
