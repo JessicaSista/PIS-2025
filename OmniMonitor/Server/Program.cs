@@ -37,7 +37,7 @@ builder.Logging.AddAzureWebAppDiagnostics();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. ASP.NET Core Identity Configuration (A�ADIDO)
+// 2. ASP.NET Core Identity Configuration (AÑADIDO)
 builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequireNonAlphanumeric = false;
