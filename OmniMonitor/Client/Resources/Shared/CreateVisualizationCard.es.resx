@@ -198,6 +198,42 @@
   <data name="ErrorLoadingDatasets" xml:space="preserve">
     <value>Error al cargar datasets: {0}</value>
   </data>
+  <data name="DatasetAlreadyAdded" xml:space="preserve">
+    <value>Ese dataset ya fue agregado.</value>
+  </data>
+  <data name="DatasetAdded" xml:space="preserve">
+    <value>Dataset agregado.</value>
+  </data>
+  <data name="NewDatasetAdded" xml:space="preserve">
+    <value>Nuevo dataset agregado.</value>
+  </data>
+  <data name="VisualizationNameRequired" xml:space="preserve">
+    <value>El nombre de la visualización es obligatorio.</value>
+  </data>
+  <data name="SelectAtLeastOneDataset" xml:space="preserve">
+    <value>Selecciona al menos un dataset.</value>
+  </data>
+  <data name="DatasetMultiplierZero" xml:space="preserve">
+    <value>El multiplicador del dataset no puede ser 0.</value>
+  </data>
+  <data name="StartEndDateRequired" xml:space="preserve">
+    <value>Debes seleccionar fecha y hora de inicio y fin.</value>
+  </data>
+  <data name="EndDateAfterStartDate" xml:space="preserve">
+    <value>La fecha/hora de fin debe ser posterior a la de inicio.</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>No se encontró el usuario.</value>
+  </data>
+  <data name="GeneralError" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="VisualizationCreated" xml:space="preserve">
+    <value>Visualización creada correctamente.</value>
+  </data>
+  <data name="ErrorCreatingVisualization" xml:space="preserve">
+    <value>Error creando visualización: {0}</value>
+  </data>
   <data name="KpiNameRequired" xml:space="preserve">
     <value>El nombre del KPI es obligatorio.</value>
   </data>
@@ -209,5 +245,14 @@
   </data>
   <data name="ServerConnectionError" xml:space="preserve">
     <value>Error al conectar con el servidor: {0}</value>
+  </data>
+  <data name="DateRangeInvalid" xml:space="preserve">
+    <value>El rango de fechas no es válido</value>
+  </data>
+  <data name="EditKPI" xml:space="preserve">
+    <value>Editar KPI</value>
+  </data>
+  <data name="KpiUpdatedSuccess" xml:space="preserve">
+    <value>KPI actualizado correctamente.</value>
   </data>
 </root>

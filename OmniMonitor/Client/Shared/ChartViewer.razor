@@ -3,17 +3,39 @@
 @using System.Text.Json
 @using Blazored.LocalStorage
 @using System.Globalization
+@using Microsoft.Extensions.Localization
 @* 
 @using System.Reflection.Metadata
 @inject ISnackbar SnackbarService*@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
+@* @inject IStringLocalizer<Visualizations> Localizer *@
 
 
 <MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
-        
-            <MudText Class="px-7 py-5" Typo="Typo.h6"
-                     Style="color: var(--card-text-primary)">@_title</MudText>
+
+    
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    @if (ShowIcon) {
+                        <MudPaper Square="true" Class="pa-2" Style="background-color: #1d283a !important; color: #f4f8fd; border-radius: 2px">
+                            <MudIcon Icon="@GetIcon(_chartType)" />
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <div style="width: 0px;"></div>
+                    }
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    @if (ShowTitle) {   
+                        <MudText Typo="Typo.h6" Style="color: var(--card-text-primary)" >@_title</MudText>
+                    }
+                </CardHeaderContent>
+            </MudCardHeader>
+    
+            @* <MudText Class="px-7 py-5" Typo="Typo.h6"
+                     Style="color: var(--card-text-primary)">@_title</MudText> *@
 
             <MudCardContent Class="pl-7 pr-8"
                             Style="color: var(--card-text-secondary); height: 100%">
@@ -37,6 +59,18 @@
                     <MudSkeleton />
                 }
             </MudCardContent>
+
+
+            <MudCardActions Class="d-block">
+                @if (ShowDatasetsInfo)
+                {
+                    <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
+                }
+                @if (ShowLastUpdatedInfo)
+                {
+                    <MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>
+                }
+            </MudCardActions>
         
 </MudItem>
 
@@ -60,11 +94,17 @@
         }
     }
 
+    [Parameter] public bool ShowTitle { get; set; } = true;
+    [Parameter] public bool ShowIcon { get; set; } = false;
+    [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
+    [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
+
     // Local Variables
     private string _authenticatedUser = string.Empty;
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
 
     private System.String _title { get; set; } = string.Empty;
+    private System.String _datasetNames { get; set; } = string.Empty;
 
     // Chart Variables
     private SeriesType _seriesType = SeriesType.Line;
@@ -94,7 +134,7 @@
                     var _chartType = design.RootElement.GetProperty("ChartType").ToString();
                     _seriesType = MapSeriesType(_chartType);
 
-
+                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
 
                     var allData = new List<object>();
                     try
@@ -271,6 +311,27 @@
         }
 
         return grouped.Values.ToList();
+    }
+
+    private string GetIcon(string chartType)
+    {
+        return chartType switch
+        {
+            "line" => Icons.Material.Filled.ShowChart,
+            "bar" => Icons.Material.Filled.BarChart,
+            "area" => Icons.Material.Filled.AreaChart,
+            "pie" => Icons.Material.Filled.PieChart,
+            "donut" => Icons.Material.Filled.DonutLarge,
+            "radialBar" => Icons.Material.Filled.DonutSmall,
+            "scatter" => Icons.Material.Filled.BubbleChart,
+            "heatmap" => Icons.Material.Filled.GridOn,
+            "radar" => Icons.Material.Filled.Radar,
+            "bubble" => Icons.Material.Filled.BubbleChart,
+            "candlestick" => Icons.Material.Filled.CandlestickChart,
+            "boxPlot" => Icons.Material.Filled.Analytics,
+            "treemap" => Icons.Material.Filled.AccountTree,
+            _ => Icons.Material.Filled.InsertChart
+        };
     }
 
     public class DatasetSeries

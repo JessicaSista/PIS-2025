@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -27,18 +28,18 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(new LoginResponse
                     {
                         Success = false,
-                        Message = "Datos de entrada inválidos"
+                        Message = "Datos de entrada inválidos",
                     });
                 }
 
                 _logger.LogInformation($"Intento de login para usuario: {loginRequest.Username}");
 
-                var result = await _authService.LoginAsync(loginRequest);
+                LoginResponse result = await _authService.LoginAsync(loginRequest);
 
                 if (result.Success)
                 {
                     _logger.LogInformation($"Login exitoso para usuario: {loginRequest.Username}");
-                    
+
                     return Ok(result);
                 }
                 else
@@ -53,28 +54,8 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, new LoginResponse
                 {
                     Success = false,
-                    Message = "Error interno del servidor"
+                    Message = "Error interno del servidor",
                 });
-            }
-        }
-
-        [HttpPost("validate")]
-        public async Task<ActionResult<bool>> ValidateUser([FromBody] LoginRequest loginRequest)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(false);
-                }
-
-                var isValid = await _authService.ValidateUserAsync(loginRequest.Username, loginRequest.Password);
-                return Ok(isValid);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error durante la validación para usuario: {loginRequest.Username}");
-                return StatusCode(500, false);
             }
         }
     }

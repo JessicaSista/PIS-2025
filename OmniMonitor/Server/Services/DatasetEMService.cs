@@ -7,7 +7,7 @@ namespace OmniMonitor.Server.Services
 {
     public interface IDatasetEMService
     {
-        Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request);
+        Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request,int dataset);
         Task<List<DatasetEM>> GetAllDatasetsEMAsync(string username);
         Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username);
         Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username);
@@ -29,7 +29,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Crea un nuevo dataset EM.
         /// </summary>
-        public async Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request)
+        public async Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request, int dataset)
         {
             await ValidateDuplicateName(request.Name, request.Username);
 
@@ -39,14 +39,7 @@ namespace OmniMonitor.Server.Services
                 Description = request.Description,
                 Username = request.Username,
                 Is_Dataset = request.IsDataset,
-                Id_Alert = request.AlertId,
-                Id_Event = request.EventId,
-                Id_Extension = request.ExtensionId,
-                Id_Category = request.CategoryId,
-                AlertState = request.AlertState,
-                EventState = request.EventState,
-                ExtensionState = request.ExtensionState,
-                CategoryState = request.CategoryState,
+                DatasetId = dataset,
                 ContentType = GetContentType(request).ToString()
             };
 
@@ -95,11 +88,11 @@ namespace OmniMonitor.Server.Services
                  !dataset.DatasetCategory.Any())
             {
                 // Obtener usuario y credenciales
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                     return null;
 
-                // 1. Alerts dinámicos
+               /* // 1. Alerts dinámicos
                 if (dataset.Id_Alert.HasValue || !string.IsNullOrEmpty(dataset.AlertState))
                 {
                     var alerts = await _sondaEMService.GetAlerts(1, 1000, null, dataset.AlertState, null, null, null, null, null, user.Username, user.Password);
@@ -141,7 +134,7 @@ namespace OmniMonitor.Server.Services
                         categories = categories.Where(c => c.CategoryId == dataset.Id_Category.Value).ToList();
                     foreach (var category in categories)
                         dataset.DatasetCategory.Add(new DatasetCategory { Id_Category = category.CategoryId });
-                }
+                }*/
             }
 
             return dataset;
@@ -182,7 +175,7 @@ namespace OmniMonitor.Server.Services
             existingDataset.Description = request.Description;
             existingDataset.Is_Dataset = request.IsDataset;
             existingDataset.ContentType = GetContentType(request).ToString();
-            existingDataset.Id_Alert = request.AlertId;
+            /*existingDataset.Id_Alert = request.AlertId;
             existingDataset.Id_Event = request.EventId;
             existingDataset.Id_Extension = request.ExtensionId;
             existingDataset.Id_Category = request.CategoryId;
@@ -190,13 +183,13 @@ namespace OmniMonitor.Server.Services
             existingDataset.EventState = request.EventState;
             existingDataset.ExtensionState = request.ExtensionState;
             existingDataset.CategoryState = request.CategoryState;
-
+            
             // Marcar campos nullable como modificados si es necesario
             _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;
-            // Eliminar relaciones existentes de la base de datos
+            */// Eliminar relaciones existentes de la base de datos
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);

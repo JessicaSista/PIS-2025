@@ -11,11 +11,11 @@ namespace OmniMonitor.Server.Services
 {
     public interface IDatasetAmService
     {
-        Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request);
+        Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset);
         Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username);
         Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username);
         Task<DatasetAM?> GetDatasetAMByIdForEditAsync(int id, string username);
-        Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM);
+        Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request);
         Task DeleteDatasetAMAsync(int id, string username);
     }
 
@@ -30,7 +30,7 @@ namespace OmniMonitor.Server.Services
             _sondaAMService = sondaAMService;
         }
 
-        public async Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request)
+        public async Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
@@ -49,7 +49,7 @@ namespace OmniMonitor.Server.Services
                 Nombre = request.Nombre,
                 Descripcion = request.Descripcion,
                 Is_Dataset = request.IsDataset,
-
+                DatasetId = dataset,
                 Type_Dataset = request.Type_Dataset,
                 Id_Event_Task = request.Type_Dataset == 1 ? request.Id_Event_Task : null,
                 Id_Asset_Type = request.Type_Dataset == 2 ? request.Id_Asset_Type : null
@@ -139,7 +139,7 @@ namespace OmniMonitor.Server.Services
             // Si es un dataset formal ('S') y no tiene relaciones hijas, buscar dinámicamente
             if (datasetAM.Is_Dataset == "S")
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                 {
                     return datasetAM;
@@ -161,8 +161,7 @@ namespace OmniMonitor.Server.Services
                         null,                                      // pageSize
                         false,                                     // tasksAssignedToMe
                         false,                                     // tasksPendingApproval
-                        user.Username,
-                        user.Password
+                        user.UserName
                     );
                     if (eventTaskInstances != null && eventTaskInstances.Any())
                     {
@@ -180,7 +179,7 @@ namespace OmniMonitor.Server.Services
                     // Ejemplo (ajusta el método según tu ISondaAMService):
                     // Llamada actualizada para coincidir con la firma de ISondaAMService
                     // page, queryString, bundles, assetTypeId, sort, pageSize, username, password
-                    var assets = await _sondaAMService.GetAssets(null, null, null, datasetAM.Id_Asset_Type, null, null, user.Username, user.Password);
+                    var assets = await _sondaAMService.GetAssets(null, null, null, datasetAM.Id_Asset_Type, null, null, user.UserName);
                     if (assets != null)
                     {
                         datasetAM.Grupo_Asset = assets.Select(a => new DatasetAsset
@@ -193,11 +192,11 @@ namespace OmniMonitor.Server.Services
                     var eventTaskInstance = datasetAM.Grupo_Event_Task_Instance.First();
                     if (eventTaskInstance.Grupo_Stock == null || !eventTaskInstance.Grupo_Stock.Any())
                     {
-                        var userDb = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                        var userDb = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                         if (userDb != null)
                         {
                             // Llama a la API externa para obtener stocks asociados a ese event task instance
-                            var stocks = await _sondaAMService.GetEventTaskInstanceStock(eventTaskInstance.Id_Event_Task_Instance, userDb.Username, userDb.Password);
+                            var stocks = await _sondaAMService.GetEventTaskInstanceStock(eventTaskInstance.Id_Event_Task_Instance, userDb.UserName);
                             if (stocks != null)
                             {
                                 eventTaskInstance.Grupo_Stock = stocks.Select(s => new DatasetStock { Id_Stock = s.Id }).ToList();
@@ -223,19 +222,14 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
         }
 
-        public async Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM)
+        public async Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request)
         {
-            var existing = await _context.DatasetAM
-                .Include(d => d.Grupo_Event_Task_Instance)
-                    .ThenInclude(e => e.Grupo_Stock)
-                .Include(d => d.Grupo_Asset)
-                .FirstOrDefaultAsync(d => d.Id_Dataset == datasetAM.Id_Dataset);
 
-            if (existing == null)
+            if (datasetAM == null)
                 throw new InvalidOperationException($"No se encontró el DatasetAM con ID {datasetAM.Id_Dataset}.");
 
             // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
-            if (existing.Nombre != datasetAM.Nombre)
+            if (datasetAM.Nombre != request.Nombre)
             {
                 var duplicateDataset = await _context.DatasetAM
                     .FirstOrDefaultAsync(d => d.Username == datasetAM.Username && 
@@ -249,82 +243,72 @@ namespace OmniMonitor.Server.Services
             }
 
             // Actualiza los campos simples
-            existing.Nombre = datasetAM.Nombre;
-            existing.Descripcion = datasetAM.Descripcion;
-            existing.Type_Dataset = datasetAM.Type_Dataset;
-            existing.Id_Event_Task = datasetAM.Id_Event_Task;
-            existing.Id_Asset_Type = datasetAM.Id_Asset_Type;
-            existing.Is_Dataset = datasetAM.Is_Dataset;
-            existing.ContentType = datasetAM.ContentType;
+            datasetAM.Nombre = request.Nombre;
+            datasetAM.Descripcion = request.Descripcion;
+            datasetAM.Type_Dataset = request.Type_Dataset;
+            datasetAM.Id_Event_Task = request.Id_Event_Task;
+            datasetAM.Id_Asset_Type = request.Id_Asset_Type;
+            datasetAM.Is_Dataset = request.IsDataset;
+            datasetAM.ContentType = request.ContentType;
 
             // --- Actualizar Grupo_Event_Task_Instance y sus stocks ---
             // Eliminar los event task instances y stocks existentes
-            if (existing.Grupo_Event_Task_Instance != null)
-            {
-                foreach (var eventTaskInstance in existing.Grupo_Event_Task_Instance)
-                {
-                    if (eventTaskInstance.Grupo_Stock != null && eventTaskInstance.Grupo_Stock.Any())
-                    {
-                        var stocksToRemove = eventTaskInstance.Grupo_Stock.Where(s => s.Grupo_Stock > 0).ToList();
-                        if (stocksToRemove.Any())
-                        {
-                            _context.Set<DatasetStock>().RemoveRange(stocksToRemove);
-                        }
-                    }
-                }
-                var eventTaskInstancesToRemove = existing.Grupo_Event_Task_Instance.Where(e => e.Id > 0).ToList();
-                if (eventTaskInstancesToRemove.Any())
-                {
-                    _context.Set<DatasetEventTaskInstance>().RemoveRange(eventTaskInstancesToRemove);
-                }
-                existing.Grupo_Event_Task_Instance.Clear();
-            }
-
-            // Agregar los nuevos event task instances y stocks
             if (datasetAM.Grupo_Event_Task_Instance != null && datasetAM.Grupo_Event_Task_Instance.Any())
             {
                 foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
                 {
-                    var newEventTaskInstance = new DatasetEventTaskInstance
-                    {
-                        Id_Event_Task_Instance = eventTaskInstance.Id_Event_Task_Instance,
-                        Grupo_Stock = new List<DatasetStock>()
-                    };
                     if (eventTaskInstance.Grupo_Stock != null && eventTaskInstance.Grupo_Stock.Any())
                     {
-                        foreach (var stock in eventTaskInstance.Grupo_Stock)
+                        _context.Set<DatasetStock>().RemoveRange(eventTaskInstance.Grupo_Stock);
+                    }
+                }
+                _context.Set<DatasetEventTaskInstance>().RemoveRange(datasetAM.Grupo_Event_Task_Instance);
+                datasetAM.Grupo_Event_Task_Instance.Clear();
+            }
+
+            // Agregar los nuevos event task instances y stocks
+            if (request.Grupo_Event_Task_Instance_Ids != null && request.Grupo_Event_Task_Instance_Ids.Any())
+            {
+                datasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
+                foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
+                {
+                    var newEventTaskInstance = new DatasetEventTaskInstance
+                    {
+                        Id_Event_Task_Instance = eventTaskInstanceId,
+                        Grupo_Stock = new List<DatasetStock>()
+                    };
+                    if (request.StockIds != null && request.StockIds.Any())
+                    {
+                        foreach (var stockId in request.StockIds)
                         {
-                            newEventTaskInstance.Grupo_Stock.Add(new DatasetStock { Id_Stock = stock.Id_Stock });
+                            newEventTaskInstance.Grupo_Stock.Add(new DatasetStock { Id_Stock = stockId });
                         }
                     }
-                    existing.Grupo_Event_Task_Instance.Add(newEventTaskInstance);
+                    datasetAM.Grupo_Event_Task_Instance.Add(newEventTaskInstance);
                 }
             }
 
             // --- Actualizar Grupo_Asset ---
             // Eliminar assets existentes
-            if (existing.Grupo_Asset != null && existing.Grupo_Asset.Any())
+            if (datasetAM.Grupo_Asset != null && datasetAM.Grupo_Asset.Any())
             {
-                var assetsToRemove = existing.Grupo_Asset.Where(a => a.Grupo_Asset > 0).ToList();
-                if (assetsToRemove.Any())
-                {
-                    _context.Set<DatasetAsset>().RemoveRange(assetsToRemove);
-                }
-                existing.Grupo_Asset.Clear();
+                _context.Set<DatasetAsset>().RemoveRange(datasetAM.Grupo_Asset);
+                datasetAM.Grupo_Asset.Clear();
             }
 
             // Agregar los nuevos assets
-            if (datasetAM.Grupo_Asset != null && datasetAM.Grupo_Asset.Any())
+            if (request.Grupo_Asset_Ids != null && request.Grupo_Asset_Ids.Any())
             {
-                foreach (var asset in datasetAM.Grupo_Asset)
+                datasetAM.Grupo_Asset = new List<DatasetAsset>();
+                foreach (var idAsset in request.Grupo_Asset_Ids)
                 {
-                    existing.Grupo_Asset.Add(new DatasetAsset { Id_Asset = asset.Id_Asset });
+                    datasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = idAsset });
                 }
             }
 
-            _context.DatasetAM.Update(existing);
+            _context.DatasetAM.Update(datasetAM);
             await _context.SaveChangesAsync();
-            return existing;
+            return datasetAM;
         }
 
         public async Task DeleteDatasetAMAsync(int id, string username)
