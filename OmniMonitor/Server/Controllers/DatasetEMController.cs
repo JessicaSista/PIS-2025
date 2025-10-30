@@ -30,7 +30,6 @@ namespace OmniMonitor.Server.Controllers
         /// Crea un nuevo dataset EM.
         /// </summary>
         [HttpPost]
-        [RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
@@ -79,7 +78,6 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
         [HttpGet("GetAllDatasets")]
-        [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -101,7 +99,6 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
         [HttpGet("{datasetId}")]
-        [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -128,7 +125,6 @@ namespace OmniMonitor.Server.Controllers
         /// Actualiza un dataset EM existente.
         /// </summary>
         [HttpPut("{datasetId}")]
-        [RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -156,7 +152,6 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dataset EM.
         /// </summary>
         [HttpDelete("{datasetId}")]
-        [RequirePermission("Eliminar Datasets EM")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

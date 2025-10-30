@@ -10,7 +10,6 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class DatasetUMController : ControllerBase
     {
         private readonly IDatasetUMService _datasetUMService;
@@ -37,20 +36,13 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
+
 
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                if (!IsUserAuthorized(request.Username))
-                {
-                    return Forbid();
-                }
 
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
@@ -84,10 +76,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
+
 
                 List<DatasetUM> datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
                 return Ok(datasets);
@@ -111,10 +100,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
+
 
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
@@ -148,10 +134,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(ModelState);
                 }
 
-                if (!IsUserAuthorized(request.Username))
-                {
-                    return Forbid();
-                }
+
 
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
                 DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
@@ -186,10 +169,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
+
 
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
@@ -218,10 +198,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                if (!IsUserAuthorized(username))
-                {
-                    return Forbid();
-                }
+
 
                 List<Datasets> datasets = await _datasetUMService.GetAllDatasetsAsync(username);
                 return Ok(datasets);
@@ -232,11 +209,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        private bool IsUserAuthorized(string username)
-        {
-            // Ajusta según tu claim de usuario si es necesario
-            return string.Equals(User.Identity?.Name, username, StringComparison.OrdinalIgnoreCase)
-                   || User.IsInRole("Admin");
-        }
+       
     }
 }

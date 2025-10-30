@@ -212,5 +212,31 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al editar la visualización: {ex.Message}");
             }
         }
+
+
+        [HttpPost("visualization-data")]
+        [ProducesResponseType(typeof(VisualizationResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GetVisualizationData([FromQuery] string token, [FromBody] VisualizationRequest request)
+        {
+            ArgumentNullException.ThrowIfNull(token);
+
+            try
+            {
+                
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+
+                var response = await _visualizacionService.GetVisualizationDataAsync(request, username);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al generar los datos de visualización: {ex.Message}");
+            }
+        }
+
+
     }
 }
