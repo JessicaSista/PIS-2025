@@ -156,6 +156,8 @@
         {
             try
             {
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var username = authState.User.Identity?.Name;
                 // Obtener el token de autenticación
                 string token = await LocalStorage.GetItemAsync<string>("authToken");
 
@@ -222,6 +224,8 @@
     {
         try
         {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
             // Obtener el token de autenticación
             string token = await LocalStorage.GetItemAsync<string>("authToken");
             if (string.IsNullOrEmpty(token))
@@ -230,6 +234,9 @@
                 filteredDatasets = new List<DatasetDto>();
                 return;
             }
+
+            // Configurar el header de autorización
+            Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             // Construir la URL con el token y el filtro de búsqueda
             var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";

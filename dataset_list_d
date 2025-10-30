@@ -1,0 +1,44 @@
+# Diagnóstico: Listado de Datasets No Se Muestra
+
+## Posibles Causas Identificadas
+
+### 1. **Problema de Condicional Restrictiva**
+```razor
+@if (filteredDatasets != null && filteredDatasets.Count > 0)
+```
+**Si filteredDatasets está vacío o es null, no se muestra NADA**
+
+### 2. **Problemas de API**
+- Token inválido/expirado
+- Error 401/403/500 en la API
+- CORS issues
+- API retorna lista vacía
+
+### 3. **Problemas de Deserialización**
+- JSON response malformado
+- Model mismatch
+- Error durante ReadFromJsonAsync
+
+## Diagnósticos Necesarios
+
+### A. **Mejorar Logging en Frontend**
+- Verificar estado de token
+- Verificar response de API
+- Verificar datos deserializados
+
+### B. **Agregar Estado de Carga y Sin Datos**
+- Mostrar indicador de carga
+- Mostrar mensaje cuando no hay datasets
+- Mostrar errores de API
+
+### C. **Verificar Endpoint**
+- Confirmar que GetAllDatasetsDto funciona
+- Verificar autenticación
+- Verificar datos en BD
+
+## Plan de Solución
+
+1. **Agregar diagnósticos de logging**
+2. **Agregar UI para mostrar estado de carga/sin datos**
+3. **Mejorar manejo de errores**
+4. **Verificar API endpoint**

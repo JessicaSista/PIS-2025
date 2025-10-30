@@ -305,61 +305,82 @@ namespace OmniMonitor.Server.Services
         
         public async Task<List<DatasetDto>> GetAllDatasetsDtoAsync(string username, string? search = null)
         {
-            // Iniciar el query base
-            IQueryable<Datasets> query = _context.Datasets
-                .Where(d => d.Username == username);
-            
-            // Aplicar búsqueda si se proporciona (antes de los Includes)
-            if (!string.IsNullOrWhiteSpace(search))
+            try
             {
-                query = query.Where(d => 
-                    EF.Functions.Like(d.NameDataset.ToLower(), $"%{search.ToLower()}%"));
-            }
-            
-            // Agregar los Includes al final
-            var datasets = await query
-                .Include(d => d.DatasetIM)
-                .Include(d => d.DatasetAM)
-                .Include(d => d.DatasetUM)
-                .Include(d => d.DatasetEM)
-                .ToListAsync();
-            
-            // Mapear a DatasetDto
-            var result = new List<DatasetDto>();
-            foreach (var dataset in datasets)
-            {
-                var dto = new DatasetDto
-                {
-                    Id = dataset.Id,
-                    Nombre = dataset.NameDataset,
-                    Module = GetModuleName(dataset.TipoDataset)
-                };
+                // Iniciar el query base
+                IQueryable<Datasets> query = _context.Datasets
+                    .Where(d => d.Username == username);
                 
-                // Obtener descripción según el módulo
-                switch (dataset.TipoDataset)
+                // Aplicar búsqueda si se proporciona (antes de los Includes)
+                if (!string.IsNullOrWhiteSpace(search))
                 {
-                    case ModuleType.InsightMonitor:
-                        var datasetIM = dataset.DatasetIM.FirstOrDefault();
-                        dto.Descripcion = datasetIM?.Description ?? string.Empty;
-                        break;
-                    case ModuleType.AssetManager:
-                        var datasetAM = dataset.DatasetAM.FirstOrDefault();
-                        dto.Descripcion = datasetAM?.Descripcion ?? string.Empty;
-                        break;
-                    case ModuleType.UrbanMonitor:
-                        var datasetUM = dataset.DatasetUM.FirstOrDefault();
-                        dto.Descripcion = datasetUM?.Description ?? string.Empty;
-                        break;
-                    case ModuleType.EventManager:
-                        var datasetEM = dataset.DatasetEM.FirstOrDefault();
-                        dto.Descripcion = datasetEM?.Description ?? string.Empty;
-                        break;
+                    query = query.Where(d => 
+                        EF.Functions.Like(d.NameDataset.ToLower(), $"%{search.ToLower()}%"));
                 }
                 
-                result.Add(dto);
+                // Agregar los Includes al final
+                var datasets = await query
+                    .Include(d => d.DatasetIM)
+                    .Include(d => d.DatasetAM)
+                    .Include(d => d.DatasetUM)
+                    .Include(d => d.DatasetEM)
+                    .ToListAsync();
+                
+                // Mapear a DatasetDto
+                var result = new List<DatasetDto>();
+                foreach (var dataset in datasets)
+                {
+                    try
+                    {
+                        var dto = new DatasetDto
+                        {
+                            Id = dataset.Id,
+                            Nombre = dataset.NameDataset ?? string.Empty,
+                            Module = GetModuleName(dataset.TipoDataset),
+                            Descripcion = string.Empty // Valor por defecto
+                        };
+                        
+                        // Obtener descripción según el módulo
+                        switch (dataset.TipoDataset)
+                        {
+                            case ModuleType.InsightMonitor:
+                                var datasetIM = dataset.DatasetIM?.FirstOrDefault();
+                                if (datasetIM != null)
+                                    dto.Descripcion = datasetIM.Description ?? string.Empty;
+                                break;
+                            case ModuleType.AssetManager:
+                                var datasetAM = dataset.DatasetAM?.FirstOrDefault();
+                                if (datasetAM != null)
+                                    dto.Descripcion = datasetAM.Descripcion ?? string.Empty;
+                                break;
+                            case ModuleType.UrbanMonitor:
+                                var datasetUM = dataset.DatasetUM?.FirstOrDefault();
+                                if (datasetUM != null)
+                                    dto.Descripcion = datasetUM.Description ?? string.Empty;
+                                break;
+                            case ModuleType.EventManager:
+                                var datasetEM = dataset.DatasetEM?.FirstOrDefault();
+                                if (datasetEM != null)
+                                    dto.Descripcion = datasetEM.Description ?? string.Empty;
+                                break;
+                        }
+                        
+                        result.Add(dto);
+                    }
+                    catch
+                    {
+                        // Si hay algún error mapeando un dataset individual, lo ignoramos
+                        continue;
+                    }
+                }
+                
+                return result;
             }
-            
-            return result;
+            catch (Exception ex)
+            {
+                // Log the error here if you have logging
+                return new List<DatasetDto>();
+            }
         }
         
         private string GetModuleName(ModuleType moduleType)
