@@ -31,7 +31,8 @@
                Variant="Variant.Outlined"
                Class="flex-grow-1 dark-field"
                InputClass="dark-field-input"
-               PopoverClass="dark-field-popover">
+               PopoverClass="dark-field-popover"
+               Disabled="true">
         @foreach (var tipo in tiposDataset)
         {
             <MudSelectItem Value="@tipo">@tipo</MudSelectItem>
@@ -800,28 +801,29 @@ else if (selectedTipo == "Insight Monitor")
 
             bool datasetFound = false;
 
-            if (string.IsNullOrEmpty(ModuleHint))
+            // Primero, obtener el módulo desde la tabla unificada Datasets usando el endpoint específico
+            try
             {
-                try
+                var moduleResponse = await Http.GetAsync($"api/Dataset/GetDatasetModule?datasetId={id}&token={Uri.EscapeDataString(token)}");
+
+                if (moduleResponse.IsSuccessStatusCode)
                 {
-                    var moduleResponse = await Http.GetAsync($"api/Dataset/GetDatasetModule?datasetId={id}&token={Uri.EscapeDataString(token)}");
-                    if (moduleResponse.IsSuccessStatusCode)
+                    var module = await moduleResponse.Content.ReadAsStringAsync();
+                    module = module.Trim('"'); // Remover comillas si las hay
+
+                    if (!string.IsNullOrEmpty(module))
                     {
-                        var module = await moduleResponse.Content.ReadFromJsonAsync<string>();
-                        if (!string.IsNullOrEmpty(module))
-                        {
-                            ModuleHint = module;
-                            Console.WriteLine($"[PERF] Module identified in DB: {module}");
-                        }
+                        selectedTipo = module;
+                        ModuleHint = selectedTipo;
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[PERF] Error identifying module: {ex.Message}");
-                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PERF] Error obteniendo módulo desde tabla unificada: {ex.Message}");
             }
 
-            // Si tenemos un hint del módulo, intentar cargar directamente desde ese módulo primero
+            // Si tenemos un hint del módulo, cargar directamente desde ese módulo
             if (!string.IsNullOrEmpty(ModuleHint))
             {
                 switch (ModuleHint)
@@ -849,7 +851,7 @@ else if (selectedTipo == "Insight Monitor")
                 }
             }
 
-            // Si no hay hint o no se encontró, intentar con todos los módulos
+            // Si no hay hint o no se encontró, intentar con todos los módulos (fallback)
             if (!datasetFound)
             {
                 datasetFound = await TryLoadAsInsightMonitor(token);
@@ -1049,45 +1051,35 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            Console.WriteLine($"[DEBUG EditarDataset] Token length: {authToken?.Length ?? 0}");
-            Console.WriteLine($"[DEBUG EditarDataset] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
             
             var encodedToken = GetEncodedToken();
             
             var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={encodedToken}");
-            Console.WriteLine($"[DEBUG EditarDataset] Sources response status: {sourcesResponse.StatusCode}");
             
             if (sourcesResponse.IsSuccessStatusCode)
             {
                 sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
-                Console.WriteLine($"[DEBUG EditarDataset] Loaded {sources.Count} sources");
             }
             else
             {
                 var error = await sourcesResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EditarDataset] Sources error: {error}");
                 Snackbar.Add($"Error al cargar fuentes: {error}", Severity.Error);
             }
 
             var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={encodedToken}");
-            Console.WriteLine($"[DEBUG EditarDataset] Groups response status: {groupsResponse.StatusCode}");
             
             if (groupsResponse.IsSuccessStatusCode)
             {
                 deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
-                Console.WriteLine($"[DEBUG EditarDataset] Loaded {deviceGroups.Count} groups");
             }
             else
             {
                 var error = await groupsResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EditarDataset] Groups error: {error}");
                 Snackbar.Add($"Error al cargar grupos: {error}", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EditarDataset] Exception in LoadSourcesAndGroups: {ex.Message}");
-            Console.WriteLine($"[DEBUG EditarDataset] Stack trace: {ex.StackTrace}");
             Snackbar.Add($"{Localizer["ErrorCargaFuentes"]} {ex.Message}", Severity.Error);
         }
     }
@@ -1291,7 +1283,8 @@ else if (selectedTipo == "Insight Monitor")
                 DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
-            var response = await Http.PutAsJsonAsync($"api/Dataset/{id}", request);
+            var response = await Http.PutAsJsonAsync($"api/Dataset/{id}?token={GetEncodedToken()}", request);
+
 
             if (response.IsSuccessStatusCode)
             {
@@ -1521,7 +1514,7 @@ else if (selectedTipo == "Insight Monitor")
                 StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}", request);
+            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1695,7 +1688,7 @@ else if (selectedTipo == "Insight Monitor")
                 NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/{id}", request);
+            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/{id}?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetUM>();
@@ -1720,7 +1713,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var responseEM = await Http.GetAsync($"api/DatasetEM/{id}?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            var responseEM = await Http.GetAsync($"api/DatasetEM/GetDatasetById?datasetId={id}&token={Uri.EscapeDataString(token)}");
             if (responseEM.IsSuccessStatusCode)
             {
                 var existenteEM = await responseEM.Content.ReadFromJsonAsync<DatasetEM>();
@@ -1826,31 +1819,24 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var encodedToken = GetEncodedToken();
-            Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
 
             // Load Categories (backend handles Sonda API pagination limitations)
             var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
-            Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             
             var respCategories = await Http.GetAsync(url);
-            Console.WriteLine($"[DEBUG EM] Categories response status: {respCategories.StatusCode}");
             
             if (respCategories.IsSuccessStatusCode)
             {
                 categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
-                Console.WriteLine($"[DEBUG EM] Loaded {categories.Count} categories");
             }
             else
             {
                 var error = await respCategories.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EM] Categories error: {error}");
                 ShowError($"Error al cargar categorías: {error}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EM] Exception: {ex.Message}");
-            Console.WriteLine($"[DEBUG EM] Stack trace: {ex.StackTrace}");
             ShowError($"Error cargando Event Manager: {ex.Message}");
         }
     }
@@ -2004,7 +1990,7 @@ else if (selectedTipo == "Insight Monitor")
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/{id}", request);
+            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/{id}?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetEM>();

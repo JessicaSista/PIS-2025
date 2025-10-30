@@ -92,7 +92,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetAM>> GetDatasetAMById(int id, string token)
+        public async Task<ActionResult<DatasetAM>> GetDatasetAMById([FromQuery] int id, [FromQuery] string token)
         {
             try
             {
@@ -117,7 +117,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetAM>> GetDatasetAMByIdForEdit(int id, string token)
+        public async Task<ActionResult<DatasetAM>> GetDatasetAMByIdForEdit([FromQuery] int id, [FromQuery] string token)
         {
             try
             {

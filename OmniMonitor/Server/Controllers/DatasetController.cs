@@ -122,22 +122,30 @@ public class DatasetController : ControllerBase
     [ProducesResponseType(typeof(string), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<string>> GetDatasetModule(int datasetId, string token)
+    public async Task<ActionResult<string>> GetDatasetModule([FromQuery] int datasetId, [FromQuery] string token)
     {
         try
         {
+            Console.WriteLine($"[DEBUG GetDatasetModule] datasetId={datasetId}, token length={token?.Length ?? 0}");
+
             string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            Console.WriteLine($"[DEBUG GetDatasetModule] username={username}");
+
             var module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
-            
+            Console.WriteLine($"[DEBUG GetDatasetModule] module={module}");
+
             if (module == null)
             {
+                Console.WriteLine($"[DEBUG GetDatasetModule] Dataset {datasetId} not found for user {username}");
                 return NotFound($"No se encontró el dataset con ID {datasetId}.");
             }
-            
+
             return Ok(module);
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[DEBUG GetDatasetModule] Exception: {ex.Message}");
+            Console.WriteLine($"[DEBUG GetDatasetModule] StackTrace: {ex.StackTrace}");
             return StatusCode(500, $"Error interno al identificar el módulo: {ex.Message}");
         }
     }
@@ -149,7 +157,7 @@ public class DatasetController : ControllerBase
     [ProducesResponseType(typeof(DatasetIM), 200)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId, string token)
+    public async Task<ActionResult<DatasetIM>> GetDatasetById([FromQuery] int datasetId, [FromQuery] string token)
     {
         try
         {

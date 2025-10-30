@@ -150,7 +150,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
                 .Include(d => d.DatasetCategory)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
                 .Include(d => d.DatasetCategory)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
@@ -213,7 +213,7 @@ namespace OmniMonitor.Server.Services
         public async Task DeleteDatasetEMAsync(int datasetId, string username)
         {
             var dataset = await _context.DatasetsEM
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
 
             if (dataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
@@ -279,7 +279,7 @@ namespace OmniMonitor.Server.Services
                 .Where(d => d.Name == name && d.Username == username);
 
             if (excludeId.HasValue)
-                query = query.Where(d => d.Id != excludeId.Value);
+                query = query.Where(d => d.DatasetId != excludeId.Value);
 
             if (await query.AnyAsync())
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");

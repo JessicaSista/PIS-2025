@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Attributes;
@@ -25,11 +24,17 @@ namespace OmniMonitor.Server.Controllers
             _context = context;
         }
 
+        private bool IsUserAuthorized(string username)
+        {
+            // Verificar que el username no sea nulo o vacío
+            return !string.IsNullOrWhiteSpace(username);
+        }
+
         /// <summary>
         /// Crea un nuevo dataset EM.
         /// </summary>
         [HttpPost]
-        [RequirePermission("Crear Datasets EM")]
+       // [RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
@@ -38,30 +43,19 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                if (request == null)
-                {
-                    return BadRequest("El cuerpo de la petición no puede estar vacío.");
-                }
+                if (!IsUserAuthorized(request.Username))
+                    return Forbid();
 
-                if (string.IsNullOrWhiteSpace(request.Name))
-                {
-                    return BadRequest("El nombre del dataset es requerido.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.Username))
-                {
-                    return BadRequest("El nombre de usuario es requerido.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.IsDataset))
-                {
-                    return BadRequest("El tipo de dataset es requerido.");
-                }
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
                 var Dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
                 var createdDataset = await _datasetEMService.CreateDatasetEMAsync(request, Dataset.Id);
                 await _datasetUMService.UpdateDatasetAsyncEM(Dataset.Id, requestDataset, createdDataset);
+
                 return CreatedAtAction(nameof(GetDatasetById), new { datasetId = createdDataset.Id, username = createdDataset.Username }, createdDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -77,7 +71,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
         [HttpGet("GetAllDatasets")]
-        [RequirePermission("Ver Datasets EM")]
+       // [RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -98,17 +92,20 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
-        [HttpGet("{datasetId}")]
-        [RequirePermission("Ver Datasets EM")]
-        [ProducesResponseType(typeof(DatasetEM), 200)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId, string token)
+    [HttpGet("GetDatasetById")]
+    [ProducesResponseType(typeof(DatasetEM), 200)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<DatasetEM>> GetDatasetById([FromQuery] int datasetId, [FromQuery] string token)
         {
             try
             {
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                var dataset = await _datasetEMService.GetDatasetEMByIdAsync(datasetId, username);
+                if (!IsUserAuthorized(username))
+                    return Forbid();
+
+                var dataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
@@ -127,7 +124,7 @@ namespace OmniMonitor.Server.Controllers
         /// Actualiza un dataset EM existente.
         /// </summary>
         [HttpPut("{datasetId}")]
-        [RequirePermission("Crear Datasets EM")]
+        //[RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -136,18 +133,25 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                if (!IsUserAuthorized(request.Username))
+                    return Forbid();
+
                 var updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, request);
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
                 var Dataset = await _datasetUMService.UpdateDatasetAsyncEM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Error interno al actualizar el dataset: {ex.Message}" });
+                return StatusCode(500, $"Error interno al actualizar el dataset: {ex.Message}");
             }
         }
 
@@ -155,7 +159,7 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dataset EM.
         /// </summary>
         [HttpDelete("{datasetId}")]
-        [RequirePermission("Eliminar Datasets EM")]
+       // [RequirePermission("Eliminar Datasets EM")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

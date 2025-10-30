@@ -205,7 +205,7 @@ namespace OmniMonitor.Server.Services
         {
             return await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
         }
 
         /// <summary>
@@ -228,7 +228,7 @@ namespace OmniMonitor.Server.Services
                 var duplicateDataset = await _context.DatasetsIM
                     .FirstOrDefaultAsync(d => d.Username == dataset.Username && 
                                             d.Name == dataset.Name && 
-                                            d.Id != dataset.Id);
+                                            d.DatasetId != dataset.Id);
                 
                 if (duplicateDataset != null)
                 {
@@ -319,27 +319,27 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username)
         {
-            // Check Insight Monitor table
+            // Check Insight Monitor table (usar DatasetId como FK)
             var existsInIM = await _context.DatasetsIM
-                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+                .AnyAsync(d => d.DatasetId == datasetId && d.Username == username);
             if (existsInIM)
                 return "Insight Monitor";
 
-            // Check Asset Manager table
+            // Check Asset Manager table (usar DatasetId como FK)
             var existsInAM = await _context.DatasetAM
-                .AnyAsync(d => d.Id_Dataset == datasetId && d.Username == username);
+                .AnyAsync(d => d.DatasetId == datasetId && d.Username == username);
             if (existsInAM)
                 return "Asset Manager";
 
-            // Check Urban Monitor table
+            // Check Urban Monitor table (usar DatasetId como FK)
             var existsInUM = await _context.DatasetsUM
-                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+                .AnyAsync(d => d.DatasetId == datasetId && d.Username == username);
             if (existsInUM)
                 return "Urban Monitor";
 
-            // Check Event Manager table
+            // Check Event Manager table (usar DatasetId como FK)
             var existsInEM = await _context.DatasetsEM
-                .AnyAsync(d => d.Id == datasetId && d.Username == username);
+                .AnyAsync(d => d.DatasetId == datasetId && d.Username == username);
             if (existsInEM)
                 return "Event Manager";
 

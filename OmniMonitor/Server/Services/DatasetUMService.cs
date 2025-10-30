@@ -14,13 +14,15 @@ namespace OmniMonitor.Server.Services
         Task<DatasetUM> UpdateDatasetUMAsync(int datasetId, CreateDatasetUMRequest request);
         Task DeleteDatasetUMAsync(int datasetId, string username);
         Task<Datasets> CreateDatasetAsync(CreateDatasetRequest request);
-        Task<List<Datasets>> GetAllDatasetsAsync(string username);
+        Task<List<Datasets>> GetAllDatasetsAsync(string username, string? search = null);
+        Task<List<DatasetDto>> GetAllDatasetsDtoAsync(string username, string? search = null);
         Task<Datasets?> GetDatasetByIdForEditAsync(int datasetId, string username);
         Task<Datasets> UpdateDatasetAsyncUM(int datasetId, CreateDatasetRequest request, DatasetUM datasetUM);
         Task<Datasets> UpdateDatasetAsyncIM(int datasetId, CreateDatasetRequest request, DatasetIM datasetIM);
         Task<Datasets> UpdateDatasetAsyncAM(int datasetId, CreateDatasetRequest request, DatasetAM datasetAM);
         Task<Datasets> UpdateDatasetAsyncEM(int datasetId, CreateDatasetRequest request, DatasetEM datasetEM);
         Task DeleteDatasetAsync(int datasetId, string username);
+        Task DeleteDatasetByUnifiedIdAsync(int unifiedDatasetId, string username);
 
 
     }
@@ -69,7 +71,7 @@ namespace OmniMonitor.Server.Services
             var dataset = await _context.DatasetsUM
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetNews)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
 
             if (dataset == null)
                 return null;
@@ -188,7 +190,7 @@ namespace OmniMonitor.Server.Services
             return await _context.DatasetsUM
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetNews)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
         }
 
         public async Task<DatasetUM> UpdateDatasetUMAsync(int datasetId, CreateDatasetUMRequest request)
@@ -196,7 +198,7 @@ namespace OmniMonitor.Server.Services
             var existingDataset = await _context.DatasetsUM
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetNews)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
@@ -228,7 +230,7 @@ namespace OmniMonitor.Server.Services
         public async Task DeleteDatasetUMAsync(int datasetId, string username)
         {
             var dataset = await _context.DatasetsUM
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
 
             if (dataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
@@ -245,6 +247,7 @@ namespace OmniMonitor.Server.Services
             dataset.DatasetNews = request.NewsIds?.Select(id => new DatasetNews { Id_news = id }).ToList() ?? new();
         }
 
+
         private static string GetContentType(CreateDatasetUMRequest r)
         {
             if (r.IsDataset == "S") return "0";
@@ -252,6 +255,16 @@ namespace OmniMonitor.Server.Services
             if (r.NewsIds?.Any() == true) return "2";
             if (r.ZoneId.HasValue) return "3";
             return null;
+        }
+
+
+        [Flags]
+        private enum DatasetUMContentType
+        {
+            None = 0,
+            Events = 1,
+            News = 2,
+            Zone = 4
         }
 
 
@@ -275,11 +288,107 @@ namespace OmniMonitor.Server.Services
             return newDataset;
         }
 
-        public async Task<List<Datasets>> GetAllDatasetsAsync(string username)
+        public async Task<List<Datasets>> GetAllDatasetsAsync(string username, string? search = null)
         {
-            return await _context.Datasets
-                .Where(d => d.Username == username)
+            var query = _context.Datasets.Where(d => d.Username == username);
+            
+            // Aplicar búsqueda si se proporciona
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var normalizedSearch = NormalizeText(search);
+                query = query.Where(d => 
+                    EF.Functions.Like(d.NameDataset.ToLower(), $"%{search.ToLower()}%"));
+            }
+            
+            return await query.ToListAsync();
+        }
+        
+        public async Task<List<DatasetDto>> GetAllDatasetsDtoAsync(string username, string? search = null)
+        {
+            // Iniciar el query base
+            IQueryable<Datasets> query = _context.Datasets
+                .Where(d => d.Username == username);
+            
+            // Aplicar búsqueda si se proporciona (antes de los Includes)
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(d => 
+                    EF.Functions.Like(d.NameDataset.ToLower(), $"%{search.ToLower()}%"));
+            }
+            
+            // Agregar los Includes al final
+            var datasets = await query
+                .Include(d => d.DatasetIM)
+                .Include(d => d.DatasetAM)
+                .Include(d => d.DatasetUM)
+                .Include(d => d.DatasetEM)
                 .ToListAsync();
+            
+            // Mapear a DatasetDto
+            var result = new List<DatasetDto>();
+            foreach (var dataset in datasets)
+            {
+                var dto = new DatasetDto
+                {
+                    Id = dataset.Id,
+                    Nombre = dataset.NameDataset,
+                    Module = GetModuleName(dataset.TipoDataset)
+                };
+                
+                // Obtener descripción según el módulo
+                switch (dataset.TipoDataset)
+                {
+                    case ModuleType.InsightMonitor:
+                        var datasetIM = dataset.DatasetIM.FirstOrDefault();
+                        dto.Descripcion = datasetIM?.Description ?? string.Empty;
+                        break;
+                    case ModuleType.AssetManager:
+                        var datasetAM = dataset.DatasetAM.FirstOrDefault();
+                        dto.Descripcion = datasetAM?.Descripcion ?? string.Empty;
+                        break;
+                    case ModuleType.UrbanMonitor:
+                        var datasetUM = dataset.DatasetUM.FirstOrDefault();
+                        dto.Descripcion = datasetUM?.Description ?? string.Empty;
+                        break;
+                    case ModuleType.EventManager:
+                        var datasetEM = dataset.DatasetEM.FirstOrDefault();
+                        dto.Descripcion = datasetEM?.Description ?? string.Empty;
+                        break;
+                }
+                
+                result.Add(dto);
+            }
+            
+            return result;
+        }
+        
+        private string GetModuleName(ModuleType moduleType)
+        {
+            return moduleType switch
+            {
+                ModuleType.InsightMonitor => "Insight Monitor",
+                ModuleType.AssetManager => "Asset Manager",
+                ModuleType.UrbanMonitor => "Urban Monitor",
+                ModuleType.EventManager => "Event Manager",
+                _ => "Unknown"
+            };
+        }
+        
+        private string NormalizeText(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return string.Empty;
+
+            var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+            var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
+
+            withoutDiacritics = withoutDiacritics
+                .Replace(" ", string.Empty)
+                .Replace("ñ", "n")
+                .Replace("₀", "0").Replace("₁", "1").Replace("₂", "2").Replace("₃", "3").Replace("₄", "4")
+                .Replace("₅", "5").Replace("₆", "6").Replace("₇", "7").Replace("₈", "8").Replace("₉", "9");
+
+            return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
         }
 
 
@@ -409,6 +518,28 @@ namespace OmniMonitor.Server.Services
             if (dataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
 
+            _context.Datasets.Remove(dataset);
+            await _context.SaveChangesAsync();
+        }
+        
+        /// <summary>
+        /// Elimina un dataset de la tabla unificada y su correspondiente entrada en la tabla del módulo.
+        /// Este método detecta automáticamente el módulo y elimina en cascada.
+        /// </summary>
+        public async Task DeleteDatasetByUnifiedIdAsync(int unifiedDatasetId, string username)
+        {
+            var dataset = await _context.Datasets
+                .Include(d => d.DatasetIM)
+                .Include(d => d.DatasetAM)
+                .Include(d => d.DatasetUM)
+                .Include(d => d.DatasetEM)
+                .FirstOrDefaultAsync(d => d.Id == unifiedDatasetId && d.Username == username);
+
+            if (dataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {unifiedDatasetId} para el usuario {username}.");
+
+            // La eliminación en cascada debería manejar las tablas relacionadas automáticamente
+            // gracias a la configuración de DeleteBehavior.Cascade en las relaciones
             _context.Datasets.Remove(dataset);
             await _context.SaveChangesAsync();
         }

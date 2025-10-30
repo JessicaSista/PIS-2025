@@ -644,45 +644,35 @@
     {
         try
         {
-            Console.WriteLine($"[DEBUG] Token length: {authToken?.Length ?? 0}");
-            Console.WriteLine($"[DEBUG] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
 
             // Codificar el token para URL por si tiene caracteres especiales
             var encodedToken = GetEncodedToken();
 
             var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={encodedToken}");
-            Console.WriteLine($"[DEBUG] Sources response status: {sourcesResponse.StatusCode}");
             if (sourcesResponse.IsSuccessStatusCode)
             {
                 sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
-                Console.WriteLine($"[DEBUG] Loaded {sources.Count} sources");
             }
             else
             {
                 var error = await sourcesResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG] Sources error: {error}");
                 ShowError($"Error al cargar fuentes: {error}");
             }
 
             var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={encodedToken}");
-            Console.WriteLine($"[DEBUG] Groups response status: {groupsResponse.StatusCode}");
 
             if (groupsResponse.IsSuccessStatusCode)
             {
                 deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
-                Console.WriteLine($"[DEBUG] Loaded {deviceGroups.Count} groups");
             }
             else
             {
                 var error = await groupsResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG] Groups error: {error}");
                 ShowError($"Error al cargar grupos: {error}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG] Exception in LoadSourcesAndGroups: {ex.Message}");
-            Console.WriteLine($"[DEBUG] Stack trace: {ex.StackTrace}");
             ShowError($"{Localizer["ErrorCargaFuentes"]} {ex.Message}");
         }
     }
@@ -972,7 +962,7 @@
                 StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetAM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetAM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1189,7 +1179,7 @@
                 DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
-            var response = await Http.PostAsJsonAsync("api/Dataset", request);
+            var response = await Http.PostAsJsonAsync($"api/Dataset?token={GetEncodedToken()}", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1390,31 +1380,24 @@
         try
         {
             var encodedToken = GetEncodedToken();
-            Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
 
             // Load Categories (backend handles Sonda API pagination limitations)
             var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
-            Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             
             var respCategories = await Http.GetAsync(url);
-            Console.WriteLine($"[DEBUG EM] Categories response status: {respCategories.StatusCode}");
             
             if (respCategories.IsSuccessStatusCode)
             {
                 categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
-                Console.WriteLine($"[DEBUG EM] Loaded {categories.Count} categories");
             }
             else
             {
                 var error = await respCategories.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EM] Categories error: {error}");
                 ShowError($"Error al cargar categorías: {error}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EM] Exception: {ex.Message}");
-            Console.WriteLine($"[DEBUG EM] Stack trace: {ex.StackTrace}");
             ShowError($"Error cargando Event Manager: {ex.Message}");
         }
     }
@@ -1470,25 +1453,20 @@
         try
         {
             var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&token={GetEncodedToken()}";
-            Console.WriteLine($"[DEBUG EM Events] Calling: {url}");
             var resp = await Http.GetAsync(url);
-            Console.WriteLine($"[DEBUG EM Events] Response status: {resp.StatusCode}");
             
             if (resp.IsSuccessStatusCode)
             {
                 eventsEM = await resp.Content.ReadFromJsonAsync<List<EventDto>>() ?? new List<EventDto>();
-                Console.WriteLine($"[DEBUG EM Events] Loaded {eventsEM.Count} events");
             }
             else
             {
                 var error = await resp.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EM Events] Error: {error}");
                 eventsEM = new List<EventDto>();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EM Events] Exception: {ex.Message}");
             ShowError($"Error cargando eventos: {ex.Message}");
             eventsEM = new List<EventDto>();
         }
@@ -1520,19 +1498,15 @@
         try
         {
             var url = $"api/SondaEM/Event/{eventId}/extensions?token={GetEncodedToken()}";
-            Console.WriteLine($"[DEBUG EM Extensions] Calling: {url}");
             var resp = await Http.GetAsync(url);
-            Console.WriteLine($"[DEBUG EM Extensions] Response status: {resp.StatusCode}");
             
             if (resp.IsSuccessStatusCode)
             {
                 extensions = await resp.Content.ReadFromJsonAsync<List<ExtensionDtoDup>>() ?? new List<ExtensionDtoDup>();
-                Console.WriteLine($"[DEBUG EM Extensions] Loaded {extensions.Count} extensions");
                 
                 if (extensions.Any())
                 {
                     var first = extensions[0];
-                    Console.WriteLine($"[DEBUG EM Extensions] First extension - Id: {first.Id}, EventName: '{first.EventName}', WorkZoneName: '{first.WorkZoneName}', State: '{first.State}'");
                 }
             }
             else
@@ -1542,7 +1516,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EM Extensions] Exception: {ex.Message}");
             ShowError($"Error cargando extensiones: {ex.Message}");
             extensions = new List<ExtensionDtoDup>();
         }
@@ -1588,7 +1561,7 @@
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetEM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetEM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();

@@ -219,7 +219,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.Grupo_Event_Task_Instance)
                     .ThenInclude(e => e.Grupo_Stock)
                 .Include(d => d.Grupo_Asset)
-                .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == id && d.Username == username);
         }
 
         public async Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request)
@@ -234,7 +234,7 @@ namespace OmniMonitor.Server.Services
                 var duplicateDataset = await _context.DatasetAM
                     .FirstOrDefaultAsync(d => d.Username == datasetAM.Username && 
                                             d.Nombre == datasetAM.Nombre && 
-                                            d.Id_Dataset != datasetAM.Id_Dataset);
+                                            d.DatasetId != datasetAM.Id_Dataset);
                 
                 if (duplicateDataset != null)
                 {
@@ -317,7 +317,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.Grupo_Event_Task_Instance)
                 .ThenInclude(e => e.Grupo_Stock)
                 .Include(d => d.Grupo_Asset)
-                .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
+                .FirstOrDefaultAsync(d => d.DatasetId == id && d.Username == username);
 
             if (datasetAM == null)
             {

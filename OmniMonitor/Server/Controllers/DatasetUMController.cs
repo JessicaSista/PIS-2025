@@ -6,11 +6,11 @@ using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class DatasetUMController : ControllerBase
 {
     private readonly IDatasetUMService _datasetUMService;
@@ -24,12 +24,6 @@ public class DatasetUMController : ControllerBase
         _sondaAuthService = sondaAuthService;
     }
 
-    private bool IsUserAuthorized(string username)
-    {
-        // Ajusta según tu claim de usuario si es necesario
-        return string.Equals(User.Identity?.Name, username, StringComparison.OrdinalIgnoreCase)
-               || User.IsInRole("Admin");
-    }
 
     /// <summary>
     /// Crea un nuevo dataset.
@@ -39,18 +33,12 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(400)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request,string token)
+    public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request)
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (!IsUserAuthorized(request.Username))
-                return Forbid();
+            // Get username from JWT claims
+            var username = User.FindFirst(ClaimTypes.Name)?.Value;
             var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
             var Dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
             var newDataset = await _datasetUMService.CreateDatasetUMAsync(request,Dataset.Id);
@@ -83,9 +71,6 @@ public class DatasetUMController : ControllerBase
         try
         {
             string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
-
             var datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
             return Ok(datasets);
         }
@@ -103,14 +88,11 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId, string token)
+    public async Task<ActionResult<DatasetUM>> GetDatasetById([FromQuery] int datasetId, [FromQuery] string token)
     {
         try
         {
             string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
-
             var dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
             if (dataset == null)
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
@@ -138,8 +120,6 @@ public class DatasetUMController : ControllerBase
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!IsUserAuthorized(request.Username))
-                return Forbid();
             var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
             var updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
             var id = updatedDataset.DatasetId;
@@ -173,8 +153,6 @@ public class DatasetUMController : ControllerBase
         try
         {
             string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
 
             var dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
             if (dataset == null)
@@ -195,20 +173,67 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(typeof(List<Datasets>), 200)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DatasetUM>>> GetAllDataset(string token)
+    public async Task<ActionResult<List<Datasets>>> GetAllDataset(string token, [FromQuery] string? search = null)
     {
         try
         {
             string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
 
-            var datasets = await _datasetUMService.GetAllDatasetsAsync(username);
+            var datasets = await _datasetUMService.GetAllDatasetsAsync(username, search);
             return Ok(datasets);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Obtiene todos los datasets de todos los módulos para un usuario con su información completa.
+    /// </summary>
+    [HttpGet("GetAllDatasetsDto")]
+    [ProducesResponseType(typeof(List<DatasetDto>), 200)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult<List<DatasetDto>>> GetAllDatasetsDto(string token, [FromQuery] string? search = null)
+    {
+        try
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+
+            var datasets = await _datasetUMService.GetAllDatasetsDtoAsync(username, search);
+            return Ok(datasets);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Elimina un dataset usando el ID de la tabla unificada.
+    /// </summary>
+    [HttpDelete("DeleteDatasetByUnifiedId")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(403)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public async Task<ActionResult> DeleteDatasetByUnifiedId(int datasetId, string token)
+    {
+        try
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+
+            await _datasetUMService.DeleteDatasetByUnifiedIdAsync(datasetId, username);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno al eliminar el dataset: {ex.Message}");
         }
     }
 }
