@@ -13,5 +13,6 @@ namespace OmniMonitor.Shared.Dtos
         public string Visibility { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public DateTime CreatedAt { get; set; }
+        public int dashBoardId { get; set; }
     }
 }

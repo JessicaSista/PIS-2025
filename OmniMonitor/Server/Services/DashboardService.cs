@@ -613,7 +613,8 @@ namespace OmniMonitor.Server.Services
                 Status = sharedLink.Status.ToString(),
                 Visibility = sharedLink.Visibility.ToString(),
                 ExpiresAt = sharedLink.ExpiresAt,
-                CreatedAt = sharedLink.CreatedAt
+                CreatedAt = sharedLink.CreatedAt,
+                dashBoardId = sharedLink.DashboardId
             };
         }
 
@@ -627,7 +628,8 @@ namespace OmniMonitor.Server.Services
                     Status = s.Status.ToString(),
                     Visibility = s.Visibility.ToString(),
                     ExpiresAt = s.ExpiresAt,
-                    CreatedAt = s.CreatedAt
+                    CreatedAt = s.CreatedAt,
+                    dashBoardId = s.DashboardId
                 })
                 .ToListAsync();
         }
@@ -650,7 +652,8 @@ namespace OmniMonitor.Server.Services
                 Status = link.Status.ToString(),
                 Visibility = link.Visibility.ToString(),
                 ExpiresAt = link.ExpiresAt,
-                CreatedAt = link.CreatedAt
+                CreatedAt = link.CreatedAt,
+                dashBoardId = link.DashboardId
             };
         }
 
@@ -706,7 +709,8 @@ namespace OmniMonitor.Server.Services
                 Status = linkToUpdate.Status.ToString(),
                 Visibility = linkToUpdate.Visibility.ToString(),
                 ExpiresAt = linkToUpdate.ExpiresAt,
-                CreatedAt = linkToUpdate.CreatedAt
+                CreatedAt = linkToUpdate.CreatedAt,
+                dashBoardId = linkToUpdate.DashboardId
             };
         }
 
