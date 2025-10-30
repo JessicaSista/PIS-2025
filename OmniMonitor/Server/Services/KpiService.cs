@@ -301,7 +301,7 @@ namespace OmniMonitor.Server.Services
             if (kpi.Type == 1)
             {
                 
-                var alertIds = datasetEM.DatasetAlerts.Select(a => a.Id_alert).ToList();
+                var alertIds = dataset.DatasetAlerts.Select(a => a.Id_alert).ToList();
                 var alertDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO>();
                 foreach (var id in alertIds)
                         {
@@ -324,7 +324,7 @@ namespace OmniMonitor.Server.Services
             else if (kpi.Type == 2)
             {
                 // Buscar alertas relacionadas al dataset
-                var eventIds = datasetEM.DatasetEvents.Select(e => e.Id_event).ToList();
+                var eventIds = dataset.DatasetEvents.Select(e => e.Id_event).ToList();
                         var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
                         foreach (var id in eventIds)
                         {
@@ -345,7 +345,7 @@ namespace OmniMonitor.Server.Services
             else if (kpi.Type == 3)
             {
                 // Buscar extensiones relacionadas al dataset
-                var extIds = datasetEM.DatasetExtensions.Select(x => x.Id_extension).ToList();
+                var extIds = dataset.DatasetExtensions.Select(x => x.Id_extension).ToList();
                         var extDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO>();
                         foreach (var id in extIds)
                         {
@@ -421,7 +421,7 @@ namespace OmniMonitor.Server.Services
                             var news = await _sondaUMService.GetNewsById(id, username);
                             if (news != null)
                             {
-                                if (campo == "Categoria" && news.Categories != null)
+                                if (kpi.Atributo == "Categoria" && news.Categories != null)
                                 {
                                     foreach (var category in news.Categories)
                                     {
