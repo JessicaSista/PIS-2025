@@ -11,8 +11,8 @@ namespace OmniMonitor.Server.Services
 {
     public interface IKpiAMService
     {
-        Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username);
-        
+        Task<KpiResponse> CalculateAmKpiAsync<T>(Kpi kpi, string username, List<T> items);
+        Task<List<string>> GetFieldValuesAsync<T>(List<T> items, string fieldName);
     }
 
     public class KpiAMService : IKpiAMService
@@ -29,81 +29,58 @@ namespace OmniMonitor.Server.Services
             _datasetAmService = datasetAmService;
 
         }
-
-        public async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username)
+                // Obtiene el valor de un campo de DatasetReducedAMDTO por nombre usando reflexión
+        private string? GetAssetFieldValue(object asset, string fieldName)
         {
-            // Lógica para crear un KPI AM
-            var dataset = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
-            if (dataset == null)
-                throw new ArgumentException("Dataset AM no encontrado para el KPI proporcionado.");
+            var prop = asset.GetType().GetProperty(fieldName);
+            return prop?.GetValue(asset)?.ToString();
+        }
 
+        public async Task<List<string>> GetFieldValuesAsync<T>(List<T> items, string fieldName)
+        {
+            List<string> values = new List<string>();
+            if (items == null || items.Count == 0)
+                return values;
+            foreach (var item in items)
+            {
+                var value = GetAssetFieldValue(item, fieldName);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    values.Add(value);
+                }
+            }
+            return values.Distinct().OrderBy(v => v).ToList();
+        }
+
+        public async Task<KpiResponse> CalculateAmKpiAsync<T>(Kpi kpi, string username, List<T> items)
+        {
             KpiResponse response = null;
+            if (items == null || items.Count == 0)
+                throw new ArgumentException("No se proporcionó la lista de objetos para el KPI AM.");
 
-            if (dataset.Type_Dataset == 1) {
-                // ... lógica para Type_Dataset 1 ...
-                 var eventTaskInstances = await _context.Set<DatasetEventTaskInstance>()
-                    .Where(e => e.DatasetAMId == dataset.Id_Dataset)
-                    .ToListAsync();
-
-                switch (kpi.Metric?.ToLower())
-                {
-                        case "count":
-                            response = await CountStateETI(kpi, eventTaskInstances, username);
-                            break;
-                        case "porcentaje":
-                            response = await CalculateAverageETI(kpi, eventTaskInstances, username);
-                            break;
-                        case "state":
-                            response = await StateETI(kpi, eventTaskInstances, username);
-                            break;
-                        case "count_stocks":
-                            response = await CountStocksETI(kpi, eventTaskInstances, username);
-                            break;
-                    default:
-                        throw new ArgumentException($"Métrica no soportada para AM: {kpi.Metric}");
-                }
-                
-                
-            } else if (dataset.Type_Dataset == 2) {
-                var assets = await _context.Set<DatasetAsset>()
-                    .Where(a => a.DatasetAMId == dataset.Id_Dataset)
-                    .ToListAsync();
-                switch (kpi.Metric?.ToLower())
-                {
-                    case "count":
-                        response = await CountStateAM(kpi, assets, username);
-                        break;
-                    case "porcentaje":
-                        response = await CalculateAverageKpiAMAsync(kpi, assets, username);
-                        break;
-                    case "state":
-                        response = await CalculateMinKpiAMAsync(kpi, assets, username);
-                        break;
-                    default:
-                        throw new ArgumentException($"Métrica no soportada para AM: {kpi.Metric}");
-                }
-            } else {
-                throw new ArgumentException("Tipo de Dataset AM no soportado.");
+            switch (kpi.Metric?.ToLower())
+            {
+                case "count":
+                    response = await CountStateGeneric(kpi, items, username);
+                    break;
+                case "porcentaje":
+                    response = await CalculateAverageKpiGeneric(kpi, items, username);
+                    break;
+                case "state":
+                    response = await CalculateMinKpiGeneric(kpi, items, username);
+                    break;
+                default:
+                    throw new ArgumentException($"Métrica no soportada para AM: {kpi.Metric}");
             }
             return response;
         }
 
-        // Calcula el último valor para los assets AM
-        private async Task<KpiResponse> CountStateAM(Kpi kpi, List<DatasetAsset> assets, string username)
+        // Métodos genéricos para operar sobre List<object>
+        private async Task<KpiResponse> CountStateGeneric<T>(Kpi kpi, List<T> items, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
-            int count = 0;
-            foreach (var asset in assets)
-            {
-                if (int.TryParse(asset.Id_Asset, out int assetId))
-                {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
-                    if (assetDto != null && assetDto.StateDto != null && assetDto.StateDto.Name == estadoNecesario)
-                    {
-                        count++;
-                    }
-                }
-            }
+            var atributo = kpi.Atributo ?? "";
+                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -112,26 +89,14 @@ namespace OmniMonitor.Server.Services
                 Value = count,
                 Unit = null
             };
-            
         }
 
-        // Calcula el porcentaje de assets con estado necesario sobre el total
-        private async Task<KpiResponse> CalculateAverageKpiAMAsync(Kpi kpi, List<DatasetAsset> assets, string username)
+        private async Task<KpiResponse> CalculateAverageKpiGeneric<T>(Kpi kpi, List<T> items, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
-            int count = 0;
-            foreach (var asset in assets)
-            {
-                if (int.TryParse(asset.Id_Asset, out int assetId))
-                {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
-                    if (assetDto != null && assetDto.StateDto != null && assetDto.StateDto.Name == estadoNecesario)
-                    {
-                        count++;
-                    }
-                }
-            }
-            double porcentaje = (assets.Count > 0) ? (double)count / assets.Count * 100.0 : 0.0;
+            var atributo = kpi.Atributo ?? "";
+                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            double porcentaje = (items.Count > 0) ? (double)count / items.Count * 100.0 : 0.0;
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -142,48 +107,22 @@ namespace OmniMonitor.Server.Services
             };
         }
 
-        // Calcula el mínimo para los assets AM (cuenta los que tienen el estado dado en ExtraInfo o retorna el estado si es uno solo)
-        private async Task<KpiResponse> CalculateMinKpiAMAsync(Kpi kpi, List<DatasetAsset> assets, string username)
+        private async Task<KpiResponse> CalculateMinKpiGeneric<T>(Kpi kpi, List<T> items, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
-            if (assets.Count == 1)
+            var atributo = kpi.Atributo ?? "";
+            if (items.Count == 1)
             {
-                if (int.TryParse(assets[0].Id_Asset, out int assetId))
-                {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
-                    if (assetDto != null && assetDto.StateDto != null)
-                    {
-                        return new KpiResponse
-                        {
-                            Name = kpi.Name,
-                            Description = kpi.Description,
-                            Type = "state",
-                            Value = assetDto.StateDto.Name,
-                            Unit = null
-                        };
-                    }
-                }
                 return new KpiResponse
                 {
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Type = "state",
-                    Value = "Desconocido",
+                        Value = GetAssetFieldValue(items[0], atributo) ?? "Desconocido",
                     Unit = null
                 };
             }
-            int count = 0;
-            foreach (var asset in assets)
-            {
-                if (int.TryParse(asset.Id_Asset, out int assetId))
-                {
-                    var assetDto = await _sondaAMService.GetAssetById(assetId, username);
-                    if (assetDto != null && assetDto.StateDto != null && assetDto.StateDto.Name == estadoNecesario)
-                    {
-                        count++;
-                    }
-                }
-            }
+                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -193,116 +132,6 @@ namespace OmniMonitor.Server.Services
                 Unit = null
             };
         }
-
-        // Cuenta los eventTaskInstances con el estado igual a ExtraInfo usando el endpoint
-        private async Task<KpiResponse> CountStateETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
-        {
-            var estadoNecesario = kpi.ExtraInfo ?? "";
-            int count = 0;
-            foreach (var eti in etis)
-            {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username);
-                if (etiDto != null && etiDto.State == estadoNecesario)
-                {
-                    count++;
-                }
-            }
-            return new KpiResponse
-            {
-                Name = kpi.Name,
-                Description = kpi.Description,
-                Type = "countETI",
-                Value = count,
-                Unit = null
-            };
-        }
-
-        // Calcula el porcentaje de eventTaskInstances con estado igual a ExtraInfo usando el endpoint
-        private async Task<KpiResponse> CalculateAverageETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
-        {
-            var estadoNecesario = kpi.ExtraInfo ?? "";
-            int count = 0;
-            foreach (var eti in etis)
-            {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username);
-                if (etiDto != null && etiDto.State == estadoNecesario)
-                {
-                    count++;
-                }
-            }
-            double porcentaje = (etis.Count > 0) ? (double)count / etis.Count * 100.0 : 0.0;
-            return new KpiResponse
-            {
-                Name = kpi.Name,
-                Description = kpi.Description,
-                Type = "averageETI",
-                Value = porcentaje,
-                Unit = "%"
-            };
-        }
-
-        // Si hay un solo eventTaskInstance, retorna su estado usando el endpoint
-        private async Task<KpiResponse> StateETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
-        {
-            if (etis.Count == 1)
-            {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(etis[0].Id_Event_Task_Instance, username);
-                return new KpiResponse
-                {
-                    Name = kpi.Name,
-                    Description = kpi.Description,
-                    Type = "stateETI",
-                    Value = etiDto?.State ?? "Desconocido",
-                    Unit = null
-                };
-            }
-            var estadoNecesario = kpi.ExtraInfo ?? "";
-            int count = 0;
-            foreach (var eti in etis)
-            {
-                var etiDto = await _sondaAMService.GetEventTaskInstanceById(eti.Id_Event_Task_Instance, username);
-                if (etiDto != null && etiDto.State == estadoNecesario)
-                {
-                    count++;
-                }
-            }
-            return new KpiResponse
-            {
-                Name = kpi.Name,
-                Description = kpi.Description,
-                Type = "stateETI",
-                Value = count,
-                Unit = null
-            };
-        }
-
-        // Devuelve el stock del resource indicado en ExtraInfo usando el endpoint
-        private async Task<KpiResponse> CountStocksETI(Kpi kpi, List<DatasetEventTaskInstance> etis, string username)
-        {
-            var stockName = kpi.ExtraInfo ?? "";
-            int totalQuantity = 0;
-            foreach (var eti in etis)
-            {
-                var stocks = await _sondaAMService.GetEventTaskInstanceStock(eti.Id_Event_Task_Instance, username);
-                if (stocks != null)
-                {
-                    foreach (var stock in stocks)
-                    {
-                        if (stock.Name == stockName)
-                        {
-                            totalQuantity += stock.Quantity;
-                        }
-                    }
-                }
-            }
-            return new KpiResponse
-            {
-                Name = kpi.Name,
-                Description = kpi.Description,
-                Type = "countStocksETI",
-                Value = totalQuantity,
-                Unit = null
-            };
-        }
     }
-}
+}   
+        
