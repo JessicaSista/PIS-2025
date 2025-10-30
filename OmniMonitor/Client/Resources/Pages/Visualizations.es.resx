@@ -148,7 +148,7 @@
     <value>Confirmación</value>
   </data>
   <data name="PreguntaEliminar1" xml:space="preserve">
-    <value>Are you sure you want to delete the KPI {0}?</value>
+    <value>¿Desea eliminar {0}?</value>
   </data>
   <data name="Eliminar" xml:space="preserve">
     <value>Eliminar</value>
