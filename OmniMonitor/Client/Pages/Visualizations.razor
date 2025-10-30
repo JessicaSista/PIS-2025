@@ -463,16 +463,32 @@
 
     private async Task ConfirmEliminarKpi(KpiResponse kpi)
     {
-        bool? confirmed = await DialogService.ShowMessageBox(
-            "Confirmar eliminación",
-            $"¿Seguro que querés eliminar el KPI \"{kpi.Name}\"?",
-            yesText: "Eliminar", cancelText: "Cancelar");
+        if (kpi is null) return;
 
-        if (confirmed == true)
-        {
-            await EliminarKpiAsync(kpi.Id);
-        }
+        var titulo = Localizer["Confirmación"];
+        var mensaje = (MarkupString)string.Format(
+            Localizer["PreguntaEliminar1"],
+            $"<b>{kpi.Name}</b>"
+        );
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
+
+        bool? result = await DialogService.ShowMessageBox(
+            titulo,
+            mensaje,
+            yesText: Localizer["Eliminar"],
+            cancelText: Localizer["Cancelar"],
+            options: options
+        );
+
+        if (result != true)
+            return;
+
+        await EliminarKpiAsync(kpi.Id);
+
+        StateHasChanged();
     }
+
 
     private async Task EliminarKpiAsync(int kpiId)
     {
@@ -506,13 +522,11 @@
             {
                 var err = await response.Content.ReadAsStringAsync();
                 Snackbar.Add(Localizer["KpiDeletedError"], Severity.Error);
-                Console.WriteLine($"Delete KPI error: {err}");
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add(Localizer["InternError"], Severity.Error);
-            Console.WriteLine(ex);
         }
     }
 
