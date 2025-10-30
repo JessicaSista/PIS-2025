@@ -18,7 +18,6 @@ ConfigurationManager configuration = builder.Configuration;
 builder.Logging.ClearProviders();
 builder.Logging.AddDebug();
 builder.Logging.AddConsole();
-builder.Configuration.AddJsonFile("ApiConfig.json", optional: false, reloadOnChange: true);
 builder.Services.Configure<ApiConfig>(builder.Configuration);
 
 if (OperatingSystem.IsWindows())
@@ -38,7 +37,7 @@ builder.Logging.AddAzureWebAppDiagnostics();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. ASP.NET Core Identity Configuration (AÑADIDO)
+// 2. ASP.NET Core Identity Configuration (Aï¿½ADIDO)
 builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequireNonAlphanumeric = false;
@@ -196,7 +195,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Ocurrió un error durante el seeding de la base de datos.");
+        logger.LogError(ex, "Ocurriï¿½ un error durante el seeding de la base de datos.");
     }
 }
 
