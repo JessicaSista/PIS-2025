@@ -1,14 +1,17 @@
+using System.Text;
+using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Models;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
-using System.Text;
-using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,6 +125,7 @@ builder.Services.AddScoped<IJoinConfigurationService, JoinConfigurationService>(
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddScoped<IKpiAMService, KpiAMService>();
+builder.Services.AddScoped<IPasswordHasher<SharedLink>, PasswordHasher<SharedLink>>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();

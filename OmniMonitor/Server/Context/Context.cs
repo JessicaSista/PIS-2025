@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
+using OmniMonitor.Server.Models;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Context
@@ -81,9 +82,8 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<ReportJoin> ReportJoins { get; set; }
 
-        /// <summary>
-        /// Gets or sets configuration step using the injected IConfiguration.
-        /// </summary>
+        public DbSet<SharedLink> SharedLinks { get; set; }
+
         public DbSet<Kpi> Kpi { get; set; }
 
         /// <summary>
@@ -101,6 +101,8 @@ namespace OmniMonitor.Server.Context
 
             ConfigureCrossModuleJoins(builder);
             ConfigureReports(builder);
+
+            ConfigureSharedLinks(builder);
 
             // Seed default data
             this.Seed(builder);
@@ -244,6 +246,28 @@ namespace OmniMonitor.Server.Context
             {
                 // Store the ModuleType enum as a string (e.g., "InsightMonitor") in the database
                 entity.Property(o => o.ModuleType)
+                      .HasConversion<string>();
+            });
+        }
+
+        private static void ConfigureSharedLinks(ModelBuilder builder)
+        {
+            builder.Entity<SharedLink>(entity =>
+            {
+                // Asegura que el 'Slug' (el enlace) sea único en la base de datos
+                entity.HasIndex(s => s.Slug).IsUnique();
+
+                // Configura la relación: Un Dashboard puede tener muchos SharedLinks
+                entity.HasOne(s => s.Dashboard)
+                      .WithMany() // DashboardDto no tiene una ICollection<SharedLink>, lo cual está bien.
+                      .HasForeignKey(s => s.DashboardId)
+                      .OnDelete(DeleteBehavior.Cascade); // Si se borra el dashboard, se borran sus enlaces.
+
+                // Almacena los Enums como strings legibles (ej: "Public") en lugar de números
+                entity.Property(s => s.Visibility)
+                      .HasConversion<string>();
+
+                entity.Property(s => s.Status)
                       .HasConversion<string>();
             });
         }

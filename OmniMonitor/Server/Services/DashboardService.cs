@@ -8,6 +8,15 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Models;
+using OmniMonitor.Shared.Dtos;
+
+using static MudBlazor.CategoryTypes;
+
 namespace OmniMonitor.Server.Services
 {
     #region Interfaces
@@ -129,7 +138,13 @@ namespace OmniMonitor.Server.Services
         /// <param name="query">Texto de búsqueda.</param>
         /// <returns>Lista de dashboards resumen.</returns>
         Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
-    }
+        Task<ShareResponseDto> CreateShareLinkAsync(int dashboardId, ShareRequestDto request, string username);
+        Task<List<ShareResponseDto>> GetAllByDashboardAsync(int dashboardId, string username);
+        Task<ShareResponseDto?> GetBySlugAsync(string slug);
+        Task<ValidateSharePasswordResponseDto> ValidatePasswordAsync(string slug, string password);
+        Task<ShareResponseDto?> UpdateShareLinkAsync(string slug, ShareRequestDto request, string username);
+        Task<bool> DeleteShareLinkAsync(string slug, string username);
+    }   
 
     #endregion
 
@@ -141,6 +156,7 @@ namespace OmniMonitor.Server.Services
     public class DashboardService : IDashboardService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IPasswordHasher<SharedLink> _passwordHasher;
         private readonly ILogger<DashboardService> _logger;
 
         /// <summary>
@@ -151,6 +167,7 @@ namespace OmniMonitor.Server.Services
         public DashboardService(ApplicationDbContext context, ILogger<DashboardService> logger)
         {
             _context = context;
+            _passwordHasher = passwordHasher;
             _logger = logger;
         }
 
@@ -779,15 +796,160 @@ namespace OmniMonitor.Server.Services
                     })
                     .ToListAsync();
 
-                _logger.LogInformation("Búsqueda de dashboards por texto '{Query}' retornó {Count} resultados", query, dashboards.Count);
+            return dashboards;
+        }
 
-                return dashboards;
-            }
-            catch (Exception ex)
+        public async Task<ShareResponseDto> CreateShareLinkAsync(int dashboardId, ShareRequestDto request, string username)
+        {
+            // 1. Validar que el dashboard existe y pertenece al usuario
+            var dashboard = await _context.Dashboards
+                .AsNoTracking()
+                .FirstOrDefaultAsync(d => d.IdDashboard == dashboardId && d.Username == username);
+
+            if (dashboard == null)
             {
-                _logger.LogError(ex, "Error buscando dashboards por texto '{Query}'", query);
-                throw;
+                throw new KeyNotFoundException("Dashboard no encontrado o no pertenece al usuario.");
             }
+
+            var sharedLink = new SharedLink
+            {
+                DashboardId = dashboardId,
+                Slug = Guid.NewGuid().ToString("N").Substring(0, 10),
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = request.ExpiresAt,
+                Status = ShareStatus.Active,
+                Visibility = (request.Visibility?.ToLower() == "private") ? ShareVisibility.Private : ShareVisibility.Public
+            };
+
+            if (sharedLink.Visibility == ShareVisibility.Private && !string.IsNullOrWhiteSpace(request.Password))
+            {
+                sharedLink.PasswordHash = _passwordHasher.HashPassword(sharedLink, request.Password);
+            }
+
+            _context.SharedLinks.Add(sharedLink);
+            await _context.SaveChangesAsync();
+
+            return new ShareResponseDto
+            {
+                Slug = sharedLink.Slug,
+                Status = sharedLink.Status.ToString(),
+                Visibility = sharedLink.Visibility.ToString(),
+                ExpiresAt = sharedLink.ExpiresAt,
+                CreatedAt = sharedLink.CreatedAt,
+                dashBoardId = sharedLink.DashboardId
+            };
+        }
+
+        public async Task<List<ShareResponseDto>> GetAllByDashboardAsync(int dashboardId, string username)
+        {
+            return await _context.SharedLinks
+                .Where(s => s.DashboardId == dashboardId && s.Dashboard.Username == username)
+                .Select(s => new ShareResponseDto
+                {
+                    Slug = s.Slug,
+                    Status = s.Status.ToString(),
+                    Visibility = s.Visibility.ToString(),
+                    ExpiresAt = s.ExpiresAt,
+                    CreatedAt = s.CreatedAt,
+                    dashBoardId = s.DashboardId
+                })
+                .ToListAsync();
+        }
+
+        public async Task<ShareResponseDto?> GetBySlugAsync(string slug)
+        {
+            var link = await _context.SharedLinks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Slug == slug);
+
+            // Valida si el enlace es accesible
+            if (link == null || link.Status == ShareStatus.Hidden || (link.ExpiresAt.HasValue && link.ExpiresAt < DateTime.UtcNow))
+            {
+                return null;
+            }
+
+            return new ShareResponseDto
+            {
+                Slug = link.Slug,
+                Status = link.Status.ToString(),
+                Visibility = link.Visibility.ToString(),
+                ExpiresAt = link.ExpiresAt,
+                CreatedAt = link.CreatedAt,
+                dashBoardId = link.DashboardId
+            };
+        }
+
+        public async Task<ValidateSharePasswordResponseDto> ValidatePasswordAsync(string slug, string password)
+        {
+            var link = await _context.SharedLinks
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Slug == slug);
+
+            if (link == null || link.Visibility != ShareVisibility.Private || string.IsNullOrWhiteSpace(link.PasswordHash))
+            {
+                return new ValidateSharePasswordResponseDto { IsValid = false, DashboardId = null };
+            }
+
+            var result = _passwordHasher.VerifyHashedPassword(link, link.PasswordHash, password);
+
+            if (result == PasswordVerificationResult.Success)
+            {
+                return new ValidateSharePasswordResponseDto { IsValid = true, DashboardId = link.DashboardId };
+            }
+
+            return new ValidateSharePasswordResponseDto { IsValid = false, DashboardId = null };
+        }
+
+        public async Task<ShareResponseDto?> UpdateShareLinkAsync(string slug, ShareRequestDto request, string username)
+        {
+            var linkToUpdate = await _context.SharedLinks
+                .Include(s => s.Dashboard)
+                .FirstOrDefaultAsync(s => s.Slug == slug && s.Dashboard.Username == username);
+
+            if (linkToUpdate == null)
+            {
+                return null;
+            }
+
+            linkToUpdate.Visibility = (request.Visibility?.ToLower() == "private") ? ShareVisibility.Private : ShareVisibility.Public;
+            linkToUpdate.ExpiresAt = request.ExpiresAt;
+
+            if (linkToUpdate.Visibility == ShareVisibility.Private && !string.IsNullOrWhiteSpace(request.Password))
+            {
+                linkToUpdate.PasswordHash = _passwordHasher.HashPassword(linkToUpdate, request.Password);
+            }
+            else if (linkToUpdate.Visibility == ShareVisibility.Public)
+            {
+                linkToUpdate.PasswordHash = null;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new ShareResponseDto
+            {
+                Slug = linkToUpdate.Slug,
+                Status = linkToUpdate.Status.ToString(),
+                Visibility = linkToUpdate.Visibility.ToString(),
+                ExpiresAt = linkToUpdate.ExpiresAt,
+                CreatedAt = linkToUpdate.CreatedAt,
+                dashBoardId = linkToUpdate.DashboardId
+            };
+        }
+
+        public async Task<bool> DeleteShareLinkAsync(string slug, string username)
+        {
+            var linkToDelete = await _context.SharedLinks
+                .FirstOrDefaultAsync(s => s.Slug == slug && s.Dashboard.Username == username);
+
+            if (linkToDelete == null)
+            {
+                return false;
+            }
+
+            _context.SharedLinks.Remove(linkToDelete);
+            await _context.SaveChangesAsync();
+
+            return true;
         }
     }
 
