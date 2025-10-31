@@ -13,8 +13,8 @@ namespace OmniMonitor.Server.Services
     {
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
-        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username, string password);
-        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username, string password);
+        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
+        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
     }
 
@@ -44,7 +44,7 @@ namespace OmniMonitor.Server.Services
                 Name = request.Name,
                 Description = request.Description,
                 SourceModule = request.SourceModule,
-                DatasetId = request.DatasetId,
+                DatasetId = request.DatasetId ?? 0,
                 Unit = request.Unit,
                 Metric = request.Metric,
                 Multiplier = request.Multiplier,
@@ -142,7 +142,7 @@ namespace OmniMonitor.Server.Services
             switch (kpi.Metric?.ToLower())
             {
                 case "lastvalue":
-                    response = await CalculateLastValueIM(kpi, dataset, username, password);
+                    response = await CalculateLastValueIM(kpi, dataset, username);
                     break;
 
                 case "average":
@@ -201,12 +201,12 @@ namespace OmniMonitor.Server.Services
         }
 
 
-        private async Task<KpiResponse> CalculateLastValueIM(Kpi kpi, DatasetIM dataset, string username, string password)
+        private async Task<KpiResponse> CalculateLastValueIM(Kpi kpi, DatasetIM dataset, string username)
         {
             string? rawValue = null;
             string? type = null;
 
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null)
                 throw new Exception($"No se encontró el source con ID {dataset.Id_Source}.");
 
@@ -215,7 +215,7 @@ namespace OmniMonitor.Server.Services
 
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null)
                     continue;
 
@@ -324,7 +324,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 2. Obtener el source del dataset
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
                 return new KpiResponse
@@ -344,7 +344,7 @@ namespace OmniMonitor.Server.Services
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null) continue;
 
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
@@ -371,7 +371,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 4. Obtener datos del sensor (solo Data y Time)
-            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
                 return new KpiResponse
@@ -490,7 +490,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 2. Obtener el source del dataset
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
                 return new KpiResponse
@@ -510,7 +510,7 @@ namespace OmniMonitor.Server.Services
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null) continue;
 
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
@@ -537,7 +537,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 4. Obtener datos del sensor
-            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo);
             if (sensorData == null || sensorData.Count == 0)
             {
                 return new KpiResponse
@@ -685,7 +685,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 2. Obtener el source del dataset
-            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username, password);
+            var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
                 return new KpiResponse
@@ -705,7 +705,7 @@ namespace OmniMonitor.Server.Services
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
             {
-                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username, password);
+                var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null) continue;
 
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
@@ -732,7 +732,7 @@ namespace OmniMonitor.Server.Services
             }
 
             // 4. Obtener datos del sensor
-            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username, password);
+            var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
                 return new KpiResponse
