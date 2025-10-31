@@ -14,7 +14,7 @@
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>@Localizer["PageTitle"]</PageTitle>
+<PageTitle>@Localizer["Reportes"]</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-0 pt-2">
     <!-- Fila 1: Título y botón -->
@@ -66,9 +66,6 @@
         <MudPaper Class="pa-8 text-center" Elevation="0">
             <MudIcon Icon="@Icons.Material.Filled.FolderOff" Size="MudBlazor.Size.Large" Class="mb-2" />
             <MudText Typo="Typo.h6" Class="mb-4">@Localizer["NoReports"]</MudText>
-            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="CrearReporte">
-                @Localizer["CreateFirstReport"]
-            </MudButton>
         </MudPaper>
     }
     else
@@ -80,7 +77,7 @@
                     <ReportCardComponent Reporte="reporte"
                                        OnNavigate="@NavigateToEditarReporte"
                                        OnEdit="@EditarReporte"
-                                       OnDelete="@EliminarReporte"
+                                       OnDelete="@ConfirmarEliminarReporte"
                                        Class="flex-grow-1" />
                 </MudItem>
             }
@@ -222,8 +219,39 @@
         }
     }
 
-    private async Task EliminarReporte(int id)
+    private async Task ConfirmarEliminarReporte(int id)
     {
+        var reporte = _reportes.FirstOrDefault(r => r.Id == id);
+        if (reporte == null)
+        {
+            Snackbar.Add("No se encontró el reporte seleccionado.", Severity.Warning);
+            return;
+        }
+
+        const string titulo = "Confirmar eliminación";
+        var mensajeMarkup = (MarkupString)$"¿Desea eliminar el reporte <b>{reporte.Nombre}</b>?";
+
+        bool? confirm = await DialogService.ShowMessageBox(
+            titulo,
+            mensajeMarkup,
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (confirm == true)
+        {
+            await EliminarReporte(reporte);
+        }
+    }
+
+    private async Task EliminarReporte(ReporteDto reporte)
+    {
+        if (reporte == null)
+        {
+            return;
+        }
+
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
@@ -233,18 +261,13 @@
                 return;
             }
 
-            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={id}&token={token}");
+            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={reporte.Id}&token={token}");
 
             if (response.IsSuccessStatusCode)
             {
-                var reporteAEliminar = _reportes.FirstOrDefault(r => r.Id == id);
-                if (reporteAEliminar != null)
-                {
-                    _reportes.Remove(reporteAEliminar);
-                    await GuardarReportes();
-                    Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
-                    StateHasChanged();
-                }
+                Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
+                await CargarReportes();
+                await GuardarReportes();
             }
             else
             {
