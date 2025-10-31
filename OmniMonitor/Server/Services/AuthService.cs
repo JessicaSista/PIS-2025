@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -16,55 +17,55 @@ namespace OmniMonitor.Server.Services
     public interface IAuthService
     {
         Task<LoginResponse> LoginAsync(LoginRequest loginRequest);
-        Task<bool> ValidateUserAsync(string username, string password);
     }
 
     public class AuthService : IAuthService
     {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
 
 
         // Inject IConfiguration to access appsettings.json for JWT settings
-        public AuthService(ApplicationDbContext context, IConfiguration configuration)
+        public AuthService(ApplicationDbContext context, IConfiguration configuration, UserManager<User> UserManager, SignInManager<User> SignInManager)
         {
             _context = context;
             _configuration = configuration;
+            _userManager = UserManager;
+            _signInManager = SignInManager;
         }
 
         public async Task<LoginResponse> LoginAsync(LoginRequest loginRequest)
         {
             try
             {
-                var user = await _context.Users
-                    .Include(u => u.UserRoles)
-                        .ThenInclude(ur => ur.Role)
-                    .FirstOrDefaultAsync(u => u.Username == loginRequest.Username);
+                var user = await _userManager.FindByNameAsync(loginRequest.Username);
 
                 if (user == null)
                 {
                     return new LoginResponse { Success = false, Message = "Usuario no encontrado" };
                 }
 
-                // --- SECURITY WARNING ---
-                // Storing and comparing passwords in plain text is highly insecure.
-                // In a production application, you MUST hash passwords using a library like BCrypt.Net.
-                if (user.Password != loginRequest.Password)
+                var result = await _signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, lockoutOnFailure: false);
+
+                if (!result.Succeeded)
                 {
                     return new LoginResponse { Success = false, Message = "Contraseña incorrecta" };
                 }
 
-                // --- TOKEN GENERATION LOGIC ---
-                // 1. Create the claims for the token (user ID, name, roles)
+                var roles = await _userManager.GetRolesAsync(user);
+
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Username)
+                    // Use UserName property from IdentityUser
+                    new Claim(ClaimTypes.Name, user.UserName)
                 };
 
-                foreach (var userRole in user.UserRoles)
+                foreach (var role in roles)
                 {
-                    claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
+                    claims.Add(new Claim(ClaimTypes.Role, role));
                 }
 
                 // 2. Get the secret key from appsettings.json
@@ -75,7 +76,7 @@ namespace OmniMonitor.Server.Services
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(claims),
-                    Expires = DateTime.UtcNow.AddDays(1), // Token is valid for 1 day
+                    Expires = DateTime.UtcNow.AddDays(1),
                     SigningCredentials = creds,
                     Issuer = _configuration["Jwt:Issuer"],
                     Audience = _configuration["Jwt:Audience"]
@@ -89,8 +90,7 @@ namespace OmniMonitor.Server.Services
                 user.SondaTokenOM = tokenString;
                 user.TokenExpirationOM = tokenDescriptor.Expires;
 
-                _context.Users.Update(user);
-                await _context.SaveChangesAsync();
+                await _userManager.UpdateAsync(user);
                 // 5. Return the successful response with the token included
                 return new LoginResponse
                 {
@@ -98,7 +98,7 @@ namespace OmniMonitor.Server.Services
                     Message = "Login exitoso",
                     Token = tokenString, // The token is now included
                     UserId = user.Id,
-                    Username = user.Username
+                    Username = user.UserName
                 };
             }
             catch (Exception ex)
@@ -106,13 +106,6 @@ namespace OmniMonitor.Server.Services
                 // Log the exception
                 return new LoginResponse { Success = false, Message = $"Error interno: {ex.Message}" };
             }
-        }
-
-        public async Task<bool> ValidateUserAsync(string username, string password)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
-            // Again, use password hashing in a real application
-            return user != null && user.Password == password;
         }
     }
 }

@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 
 public interface ISondaEMService
 {
-    Task<EventDto?> GetEventById(int id, string username, string password);
-    Task<AlertDto?> GetAlertById(int id, string username, string password);
-    Task<List<AlertDto>> GetAlerts(int? page, int? pageSize,string? query,string? stateList,double? x,double? y,double? r,bool? forceGps,string? sort,string username,string password);
+    Task<EventDto?> GetEventById(int id, string username);
+    Task<AlertDto?> GetAlertById(int id, string username);
+    Task<List<AlertDto>> GetAlerts(int? page, int? pageSize,string? query,string? stateList,double? x,double? y,double? r,bool? forceGps,string? sort,string username);
     Task<List<AlertDto>> GetStoredAlerts(
         int? page,
         int? pageSize,
@@ -25,17 +25,15 @@ public interface ISondaEMService
         double? y,
         double? r,
         string? sort,
-        string username,
-        string password);
+        string username);
     Task<List<EventDto>> GetEvents(
         int? page,
         int? pageSize,
         string? sort,
         string? query,
-        string username,
-        string password);
-    Task<List<EventTypeDto>> GetEventTypes(string username, string password);
-    Task<ExtensionDtoDup?> GetExtensionById(int extensionId, string username, string password);
+        string username);
+    Task<List<EventTypeDto>> GetEventTypes(string username);
+    Task<ExtensionDtoDup?> GetExtensionById(int extensionId, string username);
         Task<List<ExtensionDto>> GetExtensions(
         int? page,
         int? pageSize,
@@ -46,17 +44,15 @@ public interface ISondaEMService
         string? priorities,
         string? categories,
         string? zones,
-        string username,
-        string password);
-    Task<List<AttachmentDto>> GetAttachedItems(int extensionId, string username, string password);
-    Task<List<ExtensionDtoDup>> GetExtensionByEventId(int eventId, string username, string password);
+        string username);
+    Task<List<AttachmentDto>> GetAttachedItems(int extensionId, string username);
+    Task<List<ExtensionDtoDup>> GetExtensionByEventId(int eventId, string username);
     Task<List<CategoryDto>> GetCategory(
         int? page,
         int? pageSize,
         string? sort,
         string? query,
-        string username,
-        string password);
+        string username);
     Task<List<AlertDto>> GetAlertsCategory(
         int? categoryId,
         int? page,
@@ -68,17 +64,15 @@ public interface ISondaEMService
         double? r,
         bool? forceGps,
         string? sort,
-        string username,
-        string password);
+        string username);
     Task<List<EventDto>> GetEventsByCategory(
         int? categoryId,
         int? page,
         int? pageSize,
         string? query,
         string? sort,
-        string username,
-        string password);
-    Task<CategoryDto?> GetCategoryById(int categoryid, string username, string password);
+        string username);
+    Task<CategoryDto?> GetCategoryById(int categoryid, string username);
 }
 
 
@@ -95,7 +89,7 @@ public class SondaEMService : ISondaEMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<CategoryDto?> GetCategoryById(int categoryid, string username, string password)
+    public async Task<CategoryDto?> GetCategoryById(int categoryid, string username)
     {
         if (categoryid <= 0)
         {
@@ -105,7 +99,7 @@ public class SondaEMService : ISondaEMService
         string endpoint = _apiConfig.EndpointsEM["Category"]["GetById"].Replace("{id}", categoryid.ToString());
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -132,7 +126,7 @@ public class SondaEMService : ISondaEMService
         return JsonSerializer.Deserialize<CategoryDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<EventDto?> GetEventById(int eventId, string username, string password)
+    public async Task<EventDto?> GetEventById(int eventId, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Event"]["GetById"].Replace("{eventId}", eventId.ToString());
@@ -140,7 +134,7 @@ public class SondaEMService : ISondaEMService
         {
             throw new ArgumentException("El eventId debe ser positivo.", nameof(eventId));
         }
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         Console.WriteLine($"SONDA API TOKEN: {token}");
@@ -173,7 +167,7 @@ public class SondaEMService : ISondaEMService
         return JsonSerializer.Deserialize<EventDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<AlertDto?> GetAlertById(int alertId, string username, string password)
+    public async Task<AlertDto?> GetAlertById(int alertId, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Alert"]["GetById"].Replace("{alertId}", alertId.ToString());
@@ -182,7 +176,7 @@ public class SondaEMService : ISondaEMService
             throw new ArgumentException("El alertId debe ser mayor que cero.", nameof(alertId));
         }
 
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
@@ -224,8 +218,7 @@ public class SondaEMService : ISondaEMService
         double? r,
         bool? forceGps,
         string? sort,
-        string username,
-        string password)
+        string username)
     {
         // NOTE: Making pagination optional like other endpoints
         // Some Sonda API endpoints may not support pagination properly
@@ -247,7 +240,7 @@ public class SondaEMService : ISondaEMService
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
         Console.WriteLine($"SONDA API REQUEST (Alerts): {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -289,8 +282,7 @@ public class SondaEMService : ISondaEMService
         double? y,
         double? r,
         string? sort,
-        string username,
-        string password)
+        string username)
     {
         if (!page.HasValue)
         {
@@ -322,7 +314,7 @@ public class SondaEMService : ISondaEMService
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -360,8 +352,7 @@ public class SondaEMService : ISondaEMService
         int? pageSize,
         string? sort,
         string? query,
-        string username,
-        string password)
+        string username)
     {
         // NOTE: Similar to Categories, the Sonda API's events endpoint may not support pagination
         // Testing shows it works better without page/pageSize parameters
@@ -378,7 +369,7 @@ public class SondaEMService : ISondaEMService
         string getDataUrl = baseUrl + endpoint + queryString;
         Console.WriteLine($"SONDA API REQUEST (Events - no pagination): {getDataUrl}");
         
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         
         var client = _httpClientFactory.CreateClient();
@@ -413,13 +404,13 @@ public class SondaEMService : ISondaEMService
         }
     }
 
-    public async Task<List<EventTypeDto>> GetEventTypes(string username, string password)
+    public async Task<List<EventTypeDto>> GetEventTypes(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["EventType"]["GetEventTypes"];
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -434,7 +425,7 @@ public class SondaEMService : ISondaEMService
         return JsonSerializer.Deserialize<List<EventTypeDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<EventTypeDto>();
     }
 
-    public async Task<ExtensionDtoDup?> GetExtensionById(int extensionId, string username, string password)
+    public async Task<ExtensionDtoDup?> GetExtensionById(int extensionId, string username)
     {
         if (extensionId <= 0)
         {
@@ -444,7 +435,7 @@ public class SondaEMService : ISondaEMService
         string endpoint = _apiConfig.EndpointsEM["Extension"]["GetById"].Replace("{extensionId}", extensionId.ToString());
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -481,8 +472,7 @@ public class SondaEMService : ISondaEMService
             string? priorities,
             string? categories,
             string? zones,
-            string username,
-            string password)
+            string username)
     {
         if (page.HasValue && page.Value < 0)
         {
@@ -503,7 +493,7 @@ public class SondaEMService : ISondaEMService
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -519,13 +509,13 @@ public class SondaEMService : ISondaEMService
         return apiResponse?.Results ?? new List<ExtensionDto>();
     }
 
-    public async Task<List<AttachmentDto>> GetAttachedItems(int extensionId, string username, string password)
+    public async Task<List<AttachmentDto>> GetAttachedItems(int extensionId, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Extension"]["GetAttachedItems"].Replace("{extensionId}", extensionId.ToString());
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -541,7 +531,7 @@ public class SondaEMService : ISondaEMService
     }
     
 
-    public async Task<List<ExtensionDtoDup>> GetExtensionByEventId(int eventId, string username, string password)
+    public async Task<List<ExtensionDtoDup>> GetExtensionByEventId(int eventId, string username)
     {
         if (eventId <= 0)
         {
@@ -551,7 +541,7 @@ public class SondaEMService : ISondaEMService
         string endpoint = _apiConfig.EndpointsEM["Event"]["Extensions"].Replace("{eventId}", eventId.ToString());
         string getDataUrl = baseUrl + endpoint;
         Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -586,8 +576,7 @@ public class SondaEMService : ISondaEMService
         int? pageSize,
         string? sort,
         string? query,
-        string username,
-        string password)
+        string username)
     {
         // NOTE: The Sonda API's category endpoint does NOT support pagination parameters
         // Attempting to send page/pageSize results in 404 errors
@@ -605,7 +594,7 @@ public class SondaEMService : ISondaEMService
         string getDataUrl = baseUrl + endpoint + queryString;
         Console.WriteLine($"SONDA API REQUEST (Categories - no pagination support): {getDataUrl}");
         
-        string token = await _sondaAuthService.GetUserTokenEMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         Console.WriteLine($"SONDA API TOKEN: {token}");
         
         var client = _httpClientFactory.CreateClient();
@@ -651,8 +640,7 @@ public class SondaEMService : ISondaEMService
         double? r,
         bool? forceGps,
         string? sort,
-        string username,
-        string password)
+        string username)
     {
         if (!categoryId.HasValue || categoryId.Value <= 0)
         {
@@ -660,7 +648,7 @@ public class SondaEMService : ISondaEMService
         }
 
         // Obtén todas las alertas según los parámetros
-        var allAlerts = await GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username, password);
+        var allAlerts = await GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
 
         // Filtra las alertas que tengan la categoría con el id solicitado
         var filteredAlerts = allAlerts
@@ -676,15 +664,14 @@ public class SondaEMService : ISondaEMService
         int? pageSize,
         string? query,
         string? sort,
-        string username,
-        string password)
+        string username)
     {
         if (!categoryId.HasValue || categoryId.Value <= 0)
         {
             throw new ArgumentException("El categoryId debe tener valor y ser mayor que cero.", nameof(categoryId));
         }
         // Obtén todos los eventos según los parámetros
-        var allEvents = await GetEvents(page, pageSize, sort, query, username, password);
+        var allEvents = await GetEvents(page, pageSize, sort, query, username);
 
         // Filtra los eventos que tengan la categoría con el id solicitado
         var filteredEvents = allEvents

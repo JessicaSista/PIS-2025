@@ -1,25 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace OmniMonitor.Shared.Dtos
 {
-    /// <summary>
-    /// Represents a user of YOUR application.
-    /// This entity is stored in your database.
-    /// </summary>
-    [Index(nameof(Username), IsUnique = true)]
-    public class User
+    public class User : IdentityUser<int>
     {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        [MaxLength(256)]
-        public string Username { get; set; } = string.Empty;
-
-        [Required]
-        public string Password { get; set; } = string.Empty;
-
         public string? SondaTokenIM { get; set; }
 
         public DateTime? TokenExpirationIM { get; set; }

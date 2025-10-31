@@ -14,7 +14,6 @@
 @inject IStringLocalizer<Datasets> Localizer
 @inject ILocalStorageService LocalStorage
 
-
 <PageTitle>Crear Dataset</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">
@@ -58,9 +57,8 @@
                       @bind-Value="addDesc"
                       Placeholder="@Localizer["AgregarDescripcion"]"
                       Variant="Variant.Outlined"
-                      TextFieldType="MudBlazor.TextFieldType.Multiline"
                       Lines="3"
-                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      Class='@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")'
                       MaxLength="200"
                       Required="true" />
     </MudStack>
@@ -176,7 +174,6 @@
                       @bind-Value="addDesc"
                       Placeholder="@Localizer["AgregarDescripcion"]"
                       Variant="Variant.Outlined"
-                      TextFieldType="MudBlazor.TextFieldType.Multiline"
                       Lines="3"
                       Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
                       MaxLength="200"
@@ -972,7 +969,7 @@
                 StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetAM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetAM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1069,7 +1066,7 @@
             else
             {
                 // Si no hay filtros, mostrar todos los devices
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={GetEncodedToken()}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?token={GetEncodedToken()}");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -1176,7 +1173,7 @@
                 return;
             }
 
-            var request = new CreateDatasetRequest
+            var request = new CreateDatasetIMRequest
             {
                 Name = addName,
                 Username = username,
@@ -1189,13 +1186,22 @@
                 DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
-            var response = await Http.PostAsJsonAsync("api/Dataset", request);
+            var response = await Http.PostAsJsonAsync($"api/Dataset?token={GetEncodedToken()}", request);
 
             if (response.IsSuccessStatusCode)
             {
                 var newDataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
                 ShowSuccess($"'{newDataset.Name}' {Localizer["DatasetCreadoExito"]}");
-                Nav.NavigateTo("/datasets");
+                // Handle return flow to visualization creation if requested
+                var returnTo = GetQueryParam("returnTo");
+                if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase) && newDataset is not null)
+                {
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={newDataset.Id}", forceLoad: false);
+                }
+                else
+                {
+                    Nav.NavigateTo("/datasets");
+                }
             }
             else
             {
@@ -1242,7 +1248,7 @@
             var encodedToken = GetEncodedToken();
 
             // Load Zones
-            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={encodedToken}");
+            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={GetEncodedToken()}");
             if (respZones.IsSuccessStatusCode)
             {
                 zones = await respZones.Content.ReadFromJsonAsync<List<Zone>>() ?? new List<Zone>();
@@ -1469,7 +1475,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&token={GetEncodedToken()}";
             Console.WriteLine($"[DEBUG EM Events] Calling: {url}");
             var resp = await Http.GetAsync(url);
             Console.WriteLine($"[DEBUG EM Events] Response status: {resp.StatusCode}");
@@ -1498,7 +1504,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/alert?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -1588,7 +1594,7 @@
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync("api/DatasetEM", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetEM?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();
@@ -1605,5 +1611,26 @@
         {
             ShowError($"No se pudo crear el dataset EM: {ex.Message}");
         }
+    }
+        private static Dictionary<string, string> ParseQueryString(string? query)
+    {
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrEmpty(query)) return result;
+        var q = query.StartsWith("?") ? query.Substring(1) : query;
+        foreach (var pair in q.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = pair.Split('=', 2);
+            var key = Uri.UnescapeDataString(kv[0]);
+            var value = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : string.Empty;
+            result[key] = value;
+        }
+        return result;
+    }
+
+    private string? GetQueryParam(string key)
+    {
+        var uri = Nav.ToAbsoluteUri(Nav.Uri);
+        var dict = ParseQueryString(uri.Query);
+        return dict.TryGetValue(key, out var v) ? v : null;
     }
 }

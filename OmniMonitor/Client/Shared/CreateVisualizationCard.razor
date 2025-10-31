@@ -1,11 +1,15 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ISnackbar Snackbar
 @inject HttpClient Http
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject VisualizationDraftService DraftService
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Client.Services
 @using System.Text.Json;
-@using MudBlazor.Extensions;
 @using Microsoft.Extensions.Localization;
 @using Blazored.LocalStorage;
+@using Microsoft.AspNetCore.Components;
 @inject IStringLocalizer<CreateVisualizationCard> Localizer
 @inject ILocalStorageService LocalStorage
 
@@ -56,27 +60,15 @@
             }
         </MudStack>
         <MudGrid Class="mt-0 mb-5">
-        @*
             <MudItem xs="6">
-                <MudButton FullWidth="true"
-                        Variant="Variant.Outlined" 
-                        StartIcon="@Icons.Material.Filled.AddCircleOutline" 
-                        Color="MudBlazor.Color.Inherit"
-                        Size="MudBlazor.Size.Large"
-                        Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)">
-                    @Localizer["AddSensor"]
-                </MudButton>
-            </MudItem>
-        *@
-            <MudItem xs="12">
-                <MudButton OnClick="AddDataset" 
+                <MudButton OnClick="OpenAddDatasetModal" 
                         FullWidth="true"
                         Variant="Variant.Outlined" 
                         StartIcon="@Icons.Material.Filled.AddCircleOutline" 
                         Color="MudBlazor.Color.Inherit"
                         Size="MudBlazor.Size.Large"
                         Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
-                        Disabled="@(_datasets.Count == 0 || _selectedDatasets.Count >= _datasets.Count)">
+                        Disabled="false">
                     @Localizer["AddDataset"]
                 </MudButton>
             </MudItem>
@@ -140,6 +132,12 @@
     [CascadingParameter]
     public required IMudDialogInstance _mudDialog { get; set; }
 
+    [Parameter]
+    public string? ReturnTo { get; set; }
+
+    [Parameter]
+    public int? NewDatasetId { get; set; }
+
     private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "radialBar", "scatter", "heatmap", "radar", "bubble", "candlestick", "boxPlot", "treemap"};
     private string _selectedChartType = "line";
 
@@ -152,11 +150,68 @@
     private List<DatasetDto> _datasets = new List<DatasetDto>();
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
 
+    private async Task OpenAddDatasetModal()
+    {
+        var parameters = new DialogParameters
+        {
+            { "OnDatasetSelected", EventCallback.Factory.Create<int>(this, HandleDatasetSelected) },
+            { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
+    }
+
+    private Task HandleDatasetSelected(int datasetId)
+    {
+        if (_selectedDatasets.Any(sd => sd.DatasetId == datasetId))
+        {
+            Snackbar.Add(Localizer["DatasetAlreadyAdded"], Severity.Info);
+            return Task.CompletedTask;
+        }
+
+        _selectedDatasets.Add(new DatasetSelection
+        {
+            DatasetId = datasetId,
+            Multiplier = 1.0M,
+            Color = "rgb(0, 255, 231)"
+        });
+
+        Snackbar.Add(Localizer["DatasetAdded"], Severity.Success);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleNewDataset()
+    {
+        // Persist current draft and navigate to dataset creation with return flag
+        var draft = new CreateVisualizationDraft
+        {
+            VisualizationName = _visualizationName,
+            SelectedChartType = _selectedChartType,
+            BeginDate = _beginDate,
+            BeginHour = _beginHour,
+            EndDate = _endDate,
+            EndHour = _endHour,
+            SelectedDatasets = _selectedDatasets.Select(s => new DatasetSelectionDraft
+            {
+                DatasetId = s.DatasetId,
+                Multiplier = s.Multiplier,
+                Color = s.Color
+            }).ToList()
+        };
+
+        DraftService.Save(draft);
+        Nav.NavigateTo("/crearDataset?returnTo=VisualizationCreate");
+        return Task.CompletedTask;
+    }
+
     private bool ValidateSubmission()
     {
         if (string.IsNullOrWhiteSpace(_visualizationName))
         {
             Snackbar.Add(Localizer["VisualizationNameRequired"], Severity.Warning);
+            return false;
         }
 
         if (!_selectedDatasets.Any())
@@ -234,6 +289,8 @@
             {
                 _mudDialog.Close(DialogResult.Ok(1));
                 Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
+                // Clear return parameters from URL after success
+                Nav.NavigateTo("/visualizaciones", forceLoad: false);
             }
         }
         catch (Exception ex)
@@ -243,7 +300,14 @@
         StateHasChanged();
     }
     
-    private void Cancel() => _mudDialog.Cancel();
+    private void Cancel()
+    {
+        _mudDialog.Cancel();
+        if (string.Equals(ReturnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo("/visualizaciones", forceLoad: false);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -290,36 +354,79 @@
             Snackbar.Add(Localizer["GeneralError", ex.Message], Severity.Error);
             _datasets = new List<DatasetDto>();
         }
+
+        await RestoreDraftAndHandleReturnAsync();
     }
-
-
-    private void AddDataset()
+    private void RemoveDataset(DatasetSelection ds)
     {
-        var firstAvailableDataset = _datasets.FirstOrDefault(d => !_selectedDatasets.Any(sd => sd.DatasetId == d.Id));
-
-        if (firstAvailableDataset == null)
+        var found = _selectedDatasets.FirstOrDefault(x => x.DatasetId == ds.DatasetId && x.Color == ds.Color && x.Multiplier == ds.Multiplier);
+        if (found != null)
         {
-            Snackbar.Add(Localizer["AllDatasetsAlreadyAdded"], Severity.Info);
-            return;
+            _selectedDatasets.Remove(found);
+            StateHasChanged();
         }
-        
-        _selectedDatasets.Add(new DatasetSelection
-        {
-            DatasetId = firstAvailableDataset.Id,
-            Multiplier = 1.0M,
-            Color = "rgb(0, 255, 231)"
-        });
     }
-
-    private void RemoveDataset(DatasetSelection item)
-    {
-        _selectedDatasets.Remove(item);
-    }
-    
     public class DatasetSelection
     {
         public int DatasetId { get; set; }
         public decimal Multiplier { get; set; }
         public string Color { get; set; } = "rgb(0, 255, 231)";
+    }
+
+    private async Task RestoreDraftAndHandleReturnAsync()
+    {
+        try
+        {
+            var returnTo = ReturnTo;
+            int? newDatasetId = NewDatasetId;
+
+            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
+            {
+                // Try restore draft
+                if (DraftService.TryGet(out var draft))
+                {
+                    _visualizationName = draft.VisualizationName ?? string.Empty;
+                    _selectedChartType = draft.SelectedChartType ?? _selectedChartType;
+                    _beginDate = draft.BeginDate;
+                    _beginHour = draft.BeginHour;
+                    _endDate = draft.EndDate;
+                    _endHour = draft.EndHour;
+
+                    _selectedDatasets = draft.SelectedDatasets?.Select(d => new DatasetSelection
+                    {
+                        DatasetId = d.DatasetId,
+                        Multiplier = d.Multiplier,
+                        Color = string.IsNullOrWhiteSpace(d.Color) ? "rgb(0, 255, 231)" : d.Color
+                    }).ToList() ?? new();
+
+                    StateHasChanged();
+                }
+
+                if (newDatasetId.HasValue)
+                {
+                    if (!_selectedDatasets.Any(sd => sd.DatasetId == newDatasetId.Value))
+                    {
+                        _selectedDatasets.Add(new DatasetSelection
+                        {
+                            DatasetId = newDatasetId.Value,
+                            Multiplier = 1.0M,
+                            Color = "rgb(0, 255, 231)"
+                        });
+                        Snackbar.Add(Localizer["NewDatasetAdded"], Severity.Success);
+                    }
+                }
+
+                // Do NOT auto-open AddDatasetModal when returning from dataset creation flow
+                // The user just created a dataset and we already attached it above (if provided)
+                // Avoid stacking the Add Dataset modal on top of this dialog
+
+                // Clear draft so it doesn't persist unexpectedly
+                DraftService.Clear();
+            }
+        }
+        catch
+        {
+            // swallow restore errors to not block UI
+        }
     }
 }

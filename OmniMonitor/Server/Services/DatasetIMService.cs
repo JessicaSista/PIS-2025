@@ -12,22 +12,22 @@ namespace OmniMonitor.Server.Services
     // --- Interfaz para el servicio ---
     public interface IDatasetService
     {
-        Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetRequest request);
+        Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset);
         Task<List<DatasetIM>> GetAllDatasetsIMAsync(string username);
         Task<DatasetIM?> GetDatasetIMByIdAsync(int datasetId, string username);
         Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username);
-        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset);
+        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request);
         Task DeleteDatasetIMAsync(int datasetId, string username);
         Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username);
     }
 
     // --- Implementación del servicio ---
-    public class DatasetService : IDatasetService
+    public class DatasetIMService : IDatasetService
     {
         private readonly ApplicationDbContext _context;
         private readonly ISondaIMService _sondaIMService;
 
-        public DatasetService(ApplicationDbContext context, ISondaIMService sondaIMService)
+        public DatasetIMService(ApplicationDbContext context, ISondaIMService sondaIMService)
         {
             _context = context;
             _sondaIMService = sondaIMService;
@@ -36,7 +36,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Crea un nuevo dataset, ya sea uno formal ('S') o uno interno para un solo elemento ('N').
         /// </summary>
-        public async Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetRequest request)
+        public async Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Name))
             {
@@ -60,7 +60,8 @@ namespace OmniMonitor.Server.Services
                 Is_Dataset = request.IsDataset,
                 Id_Source = request.SourceId,
                 Id_Group = request.GroupId,
-                SensorName = request.SensorName
+                SensorName = request.SensorName,
+                DatasetId= dataset
             };
 
             if (request.IsDataset == "S")
@@ -126,7 +127,7 @@ namespace OmniMonitor.Server.Services
             if (dataset.Is_Dataset == "S" && !dataset.DatasetDevices.Any())
             {
                 // Para llamar a la API externa, necesitamos las credenciales del usuario.
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                 {
                     // No se puede proceder si el usuario no existe en la base de datos local.
@@ -140,11 +141,11 @@ namespace OmniMonitor.Server.Services
                 // 1. Obtener las listas de dispositivos de la API según los filtros proporcionados.
                 if (dataset.Id_Source.HasValue)
                 {
-                    devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.Username, user.Password);
+                    devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.UserName);
                 }
                 if (dataset.Id_Group.HasValue)
                 {
-                    devicesFromGroup = await _sondaIMService.GetDeviceOfGroup(dataset.Id_Group.Value, user.Username, user.Password);
+                    devicesFromGroup = await _sondaIMService.GetDeviceOfGroup(dataset.Id_Group.Value, user.UserName);
                 }
 
                 // 2. Determinar la lista final de dispositivos a partir de las listas obtenidas.
@@ -169,7 +170,7 @@ namespace OmniMonitor.Server.Services
                 else
                 {
                     // Fallback: si no hay ni source ni grupo, obtener todos.
-                    finalDeviceList = await _sondaIMService.GetAllDevices(user.Username, user.Password) ?? new List<Device>();
+                    finalDeviceList = await _sondaIMService.GetAllDevices(user.UserName) ?? new List<Device>();
                 }
 
                 if (finalDeviceList.Any())
@@ -210,54 +211,38 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
-        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset)
+        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request)
         {
             if (dataset == null)
             {
                 throw new ArgumentNullException(nameof(dataset), "El dataset no puede ser nulo.");
             }
-
-            var existingDataset = await _context.DatasetsIM
-                .Include(d => d.DatasetDevices)
-                .FirstOrDefaultAsync(d => d.Id == dataset.Id);
-
-            if (existingDataset == null)
+            if (dataset == null)
             {
                 throw new InvalidOperationException($"No se encontró el dataset con ID {dataset.Id}.");
             }
 
-            // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
-            if (!string.IsNullOrEmpty(dataset.Name) && dataset.Name != existingDataset.Name)
-            {
-                var duplicateDataset = await _context.DatasetsIM
-                    .FirstOrDefaultAsync(d => d.Username == existingDataset.Username && 
-                                            d.Name == dataset.Name && 
-                                            d.Id != dataset.Id);
-                
-                if (duplicateDataset != null)
-                {
-                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{dataset.Name}' para el usuario '{existingDataset.Username}'.");
-                }
-            }
+            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncIM)
+            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos
-            existingDataset.Name = dataset.Name;
-            existingDataset.Description = dataset.Description;
-            existingDataset.Id_Source = dataset.Id_Source;
-            existingDataset.Id_Group = dataset.Id_Group;
-            existingDataset.SensorName = dataset.SensorName;
-            existingDataset.Is_Dataset = dataset.Is_Dataset;
-            existingDataset.ContentType = dataset.ContentType;
+            dataset.Name = request.Name;
+            dataset.Description = request.Description;
+            dataset.Id_Source = request.SourceId;
+            dataset.Id_Group = request.GroupId;
+            dataset.SensorName = request.SensorName;
+            dataset.Is_Dataset = request.IsDataset;
+            dataset.ContentType = request.ContentType;
 
             // Marcar explícitamente los campos nullable como modificados
             // para asegurar que EF detecte cuando se setean a null
-            _context.Entry(existingDataset).Property(d => d.Id_Source).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Group).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.SensorName).IsModified = true;
+            _context.Entry(dataset).Property(d => d.Id_Source).IsModified = true;
+            _context.Entry(dataset).Property(d => d.Id_Group).IsModified = true;
+            _context.Entry(dataset).Property(d => d.SensorName).IsModified = true;
 
             // Actualizar la lista de devices
             // Solo eliminar los devices que ya están guardados en la BD (con ID > 0)
-            var existingDevicesToRemove = existingDataset.DatasetDevices
+            var existingDevicesToRemove = dataset.DatasetDevices
                 .Where(dd => dd.Id > 0)
                 .ToList();
 
@@ -267,25 +252,25 @@ namespace OmniMonitor.Server.Services
             }
 
             // Limpiar toda la colección
-            existingDataset.DatasetDevices.Clear();
+            dataset.DatasetDevices.Clear();
 
             // Agregar los nuevos devices si existen
-            if (dataset.DatasetDevices != null && dataset.DatasetDevices.Any())
+            if (request.DeviceIds != null)
             {
-                foreach (var datasetDevice in dataset.DatasetDevices)
+                foreach (var deviceId in request.DeviceIds)
                 {
-                    existingDataset.DatasetDevices.Add(new DatasetDevice 
+                    dataset.DatasetDevices.Add(new DatasetDevice 
                     { 
-                        DatasetId = existingDataset.Id,
-                        Id_device = datasetDevice.Id_device 
+                        DatasetId = dataset.Id,
+                        Id_device = deviceId,
                     });
                 }
             }
 
-            _context.DatasetsIM.Update(existingDataset);
+            _context.DatasetsIM.Update(dataset);
             await _context.SaveChangesAsync();
 
-            return existingDataset;
+            return dataset;
         }
 
         /// <summary>

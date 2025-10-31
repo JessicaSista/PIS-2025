@@ -10,7 +10,9 @@
         <!-- Contenido principal (nombre y descripción) -->
         <MudStack Row AlignItems="AlignItems.Start" Spacing="0" Style="width:100%;">
             <MudStack Style="width:100%;" Spacing="0">
-                <MudText Style="color:var(--card-text-primary);font-weight:600;font-size:1.2rem;">@Dataset.Nombre</MudText>
+                <MudText Style="color:var(--card-text-primary);font-weight:600;font-size:1.2rem;white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;">@Dataset.Nombre</MudText>
                 <MudText Style="color:var(--card-text-secondary);font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">@Description</MudText>
             </MudStack>
         </MudStack>

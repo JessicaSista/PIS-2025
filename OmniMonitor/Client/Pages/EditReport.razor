@@ -18,7 +18,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
-@inject ILogger<EditarReporte> Logger
+@inject ILogger<EditReport> Logger
 
 
 
@@ -2213,7 +2213,7 @@
 
             Console.WriteLine($"UpdateReport JSON_config payload: {json}");
 
-            var url = $"api/reports/UpdateReport?id={ReportId}&name={Uri.EscapeDataString(reportName ?? string.Empty)}&description={Uri.EscapeDataString(reportDescription ?? string.Empty)}&JSON_config={Uri.EscapeDataString(json)}&token={Uri.EscapeDataString(token)}";
+            var url = $"api/reports/UpdateReport?id={ReportId}&name={Uri.EscapeDataString(reportName ?? string.Empty)}&description={Uri.EscapeDataString(reportDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(json)}&token={Uri.EscapeDataString(token)}";
             var putResp = await Http.PutAsync(url, null);
             isSaving = false;
 
