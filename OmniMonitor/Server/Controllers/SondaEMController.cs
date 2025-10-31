@@ -26,7 +26,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var eventDto = await _sondaEMService.GetEventById(eventId, username);
             if (eventDto == null) return NotFound("No se encontró el evento.");
             return Ok(eventDto);
@@ -45,7 +45,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var alertDto = await _sondaEMService.GetAlertById(alertId, username);
             if (alertDto == null) return NotFound("No se encontró la alerta.");
             return Ok(alertDto);
@@ -73,7 +73,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var alerts = await _sondaEMService.GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
               if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
             return Ok(alerts);
@@ -100,7 +100,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var alerts = await _sondaEMService.GetStoredAlerts(page, pageSize, query, stateList, x, y, r, sort, username);
               if (alerts == null || alerts.Count == 0) return NotFound("No se han encontrado alertas.");
             return Ok(alerts);
@@ -123,7 +123,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var events = await _sondaEMService.GetEvents(page, pageSize, sort, query, username);
               if (events == null || events.Count == 0) return NotFound("No se han encontrado eventos.");
             return Ok(events);
@@ -142,7 +142,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var eventTypes = await _sondaEMService.GetEventTypes(username);
             if (eventTypes == null || eventTypes.Count == 0) return NotFound("No se han encontrado tipos de evento.");
             return Ok(eventTypes);
@@ -161,7 +161,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var extension = await _sondaEMService.GetExtensionById(extensionId, username);
             if (extension == null) return NotFound("No se encontró la extensión.");
             return Ok(extension);
@@ -189,7 +189,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var extensions = await _sondaEMService.GetExtensions(page, pageSize, sort, query, states, dates, priorities, categories, zones, username);
             if (extensions == null || extensions.Count == 0) return NotFound("No se han encontrado extensiones.");
             return Ok(extensions);
@@ -208,7 +208,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var items = await _sondaEMService.GetAttachedItems(extensionId, username);
             if (items == null || items.Count == 0) return NotFound("No se encontraron archivos adjuntos.");
             return Ok(items);
@@ -229,7 +229,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var items = await _sondaEMService.GetExtensionByEventId(eventId, username);
             if (items == null || items.Count == 0) return NotFound("No se han encontrado extensiones.");
             return Ok(items);
@@ -252,7 +252,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var items = await _sondaEMService.GetCategory(page,pageSize,sort,query,username);
             // Return empty list instead of NotFound to allow UI to display empty select
             return Ok(items ?? new List<CategoryDto>());
@@ -281,7 +281,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var alerts = await _sondaEMService.GetAlertsCategory(Categoryid, page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
             // Return empty list instead of NotFound to allow UI to display empty select
             return Ok(alerts ?? new List<AlertDto>());
@@ -306,7 +306,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var events = await _sondaEMService.GetEventsByCategory(Categoryid, page, pageSize, query, sort, username);
             // Return empty list instead of NotFound to allow UI to display empty select
             return Ok(events ?? new List<EventDto>());
@@ -325,7 +325,7 @@ public class SondaEMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var CategoriaDto = await _sondaEMService.GetCategoryById(categoryId, username);
             if (CategoriaDto == null) return NotFound("No se encontró la categoria.");
             return Ok(CategoriaDto);

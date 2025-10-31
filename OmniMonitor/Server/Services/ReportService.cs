@@ -6,40 +6,125 @@ using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using OmniMonitor.Server.Services;
 
+/// <summary>
+/// Servicio para la gestión y ejecución de reportes.
+/// </summary>
 public interface IReportService
 {
+    /// <summary>
+    /// Crea un nuevo reporte.
+    /// </summary>
+    /// <param name="request">Datos para la creación del reporte.</param>
+    /// <returns>El reporte creado.</returns>
     Task<Report> CreateReportAsync(CreateReportRequestDto request);
+
+    /// <summary>
+    /// Crea y agrega un join a un reporte.
+    /// </summary>
+    /// <param name="reportId">ID del reporte.</param>
+    /// <param name="joinRequest">Datos del join a agregar.</param>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <returns>El join agregado al reporte.</returns>
     Task<ReportJoin> CreateAndAddJoinToReportAsync(int reportId, CreateJoinRequestDto joinRequest, string username);
+
+    /// <summary>
+    /// Obtiene todos los reportes de un usuario.
+    /// </summary>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <returns>Lista de reportes.</returns>
     Task<List<Report>> GetAllReportsByUsernameAsync(string username);
+
+    /// <summary>
+    /// Obtiene un reporte por ID y usuario.
+    /// </summary>
+    /// <param name="reportId">ID del reporte.</param>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <returns>El reporte encontrado o null si no existe.</returns>
     Task<Report?> GetReportByIdAsync(int reportId, string username);
+
+    /// <summary>
+    /// Elimina un reporte.
+    /// </summary>
+    /// <param name="reportId">ID del reporte.</param>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <returns>True si se eliminó, false si no existe o no pertenece al usuario.</returns>
     Task<bool> DeleteReportAsync(int reportId, string username);
-    Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config);
+
+    /// <summary>
+    /// Actualiza un reporte.
+    /// </summary>
+    /// <param name="reportId">ID del reporte.</param>
+    /// <param name="name">Nuevo nombre.</param>
+    /// <param name="descripcion">Nueva descripción.</param>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <param name="jsonConfig">Nueva configuración JSON.</param>
+    /// <returns>El reporte actualizado o null si no existe.</returns>
+    Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string jsonConfig);
+
+    /// <summary>
+    /// Elimina un join de un reporte.
+    /// </summary>
+    /// <param name="reportId">ID del reporte.</param>
+    /// <param name="joinId">ID del join.</param>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <returns>True si se eliminó, false si no existe o no pertenece al usuario.</returns>
     Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username);
+
+    /// <summary>
+    /// Ejecuta un reporte y devuelve los resultados.
+    /// </summary>
+    /// <param name="reportId">ID del reporte.</param>
+    /// <param name="username">Nombre de usuario.</param>
+    /// <returns>Lista de resultados dinámicos del reporte.</returns>
     Task<List<dynamic>> ExecuteReportAsync(int reportId, string username);
 }
 
 public class ReportService : IReportService
 {
+    #region Campos privados
+
     private readonly ApplicationDbContext _context;
     private readonly IJoinConfigurationService _joinConfigService;
     private readonly IApiDataService _apiDataService;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ISondaIMService _sondaIMService;
 
-    public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService,
-        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService)
-    {
-        _context = context;
-        _joinConfigService = JoinConfigurationService;
-        _apiDataService = ApiDataService;
-        _sondaAuthService = SondaAuthService;
-        _sondaIMService = SondaIMService;
-    }
+    #endregion
+
+    #region Constructor
 
     /// <summary>
-    /// Creates a new report and returns the complete Report entity.
+    /// Constructor de ReportService.
     /// </summary>
+    /// <param name="context">Contexto de base de datos.</param>
+    /// <param name="joinConfigurationService">Servicio de joins.</param>
+    /// <param name="apiDataService">Servicio de datos dinámicos.</param>
+    /// <param name="sondaAuthService">Servicio de autenticación.</param>
+    /// <param name="sondaIMService">Servicio de IM.</param>
+    public ReportService(
+        ApplicationDbContext context,
+        IJoinConfigurationService joinConfigurationService,
+        IApiDataService apiDataService,
+        ISondaAuthService sondaAuthService,
+        ISondaIMService sondaIMService)
+    {
+        _context = context;
+        _joinConfigService = joinConfigurationService;
+        _apiDataService = apiDataService;
+        _sondaAuthService = sondaAuthService;
+        _sondaIMService = sondaIMService;
+    }
+
+    #endregion
+
+    #region Métodos públicos
+
+    /// <inheritdoc/>
     public async Task<Report> CreateReportAsync(CreateReportRequestDto request)
     {
         var report = new Report
@@ -55,10 +140,11 @@ public class ReportService : IReportService
         return report;
     }
 
+    /// <inheritdoc/>
     public async Task<ReportJoin> CreateAndAddJoinToReportAsync(int reportId, CreateJoinRequestDto joinRequest, string username)
     {
         var report = await _context.Reports
-            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username.ToLower() == username.ToLower());
 
         if (report == null)
         {
@@ -80,87 +166,75 @@ public class ReportService : IReportService
         return newReportJoin;
     }
 
-    /// <summary>
-    /// Retrieves a list of all Report entities for a user.
-    /// </summary>
+    /// <inheritdoc/>
     public async Task<List<Report>> GetAllReportsByUsernameAsync(string username)
     {
         return await _context.Reports
             .AsNoTracking()
-            .Where(r => r.Username == username)
+            .Where(r => r.Username.ToLower() == username.ToLower())
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Retrieves a single, fully detailed Report entity by its ID.
-    /// </summary>
+    /// <inheritdoc/>
     public async Task<Report?> GetReportByIdAsync(int reportId, string username)
     {
         return await _context.Reports
             .AsNoTracking()
-            .Where(r => r.Id == reportId && r.Username == username)
+            .Where(r => r.Id == reportId && r.Username.ToLower() == username.ToLower())
             .Include(r => r.ReportJoins)
                 .ThenInclude(rj => rj.CrossModuleJoin)
                     .ThenInclude(j => j.LeftOperand)
             .Include(r => r.ReportJoins)
                 .ThenInclude(rj => rj.CrossModuleJoin)
-                    .ThenInclude(j => j.RightOperand) 
+                    .ThenInclude(j => j.RightOperand)
             .FirstOrDefaultAsync();
     }
 
+    /// <inheritdoc/>
     public async Task<bool> DeleteReportAsync(int reportId, string username)
     {
-        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
         var reportToDelete = await _context.Reports
-            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username.ToLower() == username.ToLower());
 
-        // 2. Si no se encuentra, retorna false.
         if (reportToDelete == null)
         {
             return false;
         }
 
-        // 3. Elimina el reporte. La base de datos se encargará de eliminar en cascada
-        //    las entradas correspondientes en la tabla 'ReportJoins'.
         _context.Reports.Remove(reportToDelete);
         await _context.SaveChangesAsync();
 
         return true;
     }
 
-    public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config)
+    /// <inheritdoc/>
+    public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string jsonConfig)
     {
-        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
         var reportToUpdate = await _context.Reports
-            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+            .FirstOrDefaultAsync(r => r.Id == reportId && string.Equals(r.Username, username, System.StringComparison.Ordinal));
 
-        // 2. Si no se encuentra, retorna null.
         if (reportToUpdate == null)
         {
             return null;
         }
 
-        // 3. Actualiza las propiedades y guarda los cambios.
         reportToUpdate.Name = name;
         reportToUpdate.Description = descripcion;
-        reportToUpdate.JSON_config = JSON_config;
+        reportToUpdate.JSON_config = jsonConfig;
 
         await _context.SaveChangesAsync();
 
         return reportToUpdate;
     }
 
-
-
-
-
+    /// <inheritdoc/>
     public async Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username)
     {
         var joinLinkToRemove = await _context.ReportJoins
             .FirstOrDefaultAsync(rj =>
                 rj.ReportId == reportId &&
                 rj.CrossModuleJoinId == joinId &&
-                rj.Report.Username == username);
+                string.Equals(rj.Report.Username, username, System.StringComparison.Ordinal));
 
         if (joinLinkToRemove == null)
         {
@@ -173,10 +247,10 @@ public class ReportService : IReportService
         return true;
     }
 
+    /// <inheritdoc/>
     public async Task<List<dynamic>> ExecuteReportAsync(int reportId, string username)
     {
-        // 1. Obtener el reporte y su configuración JSON
-        var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+        var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username.ToLower() == username.ToLower());
         if (report == null || string.IsNullOrWhiteSpace(report.JSON_config))
         {
             throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuración JSON válida.");
@@ -190,22 +264,27 @@ public class ReportService : IReportService
 
         var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, serializerOptions);
 
-    var finalResults = new List<dynamic>();
+        var finalResults = new List<dynamic>();
+        var sources = config?.Sources ?? new List<ReportSourceConfig>();
 
-    var sources = config?.Sources ?? new List<ReportSourceConfig>();
-    foreach (var sourceConfig in sources)
+        foreach (var sourceConfig in sources)
         {
-
-            IEnumerable<dynamic> rawData;
+            IEnumerable<dynamic> rawData = null;
             switch (sourceConfig.SourceType.ToLower())
             {
                 case "join":
-                    if (!sourceConfig.SourceId.HasValue) continue;
+                    if (!sourceConfig.SourceId.HasValue)
+                    {
+                        continue;
+                    }
                     rawData = await _joinConfigService.ExecuteJoinAsync(sourceConfig.SourceId.Value);
                     break;
 
                 case "dataset":
-                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue || !sourceConfig.EntityName.HasValue) continue;
+                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue || !sourceConfig.EntityName.HasValue)
+                    {
+                        continue;
+                    }
                     var operand = new JoinOperand
                     {
                         ModuleType = sourceConfig.SourceModule.Value,
@@ -221,7 +300,6 @@ public class ReportService : IReportService
                     {
                         continue;
                     }
-
                     try
                     {
                         DateTime dateFrom = DateTime.ParseExact(sourceConfig.DateFrom.Value.ToString(), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
@@ -267,6 +345,16 @@ public class ReportService : IReportService
         return finalResults;
     }
 
+    #endregion
+
+    #region Métodos privados
+
+    /// <summary>
+    /// Agrega un prefijo a cada propiedad de los datos del dataset.
+    /// </summary>
+    /// <param name="datasetData">Datos del dataset.</param>
+    /// <param name="prefix">Prefijo a agregar.</param>
+    /// <returns>Lista de objetos dinámicos con prefijo.</returns>
     private IEnumerable<dynamic> PrefixDatasetData(IEnumerable<dynamic> datasetData, string prefix)
     {
         if (datasetData == null || !datasetData.Any())
@@ -287,23 +375,30 @@ public class ReportService : IReportService
         return prefixedList;
     }
 
+    /// <summary>
+    /// Convierte un objeto a un diccionario de propiedades.
+    /// </summary>
+    /// <param name="obj">Objeto a convertir.</param>
+    /// <returns>Diccionario de propiedades.</returns>
     private IDictionary<string, object> ObjectToDictionary(object obj)
     {
-        if (obj == null) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-
-        // Si el objeto ya es un diccionario (como un ExpandoObject), lo usamos para crear
-        // un nuevo diccionario estándar y normalizar el comportamiento.
-        if (obj is IDictionary<string, object> dict)
+        if (obj == null)
         {
-            return new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase);
+            return new Dictionary<string, object>(System.StringComparer.OrdinalIgnoreCase);
         }
 
-        // Si es una clase estándar (como Device), usamos reflexión para convertirlo en un diccionario.
-        var dictionary = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        if (obj is IDictionary<string, object> dict)
+        {
+            return new Dictionary<string, object>(dict, System.StringComparer.OrdinalIgnoreCase);
+        }
+
+        var dictionary = new Dictionary<string, object>(System.StringComparer.OrdinalIgnoreCase);
         foreach (var property in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             dictionary[property.Name] = property.GetValue(obj) ?? default!;
         }
         return dictionary;
     }
+
+    #endregion
 }

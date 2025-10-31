@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+
 public class DatasetUMController : ControllerBase
 {
     private readonly IDatasetUMService _datasetUMService;
@@ -24,12 +25,7 @@ public class DatasetUMController : ControllerBase
         _sondaAuthService = sondaAuthService;
     }
 
-    private bool IsUserAuthorized(string username)
-    {
-        // Ajusta según tu claim de usuario si es necesario
-        return string.Equals(User.Identity?.Name, username, StringComparison.OrdinalIgnoreCase)
-               || User.IsInRole("Admin");
-    }
+   
 
     /// <summary>
     /// Crea un nuevo dataset.
@@ -39,18 +35,11 @@ public class DatasetUMController : ControllerBase
     [ProducesResponseType(400)]
     [ProducesResponseType(403)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request,string token)
+    public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request, string token)
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (!IsUserAuthorized(request.Username))
-                return Forbid();
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
             var Dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
             var newDataset = await _datasetUMService.CreateDatasetUMAsync(request,Dataset.Id);
@@ -82,9 +71,8 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
+            
 
             var datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
             return Ok(datasets);
@@ -107,9 +95,8 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
+           
 
             var dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
             if (dataset == null)
@@ -135,11 +122,7 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (!IsUserAuthorized(request.Username))
-                return Forbid();
+            
             var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
             var updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
             var id = updatedDataset.DatasetId;
@@ -172,17 +155,16 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
+           
 
             var dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
             if (dataset == null)
                 return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
             var id= await _context.DatasetsUM
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-            await _datasetUMService.DeleteDatasetUMAsync(datasetId, username);
-            await _datasetUMService.DeleteDatasetAsync(id.DatasetId, username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
+            await _datasetUMService.DeleteDatasetUMAsync(id.Id, username);
+            await _datasetUMService.DeleteDatasetAsync(datasetId, username);
             return NoContent();
         }
         catch (Exception ex)
@@ -199,10 +181,8 @@ public class DatasetUMController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (!IsUserAuthorized(username))
-                return Forbid();
-
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
+          
             var datasets = await _datasetUMService.GetAllDatasetsAsync(username);
             return Ok(datasets);
         }

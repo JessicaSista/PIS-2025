@@ -1,34 +1,106 @@
 ﻿using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 
 namespace OmniMonitor.Server.Services
 {
+    /// <summary>
+    /// Servicio para la gestión y cálculo de KPIs.
+    /// </summary>
     public interface IKpiService
     {
+        /// <summary>
+        /// Crea un nuevo KPI.
+        /// </summary>
+        /// <param name="request">Datos para la creación del KPI.</param>
+        /// <param name="username">Nombre de usuario (opcional).</param>
+        /// <returns>El KPI creado.</returns>
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
-        Task<Kpi> GetKpiDefinitionAsync(int kpiId);
-        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
-        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
-        Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
-        Task DeleteKpiAsync(int kpiId, string? username = null);
-        Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null);
 
+        /// <summary>
+        /// Obtiene la definición de un KPI por su ID.
+        /// </summary>
+        /// <param name="kpiId">ID del KPI.</param>
+        /// <returns>El KPI encontrado.</returns>
+        Task<Kpi> GetKpiDefinitionAsync(int kpiId);
+
+        /// <summary>
+        /// Calcula el valor de un KPI para un usuario.
+        /// </summary>
+        /// <param name="kpiId">ID del KPI.</param>
+        /// <param name="username">Nombre de usuario.</param>
+        /// <returns>Respuesta con el resultado del KPI.</returns>
+        Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
+
+        /// <summary>
+        /// Calcula todos los KPIs de un usuario.
+        /// </summary>
+        /// <param name="username">Nombre de usuario.</param>
+        /// <returns>Lista de respuestas de KPIs.</returns>
+        Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
+
+        /// <summary>
+        /// Obtiene la lista de métricas disponibles para un módulo.
+        /// </summary>
+        /// <param name="sourceModule">Nombre del módulo.</param>
+        /// <returns>Lista de métricas.</returns>
+        Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
+
+        /// <summary>
+        /// Elimina un KPI.
+        /// </summary>
+        /// <param name="kpiId">ID del KPI.</param>
+        /// <param name="username">Nombre de usuario (opcional).</param>
+        Task DeleteKpiAsync(int kpiId, string? username = null);
+
+        /// <summary>
+        /// Actualiza un KPI existente.
+        /// </summary>
+        /// <param name="kpiId">ID del KPI.</param>
+        /// <param name="request">Datos para la actualización.</param>
+        /// <param name="username">Nombre de usuario (opcional).</param>
+        /// <returns>El KPI actualizado.</returns>
+        Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null);
     }
 
+    /// <summary>
+    /// Implementación del servicio para la gestión y cálculo de KPIs.
+    /// </summary>
     public class KpiService : IKpiService
     {
+        #region Campos privados
+
         private readonly ApplicationDbContext _context;
         private readonly IDatasetService _datasetService;
         private readonly ISondaEMService _sondaEMService;
         private readonly ISondaIMService _sondaIMService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IKpiAMService _kpiAMService;
+        private readonly ILogger<KpiService> _logger;
 
-        public KpiService(ApplicationDbContext context, IDatasetService datasetService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, IKpiAMService kpiAMService)
+        #endregion
+
+        #region Constructor
+
+        /// <summary>
+        /// Constructor de KpiService.
+        /// </summary>
+        public KpiService(
+            ApplicationDbContext context,
+            IDatasetService datasetService,
+            ISondaEMService sondaEMService,
+            ISondaIMService sondaIMService,
+            ISondaAuthService sondaAuthService,
+            IKpiAMService kpiAMService,
+            ILogger<KpiService> logger)
         {
             _context = context;
             _datasetService = datasetService;
@@ -36,154 +108,295 @@ namespace OmniMonitor.Server.Services
             _sondaIMService = sondaIMService;
             _kpiAMService = kpiAMService;
             _sondaAuthService = sondaAuthService;
+            _logger = logger;
         }
 
+        #endregion
+
+        #region Métodos públicos
+
+        /// <inheritdoc/>
         public async Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-
-            var newKpi = new Kpi
+            try
             {
-                Name = request.Name,
-                Description = request.Description,
-                SourceModule = request.SourceModule,
-                DatasetId = request.DatasetId,
-                Unit = request.Unit,
-                Metric = request.Metric,
-                Multiplier = request.Multiplier,
-                DefaultColor = request.DefaultColor,
-                ColorRanges = request.ColorRanges,
-                ExtraInfo = request.ExtraInfo,
-                Username = username ?? string.Empty,
-            };
+                _logger.LogInformation("Creando KPI '{Name}' para usuario {Username}", request.Name, username);
 
-            _context.Kpi.Add(newKpi);
-            await _context.SaveChangesAsync();
+                if (request == null)
+                {
+                    throw new ArgumentNullException(nameof(request));
+                }
 
-            return newKpi;
+                var newKpi = new Kpi
+                {
+                    Name = request.Name,
+                    Description = request.Description,
+                    SourceModule = request.SourceModule,
+                    DatasetId = request.DatasetId,
+                    Unit = request.Unit,
+                    Metric = request.Metric,
+                    Multiplier = request.Multiplier,
+                    DefaultColor = request.DefaultColor,
+                    ColorRanges = request.ColorRanges,
+                    ExtraInfo = request.ExtraInfo,
+                    Username = string.IsNullOrEmpty(username) ? string.Empty : username,
+                };
+
+                _context.Kpi.Add(newKpi);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("KPI '{Name}' creado correctamente para usuario {Username}", request.Name, username);
+
+                return newKpi;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creando KPI '{Name}' para usuario {Username}", request?.Name, username);
+                throw;
+            }
         }
 
+        /// <inheritdoc/>
         public async Task DeleteKpiAsync(int kpiId, string? username = null)
         {
-            var kpi = await _context.Kpi.FirstOrDefaultAsync(k => k.Id == kpiId);
+            try
+            {
+                _logger.LogInformation("Eliminando KPI con ID {KpiId} para usuario {Username}", kpiId, username);
 
-            if (kpi == null)
-                throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+                var kpi = await _context.Kpi.FirstOrDefaultAsync(k => k.Id == kpiId);
 
-            //verificar que el usuario sea dueño del KPI
-            if (!string.IsNullOrEmpty(username) && kpi.Username != username)
-                throw new UnauthorizedAccessException("No tiene permisos para eliminar este KPI.");
+                if (kpi == null)
+                {
+                    _logger.LogWarning("No se encontró el KPI con ID {KpiId}", kpiId);
+                    throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+                }
 
-            _context.Kpi.Remove(kpi);
-            await _context.SaveChangesAsync();
+                if (!string.IsNullOrEmpty(username) && !string.Equals(kpi.Username, username, StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("Usuario {Username} no tiene permisos para eliminar el KPI con ID {KpiId}", username, kpiId);
+                    throw new UnauthorizedAccessException("No tiene permisos para eliminar este KPI.");
+                }
+
+                _context.Kpi.Remove(kpi);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("KPI con ID {KpiId} eliminado correctamente para usuario {Username}", kpiId, username);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error eliminando KPI con ID {KpiId} para usuario {Username}", kpiId, username);
+                throw;
+            }
         }
 
+        /// <inheritdoc/>
         public async Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null)
         {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
+            try
+            {
+                _logger.LogInformation("Actualizando KPI con ID {KpiId} para usuario {Username}", kpiId, username);
 
-            var existingKpi = await _context.Kpi.FindAsync(kpiId);
-            if (existingKpi == null)
-                throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+                if (request == null)
+                {
+                    throw new ArgumentNullException(nameof(request));
+                }
 
-            if (!string.IsNullOrEmpty(username) && existingKpi.Username != username)
-                throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
+                var existingKpi = await _context.Kpi.FindAsync(kpiId);
+                if (existingKpi == null)
+                {
+                    _logger.LogWarning("No se encontró el KPI con ID {KpiId}", kpiId);
+                    throw new KeyNotFoundException($"No se encontró el KPI con ID {kpiId}.");
+                }
 
-            if (request.Name != null) existingKpi.Name = request.Name;
-            if (request.Description != null) existingKpi.Description = request.Description;
-            if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule;
-            if (request.DatasetId != null) existingKpi.DatasetId = request.DatasetId;
-            if (request.Unit != null) existingKpi.Unit = request.Unit;
-            if (request.Metric != null) existingKpi.Metric = request.Metric;
-            if (request.Multiplier != null) existingKpi.Multiplier = request.Multiplier;
-            if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor;
-            if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
-            if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
+                if (!string.IsNullOrEmpty(username) && !string.Equals(existingKpi.Username, username, StringComparison.Ordinal))
+                {
+                    _logger.LogWarning("Usuario {Username} no tiene permisos para editar el KPI con ID {KpiId}", username, kpiId);
+                    throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
+                }
 
-            _context.Kpi.Update(existingKpi);
-            await _context.SaveChangesAsync();
+                if (!string.IsNullOrEmpty(request.Name)) { existingKpi.Name = request.Name; }
+                if (!string.IsNullOrEmpty(request.Description)) { existingKpi.Description = request.Description; }
+                if (!string.IsNullOrEmpty(request.SourceModule)) { existingKpi.SourceModule = request.SourceModule; }
+                if (request.DatasetId != null) { existingKpi.DatasetId = request.DatasetId; }
+                if (!string.IsNullOrEmpty(request.Unit)) { existingKpi.Unit = request.Unit; }
+                if (!string.IsNullOrEmpty(request.Metric)) { existingKpi.Metric = request.Metric; }
+                if (request.Multiplier != null) { existingKpi.Multiplier = request.Multiplier; }
+                if (!string.IsNullOrEmpty(request.DefaultColor)) { existingKpi.DefaultColor = request.DefaultColor; }
+                if (!string.IsNullOrEmpty(request.ColorRanges)) { existingKpi.ColorRanges = request.ColorRanges; }
+                if (!string.IsNullOrEmpty(request.ExtraInfo)) { existingKpi.ExtraInfo = request.ExtraInfo; }
 
-            return existingKpi;
+                _context.Kpi.Update(existingKpi);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("KPI con ID {KpiId} actualizado correctamente para usuario {Username}", kpiId, username);
+
+                return existingKpi;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando KPI con ID {KpiId} para usuario {Username}", kpiId, username);
+                throw;
+            }
         }
 
+        /// <inheritdoc/>
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
-            var kpi = await _context.Kpi.FindAsync(kpiId);
+            try
+            {
+                _logger.LogInformation("Obteniendo definición de KPI con ID {KpiId}", kpiId);
 
-            if (kpi == null)
-                throw new ArgumentException($"No se encontró el KPI con ID {kpiId}");
+                var kpi = await _context.Kpi.FindAsync(kpiId);
 
-            return kpi;
+                if (kpi == null)
+                {
+                    _logger.LogWarning("No se encontró el KPI con ID {KpiId}", kpiId);
+                    throw new ArgumentException($"No se encontró el KPI con ID {kpiId}");
+                }
+
+                return kpi;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo definición de KPI con ID {KpiId}", kpiId);
+                throw;
+            }
         }
 
+        /// <inheritdoc/>
         public async Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username)
         {
-            var kpi = await GetKpiDefinitionAsync(kpiId);
-
-            KpiResponse? response = null;
-
-            switch (kpi.SourceModule.ToUpper())
+            try
             {
-                case "AM":
-                    response = await _kpiAMService.CalculateAmKpiAsync(kpi, username);
-                    break;
+                _logger.LogInformation("Calculando valor del KPI con ID {KpiId} para usuario {Username}", kpiId, username);
 
-                case "EM":
-                    response = await CalculateEmKpiAsync(kpi, username);
-                    break;
+                var kpi = await GetKpiDefinitionAsync(kpiId);
+                KpiResponse? response = null;
 
-                case "IM":
-                    response = await CalculateImKpiAsync(kpi, username);
-                    break;
+                switch (kpi.SourceModule.ToUpper())
+                {
+                    case "AM":
+                        response = await _kpiAMService.CalculateAmKpiAsync(kpi, username);
+                        break;
+                    case "EM":
+                        response = await CalculateEmKpiAsync(kpi, username);
+                        break;
+                    case "IM":
+                        response = await CalculateImKpiAsync(kpi, username);
+                        break;
+                    case "UM":
+                        response = await CalculateUmKpiAsync(kpi, username);
+                        break;
+                    default:
+                        _logger.LogWarning("SourceModule no soportado: {SourceModule}", kpi.SourceModule);
+                        throw new ArgumentException($"SourceModule no soportado: {kpi.SourceModule}");
+                }
 
-                case "UM":
-                    response = await CalculateUmKpiAsync(kpi, username);
-                    break;
+                if (response == null)
+                {
+                    _logger.LogWarning("No se pudo calcular el KPI con ID {KpiId}", kpiId);
+                    throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
+                }
 
-                default:
-                    throw new ArgumentException($"SourceModule no soportado: {kpi.SourceModule}");
+                return response;
             }
-
-            if (response == null)
-                throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
-
-            return response;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculando valor del KPI con ID {KpiId} para usuario {Username}", kpiId, username);
+                throw;
+            }
         }
 
+        /// <inheritdoc/>
         public async Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username)
         {
-            // Obtener todos los KPIs del usuario desde la base de datos
-            var kpis = await _context.Kpi
-                .Where(k => k.Username == username)
-                .ToListAsync();
-
-            var results = new List<KpiResponse>();
-
-            foreach (var kpi in kpis)
+            try
             {
-                try
-                {
-                    var response = await CalculateKpiValueAsync(kpi.Id, username);
-                    results.Add(response);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error calculando KPI {kpi.Id}: {ex.Message}");
-                }
-            }
+                _logger.LogInformation("Calculando todos los KPIs para usuario {Username}", username);
 
-            return results;
+                var kpis = await _context.Kpi
+                    .AsNoTracking()
+                    .Where(k => string.Equals(k.Username, username, StringComparison.Ordinal))
+                    .ToListAsync();
+
+                var results = new List<KpiResponse>();
+
+                foreach (var kpi in kpis)
+                {
+                    try
+                    {
+                        var response = await CalculateKpiValueAsync(kpi.Id, username);
+                        results.Add(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error calculando KPI {KpiId} para usuario {Username}", kpi.Id, username);
+                    }
+                }
+
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculando todos los KPIs para usuario {Username}", username);
+                throw;
+            }
         }
+
+        /// <inheritdoc/>
+        public async Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule)
+        {
+            try
+            {
+                _logger.LogInformation("Obteniendo métricas para el módulo {SourceModule}", sourceModule);
+
+                var metrics = new List<MetricInfo>();
+
+                switch (sourceModule.ToUpper())
+                {
+                    case "IM":
+                        metrics.Add(new MetricInfo { Name = "lastValue", ExtraInfo = "none" });
+                        metrics.Add(new MetricInfo { Name = "average", ExtraInfo = "requiresDateRange" });
+                        metrics.Add(new MetricInfo { Name = "minValue", ExtraInfo = "requiresDateRange" });
+                        metrics.Add(new MetricInfo { Name = "maxValue", ExtraInfo = "requiresDateRange" });
+                        break;
+                    case "AM":
+                        // Agregar métricas para AM si corresponde
+                        break;
+                    case "EM":
+                        // Agregar métricas para EM si corresponde
+                        break;
+                    case "UM":
+                        // Agregar métricas para UM si corresponde
+                        break;
+                    default:
+                        _logger.LogWarning("SourceModule no soportado: {SourceModule}", sourceModule);
+                        throw new ArgumentException($"SourceModule no soportado: {sourceModule}");
+                }
+
+                await Task.CompletedTask;
+                return metrics;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo métricas para el módulo {SourceModule}", sourceModule);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Métodos privados por módulo
 
         private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username)
         {
-            // Obtener dataset asociado al KPI
             var dataset = await _datasetService.GetDatasetIMByIdAsync(kpi.DatasetId, kpi.Username);
 
             if (dataset == null)
+            {
+                _logger.LogWarning("No se encontró el dataset con ID {DatasetId} para el KPI {KpiName}", kpi.DatasetId, kpi.Name);
                 throw new Exception($"No se encontró el dataset con ID {kpi.DatasetId} para el KPI {kpi.Name}");
+            }
 
             KpiResponse? response;
 
@@ -192,28 +405,23 @@ namespace OmniMonitor.Server.Services
                 case "lastvalue":
                     response = await CalculateLastValueIM(kpi, dataset, username);
                     break;
-
                 case "average":
-                    response = await CalculateAverageKpiIMAsync(kpi,dataset, username);
+                    response = await CalculateAverageKpiIMAsync(kpi, dataset, username);
                     break;
-
                 case "min":
                     response = await CalculateMinKpiIMAsync(kpi, dataset, username);
                     break;
-
                 case "max":
                     response = await CalculateMaxKpiIMAsync(kpi, dataset, username);
                     break;
-
                 default:
+                    _logger.LogWarning("Métrica no soportada para IM: {Metric}", kpi.Metric);
                     throw new ArgumentException($"Métrica no soportada para IM: {kpi.Metric}");
             }
 
             return response;
         }
 
-
-        // Funciones privadas por módulo
         private async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username)
         {
             // TODO: lógica de cálculo para AM
@@ -235,7 +443,6 @@ namespace OmniMonitor.Server.Services
                 Value = null
             };
         }
-
 
         private async Task<KpiResponse> CalculateUmKpiAsync(Kpi kpi, string username)
         {
@@ -497,7 +704,6 @@ namespace OmniMonitor.Server.Services
 
 
 
-
         private async Task<KpiResponse> CalculateMinKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
             // Si no tiene extraInfo o dates, dejamos en pendiente
@@ -657,40 +863,6 @@ namespace OmniMonitor.Server.Services
                 Type = sensorType
             };
         }
-
-
-        public async Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule)
-        {
-            var metrics = new List<MetricInfo>();
-
-            switch (sourceModule.ToUpper())
-            {
-                case "IM":
-                    metrics.Add(new MetricInfo { Name = "lastValue", ExtraInfo = "none" });
-                    metrics.Add(new MetricInfo { Name = "average", ExtraInfo = "requiresDateRange" });
-                    metrics.Add(new MetricInfo { Name = "minValue", ExtraInfo = "requiresDateRange" });
-                    metrics.Add(new MetricInfo { Name = "maxValue", ExtraInfo = "requiresDateRange" });
-                    break;
-
-                case "AM":
-                    break;
-
-                case "EM":
-                    break;
-
-                case "UM":
-                    break;
-
-                default:
-                    throw new ArgumentException($"SourceModule no soportado: {sourceModule}");
-            }
-
-            // Si quisieras, podrías hacerlo async por compatibilidad con interfaces o futura DB
-            await Task.CompletedTask;
-            return metrics;
-        }
-
-
 
 
         private async Task<KpiResponse> CalculateMaxKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
@@ -888,9 +1060,6 @@ namespace OmniMonitor.Server.Services
             [JsonPropertyName("color")]
             public string Color { get; set; } = "#000000";
         }
-
+        #endregion
     }
-
-
-
 }

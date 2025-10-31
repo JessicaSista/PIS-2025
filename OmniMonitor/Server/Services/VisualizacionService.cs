@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System;
@@ -9,31 +10,67 @@ using System.Threading.Tasks;
 
 namespace OmniMonitor.Server.Services
 {
-    // --- Interfaz para el servicio de Visualizaciones ---
+    #region Interfaces
+
+    /// <summary>
+    /// Interfaz para el servicio de visualizaciones.
+    /// </summary>
     public interface IVisualizacionService
     {
-        Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
-        Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
-        Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
-    }
-
-    // --- Implementación del servicio ---
-    public class VisualizacionService : IVisualizacionService
-    {
-        private readonly ApplicationDbContext _context;
-
-        public VisualizacionService(ApplicationDbContext context)
-        {
-            _context = context;
-        }
-
         /// <summary>
         /// Crea una nueva visualización y asocia los datasets correspondientes.
         /// </summary>
+        /// <param name="request">Datos para la creación de la visualización.</param>
+        /// <returns>La visualización creada.</returns>
+        Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
+
+        /// <summary>
+        /// Obtiene todas las visualizaciones de un usuario específico.
+        /// </summary>
+        /// <param name="username">Nombre de usuario.</param>
+        /// <returns>Lista de visualizaciones.</returns>
+        Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
+
+        /// <summary>
+        /// Obtiene una visualización por su ID, incluyendo los datasets asociados.
+        /// </summary>
+        /// <param name="idVisualizacion">ID de la visualización.</param>
+        /// <param name="username">Nombre de usuario.</param>
+        /// <returns>Visualización o null.</returns>
+        Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
+    }
+
+    #endregion
+
+    #region Implementación
+
+    /// <summary>
+    /// Servicio para la gestión de visualizaciones.
+    /// </summary>
+    public class VisualizacionService : IVisualizacionService
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<VisualizacionService> _logger;
+
+        /// <summary>
+        /// Constructor del servicio de visualizaciones.
+        /// </summary>
+        /// <param name="context">Contexto de base de datos.</param>
+        /// <param name="logger">Logger para registrar información.</param>
+        public VisualizacionService(ApplicationDbContext context, ILogger<VisualizacionService> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        #region Métodos Públicos
+
+        /// <inheritdoc/>
         public async Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
             {
+                _logger.LogWarning("El nombre de usuario o el nombre de la visualización es nulo o vacío.");
                 throw new ArgumentException("El nombre de usuario y el nombre de la visualización son obligatorios.");
             }
 
@@ -43,7 +80,8 @@ namespace OmniMonitor.Server.Services
                 Username = request.Username,
                 FechaDesde = request.FechaDesde,
                 FechaHasta = request.FechaHasta,
-                JsonDesign = request.JsonDiseñoGeneral
+                JsonDesign = request.JsonDiseñoGeneral,
+                GrupoDatasets = new List<GrupoDataset>()
             };
 
             // Añadir los datasets asociados a la visualización
@@ -62,32 +100,47 @@ namespace OmniMonitor.Server.Services
             _context.Visualizaciones.Add(nuevaVisualizacion);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("Visualización creada correctamente para el usuario {Username} con nombre {Nombre}.", request.Username, request.Nombre);
+
             return nuevaVisualizacion;
         }
 
-        /// <summary>
-        /// Obtiene todas las visualizaciones de un usuario específico.
-        /// </summary>
+        /// <inheritdoc/>
         public async Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username)
         {
+            if (string.IsNullOrEmpty(username))
+            {
+                _logger.LogWarning("El parámetro 'username' está vacío o es nulo.");
+                return new();
+            }
+
             return await _context.Visualizaciones
-            .Include(v => v.GrupoDatasets)           // ← Incluye los GrupoDatasets
-                .ThenInclude(gd => gd.Dataset)       // ← Incluye los Datasets dentro de cada GrupoDataset
-            .Where(v => v.Username == username)
-            .OrderByDescending(v => v.IdVisualizacion)
-            .ToListAsync();
+                .AsNoTracking()
+                .Include(v => v.GrupoDatasets)
+                    .ThenInclude(gd => gd.Dataset)
+                .Where(v => v.Username == username)
+                .OrderByDescending(v => v.IdVisualizacion)
+                .ToListAsync();
         }
 
-        /// <summary>
-        /// Obtiene una visualización por su ID, incluyendo los datasets asociados.
-        /// </summary>
+        /// <inheritdoc/>
         public async Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username)
         {
-            // Se usa Include y ThenInclude para cargar los datos relacionados
+            if (string.IsNullOrEmpty(username))
+            {
+                _logger.LogWarning("El parámetro 'username' está vacío o es nulo.");
+                return null;
+            }
+
             return await _context.Visualizaciones
+                .AsNoTracking()
                 .Include(v => v.GrupoDatasets)
                     .ThenInclude(gd => gd.Dataset)
                 .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion && v.Username == username);
         }
+
+        #endregion
     }
+
+    #endregion
 }

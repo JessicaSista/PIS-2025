@@ -60,7 +60,7 @@ public class VisualizacionController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var visualizaciones = await _visualizacionService.GetAllVisualizacionesAsync(username);
             return Ok(visualizaciones);
         }
@@ -81,7 +81,7 @@ public class VisualizacionController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var visualizacion = await _visualizacionService.GetVisualizacionByIdAsync(idVisualizacion, username);
             if (visualizacion == null)
             {

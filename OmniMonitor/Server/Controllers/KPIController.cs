@@ -32,7 +32,7 @@ public class KPIController : ControllerBase
                 return BadRequest("El objeto KPI es nulo.");
 
             // Validar token y obtener usuario
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
@@ -64,7 +64,7 @@ public class KPIController : ControllerBase
         try
         {
             // Validar token y obtener usuario
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
@@ -92,7 +92,7 @@ public class KPIController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 
@@ -133,7 +133,7 @@ public class KPIController : ControllerBase
             if (!string.IsNullOrEmpty(token))
             {
                 // Obtener usuario del token
-                string user = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string user = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrEmpty(user))
                     return BadRequest("Token inválido.");
                 username = user;
@@ -167,7 +167,7 @@ public class KPIController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             if (string.IsNullOrEmpty(username))
                 return BadRequest("Token inválido.");
 

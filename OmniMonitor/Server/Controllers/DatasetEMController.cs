@@ -29,7 +29,7 @@ namespace OmniMonitor.Server.Controllers
         /// Crea un nuevo dataset EM.
         /// </summary>
         [HttpPost]
-        [RequirePermission("Crear Datasets EM")]
+        
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
@@ -77,7 +77,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
         [HttpGet("GetAllDatasets")]
-        [RequirePermission("Ver Datasets EM")]
+       
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -85,7 +85,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 var datasets = await _datasetEMService.GetAllDatasetsEMAsync(username);
                 return Ok(datasets);
             }
@@ -99,7 +99,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
         [HttpGet("{datasetId}")]
-        [RequirePermission("Ver Datasets EM")]
+        //[RequirePermission("Ver Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -107,7 +107,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 var dataset = await _datasetEMService.GetDatasetEMByIdAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -127,7 +127,6 @@ namespace OmniMonitor.Server.Controllers
         /// Actualiza un dataset EM existente.
         /// </summary>
         [HttpPut("{datasetId}")]
-        [RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -155,7 +154,6 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dataset EM.
         /// </summary>
         [HttpDelete("{datasetId}")]
-        [RequirePermission("Eliminar Datasets EM")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -163,10 +161,10 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 var id = await _context.DatasetsEM
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-                await _datasetEMService.DeleteDatasetEMAsync(datasetId, username);
+                .FirstOrDefaultAsync(d => d.DatasetId == datasetId && d.Username == username);
+                await _datasetEMService.DeleteDatasetEMAsync(id.Id, username);
                 await _datasetUMService.DeleteDatasetAsync(id.DatasetId, username);
                 return NoContent();
             }

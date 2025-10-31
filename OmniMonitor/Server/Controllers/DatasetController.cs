@@ -68,7 +68,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             
             // Por ahora usamos el método sin búsqueda y filtramos en memoria
             // TODO: Implementar búsqueda en el servicio cuando sea necesario
@@ -126,7 +126,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
             
             if (module == null)
@@ -153,7 +153,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
@@ -222,7 +222,7 @@ public class DatasetController : ControllerBase
     {
         try
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             var dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
             if (dataset == null)
             {
@@ -249,7 +249,7 @@ public async Task<ActionResult<string>> GetSensorType(int datasetId, [FromQuery]
     try
     {
         Console.WriteLine($"[TRACE] Token recibido: {token}");
-        string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+        string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
         Console.WriteLine($"[TRACE] Usuario: {username}");
 
         var dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
