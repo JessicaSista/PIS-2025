@@ -60,7 +60,7 @@ namespace OmniMonitor.Server.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IApiDataService _apiDataService;
-        public VisualizacionService(ApplicationDbContext context, IApiDataService apiDataService)
+
         private readonly ILogger<VisualizacionService> _logger;
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         /// <param name="context">Contexto de base de datos.</param>
         /// <param name="logger">Logger para registrar información.</param>
-        public VisualizacionService(ApplicationDbContext context, ILogger<VisualizacionService> logger)
+        public VisualizacionService(ApplicationDbContext context, ILogger<VisualizacionService> logger, IApiDataService apiDataService)
         {
             _context = context;
             _apiDataService = apiDataService;

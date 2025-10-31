@@ -85,7 +85,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<DatasetEM> datasets = await _datasetEMService.GetAllDatasetsEMAsync(username);
                 return Ok(datasets);
             }
@@ -106,7 +106,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DatasetEM? dataset = await _datasetEMService.GetDatasetEMByIdAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -141,7 +141,7 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.EventManager, existingDataset.DatasetId);
+                await _datasetUMService.ValidateDuplicateNameDataset(request.Name, request.Username, existingDataset.DatasetId);
 
                 DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, request);
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
@@ -169,7 +169,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DatasetEM? id = await _context.DatasetsEM
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
                 await _datasetEMService.DeleteDatasetEMAsync(datasetId, username);

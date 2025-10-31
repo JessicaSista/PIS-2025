@@ -164,7 +164,7 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         /// <param name="context">Contexto de base de datos.</param>
         /// <param name="logger">Logger para registrar eventos.</param>
-        public DashboardService(ApplicationDbContext context, ILogger<DashboardService> logger)
+        public DashboardService(ApplicationDbContext context, ILogger<DashboardService> logger, IPasswordHasher<SharedLink> passwordHasher)
         {
             _context = context;
             _passwordHasher = passwordHasher;
@@ -773,30 +773,29 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query)
         {
-            try
+            if (string.IsNullOrWhiteSpace(query))
             {
-                if (string.IsNullOrWhiteSpace(query))
-                {
-                    return new();
-                }
+                return new();
+            }
 
-                string lowerQuery = query.ToLower();
-                List<DashboardSummaryResponse> dashboards = await _context.Dashboards
-                    .AsNoTracking()
-                    .Where(d => d.Nombre.ToLower().Contains(lowerQuery) || (!string.IsNullOrEmpty(d.Descripcion) && d.Descripcion.ToLower().Contains(lowerQuery)))
-                    .Select(d => new DashboardSummaryResponse
-                    {
-                        IdDashboard = d.IdDashboard,
-                        Nombre = d.Nombre,
-                        Descripcion = d.Descripcion,
-                        Username = d.Username,
-                        FechaCreacion = d.FechaCreacion,
-                        FechaModificacion = d.FechaModificacion,
-                        CantidadTarjetas = d.GrupoVisualizaciones.Count
-                    })
-                    .ToListAsync();
+            string lowerQuery = query.ToLower();
+            List<DashboardSummaryResponse> dashboards = await _context.Dashboards
+                .AsNoTracking()
+                .Where(d => d.Nombre.ToLower().Contains(lowerQuery) || (!string.IsNullOrEmpty(d.Descripcion) && d.Descripcion.ToLower().Contains(lowerQuery)))
+                .Select(d => new DashboardSummaryResponse
+                {
+                    IdDashboard = d.IdDashboard,
+                    Nombre = d.Nombre,
+                    Descripcion = d.Descripcion,
+                    Username = d.Username,
+                    FechaCreacion = d.FechaCreacion,
+                    FechaModificacion = d.FechaModificacion,
+                    CantidadTarjetas = d.GrupoVisualizaciones.Count
+                })
+                .ToListAsync();
 
             return dashboards;
+
         }
 
         public async Task<ShareResponseDto> CreateShareLinkAsync(int dashboardId, ShareRequestDto request, string username)

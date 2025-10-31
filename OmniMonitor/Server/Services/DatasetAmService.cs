@@ -448,7 +448,6 @@ namespace OmniMonitor.Server.Services
                 throw;
             }
         }
-    }
 
         public async Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username)
         {
@@ -516,8 +515,5 @@ namespace OmniMonitor.Server.Services
             return reducedList;
         }
     }
-}
-
-    
     #endregion
 }

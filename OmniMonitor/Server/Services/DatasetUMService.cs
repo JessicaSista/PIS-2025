@@ -121,6 +121,11 @@ namespace OmniMonitor.Server.Services
         /// <param name="datasetId">ID del dataset.</param>
         /// <param name="username">Nombre de usuario.</param>
         Task DeleteDatasetAsync(int datasetId, string username);
+
+        /// <summary>
+        /// Valida que no exista un dataset con el mismo nombre para el usuario.
+        /// </summary>
+        Task ValidateDuplicateNameDataset(string name, string username, int? excludeId = null);
     }
 
     public class DatasetUMService : IDatasetUMService
@@ -589,6 +594,24 @@ namespace OmniMonitor.Server.Services
 
         #region Helpers
 
+        public async Task ValidateDuplicateNameDataset(string name, string username, int? excludeId = null)
+        {
+            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
+            var query = _context.Datasets
+                .Where(d => string.Equals(d.NameDataset, name) && string.Equals(d.Username, username));
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(d => d.Id != excludeId.Value);
+            }
+
+            if (await query.AnyAsync())
+            {
+                _logger.LogWarning("Intento de duplicar nombre de dataset '{Name}' para el usuario '{Username}'.", name, username);
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+            }
+        }
+
         /// <summary>
         /// Actualiza las relaciones de eventos y noticias en el dataset UM a partir de la request.
         /// </summary>
@@ -620,27 +643,6 @@ namespace OmniMonitor.Server.Services
                 return "3";
             }
             return null;
-        }
-
-        /// <summary>
-        /// Valida que no exista un dataset con el mismo nombre para el usuario.
-        /// </summary>
-        private async Task ValidateDuplicateNameDataset(string name, string username, int? excludeId = null)
-        {
-            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
-            var query = _context.Datasets
-                .Where(d => string.Equals(d.NameDataset, name) && string.Equals(d.Username, username));
-
-            if (excludeId.HasValue)
-            {
-                query = query.Where(d => d.Id != excludeId.Value);
-            }
-
-            if (await query.AnyAsync())
-            {
-                _logger.LogWarning("Intento de duplicar nombre de dataset '{Name}' para el usuario '{Username}'.", name, username);
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
-            }
         }
 
         #endregion

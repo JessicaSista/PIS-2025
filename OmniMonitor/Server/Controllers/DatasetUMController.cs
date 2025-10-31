@@ -35,7 +35,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 if (!ModelState.IsValid)
                 {
@@ -74,7 +74,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<DatasetUM> datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
                 return Ok(datasets);
             }
@@ -96,7 +96,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -137,7 +137,7 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
+                await _datasetUMService.ValidateDuplicateNameDataset(request.Name, request.Username, existingDataset.DatasetId);
 
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
                 DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
@@ -171,7 +171,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
@@ -199,7 +199,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 List<Datasets> datasets = await _datasetUMService.GetAllDatasetsAsync(username);
                 return Ok(datasets);
@@ -221,7 +221,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 var datasetDtos = new List<DatasetDto>();
 

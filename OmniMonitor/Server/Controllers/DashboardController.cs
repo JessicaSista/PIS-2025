@@ -87,7 +87,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdAsync(id, username);
                 if (dashboard == null)
                 {
@@ -118,7 +118,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<DashboardSummaryResponse> dashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
                 return Ok(dashboards);
             }
@@ -340,7 +340,7 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -366,7 +366,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
 
                 var response = await _dashboardService.GetAllByDashboardAsync(dashboardId, username);
@@ -430,7 +430,7 @@ namespace OmniMonitor.Server.Controllers
             if (!ModelState.IsValid) return BadRequest();
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
 
                 var response = await _dashboardService.UpdateShareLinkAsync(slug, request, username);
@@ -454,7 +454,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
 
                 var success = await _dashboardService.DeleteShareLinkAsync(slug, username);

@@ -25,7 +25,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 EventDto? eventDto = await _sondaEMService.GetEventById(eventId, username);
                 if (eventDto == null)
                 {
@@ -48,7 +48,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 AlertDto? alertDto = await _sondaEMService.GetAlertById(alertId, username);
                 if (alertDto == null)
                 {
@@ -80,7 +80,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<AlertDto> alerts = await _sondaEMService.GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
                 if (alerts == null || alerts.Count == 0)
                 {
@@ -111,7 +111,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<AlertDto> alerts = await _sondaEMService.GetStoredAlerts(page, pageSize, query, stateList, x, y, r, sort, username);
                 if (alerts == null || alerts.Count == 0)
                 {
@@ -138,7 +138,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<EventDto> events = await _sondaEMService.GetEvents(page, pageSize, sort, query, username);
                 if (events == null || events.Count == 0)
                 {
@@ -161,7 +161,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<EventTypeDto> eventTypes = await _sondaEMService.GetEventTypes(username);
                 if (eventTypes == null || eventTypes.Count == 0)
                 {
@@ -184,7 +184,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 ExtensionDtoDup? extension = await _sondaEMService.GetExtensionById(extensionId, username);
                 if (extension == null)
                 {
@@ -216,7 +216,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<ExtensionDto> extensions = await _sondaEMService.GetExtensions(page, pageSize, sort, query, states, dates, priorities, categories, zones, username);
                 if (extensions == null || extensions.Count == 0)
                 {
@@ -239,7 +239,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<AttachmentDto> items = await _sondaEMService.GetAttachedItems(extensionId, username);
                 if (items == null || items.Count == 0)
                 {
@@ -263,7 +263,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<ExtensionDtoDup> items = await _sondaEMService.GetExtensionByEventId(eventId, username);
                 if (items == null || items.Count == 0)
                 {
@@ -290,7 +290,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<CategoryDto> items = await _sondaEMService.GetCategory(page, pageSize, sort, query, username);
                 return Ok(items ?? new List<CategoryDto>());
             }
@@ -318,7 +318,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<AlertDto> alerts = await _sondaEMService.GetAlertsCategory(categoryid, page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
                 return Ok(alerts ?? new List<AlertDto>());
             }
@@ -341,7 +341,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<EventDto> events = await _sondaEMService.GetEventsByCategory(categoryid, page, pageSize, query, sort, username);
                 return Ok(events ?? new List<EventDto>());
             }
@@ -359,7 +359,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 CategoryDto? categoriaDto = await _sondaEMService.GetCategoryById(categoryId, username);
                 if (categoriaDto == null)
                 {

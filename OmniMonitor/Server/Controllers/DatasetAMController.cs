@@ -71,7 +71,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<DatasetAM> datasets = await _datasetAmService.GetAllDatasetAMsAsync(username);
                 return Ok(datasets);
             }
@@ -92,7 +92,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdAsync(id, username);
                 if (dataset == null)
                 {
@@ -118,7 +118,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, username);
                 if (dataset == null)
                 {
@@ -157,7 +157,7 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Nombre, request.Username, ModuleType.AssetManager, existingDataset.DatasetId);
+                await _datasetUMService.ValidateDuplicateNameDataset(request.Nombre, request.Username, existingDataset.DatasetId);
 
                 // Llamar al servicio que incluye la validación de nombres únicos
                 DatasetAM updatedDataset = await _datasetAmService.UpdateDatasetAMAsync(existingDataset, request);
@@ -191,7 +191,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DatasetAM? datasetid = await _context.DatasetAM
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
                 

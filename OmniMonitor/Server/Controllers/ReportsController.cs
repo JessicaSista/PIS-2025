@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Services;
+
 namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
@@ -50,7 +52,7 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 ReportJoin createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
 
                 return Ok(createdLink);
@@ -68,7 +70,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<Report>), 200)]
         public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             List<Report> reports = await _reportService.GetAllReportsByUsernameAsync(username);
             return Ok(reports);
         }
@@ -81,7 +83,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetReportById(int id, [FromQuery] string token)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             Report? report = await _reportService.GetReportByIdAsync(id, username);
             if (report == null)
             {
@@ -108,7 +110,7 @@ namespace OmniMonitor.Server.Controllers
                 return BadRequest(ModelState);
             }
 
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             CrossModuleJoin createdJoin = await _joinConfigService.CreateJoinAsync(request, username);
             return Ok(createdJoin);
         }
@@ -120,7 +122,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
         public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
             List<CrossModuleJoinDto> joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
             return Ok(joins);
         }
@@ -154,7 +156,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -184,7 +186,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -215,7 +217,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -244,7 +246,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });

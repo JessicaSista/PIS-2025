@@ -35,7 +35,7 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Validar token y obtener usuario
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -72,7 +72,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 // Validar token y obtener usuario
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -103,7 +103,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token!);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token!);
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -146,7 +146,7 @@ namespace OmniMonitor.Server.Controllers
                 if (!string.IsNullOrEmpty(token))
                 {
                     // Obtener usuario del token
-                    string user = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                    string user = await _sondaAuthService.GetUserByTokenOmAsync(token);
                     if (string.IsNullOrEmpty(user))
                     {
                         return BadRequest("Token inválido.");
@@ -185,7 +185,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -358,7 +358,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("Debe especificar el campo.");
 
                 // Validar token y obtener usuario
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 if (string.IsNullOrEmpty(username))
                     return BadRequest("Token inválido.");
 

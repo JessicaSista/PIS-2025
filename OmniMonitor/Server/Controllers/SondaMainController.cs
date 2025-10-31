@@ -27,7 +27,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Device>? devices = await _sondaIMApiService.GetAllDevices(username);
                 return Ok(devices);
             }
@@ -45,7 +45,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 Device? device = await _sondaIMApiService.GetDeviceById(id, username);
                 if (device == null)
                 {
@@ -68,7 +68,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<DeviceData>? deviceData = await _sondaIMApiService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
                 if (deviceData == null || deviceData.Count == 0)
                 {
@@ -91,7 +91,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<DeviceGroup> groups = await _sondaIMApiService.GetAllDeviceGroups(username);
                 return Ok(groups);
             }
@@ -109,7 +109,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DeviceGroup? group = await _sondaIMApiService.GetDeviceGroupById(id, username);
                 if (group == null)
                 {
@@ -132,7 +132,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfGroup(id, username);
                 if (devices == null || devices.Count == 0)
                 {
@@ -155,7 +155,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Source> sources = await _sondaIMApiService.GetAllSources(username);
                 return Ok(sources);
             }
@@ -173,7 +173,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 Source? source = await _sondaIMApiService.GetSourceById(id, username);
                 if (source == null)
                 {
@@ -196,7 +196,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfSource(id, username);
                 if (devices == null || devices.Count == 0)
                 {
@@ -232,7 +232,7 @@ namespace OmniMonitor.Server.Controllers
 
                 foreach (int deviceId in deviceIds)
                 {
-                    string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                    string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                     Device? device = await _sondaIMApiService.GetDeviceById(deviceId, username);
                     if (device != null && device.Sensors != null && device.Sensors.Count != 0)
                     {
@@ -274,7 +274,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 // Obtener todos los dispositivos de la fuente
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfSource(sourceId, username);
@@ -315,7 +315,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDate(deviceId, sensorName, dateFrom, dateTo, username);
                 if (sensorData == null || sensorData.Count == 0)
                 {
@@ -337,7 +337,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Zone> zones = await _sondaUMApiService.GetAllZones(username);
                 return Ok(zones);
             }
@@ -354,7 +354,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 Zone? zone = await _sondaUMApiService.GetZoneById(id, username);
                 if (zone == null)
                 {
@@ -382,7 +382,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 // Pasar los parámetros al servicio
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<News> news = await _sondaUMApiService.GetAllNews(username, startIndex, queryString, sort, count);
                 return Ok(news);
             }
@@ -399,7 +399,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 News? newsItem = await _sondaUMApiService.GetNewsById(id, username);
                 if (newsItem == null)
                 {
@@ -428,7 +428,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<News> news = await _sondaUMApiService.GetNewsByZoneId(id, username, startIndex, queryString, sort, count);
                 if (news == null || news.Count == 0)
                 {
@@ -450,7 +450,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Event> events = await _sondaUMApiService.GetAllEvents(username);
                 return Ok(events);
             }
@@ -467,7 +467,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 Event? eventItem = await _sondaUMApiService.GetEventById(id, username);
                 if (eventItem == null)
                 {
@@ -490,7 +490,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Event> events = await _sondaUMApiService.GetEventsByZoneId(id, username);
                 if (events == null || events.Count == 0)
                 {
@@ -512,7 +512,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 int count = await _sondaIMApiService.GetSSDeviceCount(username);
                 return Ok(count);
             }
@@ -529,7 +529,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 DeviceDataStatusResponse? count = await _sondaIMApiService.GetSSDataStatus(username);
                 return Ok(count);
             }

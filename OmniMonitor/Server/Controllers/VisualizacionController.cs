@@ -59,7 +59,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 List<Visualizacion> visualizaciones = await _visualizacionService.GetAllVisualizacionesAsync(username);
                 return Ok(visualizaciones);
             }
@@ -80,7 +80,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
                 Visualizacion? visualizacion = await _visualizacionService.GetVisualizacionByIdAsync(idVisualizacion, username);
                 if (visualizacion == null)
                 {
@@ -225,7 +225,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 var response = await _visualizacionService.GetVisualizationDataAsync(request, username);
 
