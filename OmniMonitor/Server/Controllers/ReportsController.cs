@@ -1,272 +1,266 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using OmniMonitor.Server.Services;
-using System.Collections.Generic;
-using System.Linq.Dynamic.Core.Tokenizer;
-using System.Threading.Tasks;
 
-[ApiController]
-[Route("api/reports")]
-public class ReportsController : ControllerBase
+namespace OmniMonitor.Server.Controllers
 {
-    private readonly IReportService _reportService;
-    private readonly IJoinConfigurationService _joinConfigService;
-    private readonly ISondaAuthService _sondaAuthService;
-
-    public ReportsController(IReportService reportService, IJoinConfigurationService joinConfigService, ISondaAuthService sondaAuthService)
+    [ApiController]
+    [Route("api/reports")]
+    public class ReportsController : ControllerBase
     {
-        _reportService = reportService;
-        _joinConfigService = joinConfigService;
-        _sondaAuthService = sondaAuthService;
-    }
+        private readonly IReportService _reportService;
+        private readonly IJoinConfigurationService _joinConfigService;
+        private readonly ISondaAuthService _sondaAuthService;
 
-    // ===============================================
-    // Report-related Endpoints
-    // ===============================================
-
-    /// <summary>
-    /// Creates a new report with a specified list of joins.
-    /// Route: POST /api/reports
-    /// </summary>
-    [HttpPost]
-    [ProducesResponseType(typeof(Report), 201)]
-    [ProducesResponseType(400)]
-    public async Task<IActionResult> CreateReport([FromBody] CreateReportRequestDto request)
-    {
-        if (!ModelState.IsValid)
+        public ReportsController(IReportService reportService, IJoinConfigurationService joinConfigService, ISondaAuthService sondaAuthService)
         {
-            return BadRequest(ModelState);
-        }
-        var createdReport = await _reportService.CreateReportAsync(request);
-        return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
-    }
-
-    [HttpPost("{reportId}/joins/create-and-add")]
-    [ProducesResponseType(typeof(ReportJoin), 200)]
-    [ProducesResponseType(404)] // Not Found
-    public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest, [FromQuery] string token)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
+            _reportService = reportService;
+            _joinConfigService = joinConfigService;
+            _sondaAuthService = sondaAuthService;
         }
 
-        try
+        // ===============================================
+        // Report-related Endpoints
+        // ===============================================
+
+        /// <summary>
+        /// Creates a new report with a specified list of joins.
+        /// </summary>
+        [HttpPost]
+        [ProducesResponseType(typeof(Report), 201)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> CreateReport([FromBody] CreateReportRequestDto request)
         {
-            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-            var createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
-
-            return Ok(createdLink);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Gets a list of all reports for a specific user.
-    /// Route: GET /api/reports/user/{username}
-    /// </summary>
-    [HttpGet("by-user")]
-    [ProducesResponseType(typeof(List<Report>), 200)]
-    public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
-    {
-        string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-        var reports = await _reportService.GetAllReportsByUsernameAsync(username);
-        return Ok(reports);
-    }
-
-    /// <summary>
-    /// Gets a single, detailed report by its ID.
-    /// Route: GET /api/reports/{id}
-    /// </summary>
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Report), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> GetReportById(int id, [FromQuery] string token)
-    {
-        string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-        var report = await _reportService.GetReportByIdAsync(id, username);
-        if (report == null)
-        {
-            return NotFound();
-        }
-        return Ok(report);
-    }
-
-    // ===============================================
-    // Join-related Endpoints
-    // ===============================================
-
-    /// <summary>
-    /// Creates a new join configuration.
-    /// Route: POST /api/reports/joins
-    /// </summary>
-    [HttpPost("joins")]
-    [ProducesResponseType(typeof(CrossModuleJoin), 201)]
-    [ProducesResponseType(400)]
-    public async Task<IActionResult> CreateJoin([FromBody] CreateJoinRequestDto request, [FromQuery] string token)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(ModelState);
-        }
-        string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-        var createdJoin = await _joinConfigService.CreateJoinAsync(request, username);
-        return Ok(createdJoin);
-    }
-
-    /// <summary>
-    /// Gets a list of all join configurations for a specific user.
-    /// Route: GET /api/reports/joins/user/{username}
-    /// </summary>
-    [HttpGet("joins/by-user")]
-    [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
-    public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
-    {
-        string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-        var joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
-        return Ok(joins);
-    }
-
-
-    [HttpGet("joins/{joinId}/execute")]
-    [ProducesResponseType(typeof(List<dynamic>), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> ExecuteJoin(int joinId)
-    {
-        try
-        {
-            var results = await _joinConfigService.ExecuteJoinAsync(joinId);
-            return Ok(results);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (System.Exception ex)
-        {
-            // Log exception ex
-            return StatusCode(500, "An error occurred while executing the join.");
-        }
-    }
-
-    [HttpPut("UpdateReport")]
-    [ProducesResponseType(typeof(Report), 200)]
-    [ProducesResponseType(404)] // Not Found
-    [ProducesResponseType(401)] // Unauthorized
-    public async Task<IActionResult> UpdateReport(int id, string name, string description, string JSON_config, [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-            if (string.IsNullOrWhiteSpace(username))
+            if (!ModelState.IsValid)
             {
-                return Unauthorized(new { message = "Token inválido." });
+                return BadRequest(ModelState);
             }
 
-            var updatedReport = await _reportService.UpdateReportAsync(id, name, description, username, JSON_config);
-
-            if (updatedReport == null)
-            {
-                return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
-            }
-            return Ok(updatedReport);
+            Report createdReport = await _reportService.CreateReportAsync(request);
+            return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
         }
-        catch (Exception ex)
-        {
-            // Opcional: Loggear la excepción 'ex'
-            return StatusCode(500, new { message = "Ocurrió un error interno al actualizar el reporte." });
-        }
-    }
 
-
-    [HttpDelete("DeleteReport")]
-    [ProducesResponseType(204)] // No Content (éxito)
-    [ProducesResponseType(404)] // Not Found
-    [ProducesResponseType(401)] // Unauthorized
-    public async Task<IActionResult> DeleteReport(int id, [FromQuery] string token)
-    {
-        try
+        [HttpPost("{reportId}/joins/create-and-add")]
+        [ProducesResponseType(typeof(ReportJoin), 200)]
+        [ProducesResponseType(404)] // Not Found
+        public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest, [FromQuery] string token)
         {
-            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-            if (string.IsNullOrWhiteSpace(username))
+            if (!ModelState.IsValid)
             {
-                return Unauthorized(new { message = "Token inválido." });
+                return BadRequest(ModelState);
             }
 
-            var success = await _reportService.DeleteReportAsync(id, username);
-
-            if (!success)
+            try
             {
-                return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                ReportJoin createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
+
+                return Ok(createdLink);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Gets a list of all reports for a specific user.
+        /// </summary>
+        [HttpGet("by-user")]
+        [ProducesResponseType(typeof(List<Report>), 200)]
+        public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            List<Report> reports = await _reportService.GetAllReportsByUsernameAsync(username);
+            return Ok(reports);
+        }
+
+        /// <summary>
+        /// Gets a single, detailed report by its ID.
+        /// </summary>
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(Report), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetReportById(int id, [FromQuery] string token)
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            Report? report = await _reportService.GetReportByIdAsync(id, username);
+            if (report == null)
+            {
+                return NotFound();
             }
 
-            // Retorna un 204 No Content, que es el estándar para un DELETE exitoso.
-            return NoContent();
+            return Ok(report);
         }
-        catch (Exception ex)
-        {
-            // Opcional: Loggear la excepción 'ex'
-            return StatusCode(500, new { message = "Ocurrió un error interno al eliminar el reporte." });
-        }
-    }
 
+        // ===============================================
+        // Join-related Endpoints
+        // ===============================================
 
-    [HttpDelete("RemoveJoinFromReport")]
-    [ProducesResponseType(204)] // No Content (éxito)
-    [ProducesResponseType(404)] // Not Found
-    [ProducesResponseType(401)] // Unauthorized
-    public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId, [FromQuery] string token)
-    {
-        try
+        /// <summary>
+        /// Creates a new join configuration.
+        /// </summary>
+        [HttpPost("joins")]
+        [ProducesResponseType(typeof(CrossModuleJoin), 201)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> CreateJoin([FromBody] CreateJoinRequestDto request, [FromQuery] string token)
         {
-            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-            if (string.IsNullOrWhiteSpace(username))
+            if (!ModelState.IsValid)
             {
-                return Unauthorized(new { message = "Token inválido." });
+                return BadRequest(ModelState);
             }
 
-            var success = await _reportService.RemoveJoinFromReportAsync(reportId, joinId, username);
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            CrossModuleJoin createdJoin = await _joinConfigService.CreateJoinAsync(request, username);
+            return Ok(createdJoin);
+        }
 
-            if (!success)
+        /// <summary>
+        /// Gets a list of all join configurations for a specific user.
+        /// </summary>
+        [HttpGet("joins/by-user")]
+        [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
+        public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            List<CrossModuleJoinDto> joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
+            return Ok(joins);
+        }
+
+        [HttpGet("joins/{joinId}/execute")]
+        [ProducesResponseType(typeof(List<dynamic>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ExecuteJoin(int joinId)
+        {
+            try
             {
-                return NotFound(new { message = $"No se encontró la asociación del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
+                List<dynamic> results = await _joinConfigService.ExecuteJoinAsync(joinId);
+                return Ok(results);
             }
-
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            // Opcional: Loggear la excepción 'ex'
-            return StatusCode(500, new { message = "Ocurrió un error interno al intentar quitar el join del reporte." });
-        }
-    }
-
-    [HttpGet("{id}/execute")]
-    [ProducesResponseType(typeof(List<dynamic>), 200)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(401)]
-    public async Task<IActionResult> ExecuteReport(int id, [FromQuery] string token)
-    {
-        try
-        {
-            string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
-            if (string.IsNullOrWhiteSpace(username))
+            catch (KeyNotFoundException ex)
             {
-                return Unauthorized(new { message = "Token inválido." });
+                return NotFound(ex.Message);
             }
+            catch (Exception)
+            {
+                // Log exception ex
+                return StatusCode(500, "An error occurred while executing the join.");
+            }
+        }
 
-            var results = await _reportService.ExecuteReportAsync(id, username);
-            return Ok(results);
-        }
-        catch (KeyNotFoundException ex)
+        [HttpPut("UpdateReport")]
+        [ProducesResponseType(typeof(Report), 200)]
+        [ProducesResponseType(404)] // Not Found
+        [ProducesResponseType(401)] // Unauthorized
+        public async Task<IActionResult> UpdateReport(int id, string name, string description, string jsonConfig, [FromQuery] string token)
         {
-            return NotFound(new { message = ex.Message });
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return Unauthorized(new { message = "Token inválido." });
+                }
+
+                Report? updatedReport = await _reportService.UpdateReportAsync(id, name, description, username, jsonConfig);
+
+                if (updatedReport == null)
+                {
+                    return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
+                }
+
+                return Ok(updatedReport);
+            }
+            catch (Exception)
+            {
+                // Opcional: Loggear la excepción 'ex'
+                return StatusCode(500, new { message = "Ocurrió un error interno al actualizar el reporte." });
+            }
         }
-        catch (Exception ex)
+
+        [HttpDelete("DeleteReport")]
+        [ProducesResponseType(204)] // No Content (éxito)
+        [ProducesResponseType(404)] // Not Found
+        [ProducesResponseType(401)] // Unauthorized
+        public async Task<IActionResult> DeleteReport(int id, [FromQuery] string token)
         {
-            return StatusCode(500, new { message = "Ocurrió un error interno al ejecutar el reporte.", details = ex.Message });
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return Unauthorized(new { message = "Token inválido." });
+                }
+
+                bool success = await _reportService.DeleteReportAsync(id, username);
+
+                if (!success)
+                {
+                    return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
+                }
+
+                // Retorna un 204 No Content, que es el estándar para un DELETE exitoso.
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                // Opcional: Loggear la excepción 'ex'
+                return StatusCode(500, new { message = "Ocurrió un error interno al eliminar el reporte." });
+            }
+        }
+
+        [HttpDelete("RemoveJoinFromReport")]
+        [ProducesResponseType(204)] // No Content (éxito)
+        [ProducesResponseType(404)] // Not Found
+        [ProducesResponseType(401)] // Unauthorized
+        public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId, [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return Unauthorized(new { message = "Token inválido." });
+                }
+
+                bool success = await _reportService.RemoveJoinFromReportAsync(reportId, joinId, username);
+
+                if (!success)
+                {
+                    return NotFound(new { message = $"No se encontró la asociación del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
+                }
+
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error interno al intentar quitar el join del reporte." });
+            }
+        }
+
+        [HttpGet("{id}/execute")]
+        [ProducesResponseType(typeof(List<dynamic>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> ExecuteReport(int id, [FromQuery] string token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return Unauthorized(new { message = "Token inválido." });
+                }
+
+                List<dynamic> results = await _reportService.ExecuteReportAsync(id, username);
+                return Ok(results);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error interno al ejecutar el reporte.", details = ex.Message });
+            }
         }
     }
 }

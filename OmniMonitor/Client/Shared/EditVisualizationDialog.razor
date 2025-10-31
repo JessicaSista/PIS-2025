@@ -220,7 +220,7 @@
                 FechaHasta = _endDate.Value.Date + _endHour.Value
             };
 
-            HttpResponseMessage? response = await Http.PutAsJsonAsync($"api/Dashboard/{dashboardId}/card/edit?username={username}&idVisualizacion={visualizationId}&JsonConfig=empty", request);
+            HttpResponseMessage? response = await Http.PutAsJsonAsync($"api/Dashboard/{dashboardId}/card/edit?username={username}&idVisualizacion={visualizationId}&jsonConfig=empty", request);
 
             if (!response.IsSuccessStatusCode)
             {

@@ -271,16 +271,20 @@ namespace OmniMonitor.Server.Services
                 throw new ArgumentException("El nombre del dataset es obligatorio.");
             }
 
-            var duplicateDataset = await _context.DatasetsIM
-                .AsNoTracking()
-                .FirstOrDefaultAsync(d => string.Equals(d.Username, datasetIm.Username) &&
-                                          string.Equals(d.Name, updateRequest.Name) &&
-                                          d.Id != datasetIm.Id);
-
-            if (duplicateDataset != null)
+            // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
+            if (!string.IsNullOrEmpty(dataset.Name) && dataset.Name != dataset.Name)
             {
-                _logger.LogWarning("Ya existe un dataset con el nombre '{Name}' para el usuario '{Username}'.", updateRequest.Name, datasetIm.Username);
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{updateRequest.Name}' para el usuario '{datasetIm.Username}'.");
+                var duplicateDataset = await _context.DatasetsIM
+                    .FirstOrDefaultAsync(d => d.Username == dataset.Username && 
+                                            d.Name == dataset.Name && 
+                                            d.Id != dataset.Id);
+                
+                if (duplicateDataset != null)
+                {
+                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{dataset.Name}' para el usuario '{dataset.Username}'.");
+                }
+            }
+                }
             }
 
             datasetIm.Name = updateRequest.Name;

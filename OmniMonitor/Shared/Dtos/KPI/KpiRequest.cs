@@ -1,23 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace OmniMonitor.Shared.Dtos
 {
     public class KpiRequest
     {
-
         [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        public string? Name { get; set; }
 
         [JsonPropertyName("description")]
         public string? Description { get; set; }
 
-
         [JsonPropertyName("sourceModule")]
-        public string SourceModule { get; set; } = string.Empty;
+        public string? SourceModule { get; set; }
 
         [JsonPropertyName("datasetId")]
-        public int DatasetId { get; set; }
+        public int? DatasetId { get; set; }
 
         [JsonPropertyName("unit")]
         public string? Unit { get; set; }
@@ -34,10 +31,14 @@ namespace OmniMonitor.Shared.Dtos
         [JsonPropertyName("colorRanges")]
         public string? ColorRanges { get; set; }
 
+        [JsonPropertyName("atributo")]
+        public string? Atributo { get; set; }
+
         [JsonPropertyName("extraInfo")]
         public string? ExtraInfo { get; set; }
 
+    [JsonPropertyName("type")]
+    public int? Type { get; set; }
+
     }
-
-
 }

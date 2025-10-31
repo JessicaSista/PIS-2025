@@ -627,6 +627,7 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         private async Task ValidateDuplicateNameDataset(string name, string username, int? excludeId = null)
         {
+            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
             var query = _context.Datasets
                 .Where(d => string.Equals(d.NameDataset, name) && string.Equals(d.Username, username));
 

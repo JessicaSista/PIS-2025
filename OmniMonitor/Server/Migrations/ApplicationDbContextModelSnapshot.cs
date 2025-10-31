@@ -818,6 +818,11 @@ namespace OmniMonitor.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Atributo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasAnnotation("Relational:JsonPropertyName", "atributo");
+
                     b.Property<string>("ColorRanges")
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("Relational:JsonPropertyName", "colorRanges");
@@ -855,6 +860,10 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("Relational:JsonPropertyName", "sourceModule");
+
+                    b.Property<int?>("Type")
+                        .HasColumnType("int")
+                        .HasAnnotation("Relational:JsonPropertyName", "type");
 
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)")

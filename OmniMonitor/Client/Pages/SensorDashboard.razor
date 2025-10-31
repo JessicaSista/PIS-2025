@@ -1,4 +1,4 @@
-﻿@page "/sensor-dashboard"
+@page "/sensor-dashboard"
 @using ApexCharts
 @using MudBlazor
 @using OmniMonitor.Shared.Dtos
@@ -82,7 +82,7 @@ else
                             </MudCardHeader>
                             <MudCardContent>
                                 <!-- AQUÍ VA LA GRÁFICA REAL -->
-                                <Grafica TipoFuncion="@grafica.TipoFuncion" TipoGrafica="@grafica.TipoGrafica" />
+                                <Chart TipoFuncion="@grafica.TipoFuncion" TipoGrafica="@grafica.TipoGrafica" />
                             </MudCardContent>
                         </MudCard>
                     </MudItem>

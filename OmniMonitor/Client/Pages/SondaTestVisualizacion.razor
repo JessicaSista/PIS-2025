@@ -1,0 +1,138 @@
+﻿@page "/test-visualization"
+@using System.Net.Http.Json
+@using Blazored.LocalStorage
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+
+<h3>Test Visualización</h3>
+
+<div class="card p-4 shadow-sm">
+    <div class="mb-3">
+        <label class="form-label">Módulo (ModuleType)</label>
+        <select class="form-select" @bind="moduleType">
+            @foreach (var mt in Enum.GetValues<ModuleType>())
+            {
+                <option value="@mt">@mt</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Entidad (EntityName)</label>
+        <select class="form-select" @bind="entity">
+            @foreach (var en in Enum.GetValues<EntityName>())
+            {
+                <option value="@en">@en</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Columna</label>
+        <input class="form-control" @bind="column" placeholder="Ej: status, type, category..." />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Dataset ID</label>
+        <input type="number" class="form-control" @bind="datasetId" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Fecha Desde</label>
+        <input type="datetime-local" class="form-control" @bind="dateFrom" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Fecha Hasta</label>
+        <input type="datetime-local" class="form-control" @bind="dateTo" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Token</label>
+        <input class="form-control" @bind="token" placeholder="Token opcional" />
+    </div>
+
+    <button class="btn btn-primary" @onclick="GetVisualizationData">Enviar</button>
+</div>
+
+@if (response != null)
+{
+    <div class="mt-4 card p-3">
+        <h5>Tipo: @response.Type</h5>
+        <h6>Valores:</h6>
+        <ul>
+            @foreach (var item in response.Values)
+            {
+                <li><b>@item.Name</b>: @item.Value</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger mt-3">@errorMessage</div>
+}
+
+@code {
+    private ModuleType moduleType = ModuleType.UrbanMonitor;
+    private EntityName entity = EntityName.Zone;
+    private string column = "";
+    private int datasetId;
+    private DateTime dateFrom = DateTime.UtcNow.AddDays(-2);
+    private DateTime dateTo = DateTime.UtcNow;
+    private string token = "";
+
+    private VisualizationResponse? response;
+    private string? errorMessage;
+
+    private async Task GetVisualizationData()
+    {
+        try
+        {
+            errorMessage = null;
+            response = null;
+
+            string storedToken = string.IsNullOrEmpty(token) ? await LocalStorage.GetItemAsync<string>("authToken") : token;
+
+            var req = new VisualizationRequest
+            {
+                moduleType = moduleType,
+                entity = entity,
+                column = column,
+                datasetId = datasetId,
+                dateFrom = dateFrom,
+                dateTo = dateTo
+            };
+
+            var url = $"api/Visualizacion/visualization-data?token={storedToken}";
+            var result = await Http.PostAsJsonAsync(url, req);
+
+            if (result.IsSuccessStatusCode)
+            {
+                response = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
+            }
+            else
+            {
+                errorMessage = $"Error: {result.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    public class VisualizationResponse
+    {
+        public string Type { get; set; } = string.Empty;
+        public List<VisualizationValue> Values { get; set; } = new();
+    }
+
+    public class VisualizationValue
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Value { get; set; }
+    }
+}
