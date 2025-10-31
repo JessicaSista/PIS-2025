@@ -50,39 +50,39 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="PageTitle" xml:space="preserve">
-    <value>Reportes</value>
+    <value>Reports</value>
   </data>
   <data name="Title" xml:space="preserve">
-    <value>Reportes</value>
+    <value>Reports</value>
   </data>
   <data name="Description" xml:space="preserve">
-    <value>Gestiona y visualiza tus reportes de datos</value>
+    <value>Manage and view your data reports</value>
   </data>
   <data name="NewReportButton" xml:space="preserve">
-    <value>Nuevo Reporte</value>
+    <value>New Report</value>
   </data>
   <data name="SearchPlaceholder" xml:space="preserve">
-    <value>Buscar reportes...</value>
+    <value>Search reports...</value>
   </data>
   <data name="DefaultReport1" xml:space="preserve">
-    <value>Reporte de ventas</value>
+    <value>Sales Report</value>
   </data>
   <data name="DefaultReport1Desc" xml:space="preserve">
-    <value>Resumen de ventas mensuales</value>
+    <value>Monthly sales summary</value>
   </data>
   <data name="DefaultReport2" xml:space="preserve">
-    <value>Reporte de usuarios</value>
+    <value>User Report</value>
   </data>
   <data name="DefaultReport2Desc" xml:space="preserve">
-    <value>Usuarios activos en la plataforma</value>
+    <value>Active users on the platform</value>
   </data>
   <data name="DefaultReport3" xml:space="preserve">
-    <value>Reporte de errores</value>
+    <value>Error Report</value>
   </data>
   <data name="DefaultReport3Desc" xml:space="preserve">
-    <value>Errores registrados en el sistema</value>
+    <value>Errors registered in the system</value>
   </data>
   <data name="NoReports" xml:space="preserve">
-    <value>No hay reportes disponibles</value>
+    <value>No reports available</value>
   </data>
 </root>
