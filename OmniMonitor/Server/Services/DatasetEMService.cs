@@ -138,7 +138,7 @@ namespace OmniMonitor.Server.Services
 
                 List<DatasetEM> result = await _context.DatasetsEM
                     .AsNoTracking()
-                    .Where(d => string.Equals(d.Username, username, StringComparison.Ordinal))
+                    .Where(d => d.Username == username)
                     .OrderBy(d => d.Name)
                     .ToListAsync();
 
@@ -166,7 +166,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.DatasetEvents)
                     .Include(d => d.DatasetExtensions)
                     .Include(d => d.DatasetCategory)
-                    .FirstOrDefaultAsync(d => d.Id == datasetId && string.Equals(d.Username, username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
                 if (dataset == null)
                 {
@@ -199,7 +199,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.DatasetEvents)
                     .Include(d => d.DatasetExtensions)
                     .Include(d => d.DatasetCategory)
-                    .FirstOrDefaultAsync(d => d.Id == datasetId && string.Equals(d.Username, username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
                 return dataset;
             }
@@ -222,7 +222,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.DatasetEvents)
                     .Include(d => d.DatasetExtensions)
                     .Include(d => d.DatasetCategory)
-                    .FirstOrDefaultAsync(d => d.Id == datasetId && string.Equals(d.Username, request.Username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
                 if (existingDataset == null)
                 {
@@ -271,7 +271,7 @@ namespace OmniMonitor.Server.Services
                 _logger.LogInformation("Eliminando DatasetEM con ID {DatasetId} para usuario {Username}", datasetId, username);
 
                 DatasetEM? dataset = await _context.DatasetsEM
-                    .FirstOrDefaultAsync(d => d.Id == datasetId && string.Equals(d.Username, username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
                 if (dataset == null)
                 {

@@ -252,20 +252,18 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<DashboardResponse?> GetDashboardByIdAsync(int idDashboard, string username)
         {
-            try
+            _logger.LogInformation("Obteniendo dashboard con ID {IdDashboard} para usuario {Username}", idDashboard, username);
+
+            DashboardDto? dashboard = await _context.Dashboards
+                .Include(d => d.GrupoVisualizaciones)
+                    .ThenInclude(gv => gv.Visualizacion)
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
+
+            if (dashboard == null)
             {
-                _logger.LogInformation("Obteniendo dashboard con ID {IdDashboard} para usuario {Username}", idDashboard, username);
-
-                DashboardDto? dashboard = await _context.Dashboards
-                    .Include(d => d.GrupoVisualizaciones)
-                        .ThenInclude(gv => gv.Visualizacion)
-                    .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
-
-                if (dashboard == null)
-                {
-                    _logger.LogWarning("No se encontró el dashboard con ID {IdDashboard} para usuario {Username}", idDashboard, username);
-                    return null;
-                }
+                _logger.LogWarning("No se encontró el dashboard con ID {IdDashboard} para usuario {Username}", idDashboard, username);
+                return null;
+            }
 
             var response = new DashboardResponse
             {
@@ -279,7 +277,7 @@ namespace OmniMonitor.Server.Services
                 FechaModificacion = dashboard.FechaModificacion
             };
 
-            
+
 
             // Mapear las tarjetas
             response.Tarjetas = dashboard.GrupoVisualizaciones
@@ -302,6 +300,8 @@ namespace OmniMonitor.Server.Services
                 }).ToList();
 
             return response;
+
+
         }
 
         public async Task<DashboardResponse?> GetDashboardByIdAsyncSinToken(int idDashboard)
@@ -346,13 +346,7 @@ namespace OmniMonitor.Server.Services
                     } : null
                 }).ToList();
 
-                return response;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error obteniendo dashboard con ID {IdDashboard} para usuario {Username}", idDashboard, username);
-                throw;
-            }
+            return response;   
         }
 
         /// <summary>

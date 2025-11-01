@@ -99,7 +99,8 @@ namespace OmniMonitor.Server.Services
 
                 DatasetAM? existingDataset = await _context.DatasetAM
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(d => string.Equals(d.Username, request.Username, StringComparison.Ordinal) && string.Equals(d.Nombre, request.Nombre, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Username.ToLower() == request.Username.ToLower() &&
+                    d.Nombre.ToLower() == request.Nombre.ToLower());
 
                 if (existingDataset != null)
                 {
@@ -177,7 +178,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.Grupo_Event_Task_Instance)
                         .ThenInclude(e => e.Grupo_Stock)
                     .Include(d => d.Grupo_Asset)
-                    .Where(d => string.Equals(d.Username, username, StringComparison.Ordinal))
+                    .Where(d => d.Username == username)
                     .ToListAsync();
 
                 return result;
@@ -206,7 +207,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.Grupo_Event_Task_Instance)
                         .ThenInclude(e => e.Grupo_Stock)
                     .Include(d => d.Grupo_Asset)
-                    .FirstOrDefaultAsync(d => d.Id_Dataset == id && string.Equals(d.Username, username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
 
                 if (datasetAM == null)
                 {
@@ -217,7 +218,7 @@ namespace OmniMonitor.Server.Services
                 // Lógica dinámica para datasets formales
                 if (string.Equals(datasetAM.Is_Dataset, "S", StringComparison.Ordinal))
                 {
-                    User? user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => string.Equals(u.UserName, username, StringComparison.Ordinal));
+                    User? user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserName == username);
                     if (user != null)
                     {
                         if (datasetAM.Type_Dataset == 1 && (datasetAM.Grupo_Event_Task_Instance == null || !datasetAM.Grupo_Event_Task_Instance.Any()))
@@ -283,7 +284,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.Grupo_Event_Task_Instance)
                         .ThenInclude(e => e.Grupo_Stock)
                     .Include(d => d.Grupo_Asset)
-                    .FirstOrDefaultAsync(d => d.Id_Dataset == id && string.Equals(d.Username, username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
 
                 return datasetAM;
             }
@@ -310,9 +311,9 @@ namespace OmniMonitor.Server.Services
                 {
                     DatasetAM? duplicateDataset = await _context.DatasetAM
                         .AsNoTracking()
-                        .FirstOrDefaultAsync(d => string.Equals(d.Username, datasetAM.Username, StringComparison.Ordinal) &&
-                                                string.Equals(d.Nombre, datasetAM.Nombre, StringComparison.Ordinal) &&
-                                                d.Id_Dataset != datasetAM.Id_Dataset);
+                        .FirstOrDefaultAsync(d => d.Username.ToLower() == request.Username.ToLower() &&
+                                             d.Nombre.ToLower() == request.Nombre.ToLower() &&
+                                             d.Id_Dataset != datasetAM.Id_Dataset);
 
                     if (duplicateDataset != null)
                     {
@@ -400,7 +401,7 @@ namespace OmniMonitor.Server.Services
                     .Include(d => d.Grupo_Event_Task_Instance)
                     .ThenInclude(e => e.Grupo_Stock)
                     .Include(d => d.Grupo_Asset)
-                    .FirstOrDefaultAsync(d => d.Id_Dataset == id && string.Equals(d.Username, username, StringComparison.Ordinal));
+                    .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
 
                 if (datasetAM == null)
                 {

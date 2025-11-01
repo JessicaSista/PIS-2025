@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,39 +17,21 @@ namespace OmniMonitor.Server.Services
         Task<List<string>> GetFieldValuesAsync<T>(List<T> items, string fieldName);
     }
 
-    /// <inheritdoc />
     public class KpiAMService : IKpiAMService
     {
-        #region Campos privados
-
         private readonly ApplicationDbContext _context;
         private readonly ISondaAMService _sondaAMService;
         private readonly IDatasetAmService _datasetAmService;
-        private readonly ILogger<KpiAMService> _logger;
 
-        #endregion
 
-        #region Constructor
-
-        /// <summary>
-        /// Constructor de KpiAMService.
-        /// </summary>
-        /// <param name="context">Contexto de base de datos.</param>
-        /// <param name="sondaAMService">Servicio de Sonda AM.</param>
-        /// <param name="datasetAmService">Servicio de datasets AM.</param>
-        /// <param name="logger">Logger para registrar eventos.</param>
-        public KpiAMService(
-            ApplicationDbContext context,
-            ISondaAMService sondaAMService,
-            IDatasetAmService datasetAmService,
-            ILogger<KpiAMService> logger)
+        public KpiAMService(ApplicationDbContext context, ISondaAMService sondaAMService, IDatasetAmService datasetAmService)
         {
             _context = context;
             _sondaAMService = sondaAMService;
             _datasetAmService = datasetAmService;
-            _logger = logger;
+
         }
-                // Obtiene el valor de un campo de DatasetReducedAMDTO por nombre usando reflexión
+        // Obtiene el valor de un campo de DatasetReducedAMDTO por nombre usando reflexión
         private string? GetAssetFieldValue(object asset, string fieldName)
         {
             var prop = asset.GetType().GetProperty(fieldName);
@@ -99,7 +82,7 @@ namespace OmniMonitor.Server.Services
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             var atributo = kpi.Atributo ?? "";
-                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -114,7 +97,7 @@ namespace OmniMonitor.Server.Services
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";
             var atributo = kpi.Atributo ?? "";
-                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             double porcentaje = (items.Count > 0) ? (double)count / items.Count * 100.0 : 0.0;
             return new KpiResponse
             {
@@ -137,11 +120,11 @@ namespace OmniMonitor.Server.Services
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Type = "state",
-                        Value = GetAssetFieldValue(items[0], atributo) ?? "Desconocido",
+                    Value = GetAssetFieldValue(items[0], atributo) ?? "Desconocido",
                     Unit = null
                 };
             }
-                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -152,5 +135,4 @@ namespace OmniMonitor.Server.Services
             };
         }
     }
-}   
-        
+}
