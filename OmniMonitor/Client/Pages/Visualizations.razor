@@ -121,7 +121,7 @@
                 <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"KPI_{kpi.Id}")" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
                     <div style="position: relative;">
                         <!-- KPI Card -->
-                        <KpiViewer Kpi="kpi" />
+                        <KpiCard Kpi="kpi" />
 
                         <!-- Menu -->
                         <MudMenu Icon="@Icons.Material.Filled.MoreVert"
