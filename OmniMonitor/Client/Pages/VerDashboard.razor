@@ -1,0 +1,148 @@
+@page "/dashboards/view/{DashboardId:int}"
+@attribute [Authorize]
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@using System.Linq
+@using Blazored.LocalStorage
+@using OmniMonitor.Client.Shared
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<Dashboards> Localizer
+@inject ILocalStorageService LocalStorage
+
+<PageTitle>Dashboards</PageTitle>
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@dashName</MudText>
+    </MudStack>
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4 mb-4">
+    <MudText Typo="Typo.body1" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">@dashDesc</MudText>
+</MudStack>
+
+@if (cardsData.Any())
+{
+    <DashboardReadOnly CardsData="@cardsData"
+                       dashboardId="@DashboardId" />
+}
+else
+{
+    <MudStack Class="mx-4" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height: 50vh;">
+        <MudText Typo="Typo.subtitle1" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">@Localizer["SinVisualizaciones"]</MudText>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public int DashboardId { get; set; }
+
+    private string dashName = string.Empty;
+    private string dashDesc = string.Empty;
+    private List<(int Id, int CardType, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new();
+
+    private const int DefaultAnchoSm = 6;
+    private const int DefaultAnchoMd = 4;
+    private const int DefaultAnchoLg = 3;
+    private const int DefaultAlto = 400;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("No se encontró el token de autenticación.", Severity.Warning);
+                return;
+            }
+
+            var response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}&token={Uri.EscapeDataString(token)}");
+            if (!response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"No se pudo cargar el dashboard ({response.StatusCode}).", Severity.Error);
+                return;
+            }
+
+            var dashboardData = await response.Content.ReadFromJsonAsync<DashboardResponse>();
+            if (dashboardData == null)
+            {
+                Snackbar.Add("No se encontraron datos para el dashboard solicitado.", Severity.Warning);
+                return;
+            }
+
+            dashName = dashboardData.Nombre ?? string.Empty;
+            dashDesc = dashboardData.Descripcion ?? string.Empty;
+
+            var visualizations = dashboardData.Tarjetas?
+                .Select(t => (t.CardId, t.TipoCard))
+                .ToList() ?? new List<(int CardId, int TipoCard)>();
+
+            if (!visualizations.Any())
+            {
+                cardsData.Clear();
+                return;
+            }
+
+            var cardsDesign = new List<JsonElement>();
+            var jsonDesign = string.IsNullOrWhiteSpace(dashboardData.JsonDiseno) ? "{ \"cards\": []}" : dashboardData.JsonDiseno;
+
+            try
+            {
+                using var designDoc = JsonDocument.Parse(jsonDesign);
+                if (designDoc.RootElement.TryGetProperty("cards", out var cardsElement) && cardsElement.ValueKind == JsonValueKind.Array)
+                {
+                    cardsDesign = cardsElement
+                        .EnumerateArray()
+                        .Select(element => element.Clone())
+                        .ToList();
+                }
+            }
+            catch (JsonException)
+            {
+                Snackbar.Add("Diseño del dashboard inválido. Se usarán tamaños por defecto.", Severity.Warning);
+            }
+
+            cardsData.Clear();
+            for (int i = 0; i < visualizations.Count; i++)
+            {
+                var (cardId, cardType) = visualizations[i];
+
+                int anchoSm = DefaultAnchoSm;
+                int anchoMd = DefaultAnchoMd;
+                int anchoLg = DefaultAnchoLg;
+                int alto = DefaultAlto;
+
+                if (i < cardsDesign.Count)
+                {
+                    var cardElement = cardsDesign[i];
+                    if (cardElement.TryGetProperty("anchoSm", out var anchoSmElement) && anchoSmElement.ValueKind == JsonValueKind.Number)
+                    {
+                        anchoSm = anchoSmElement.GetInt32();
+                    }
+                    if (cardElement.TryGetProperty("anchoMd", out var anchoMdElement) && anchoMdElement.ValueKind == JsonValueKind.Number)
+                    {
+                        anchoMd = anchoMdElement.GetInt32();
+                    }
+                    if (cardElement.TryGetProperty("anchoLg", out var anchoLgElement) && anchoLgElement.ValueKind == JsonValueKind.Number)
+                    {
+                        anchoLg = anchoLgElement.GetInt32();
+                    }
+                    if (cardElement.TryGetProperty("alto", out var altoElement) && altoElement.ValueKind == JsonValueKind.Number)
+                    {
+                        alto = altoElement.GetInt32();
+                    }
+                }
+
+                cardsData.Add((cardId, cardType, anchoSm, anchoMd, anchoLg, alto));
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar el dashboard: {ex.Message}", Severity.Error);
+        }
+    }
+}
