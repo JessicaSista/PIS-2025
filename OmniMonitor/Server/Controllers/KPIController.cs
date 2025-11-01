@@ -98,6 +98,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+
         [HttpGet("getKpiSinToken")]
         [ProducesResponseType(typeof(KpiResponse), 200)]
         [ProducesResponseType(400)]
