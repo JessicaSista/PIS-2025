@@ -19,7 +19,7 @@ namespace OmniMonitor.Server.Services
         Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
         Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
         Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
-
+        Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
         Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
     }
 
@@ -91,13 +91,19 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username)
         {
-            // Se usa Include y ThenInclude para cargar los datos relacionados
             return await _context.Visualizaciones
                 .Include(v => v.GrupoDatasets)
                     .ThenInclude(gd => gd.Dataset)
                 .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion && v.Username == username);
         }
 
+        public async Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion)
+        {
+            return await _context.Visualizaciones
+                .Include(v => v.GrupoDatasets)
+                .ThenInclude(gd => gd.Dataset)
+                .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion);
+        }
 
         public async Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username)
         {

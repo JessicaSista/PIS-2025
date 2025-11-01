@@ -98,6 +98,29 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpGet("getKpiSinToken")]
+        [ProducesResponseType(typeof(KpiResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<KpiResponse>> GetKpiByIdSinToken(int id)
+        {
+            try
+            {
+                KpiResponse kpi = await _kpiService.CalculateKpiValueAsyncSinToken(id);
+                if (kpi == null)
+                {
+                    return NotFound($"No se encontró el KPI con ID {id}");
+                }
+
+                return Ok(kpi);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
         // Eliminar KPI por ID
         [HttpDelete("{id}")]
         [ProducesResponseType(200)]

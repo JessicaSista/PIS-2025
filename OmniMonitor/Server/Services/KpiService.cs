@@ -17,6 +17,7 @@ namespace OmniMonitor.Server.Services
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
+        Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId);
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
         Task DeleteKpiAsync(int kpiId, string? username = null);
@@ -348,6 +349,40 @@ namespace OmniMonitor.Server.Services
 
                 case "UM":
                     response = await CalculateUmKpiAsync(kpi, username);
+                    break;
+
+                default:
+                    throw new ArgumentException($"SourceModule no soportado: {kpi.SourceModule}");
+            }
+
+            if (response == null)
+                throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
+
+            return response;
+        }
+
+        public async Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId)
+        {
+            var kpi = await GetKpiDefinitionAsync(kpiId);
+
+            KpiResponse? response = null;
+
+            switch (kpi.SourceModule.ToUpper())
+            {
+                case "AM":
+                    response = await CalculateAmKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "EM":
+                    response = await CalculateEmKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "IM":
+                    response = await CalculateImKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "UM":
+                    response = await CalculateUmKpiAsync(kpi, kpi.Username);
                     break;
 
                 default:
