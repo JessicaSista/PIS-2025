@@ -8,7 +8,7 @@ namespace OmniMonitor.Server.Models
     public class StockApiResponse
     {
         [JsonPropertyName("results")]
-        public List<StockDto> Results { get; set; } = new();
+        public List<StockDto> Results { get; set; } = new ();
 
         [JsonPropertyName("errorMessage")]
         public string? ErrorMessage { get; set; }

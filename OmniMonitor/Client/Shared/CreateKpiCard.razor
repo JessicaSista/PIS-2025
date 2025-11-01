@@ -27,6 +27,11 @@
         {
             <MudStack Spacing="3">
 
+                @if (!string.IsNullOrEmpty(_serverError))
+                {
+                    <MudAlert Severity="Severity.Error" Elevation="0">@_serverError</MudAlert>
+                }
+
                 <!-- Dataset + Multiplier + Color -->
                 <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
 
@@ -43,15 +48,11 @@
                             @foreach (var ds in _datasets)
                             {
                                 var displayName = ds.Name;
-                               
                                 <MudSelectItem T="int" Value="@ds.Id">
                                     @displayName (@(ds.ContentType ?? ds.SensorName ?? "—"))
                                 </MudSelectItem>
                             }
                         </MudSelect>
-
-
-
                     </div>
 
                     <!-- Multiplier-->
@@ -74,11 +75,11 @@
                             <ActivatorContent>
                                 <MudTooltip Text="@_color">
                                     <div style="
-                                        width: 56.5px;
-                                        height: 56.5px;
-                                        border-radius: 6px;
-                                        cursor: pointer;
-                                        background-color:@_color;">
+                                            width: 56.5px;
+                                            height: 56.5px;
+                                            border-radius: 6px;
+                                            cursor: pointer;
+                                            background-color:@_color;">
                                     </div>
                                 </MudTooltip>
                             </ActivatorContent>
@@ -109,7 +110,7 @@
                               Lines="2"
                               MaxLength="200"
                               Style="background: var(--card);" />
-               
+
                 <!-- Metric -->
                 <MudSelect T="string" @bind-Value="_metric"
                            Label="@Localizer["Metric"]"
@@ -117,24 +118,38 @@
                            Dense="true"
                            Style="background: var(--card);"
                            Required="true">
-                    @foreach (var tipo in _kpiTypes)
+
+                    @foreach (var tipo in (_isNumericDataset ? _kpiTypes : new List<string> { "lastValue" }))
                     {
                         <MudSelectItem T="string" Value="@tipo">@_metricLabels[tipo]</MudSelectItem>
                     }
                 </MudSelect>
 
 
-                @if (_metric is "average" or "min" or "max")
-                {
+                <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
 
-                    <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
-
-                    <div style="display:flex; flex-wrap:wrap;">
-                        <MudDatePicker @bind-Date="_dateFrom" Label="@Localizer["From"]" Variant="Variant.Outlined" Style="width:180px;" Required="true" />
-                        <MudDatePicker @bind-Date="_dateTo" Label="@Localizer["To"]" Variant="Variant.Outlined" Style="width:180px;" Required="true" />
+                <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <MudDatePicker @bind-Date="_dateFrom"
+                                        Label="@Localizer["From"]"
+                                        Variant="Variant.Outlined"
+                                        Style="width:180px;"
+                                        Required="true" />
                     </div>
-                }
+                    <div>
+                        <MudDatePicker @bind-Date="_dateTo"
+                                        Label="@Localizer["To"]"
+                                        Variant="Variant.Outlined"
+                                        Style="width:180px;"
+                                        Required="true" />
+                    </div>
+                </div>
 
+                @if (_dateRangeInvalid)
+                {
+                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@Localizer["DateRangeInvalid"]</MudText>
+                }
+                
 
                 <!-- Color range -->
                 @if (_isNumericDataset)
@@ -167,9 +182,9 @@
                                 <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
                                     <ActivatorContent>
                                         <div style="width: 36px; height: 36px; border-radius: 6px;
-                                                    border: 1px solid var(--borde-drawer);
-                                                    cursor: pointer;
-                                                    background-color:@range.Color;">
+                                                                border: 1px solid var(--borde-drawer);
+                                                                cursor: pointer;
+                                                                background-color:@range.Color;">
                                         </div>
                                     </ActivatorContent>
                                     <ChildContent>
@@ -200,8 +215,8 @@
         <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
         <MudButton Color="MudBlazor.Color.Primary"
                    OnClick="Submit"
-                   Disabled="!IsFormValid">
-            @Localizer["Save"]
+                   Disabled="!IsFormValid || _isSubmitting">
+                   @Localizer["Save"]
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -216,14 +231,18 @@
     private decimal _multiplier = 1;
     private string _name = string.Empty;
     private string _description = string.Empty;
-    private string _metric = "average";
+    private string _metric = "lastValue";
     private string _color = "#FFFFFF";
     private DateTime? _dateFrom;
     private DateTime? _dateTo;
     private bool _isLoadingDatasets = true;
+    private bool _isSubmitting = false;
 
     private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<ColorRange> _colorRanges = new();
+
+    private string? _serverError;
+    private bool _dateRangeInvalid => (_metric is "average" or "min" or "max") && _dateFrom.HasValue && _dateTo.HasValue && (_dateFrom > _dateTo);
 
     protected override async Task OnInitializedAsync()
     {
@@ -232,7 +251,8 @@
 
     private async Task LoadDatasets()
     {
-        _isLoadingDatasets = true; 
+        _isLoadingDatasets = true;
+        _serverError = null;
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
@@ -256,11 +276,10 @@
         }
         finally
         {
-            _isLoadingDatasets = false; 
+            _isLoadingDatasets = false;
             StateHasChanged();
         }
     }
-
 
     private async Task OnDatasetChanged(int datasetId)
     {
@@ -289,7 +308,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al obtener tipo de dataset {datasetId}: {ex.Message}");
+            Console.WriteLine($"Error getting dataset type {datasetId}: {ex.Message}");
             _isNumericDataset = false;
         }
     }
@@ -299,34 +318,54 @@
     private void RemoveRange(ColorRange range) => _colorRanges.Remove(range);
 
     private void Cancel() => _mudDialog.Cancel();
+
     private Dictionary<string, string> _metricLabels = new()
-{
-    { "lastValue", "Last Value" },
-    { "average", "Average" },
-    { "min", "Minimum" },
-    { "max", "Maximum" }
-};
+    {
+        { "lastValue", "Last Value" },
+        { "average", "Average" },
+        { "min", "Minimum" },
+        { "max", "Maximum" }
+    };
+
     private bool IsFormValid =>
-           _selectedDatasetId != 0 &&
-           !string.IsNullOrWhiteSpace(_name) &&
-           !string.IsNullOrWhiteSpace(_metric) &&
-           (
-               _metric is not ("average" or "min" or "max")
-               || (_dateFrom.HasValue && _dateTo.HasValue)
-           );
+     _selectedDatasetId != 0 &&
+     !string.IsNullOrWhiteSpace(_name) &&
+     !string.IsNullOrWhiteSpace(_metric) &&
+     (
+         (_metric != "average" && _metric != "min" && _metric != "max")
+         || (_dateFrom.HasValue && _dateTo.HasValue && !_dateRangeInvalid)
+     );
+
+
     private async Task Submit()
     {
+        _serverError = null;
+
         if (string.IsNullOrWhiteSpace(_name))
         {
             Snackbar.Add(Localizer["KpiNameRequired"], Severity.Warning);
             return;
         }
 
+        
+        if (!_dateFrom.HasValue || !_dateTo.HasValue)
+        {
+            Snackbar.Add(Localizer["DateRangeRequired"], Severity.Warning);
+            return;
+        }
+
+        if (_dateFrom > _dateTo)
+        {
+            Snackbar.Add(Localizer["DateRangeInvalid"], Severity.Warning);
+            return;
+        }
+        
+
         object extraInfoObj;
 
-        if ((_metric == "average" || _metric == "min" || _metric == "max") && _dateFrom.HasValue && _dateTo.HasValue)
+        if ( _dateFrom.HasValue && _dateTo.HasValue)
         {
-            extraInfoObj = new { dateFrom = _dateFrom.Value, dateTo = _dateTo.Value };
+            extraInfoObj = new { dateFrom = _dateFrom.Value.ToString("o"), dateTo = _dateTo.Value.ToString("o") };
         }
         else
         {
@@ -335,8 +374,8 @@
 
         var request = new KpiRequest
         {
-            Name = _name,
-            Description = _description,
+            Name = _name.Trim(),
+            Description = _description?.Trim(),
             DatasetId = _selectedDatasetId,
             Unit = "x",
             Metric = _metric,
@@ -347,8 +386,7 @@
             SourceModule = "IM"
         };
 
-
-
+        _isSubmitting = true;
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
@@ -357,16 +395,37 @@
             if (response.IsSuccessStatusCode)
             {
                 Snackbar.Add(Localizer["KpiCreated", _name], Severity.Success);
-                _mudDialog.Close(DialogResult.Ok(true));
+                _mudDialog.Close(DialogResult.Ok(2));
             }
             else
             {
-                Snackbar.Add(Localizer["ErrorCreatingKpi", await response.Content.ReadAsStringAsync()], Severity.Error);
+                // try to extract a useful error message from the server
+                string serverMsg;
+                try
+                {
+                    serverMsg = await response.Content.ReadAsStringAsync();
+                    if (string.IsNullOrWhiteSpace(serverMsg))
+                        serverMsg = response.ReasonPhrase ?? "Unknown server error";
+                }
+                catch
+                {
+                    serverMsg = response.ReasonPhrase ?? "Unknown server error";
+                }
+
+                // show in snackbar and inside dialog
+                _serverError = Localizer["ErrorCreatingKpi", serverMsg];
+                Snackbar.Add(_serverError, Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(Localizer["ServerConnectionError", ex.Message], Severity.Error);
+            _serverError = Localizer["ServerConnectionError", ex.Message];
+            Snackbar.Add(_serverError, Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+            StateHasChanged();
         }
     }
 
@@ -375,5 +434,14 @@
         public decimal Min { get; set; }
         public decimal Max { get; set; }
         public string Color { get; set; } = "#00FF00";
+    }
+
+    // Minimal DTO stub: DatasetIM must match what the API returns for the dataset list
+    private class DatasetIM
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public string? ContentType { get; set; }
+        public string? SensorName { get; set; }
     }
 }

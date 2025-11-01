@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -35,7 +36,9 @@ namespace OmniMonitor.Shared.Dtos
 
         // IDs para la búsqueda dinámica cuando no se seleccionan explícitamente
         public int? Id_Zone { get; set; }
-        public int? Id_News { get; set; }
-        public string? EventName { get; set; }
+        public int DatasetId { get; set; }  // Clave foránea
+        [ForeignKey(nameof(DatasetId))]
+        public virtual Datasets Datasets { get; set; } = null!;
+
     }
 }

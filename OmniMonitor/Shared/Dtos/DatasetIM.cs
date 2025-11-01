@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -34,5 +35,8 @@ namespace OmniMonitor.Shared.Dtos
         public int? Id_Source { get; set; }
         public int? Id_Group { get; set; }
         public string? SensorName { get; set; }
+        public int DatasetId { get; set; }  // Clave foránea
+        [ForeignKey(nameof(DatasetId))]
+        public virtual Datasets Datasets { get; set; } = null!;
     }
 }

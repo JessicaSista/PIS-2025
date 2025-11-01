@@ -8,25 +8,16 @@ namespace OmniMonitor.Shared.Dtos
 {
     public class CreateDatasetRequest
     {
+        public CreateDatasetRequest(string name, string username, ModuleType Module)
+        {
+            Name = name;
+            Username = username;
+            TipoDataset = Module;
+        }
+
         public string Name { get; set; }
         public string Username { get; set; }
-        public string? Description { get; set; }
+        public ModuleType TipoDataset { get; set; }
 
-        // 'S' si el usuario selecciono crear un nuevo dataset
-        // 'N' si el usuario decido agregar solo UN device o source o sensor 
-        public string IsDataset { get; set; }
-
-        // Si IsDataset = 'S'
-        // ContentType = 0 -- para indicar nada
-        // Si IsDataset = 'N'
-        // Indicar que se selecciono
-        // ContentType = 1 -- device
-        // ContentType = 2 -- source
-        // ContentType = 3 -- sensor
-        public string? ContentType { get; set; }
-        public int? SourceId { get; set; }
-        public int? GroupId { get; set; }
-        public string? SensorName { get; set; }
-        public List<int>? DeviceIds { get; set; }
     }
 }

@@ -9,19 +9,16 @@ public interface  ISondaUMService
 {
 
 
-    public Task<List<Zone>> GetAllZones(string username, string password);
-    public Task<Zone?> GetZoneById(int id, string username, string password);
+    public Task<List<Zone>> GetAllZones(string username);
+    public Task<Zone?> GetZoneById(int id, string username);
 
-    public Task<List<News>> GetAllNews(string username, string password, int page = 1, string? queryString = null, string? sort = null, int pageSize = 10);
-    public Task<News?> GetNewsById(int id, string username, string password);
-    public Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10);
+    public Task<List<News>> GetAllNews(string username, int page = 1, string? queryString = null, string? sort = null, int pageSize = 10);
+    public Task<News?> GetNewsById(int id, string username);
+    public Task<List<News>> GetNewsByZoneId(int zoneId, string username, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10);
 
-    public Task<List<Event>> GetAllEvents(string username, string password);
-    public Task<Event?> GetEventById(int id, string username, string password);
-    public Task<List<Event>> GetEventsByZoneId(int zoneId, string username, string password);
-
-
-    public Task<string> TestUMAPI(string username, string password);
+    public Task<List<Event>> GetAllEvents(string username);
+    public Task<Event?> GetEventById(int id, string username);
+    public Task<List<Event>> GetEventsByZoneId(int zoneId, string username);
 }
 
 public class SondaUMService : ISondaUMService
@@ -36,21 +33,12 @@ public class SondaUMService : ISondaUMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<string> TestUMAPI(string username, string password)
-    {
-
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
-
-        Console.Write("TOKEN RECIBIDO: " + token);
-        return token;
-    }
-
-    public async Task<List<Zone>> GetAllZones(string username, string password)
+    public async Task<List<Zone>> GetAllZones(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
         string endpoint = _apiConfig.EndpointsUM["Zone"]["Zones"];
 
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -78,12 +66,12 @@ public class SondaUMService : ISondaUMService
 
     }
 
-    public async Task<Zone?> GetZoneById(int id, string username, string password)
+    public async Task<Zone?> GetZoneById(int id, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
         string endpoint = _apiConfig.EndpointsUM["Zone"]["GetById"];
         string getDataUrl = baseUrl + endpoint + "/" + id;
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username);
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         // Respuesta de la API
@@ -102,7 +90,7 @@ public class SondaUMService : ISondaUMService
         return parsed;
     }
 
-    public async Task<List<News>> GetAllNews(string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
+    public async Task<List<News>> GetAllNews(string username, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
         string endpoint = _apiConfig.EndpointsUM["News"]["News"];
@@ -117,9 +105,8 @@ public class SondaUMService : ISondaUMService
             queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
 
         string getDataUrl = $"{baseUrl}{endpoint}?{string.Join("&", queryParams)}";
-
         // Obtener token
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username);
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -140,12 +127,12 @@ public class SondaUMService : ISondaUMService
         return parsed?.results ?? new List<News>();
     }
 
-    public async Task<News?> GetNewsById(int id, string username, string password)
+    public async Task<News?> GetNewsById(int id, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
         string endpoint = _apiConfig.EndpointsUM["News"]["GetById"];
         string getDataUrl = baseUrl + endpoint + "/" + id;
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username);
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         // Respuesta de la API
@@ -164,7 +151,7 @@ public class SondaUMService : ISondaUMService
         return parsed;
     }
 
-    public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, string password, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
+    public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
     {
         // 1. Traer todos los news (sin filtrar por zona)
         // Validar parámetros de entrada
@@ -174,17 +161,17 @@ public class SondaUMService : ISondaUMService
             throw new ArgumentException("count debe ser mayor a 0");
 
         // Validar que zoneId exista
-        var zone = await GetZoneById(zoneId, username, password);
+        var zone = await GetZoneById(zoneId, username);
         if (zone == null)
             throw new ArgumentException($"No existe una zona con id {zoneId}");
 
-        var allNews = await GetAllNews(username, password, startIndex, queryString, sort, count);
+        var allNews = await GetAllNews(username, startIndex, queryString, sort, count);
         var filteredNews = new List<News>();
 
         // 2. Para cada news, obtener el detalle y filtrar por zone.Id
         foreach (var news in allNews)
         {
-            var newsDetail = await GetNewsById(news.Id, username, password);
+            var newsDetail = await GetNewsById(news.Id, username);
             if (newsDetail != null && newsDetail.Zone != null && newsDetail.Zone.Id == zoneId)
             {
                 filteredNews.Add(newsDetail);
@@ -194,11 +181,11 @@ public class SondaUMService : ISondaUMService
         return filteredNews;
     }
 
-    public async Task<List<Event>> GetAllEvents(string username, string password)
+    public async Task<List<Event>> GetAllEvents(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
         string endpoint = _apiConfig.EndpointsUM["Event"]["Events"];
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username);
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -217,12 +204,12 @@ public class SondaUMService : ISondaUMService
         return parsed ?? new List<Event>();
     }
 
-    public async Task<Event?> GetEventById(int id, string username, string password)
+    public async Task<Event?> GetEventById(int id, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
         string endpoint = _apiConfig.EndpointsUM["Event"]["GetById"];
         string getDataUrl = baseUrl + endpoint + "/" + id;
-        string token = await _sondaAuthService.GetUserTokenUMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenUMAsync(username);
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         // Respuesta de la API
@@ -241,17 +228,17 @@ public class SondaUMService : ISondaUMService
         return parsed;
     }
 
-    public async Task<List<Event>> GetEventsByZoneId(int zoneId, string username, string password)
+    public async Task<List<Event>> GetEventsByZoneId(int zoneId, string username)
     {
         // Primero obtener la zona para obtener sus áreas geográficas
-        var zone = await GetZoneById(zoneId, username, password);
+        var zone = await GetZoneById(zoneId, username);
         if (zone == null)
         {
             return new List<Event>();
         }
 
         // Obtener todos los eventos
-        var allEvents = await GetAllEvents(username, password);
+        var allEvents = await GetAllEvents(username);
         if (allEvents == null || !allEvents.Any())
         {
             return new List<Event>();

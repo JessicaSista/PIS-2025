@@ -6,6 +6,7 @@
 @using static OmniMonitor.Client.Shared.VisualizationCard
 @using Blazored.LocalStorage
 @using System.Reflection.Metadata
+@using Microsoft.AspNetCore.Components.Web
 @inject ISnackbar SnackbarService
 @inject IStringLocalizer<DashboardCard> Localizer
 @inject IStringLocalizer<SharedResource> SharedLocalizer
@@ -16,7 +17,17 @@
 
 
 <MudItem lg=@WidthLg md=@WidthMd sm="@WidthXs" xs=@WidthXs>
-    <MudCard Style="@($"background-color: var(--card); color: var(--card-text-primary); height: {Height}px; border: 1px solid #374151; border-radius:7px;")"
+    <div style="cursor: move;" draggable="true" data-drag-ghost="card"
+         @ondragstart="HandleDragStart"
+         @ondragend="HandleDragEnd"
+         @ondragenter:preventDefault
+         @ondragover:preventDefault
+         @ondragover="HandleDragOver"
+         @ondrop:preventDefault
+         @ondragenter="HandleDragEnter"
+         @ondragleave="HandleDragLeave"
+         @ondrop="HandleDrop">
+    <MudCard Style="@($"background-color: var(--card); color: var(--card-text-primary); height: {Height}px; border: 1px solid {_borderColor}; border-radius:7px;")"
              Outlined="true">
 
         <MudCardHeader Class="d-flex justify-space-between pt-5 pl-3 pr-2"
@@ -29,6 +40,9 @@
                 <MudIconButton @onclick="ResizeLeft" Icon="@Icons.Material.Filled.KeyboardArrowLeft" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit" />
                 <MudIconButton @onclick="ResizeRight" Icon="@Icons.Material.Filled.KeyboardArrowRight" Size="MudBlazor.Size.Small" class="pa-0" Color="MudBlazor.Color.Inherit" />
             </MudStack>
+            <!-- <span style="position:absolute; left:56px; top:8px; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:2px 6px; font-size:12px; line-height:1;">
+                @VisualizationId
+            </span> -->
             <MudMenu Icon="@Icons.Material.Filled.MoreVert"
                      AnchorOrigin="Origin.TopRight"
                      TransformOrigin="Origin.TopRight"
@@ -76,7 +90,7 @@
                     <MudSkeleton/>
                 } *@
 
-            <ChartViewer @key="_chartViewerKey" VisualizationId="VisualizationId" />
+            <ChartViewer @key="_chartViewerKey" ChartReloadKey="@_chartKey" VisualizationId="VisualizationId" />
 
             @* </MudCardContent> *@
 
@@ -116,6 +130,7 @@
 
         }
     </MudCard>
+    </div>
 </MudItem>
 
 @code{
@@ -126,6 +141,7 @@
     [Parameter] public int dashboardId { get; set; }
     [Parameter] public int VisualizationId { get; set; }
     [Parameter] public int VisualizationType { get; set; }
+    [Parameter] public int Index { get; set; }
     [Parameter] public int WidthLg { get; set; }
     [Parameter] public int WidthMd { get; set; }
     [Parameter] public int WidthXs { get; set; }
@@ -133,114 +149,28 @@
 
     [Parameter] public EventCallback<(int, int, int, int, int, int)> UpdateCardSize { get; set; }
     [Parameter] public EventCallback<(int, int)> RemoveCard { get; set; }
+    [Parameter] public EventCallback<int> DragStarted { get; set; }
+    [Parameter] public EventCallback<int> DroppedOn { get; set; }
 
 
     // Variables Locales
     private bool _esKPI {get; set;} = false;
+    private bool _isDragOver = false;
+    private bool _isDraggingSelf = false;
+    private int _dragOverDepth = 0;
+    private string _borderColor => _isDragOver ? "#22c55e" : "#374151";
     private string _authenticatedUser = string.Empty;
 
-    // private System.String _title { get; set; } = string.Empty;
-
-    // Visualization Variables
-    // private SeriesType _seriesType = SeriesType.Line;
-    // private List<DatasetSeries> _seriesData = new();
-    // private string _chartType { get; set; } = "line";
-    // private List<object> _dataCharts { get; set; } = new();
-
-    // private ApexChart<ChartPoint>? _apexChart;
 
     private int _chartViewerKey = 0; //cuando se modifica esta variable, el ChartViewer vuelve a pedir los datos
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
 
-    // KPI Variables
-    // private string _kpiName { get; set; } = string.Empty;
-    // private string _kpiDescription { get; set; } = string.Empty;
-    // private string _kpiValue { get; set; } = string.Empty;
-    // private string _kpiColor { get; set; } = "#00FFE7";
 
     protected override async Task OnInitializedAsync()
     {
         _esKPI = VisualizationType == 2;
 
-
-        // await RefreshVisualizationData();
     }
-
-
-    // private SeriesType MapSeriesType(string type)
-    // {
-    //     if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
-    //         return SeriesType.Line;
-    //     return parsed;
-    // }
-
-    // private List<DatasetSeries> BuildSeriesFromData(List<object> data)
-    // {
-    //     var grouped = new Dictionary<string, DatasetSeries>();
-
-    //     foreach (var item in data)
-    //     {
-    //         try
-    //         {
-    //             System.String json = JsonSerializer.Serialize(item);
-    //             using JsonDocument? doc = JsonDocument.Parse(json);
-    //             JsonElement root = doc.RootElement;
-
-    //             System.String datasetName = root.TryGetProperty("DatasetName", out var dnProp)
-    //                 ? dnProp.GetString() ?? "SinNombre"
-    //                 : "SinNombre";
-
-    //             System.String color = root.TryGetProperty("Color", out var colorProp)
-    //                 ? colorProp.GetString() ?? "#00FFE7"
-    //                 : "#00FFE7";
-
-    //             System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
-    //                 ? tProp.GetDateTime().ToString("yyyy-MM-ddTHH:mm")
-    //                 : null;
-
-    //             double value = 0;
-    //             if (root.TryGetProperty("Value", out var vProp))
-    //             {
-    //                 double.TryParse(vProp.ToString(), out value);
-    //             }
-
-    //             if (!grouped.ContainsKey(datasetName))
-    //             {
-    //                 grouped[datasetName] = new DatasetSeries
-    //                 {
-    //                     DatasetName = datasetName,
-    //                     Color = color
-    //                 };
-    //             }
-
-    //             grouped[datasetName].Points.Add(new ChartPoint
-    //             {
-    //                 X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
-    //                 Y = value
-    //             });
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
-    //         }
-    //     }
-
-    //     return grouped.Values.ToList();
-    // }
-
-    // public class DatasetSeries
-    // {
-    //     public System.String DatasetName { get; set; } = String.Empty;
-    //     public System.String Color { get; set; } = "#00FFE7";
-    //     public List<ChartPoint> Points { get; set; } = new();
-    // }
-
-    // public class ChartPoint
-    // {
-    //     public System.String X { get; set; } = string.Empty;
-    //     public double Y { get; set; }
-    // }
-
 
     //Funciones para cambiar la disposicion de los widgets en el dashboard
     private void ResizeUp(){
@@ -317,11 +247,6 @@
             {
                 try
                 {
-                    // _seriesData.Clear();
-                    // StateHasChanged();
-
-                    // await RefreshVisualizationData();
-
                     _chartViewerKey++;
 
                     StateHasChanged();
@@ -336,206 +261,6 @@
         }
     }
 
-    // private async Task RefreshVisualizationData()
-    // {
-    //     if (VisualizationType == 1)
-    //     {
-    //         _esKPI = false;
-    //         try
-    //         {
-    //             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-    //             _authenticatedUser = authState.User.Identity?.Name ?? string.Empty;
-
-    //             string token = await LocalStorage.GetItemAsync<string>("authToken");
-    //             HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}&token={token}");
-
-    //             if (response.IsSuccessStatusCode)
-    //             {
-    //                 Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
-    //                 if (cardVisualization != null)
-    //                 {
-    //                     _title = cardVisualization.Nombre;
-    //                     JsonDocument design = JsonDocument.Parse(cardVisualization.JsonDesign);
-    //                     var _chartType = design.RootElement.GetProperty("ChartType").ToString();
-    //                     _seriesType = MapSeriesType(_chartType);
-
-
-
-    //                     var allData = new List<object>();
-    //                     try
-    //                     {
-    //                         var dateFrom = cardVisualization.FechaDesde;
-    //                         var dateTo = cardVisualization.FechaHasta;
-
-    //                         foreach (var grupoDataset in cardVisualization.GrupoDatasets)
-    //                         {
-    //                             try
-    //                             {
-    //                                 decimal multiplier = 1.0M;
-    //                                 string color = "#00FFE7";
-
-    //                                 if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
-    //                                 {
-    //                                     try
-    //                                     {
-    //                                         var designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
-    //                                         if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
-    //                                         {
-    //                                             multiplier = multProp.GetDecimal();
-    //                                             Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.Name}: {multiplier}");
-    //                                         }
-    //                                         if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
-    //                                         {
-    //                                             color = colorProp.GetString() ?? "#00FFE7";
-    //                                             Console.WriteLine($"Color for dataset {grupoDataset.Dataset.Name}: {color}");
-    //                                         }
-    //                                     }
-    //                                     catch { Console.WriteLine("fallo"); }
-    //                                 }
-
-    //                                 var datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
-
-    //                                 if (datasetResponse.IsSuccessStatusCode)
-    //                                 {
-    //                                     var dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
-
-    //                                     if (dataset != null)
-    //                                     {
-    //                                         if (dataset.DatasetDevices.Any())
-    //                                         {
-    //                                             foreach (var datasetDevice in dataset.DatasetDevices)
-    //                                             {
-    //                                                 try
-    //                                                 {
-    //                                                     var sensorDataResponse = await Http.GetAsync(
-    //                                                         $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
-    //                                                     );
-
-    //                                                     if (sensorDataResponse.IsSuccessStatusCode)
-    //                                                     {
-    //                                                         var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
-
-    //                                                         if (sensorData != null && sensorData.Any())
-    //                                                         {
-    //                                                             foreach (var data in sensorData)
-    //                                                             {
-    //                                                                 decimal numericValue;
-
-    //                                                                 if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
-    //                                                                 {
-    //                                                                     numericValue = parsedDecimal;
-    //                                                                 }
-    //                                                                 else
-    //                                                                 {
-    //                                                                     numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-    //                                                                 }
-
-    //                                                                 allData.Add(new
-    //                                                                 {
-    //                                                                     Timestamp = data.Time,
-    //                                                                     Value = numericValue * multiplier,
-    //                                                                     Color = color,
-    //                                                                     DatasetName = dataset.Name,
-    //                                                                     SensorName = dataset.SensorName,
-    //                                                                     DeviceId = datasetDevice.Id_device
-    //                                                                 });
-    //                                                             }
-    //                                                         }
-    //                                                     }
-    //                                                 }
-    //                                                 catch (Exception ex)
-    //                                                 {
-    //                                                     Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
-    //                                                 }
-    //                                             }
-    //                                         }
-    //                                         else
-    //                                         {
-    //                                             Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
-    //                                         }
-    //                                     }
-    //                                 }
-    //                             }
-    //                             catch (Exception ex)
-    //                             {
-    //                                 Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
-    //                             }
-    //                         }
-    //                         _seriesData = BuildSeriesFromData(allData);
-    //                     }
-    //                     catch (Exception ex)
-    //                     {
-    //                         Console.WriteLine($"Error procesando visualización {cardVisualization.IdVisualizacion}: {ex.Message}");
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
-    //         }
-    //     }
-    //     else if (VisualizationType == 2)
-    //     {
-    //         _esKPI = true;
-
-           
-    //         string token = await LocalStorage.GetItemAsync<string>("authToken");
-    //         string requestUri = $"api/Kpi/GetKpiById/{VisualizationId}?token={token}";
-
-    //         try
-    //         {
-    //             var response = await Http.GetAsync(requestUri);
-
-    //             if (response.IsSuccessStatusCode)
-    //             {
-    //                 KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
-    //                 if (kpiData != null)
-    //                 {
-    //                     _kpiName = kpiData.Name;
-    //                     _kpiDescription = kpiData.Description;
-    //                     _kpiValue = RenderKpiValue(kpiData.Value);
-    //                     _kpiColor = kpiData.ActualColor;
-    //                 }
-    //             }
-    //             else
-    //             {
-    //                 Manejar errores (400, 404, etc.)
-    //                 string errorContent = await response.Content.ReadAsStringAsync();
-    //                 Console.WriteLine($"Error al obtener KPI {VisualizationId}. Código: {response.StatusCode}. Mensaje: {errorContent}");
-    //                 Snackbar.Add($"Error: {errorContent}", Severity.Error);
-    //             }
-    //         }
-    //         catch (Exception ex)
-    //         {
-    //             Console.WriteLine($"Error interno al llamar al endpoint de KPI: {ex.Message}");
-    //             Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
-    //         }
-    //     }
-    // }
-
-    // Fuinciones para renderizar el valor del KPI con formato adecuado
-    // private string RenderKpiValue(object? val)
-    // {
-    //     if (val == null) return "—"; valor nulo
-    //     if (val is JsonElement je)
-    //     {
-    //         switch (je.ValueKind)
-    //         {
-    //             case JsonValueKind.Number:
-    //                 return je.GetRawText(); devuelve el número como string
-    //             case JsonValueKind.String:
-    //                 return je.GetString() ?? "—";
-    //             case JsonValueKind.True:
-    //                 return "1";
-    //             case JsonValueKind.False:
-    //                 return "0";
-    //             default:
-    //                 return je.ToString() ?? "—";
-    //         }
-    //     }
-    //     return val.ToString() ?? "—";
-    // }
 
     private async Task ConfirmDelete()
     {
@@ -555,5 +280,64 @@
         {
             RemoveCard.InvokeAsync((VisualizationId,VisualizationType));
         }
+    }
+
+    private Task HandleDragStart(DragEventArgs e)
+    {
+        try
+        {
+            if (e.DataTransfer != null)
+            {
+                e.DataTransfer.EffectAllowed = "move";
+                e.DataTransfer.DropEffect = "move";
+            }
+        }
+        catch {}
+        _isDraggingSelf = true;
+        return DragStarted.InvokeAsync(VisualizationId);
+    }
+
+    private void HandleDragEnd(DragEventArgs e)
+    {
+        _isDraggingSelf = false;
+        _dragOverDepth = 0;
+        _isDragOver = false;
+        StateHasChanged();
+    }
+
+    private Task HandleDrop(DragEventArgs e)
+    {
+        _dragOverDepth = 0;
+        _isDragOver = false;
+        _isDraggingSelf = false;
+        return DroppedOn.InvokeAsync(VisualizationId);
+    }
+
+    private void HandleDragEnter(DragEventArgs e)
+    {
+        if (_isDraggingSelf) return;
+        _dragOverDepth++;
+        _isDragOver = _dragOverDepth > 0;
+        StateHasChanged();
+    }
+
+    private void HandleDragLeave(DragEventArgs e)
+    {
+        if (_dragOverDepth > 0) _dragOverDepth--;
+        _isDragOver = _dragOverDepth > 0;
+        StateHasChanged();
+    }
+
+    private void HandleDragOver(DragEventArgs e)
+    {
+        try
+        {
+            if (e.DataTransfer != null)
+            {
+                e.DataTransfer.DropEffect = "move";
+            }
+        }
+        catch {}
+        if (_isDraggingSelf) return;
     }
 }
