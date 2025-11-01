@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Razor.TagHelpers;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using OmniMonitor.Shared.Dtos.AM;
 using OmniMonitor.Shared.Dtos.EM;
 
@@ -71,10 +74,9 @@ namespace OmniMonitor.Server.Services
                     await ValidateImKpiRequestAsync(request, username);
                     break;
 
-                default:
-                    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
+                //default:
+                    //throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
-
             var newKpi = new Kpi
             {
                 Name = request.Name,
@@ -87,7 +89,7 @@ namespace OmniMonitor.Server.Services
                 DefaultColor = request.DefaultColor,
                 ColorRanges = request.ColorRanges,
                 ExtraInfo = request.ExtraInfo,
-                Atributo = request.Atributo,
+                Atributo = string.IsNullOrWhiteSpace(request.Atributo) ? string.Empty : request.Atributo,
                 Username = username ?? string.Empty,
                 Type = request.Type
             };
@@ -279,16 +281,40 @@ namespace OmniMonitor.Server.Services
             return existingKpi;
         }
 
-        // Helper privado para validar formato hex (#RRGGBB o #RGB)
-        private bool IsValidHexColor(string color)
+        private string? NormalizeHexColor(string? color)
         {
-            if (string.IsNullOrWhiteSpace(color)) return false;
+            if (string.IsNullOrWhiteSpace(color)) return null;
             color = color.Trim();
-            if (!color.StartsWith("#")) return false;
-            var hex = color.Substring(1);
-            return hex.Length == 3 || hex.Length == 6 && System.Text.RegularExpressions.Regex.IsMatch(hex, @"\A\b[0-9a-fA-F]+\b\Z");
+
+            // #RGB -> #RRGGBB
+            var mShort = Regex.Match(color, @"^#([0-9A-Fa-f]{3})$");
+            if (mShort.Success)
+            {
+                var s = mShort.Groups[1].Value;
+                return $"#{s[0]}{s[0]}{s[1]}{s[1]}{s[2]}{s[2]}".ToUpperInvariant();
+            }
+
+            // #RRGGBB -> ok
+            var mLong = Regex.Match(color, @"^#([0-9A-Fa-f]{6})$");
+            if (mLong.Success)
+                return color.ToUpperInvariant();
+
+            // #RRGGBBAA -> strip alpha and return #RRGGBB
+            var mWithAlpha = Regex.Match(color, @"^#([0-9A-Fa-f]{8})$");
+            if (mWithAlpha.Success)
+            {
+                var hex8 = mWithAlpha.Groups[1].Value;
+                var rgb = hex8.Substring(0, 6);
+                return $"#{rgb}".ToUpperInvariant();
+            }
+
+            return null;
         }
 
+        private bool IsValidHexColor(string? color)
+        {
+            return NormalizeHexColor(color) != null;
+        }
 
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
