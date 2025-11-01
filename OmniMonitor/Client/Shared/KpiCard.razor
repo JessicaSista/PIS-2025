@@ -1,7 +1,10 @@
 ﻿@using MudBlazor
 @using OmniMonitor.Shared.Dtos
 @using Microsoft.Extensions.Localization
+@using OmniMonitor.Client.Services
+
 @inject IStringLocalizer<VisualizationCard> Localizer
+@inject ThemeService ThemeService
 
 <MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
     <MudCard Elevation="0"
@@ -12,7 +15,7 @@
             <MudTooltip Text="@Kpi.Name">
                 <MudText Class="mb-4"
                          Typo="Typo.h6"
-                         Style="color: var(--card-text-primary);
+                         Style="color:{TextPrimaryColor};
                                 font-weight:600;
                                 white-space: nowrap;
                                 overflow: hidden;
@@ -32,7 +35,7 @@
             else
             {
                 <MudText Typo="Typo.h4"
-                         Style="color: var(--card-text-primary)">
+                         Style="color: {TextPrimaryColor}">
                     @Kpi.Value?.ToString()
                 </MudText>
             }
@@ -69,6 +72,11 @@
         $"background-color:{GetTransparentColor(Kpi.ActualColor ?? "#00FFE7", 0.15)}; " +
         $"border:2px solid {Kpi.ActualColor ?? "#00FFE7"}; " +
         $"border-radius: 2px; flex-grow: 1;";
+    private bool IsDarkBackground =>
+    (Kpi.ActualColor ?? "#00FFE7").ToLower() == "#000000";
+    private bool IsLightTheme => ThemeService?.CurrentMode == ThemeMode.Light;
+    private string TextPrimaryColor =>
+    (IsLightTheme && IsDarkBackground) ? "white" : "var(--card-text-primary)";
 
     private string GetTransparentColor(string colorInput, double opacity)
     {

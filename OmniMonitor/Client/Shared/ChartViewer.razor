@@ -1,4 +1,5 @@
-﻿@using MudBlazor.Extensions
+﻿@using ApexCharts
+@using MudBlazor.Extensions
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @using Blazored.LocalStorage
@@ -41,7 +42,7 @@
                             Style="color: var(--card-text-secondary); height: 100%">
                 @if (_seriesData.Any())
                 {
-                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="@("100%")">
+                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="320" Options="_chartOptions">
                         @foreach (var serie in _seriesData)
                         {
                             <ApexPointSeries TItem="ChartPoint"
@@ -112,6 +113,21 @@
     private string _chartType { get; set; } = "line";
     private List<object> _dataCharts { get; set; } = new();
     private ApexChart<ChartPoint>? _apexChart;
+    private readonly ApexChartOptions<ChartPoint> _chartOptions = new()
+    {
+        Xaxis = new XAxis
+        {
+            TickAmount = 4,
+            Labels = new XAxisLabels
+            {
+                Rotate = -35,
+                Style = new AxisLabelStyle
+                {
+                    FontSize = "8px"
+                },
+            }
+        }
+    };
 
 
 
@@ -280,7 +296,7 @@
                     : "#00FFE7";
 
                 System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
-                    ? tProp.GetDateTime().ToString("yyyy-MM-ddTHH:mm")
+                    ? tProp.GetDateTime().ToString("dd/MM/yyyy HH:mm")
                     : null;
 
                 double value = 0;
@@ -300,7 +316,7 @@
 
                 grouped[datasetName].Points.Add(new ChartPoint
                 {
-                    X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
+                    X = timestamp ?? DateTime.Now.ToString("HH:mm"),
                     Y = value
                 });
             }
