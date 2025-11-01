@@ -41,11 +41,11 @@
             }
             else
             {
-                @foreach (var ds in _datasets)
+                @foreach (DatasetDto ds in _datasets)
                 {
                     <MudButton FullWidth="true"
                                Variant="MudBlazor.Variant.Outlined"
-                               OnClick="@(() => SelectDataset(ds.Id))"
+                               OnClick="@(() => SelectDataset(ds))"
                                Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
                                Class="pa-0">
                         <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
@@ -67,7 +67,7 @@
     public required IMudDialogInstance MudDialog { get; set; }
 
     [Parameter]
-    public EventCallback<int> OnDatasetSelected { get; set; }
+    public EventCallback<DatasetDto> OnDatasetSelected { get; set; }
 
     [Parameter]
     public EventCallback OnNewDataset { get; set; }
@@ -90,7 +90,7 @@
             }
 
             var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var req = new HttpRequestMessage(HttpMethod.Get, $"api/Dataset/user?token={Uri.EscapeDataString(token)}&_ts={ts}");
+            var req = new HttpRequestMessage(HttpMethod.Get, $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}&_ts={ts}");
             req.Headers.Accept.Clear();
             req.Headers.Accept.ParseAdd("application/json");
             var response = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
@@ -106,6 +106,9 @@
                 }
                 else
                 {
+                    /*   
+                        para hacer la parte de las visualizaciones voy a necesitar pasar mas parametros
+                        y se complica demasiado extraer las props 1 a 1
                     try
                     {
                         var json = JsonDocument.Parse(text).RootElement;
@@ -133,10 +136,21 @@
                         }
                         _datasets = list;
                     }
+
                     catch (Exception ex)
                     {
                         Snackbar.Add(Localizer["ErrorLoadingDatasets"], Severity.Error);
                         _datasets = new();
+                    }
+                    */
+                    List<DatasetDto>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDto>>();
+                    if (_datasetsFromApi is not null)
+                    {
+                        _datasets = _datasetsFromApi;
+                    }
+                    else
+                    {
+                        _datasets = new List<DatasetDto>();
                     }
                 }
             }
@@ -158,11 +172,12 @@
         }
     }
 
-    private async Task SelectDataset(int id)
+    private async Task SelectDataset(DatasetDto dataset)
     {
+        Console.WriteLine(dataset.Module);
         if (OnDatasetSelected.HasDelegate)
         {
-            await OnDatasetSelected.InvokeAsync(id);
+            await OnDatasetSelected.InvokeAsync(dataset);
         }
         MudDialog.Close(DialogResult.Ok(true));
     }

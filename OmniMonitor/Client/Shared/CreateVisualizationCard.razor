@@ -25,25 +25,44 @@
             @foreach (DatasetSelection dsItem in _selectedDatasets)
             {
                 <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: var(--card); border-radius: 3px; " Spacing="3">
-                    <MudItem Lg="6" Sm="6" Xs="12" Class="pl-0 pt-0">
+                    <MudItem Lg="4" Sm="4" Xs="12" Class="pl-0 pt-0">
                         <MudText Typo="Typo.h6">@Localizer["Dataset"]</MudText>
+                        <MudText Typo="Typo.body1">@($"{dsItem.DatasetId} - {dsItem.DatasetName}")</MudText>
+                        @*
                         <MudSelect T="int" @bind-Value="dsItem.DatasetId" Variant="Variant.Outlined" Dense="true">
-                            @foreach (var ds in _datasets)
+                            @foreach (DatasetDto ds in _datasets)
                             {
                                 <MudSelectItem T="int" Value="@ds.Id" Disabled="@(_selectedDatasets.Any(sds => sds.DatasetId == ds.Id && sds.DatasetId != dsItem.DatasetId))">
                                     @ds.Nombre
                                 </MudSelectItem>
                             }
+                            
+                        </MudSelect>
+                        *@
+                    </MudItem>
+
+
+                    <MudItem Lg="3" Sm="3" Xs="12" Class="pt-0">
+                        <MudText Typo="Typo.h6">Atributo</MudText>
+                        <MudSelect T="System.String" Variant="Variant.Outlined" Dense="true">
+                            @foreach (System.String attr in _entityAttributes[dsItem.DatasetType])
+                            {
+                                <MudSelectItem T="System.String" Value="attr">
+                                    @attr
+                                </MudSelectItem>
+                            }
                         </MudSelect>
                     </MudItem>
 
-                    <MudItem Lg="3" Sm="3" Xs="5" Class="pt-0">
+
+                    <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
                         <MudText Typo="Typo.h6">@Localizer["Multiplier"]</MudText>
                         <MudNumericField HideSpinButtons="true" 
-                                         @bind-Value="dsItem.Multiplier" 
-                                         Variant="Variant.Outlined" 
-                                         Step=".2M"
-                                         Validation="@((decimal m) => m == 0 ? "No puede ser 0" : null)" />
+                                        Immediate = "true"
+                                        @bind-Value="dsItem.Multiplier" 
+                                        Variant="Variant.Outlined" 
+                                        Step=".2M"
+                                        Validation="@((decimal m) => m == 0 ? "No puede ser 0" : null)" />
                     </MudItem>
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
@@ -60,7 +79,7 @@
             }
         </MudStack>
         <MudGrid Class="mt-0 mb-5">
-            <MudItem xs="6">
+            <MudItem lg="12" xs="12">
                 <MudButton OnClick="OpenAddDatasetModal" 
                         FullWidth="true"
                         Variant="Variant.Outlined" 
@@ -150,11 +169,30 @@
     private List<DatasetDto> _datasets = new List<DatasetDto>();
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
 
+    private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
+    {
+        { "Device", new List<string> { "LayerId", "IsActive", "SectorId", "TenantId"} },
+        { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
+        { "Group", new List<string> { "IsActive", "State", "TenantId" } },
+        { "Sensor", new List<string> { "DisplayName", "Type", "Integration", "LastUpdate", "LastPersisted"} },
+        { "Zone", new List<string> { "Name", "Reference" } },
+        { "EventUM", new List<string> { "Date", "Type", "ApprovalState", "ReviewedAt" } },
+        { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
+        { "EventAM", new List<string> { "undefined"} },
+        { "Stock", new List<string> { "Location", "BundleId" } },
+        { "Asset", new List<string> { "CreatedAt", "BundleId" } },
+        { "Alert", new List<string> { "AlertState", "CreatedAt" } },
+        { "EventEM", new List<string> { "Origin", "CreationDate", "State" } },
+        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
+        { "Categoria", new List<string> { "Name", "Priority", "Protocol", "CategoryState", "Selected" } }
+    };
+
+
     private async Task OpenAddDatasetModal()
     {
         var parameters = new DialogParameters
         {
-            { "OnDatasetSelected", EventCallback.Factory.Create<int>(this, HandleDatasetSelected) },
+            { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDto>(this, HandleDatasetSelected) },
             { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) }
         };
 
@@ -162,9 +200,9 @@
         await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
     }
 
-    private Task HandleDatasetSelected(int datasetId)
+    private Task HandleDatasetSelected(DatasetDto dataset)
     {
-        if (_selectedDatasets.Any(sd => sd.DatasetId == datasetId))
+        if (_selectedDatasets.Any(sd => sd.DatasetId == dataset.Id && sd.DatasetType == dataset.Module))
         {
             Snackbar.Add(Localizer["DatasetAlreadyAdded"], Severity.Info);
             return Task.CompletedTask;
@@ -172,11 +210,12 @@
 
         _selectedDatasets.Add(new DatasetSelection
         {
-            DatasetId = datasetId,
+            DatasetId = dataset.Id,
+            DatasetName = dataset.Nombre,
+            DatasetType = dataset.Module,
             Multiplier = 1.0M,
             Color = "rgb(0, 255, 231)"
         });
-
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Success);
         StateHasChanged();
         return Task.CompletedTask;
@@ -317,6 +356,7 @@
         _endDate = today;
         _endHour = new TimeSpan(23, 59, 0);
 
+        /* ====CAMBIARON LA CARGA DE LOS DATASETS PARA UN MODAL -> esto no deberia ser necesario====
         try
         {
             AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -330,17 +370,16 @@
                 return;
             }
 
-            HttpResponseMessage? response = await Http.GetAsync($"api/Dataset/user?token=" + token);
-
+            HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllDatasetsDto?token=" + token);
             if (response.IsSuccessStatusCode)
             {
-                List<DatasetIM>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                List<DatasetDto>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDto>>();
 
                 _datasets = _datasetsFromApi?.Select(d => new DatasetDto
                 {
                     Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description ?? "Sin descripcion"
+                    Nombre = d.Nombre,
+                    Descripcion = d.Descripcion ?? "Sin descripcion"
                 }).ToList() ?? new List<DatasetDto>();
             }
             else
@@ -354,6 +393,7 @@
             Snackbar.Add(Localizer["GeneralError", ex.Message], Severity.Error);
             _datasets = new List<DatasetDto>();
         }
+        */
 
         await RestoreDraftAndHandleReturnAsync();
     }
@@ -369,8 +409,11 @@
     public class DatasetSelection
     {
         public int DatasetId { get; set; }
+        public System.String DatasetName {get; set;}
+        public System.String DatasetType {get; set;}
         public decimal Multiplier { get; set; }
         public string Color { get; set; } = "rgb(0, 255, 231)";
+        
     }
 
     private async Task RestoreDraftAndHandleReturnAsync()
@@ -428,5 +471,10 @@
         {
             // swallow restore errors to not block UI
         }
+    }
+
+    private System.String getEntityFromDataset(System.Int32 datasetId)
+    {
+        return "";
     }
 }
