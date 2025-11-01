@@ -74,8 +74,8 @@ namespace OmniMonitor.Server.Services
                     await ValidateImKpiRequestAsync(request, username);
                     break;
 
-                //default:
-                    //throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
+                default:
+                    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
             var newKpi = new Kpi
             {
