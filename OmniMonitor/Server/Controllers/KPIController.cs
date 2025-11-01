@@ -329,9 +329,10 @@ namespace OmniMonitor.Server.Controllers
                     break;
                 case "um":
                     if (choice == 1)
-                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventUMDTO).GetProperties().Select(p => p.Name).ToList();
-                    else
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO).GetProperties().Select(p => p.Name).ToList();
+
+                    else
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventUMDTO).GetProperties().Select(p => p.Name).ToList();
                     break;
                 default:
                     fieldTypes.Add("Tipo de módulo no soportado");

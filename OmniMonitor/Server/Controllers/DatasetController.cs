@@ -234,12 +234,9 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                Console.WriteLine($"[TRACE] Token recibido: {token}");
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                Console.WriteLine($"[TRACE] Usuario: {username}");
 
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
-                Console.WriteLine($"[TRACE] Dataset encontrado: {dataset?.Id}, Source: {dataset?.Id_Source}, SensorName: {dataset?.SensorName}");
                 if (dataset == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId}.");
@@ -258,7 +255,6 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
                 }
 
-                // Recorrer los devices del source, obtener cada uno por GetDeviceById y buscar el sensor ahí
                 if (source.Devices != null)
                 {
                     foreach (Device dev in source.Devices)

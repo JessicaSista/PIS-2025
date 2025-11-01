@@ -74,8 +74,8 @@ namespace OmniMonitor.Server.Services
                     await ValidateImKpiRequestAsync(request, username);
                     break;
 
-                default:
-                    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
+               //default:
+               //    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
             var newKpi = new Kpi
             {
@@ -898,8 +898,6 @@ namespace OmniMonitor.Server.Services
         }
 
 
-
-
         private async Task<KpiResponse> CalculateMinKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
             // Si no tiene extraInfo o dates, dejamos en pendiente
@@ -1060,7 +1058,6 @@ namespace OmniMonitor.Server.Services
             };
         }
 
-
         public async Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule)
         {
             var metrics = new List<MetricInfo>();
@@ -1087,13 +1084,9 @@ namespace OmniMonitor.Server.Services
                     throw new ArgumentException($"SourceModule no soportado: {sourceModule}");
             }
 
-            // Si quisieras, podrías hacerlo async por compatibilidad con interfaces o futura DB
             await Task.CompletedTask;
             return metrics;
         }
-
-
-
 
         private async Task<KpiResponse> CalculateMaxKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
@@ -1254,8 +1247,6 @@ namespace OmniMonitor.Server.Services
                 Type = sensorType
             };
         }
-
-
 
         private string GetColorForValue(string colorRangesJson, double value, string defaultColor)
         {

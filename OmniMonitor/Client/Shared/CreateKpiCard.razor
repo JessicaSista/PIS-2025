@@ -38,19 +38,18 @@
 
                     <!-- Dataset select -->
                     <div style="display: flex; flex-direction: column;">
-                        <MudSelect T="int"
+                        <MudSelect T="string"
                                    Label="@Localizer["Dataset"]"
-                                   Value="_selectedDatasetId"
+                                   Value="_selectedDatasetKey"
                                    ValueChanged="OnDatasetChanged"
                                    Variant="Variant.Outlined"
                                    Dense="true"
-                                   Style="background: var(--card); width: 280px;"
+                                   Style="background: var(--card); width: 380px;"
                                    Required="true">
-                            @foreach (var ds in _datasets)
+                            @foreach (var ds in _datasetItems)
                             {
-                                var displayName = ds.Nombre;
-                                <MudSelectItem T="int" Value="@ds.Id">
-                                    @displayName
+                                <MudSelectItem T="string" Value="@ds.Key">
+                                    @($"{ds.Nombre}")
                                 </MudSelectItem>
                             }
                         </MudSelect>
@@ -76,11 +75,11 @@
                             <ActivatorContent>
                                 <MudTooltip Text="@_color">
                                     <div style="
-                                            width: 56.5px;
-                                            height: 56.5px;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            background-color:@_color;">
+                                                        width: 56.5px;
+                                                        height: 56.5px;
+                                                        border-radius: 6px;
+                                                        cursor: pointer;
+                                                        background-color:@_color;">
                                     </div>
                                 </MudTooltip>
                             </ActivatorContent>
@@ -134,17 +133,17 @@
                     <div style="display:flex; flex-wrap:wrap; gap:12px;">
                         <div>
                             <MudDatePicker @bind-Date="_dateFrom"
-                                            Label="@Localizer["From"]"
-                                            Variant="Variant.Outlined"
-                                            Style="width:180px;"
-                                            Required="true" />
+                                           Label="@Localizer["From"]"
+                                           Variant="Variant.Outlined"
+                                           Style="width:180px;"
+                                           Required="true" />
                         </div>
                         <div>
                             <MudDatePicker @bind-Date="_dateTo"
-                                            Label="@Localizer["To"]"
-                                            Variant="Variant.Outlined"
-                                            Style="width:180px;"
-                                            Required="true" />
+                                           Label="@Localizer["To"]"
+                                           Variant="Variant.Outlined"
+                                           Style="width:180px;"
+                                           Required="true" />
                         </div>
                     </div>
 
@@ -161,29 +160,27 @@
                     <div class="d-flex" style="gap:8px; margin-bottom:8px;">
                         @if (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==1?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=1)">Asset</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==2?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=2)">EventTask</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==3?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=3)">Stock</MudButton>
+                            <!-- ahora llamamos SetType para que cargue field-types -->
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
                         }
                         else if (string.Equals(_selectedModuleName, "Urban Monitor", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==1?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=1)">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==2?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=2)">Noticia</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Noticia</MudButton>
                         }
-                        else if (string.Equals(_selectedModuleName, "Event Monitor", StringComparison.OrdinalIgnoreCase))
+                        else if (string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==1?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=1)">Alerta</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==2?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=2)">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType==3?MudBlazor.Color.Primary:MudBlazor.Color.Default)" OnClick="@(()=>_selectedType=3)">Extensión</MudButton>
+                            <!-- Now supports EM and Event Manager -->
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
                         }
-                        else
-                        {
-                            <!-- Fallback: muestra el nombre del módulo -->
-                            <MudText Typo="Typo.subtitle2">@_selectedModuleName</MudText>
-                        }
+
                     </div>
 
-                    <!-- Atributo select -->
                     <MudSelect T="string" @bind-Value="SelectedAtributo"
                                Label="@Localizer["Atributo"]"
                                Variant="Variant.Outlined"
@@ -202,7 +199,6 @@
                         }
                     </MudSelect>
 
-                    <!-- Valor select (poblado tras elegir atributo) -->
                     @if (!string.IsNullOrEmpty(_selectedAtributo))
                     {
                         <MudSelect T="string" @bind-Value="_selectedAttributeValue"
@@ -256,9 +252,9 @@
                                 <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
                                     <ActivatorContent>
                                         <div style="width: 36px; height: 36px; border-radius: 6px;
-                                                                border: 1px solid var(--borde-drawer);
-                                                                cursor: pointer;
-                                                                background-color:@range.Color;">
+                                                                                                    border: 1px solid var(--borde-drawer);
+                                                                                                    cursor: pointer;
+                                                                                                    background-color:@range.Color;">
                                         </div>
                                     </ActivatorContent>
                                     <ChildContent>
@@ -290,7 +286,7 @@
         <MudButton Color="MudBlazor.Color.Primary"
                    OnClick="Submit"
                    Disabled="!IsFormValid || _isSubmitting">
-                   @Localizer["Save"]
+            @Localizer["Save"]
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -298,18 +294,29 @@
 @code {
     [CascadingParameter] public required IMudDialogInstance _mudDialog { get; set; }
 
-    // datasets list from API
-    private List<DatasetDto> _datasets = new();
+    // dataset items with module for unique key
+    private class DatasetItem
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Module { get; set; } = string.Empty;
+        public string Key => $"{Module}__{Id}";
+    }
+
+    private List<DatasetItem> _datasetItems = new();
+    private string? _selectedDatasetKey;
     private int _selectedDatasetId;
+    private string? _selectedDatasetModule;
+
     private bool _isNumericDataset = false;
 
     // module detection
-    private string? _selectedModuleName; // e.g. "Insight Monitor", "Asset Manager", etc.
-    private List<string> _attributes = new();
+    private string? _selectedModuleName; 
+    private List<string> _attributes = new();          
     private string? _selectedAtributo;
-    private List<string> _attributeValues = new();
+    private List<string> _attributeValues = new();    
     private string? _selectedAttributeValue;
-    private int? _selectedType;
+    private int? _selectedType;                       
 
     // common fields
     private decimal _multiplier = 1;
@@ -327,7 +334,6 @@
 
     private string? _serverError;
     private bool _dateRangeInvalid => (_metric is "average" or "min" or "max") && _dateFrom.HasValue && _dateTo.HasValue && (_dateFrom > _dateTo);
-   
 
     public string? SelectedAtributo
     {
@@ -337,13 +343,10 @@
             if (_selectedAtributo != value)
             {
                 _selectedAtributo = value;
-                // Llamada asincrónica "fire-and-forget" al método que obtiene los valores.
-                // Pasamos string.Empty si value es null para mantener la firma actual.
                 _ = OnAtributoChanged(value ?? string.Empty);
             }
         }
     }
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -361,109 +364,128 @@
             if (string.IsNullOrWhiteSpace(token))
             {
                 _serverError = "Token no encontrado";
-                _datasets = new List<DatasetDto>();
+                _datasetItems = new List<DatasetItem>();
                 return;
             }
 
-            // Llamada al endpoint unificado
             var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";
             var response = await Http.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
                 var loadedDatasets = await response.Content.ReadFromJsonAsync<List<DatasetDto>>() ?? new();
-                _datasets = loadedDatasets.OrderBy(d => d.Nombre).ToList();
-                _selectedDatasetId = _datasets.FirstOrDefault()?.Id ?? 0;
 
-                if (_selectedDatasetId != 0)
-                    await OnDatasetChanged(_selectedDatasetId);
+                var items = loadedDatasets.Select(ds =>
+                {
+                    string moduleName = string.Empty;
+                    try
+                    {
+                        var moduleProp = ds.GetType().GetProperty("Module") ?? ds.GetType().GetProperty("SourceModule");
+                        if (moduleProp != null)
+                        {
+                            var val = moduleProp.GetValue(ds) as string;
+                            if (!string.IsNullOrWhiteSpace(val))
+                                moduleName = val.Trim();
+                        }
+                    }
+                    catch
+                    {
+                        moduleName = string.Empty;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(moduleName))
+                        moduleName = "Unknown";
+
+                    return new DatasetItem
+                    {
+                        Id = ds.Id,
+                        Nombre = ds.Nombre,
+                        Module = moduleName
+                    };
+                })
+                .OrderBy(i => i.Module)
+                .ThenBy(i => i.Nombre)
+                .ToList();
+
+                _datasetItems = items;
+
+                var first = _datasetItems.FirstOrDefault();
+                if (first != null)
+                {
+                    _selectedDatasetKey = first.Key;
+                    _selectedDatasetId = first.Id;
+                    _selectedDatasetModule = first.Module;
+                    await OnDatasetChanged(_selectedDatasetKey);
+                }
             }
             else
             {
                 _serverError = $"Error cargando datasets: {response.ReasonPhrase}";
-                _datasets = new List<DatasetDto>();
+                _datasetItems = new List<DatasetItem>();
             }
         }
         catch (Exception ex)
         {
             _serverError = $"Error al cargar datasets: {ex.Message}";
-            _datasets = new List<DatasetDto>();
+            _datasetItems = new List<DatasetItem>();
         }
         finally
         {
             _isLoadingDatasets = false;
             StateHasChanged();
         }
-        Console.WriteLine("=== Datasets cargados ===");
-foreach (var ds in _datasets)
-{
-    Console.WriteLine($"ID: {ds.Id} | Nombre: {ds.Nombre}");
-}
-Console.WriteLine("========================");
-
     }
 
-    private async Task OnDatasetChanged(int datasetId)
+    private async Task OnDatasetChanged(string selectedKey)
     {
-        _selectedDatasetId = datasetId;
-        await UpdateSensorType(datasetId);
+        _selectedDatasetKey = selectedKey;
 
-        // Reset module-related selections
-        _selectedModuleName = null;
+        if (string.IsNullOrWhiteSpace(_selectedDatasetKey))
+        {
+            _selectedDatasetId = 0;
+            _selectedDatasetModule = null;
+            _selectedModuleName = null;
+            return;
+        }
+
+        var idx = _selectedDatasetKey.LastIndexOf("__", StringComparison.Ordinal);
+        if (idx >= 0)
+        {
+            var modulePart = _selectedDatasetKey.Substring(0, idx);
+            var idPart = _selectedDatasetKey.Substring(idx + 2);
+
+            if (int.TryParse(idPart, out var id))
+                _selectedDatasetId = id;
+            else
+                _selectedDatasetId = 0;
+
+            _selectedDatasetModule = string.IsNullOrWhiteSpace(modulePart) ? null : modulePart;
+        }
+        else
+        {
+            if (int.TryParse(_selectedDatasetKey, out var idOnly))
+            {
+                _selectedDatasetId = idOnly;
+                _selectedDatasetModule = null;
+            }
+            else
+            {
+                _selectedDatasetId = 0;
+                _selectedDatasetModule = null;
+            }
+        }
+
+        if (_selectedDatasetId != 0)
+            await UpdateSensorType(_selectedDatasetId);
+        else
+            _isNumericDataset = false;
+
+        _selectedModuleName = _selectedDatasetModule;
         _attributes.Clear();
         _selectedAtributo = null;
         _attributeValues.Clear();
         _selectedAttributeValue = null;
         _selectedType = null;
-
-        try
-        {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            // Llamamos al endpoint que ya tenés: GetDatasetModule (devuelve nombre largo)
-            var url = $"api/Dataset/GetDatasetModule?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? "")}";
-            var resp = await Http.GetAsync(url);
-
-            if (resp.IsSuccessStatusCode)
-            {
-                // el backend devuelve un string con el nombre largo (p. ej. "Asset Manager")
-                var moduleName = await resp.Content.ReadAsStringAsync();
-                moduleName = moduleName?.Trim().Trim('"'); // limpiar comillas si vienen
-                _selectedModuleName = string.IsNullOrWhiteSpace(moduleName) ? null : moduleName;
-            }
-            else
-            {
-                _selectedModuleName = null;
-            }
-
-            // Si módulo distinto de IM: intentar obtener atributos (endpoint backend sugerido)
-            if (!string.IsNullOrEmpty(_selectedModuleName) &&
-                !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    var attrResp = await Http.GetAsync($"api/Kpi/GetDatasetAttributes?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? "")}");
-                    if (attrResp.IsSuccessStatusCode)
-                    {
-                        var attrList = await attrResp.Content.ReadFromJsonAsync<List<string>>() ?? new();
-                        _attributes = attrList;
-                    }
-                    else
-                    {
-                        _attributes = new();
-                    }
-                }
-                catch
-                {
-                    _attributes = new();
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"OnDatasetChanged error: {ex.Message}");
-            _selectedModuleName = null;
-            _attributes = new();
-        }
 
         StateHasChanged();
     }
@@ -494,6 +516,66 @@ Console.WriteLine("========================");
         }
     }
 
+    private string? GetModuleCode(string? moduleLongName)
+    {
+        if (string.IsNullOrWhiteSpace(moduleLongName)) return null;
+
+        var s = moduleLongName.Trim().ToLowerInvariant();
+        return s switch
+        {
+            "asset manager" => "am",
+            "am" => "am",
+            "event manager" => "em",
+            "em" => "em",
+            "urban monitor" => "um",
+            "um" => "um",
+            "insight monitor" => "im",
+            "im" => "im",
+            _ => s 
+        };
+    }
+
+    private async Task LoadFieldTypes()
+    {
+        _attributes.Clear();
+        _selectedAtributo = null;
+        _attributeValues.Clear();
+        _selectedAttributeValue = null;
+
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (string.IsNullOrWhiteSpace(moduleCode) || !_selectedType.HasValue)
+            return;
+
+        try
+        {
+            var resp = await Http.GetAsync($"api/Kpi/field-types?modulo={Uri.EscapeDataString(moduleCode)}&choice={_selectedType.Value}");
+
+            if (resp.IsSuccessStatusCode)
+            {
+                var list = await resp.Content.ReadFromJsonAsync<List<string>>() ?? new();
+                _attributes = list;
+            }
+            else
+            {
+                _attributes = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading field types: {ex.Message}");
+            _attributes = new();
+        }
+        StateHasChanged();
+    }
+
+    private async Task SetType(int type)
+    {
+        if (_selectedType == type) return; 
+        _selectedType = type;
+
+        await LoadFieldTypes();
+    }
+
     private async Task OnAtributoChanged(string atributo)
     {
         _selectedAtributo = atributo;
@@ -503,13 +585,23 @@ Console.WriteLine("========================");
         if (string.IsNullOrWhiteSpace(_selectedAtributo))
             return;
 
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (string.IsNullOrWhiteSpace(moduleCode))
+            return;
+
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var resp = await Http.GetAsync($"api/Kpi/GetFieldValues?datasetId={_selectedDatasetId}&field={Uri.EscapeDataString(_selectedAtributo)}&token={Uri.EscapeDataString(token ?? "")}");
+            // si _selectedType es null, mandar 0 por seguridad (o podrías requerir que el usuario elija tipo)
+            var choice = _selectedType ?? 0;
+
+            var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}&token={Uri.EscapeDataString(token ?? "")}";
+
+            var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
                 _attributeValues = await resp.Content.ReadFromJsonAsync<List<string>>() ?? new();
+                Console.WriteLine(_attributeValues);
             }
             else
             {
@@ -650,7 +742,7 @@ Console.WriteLine("========================");
             ColorRanges = _isNumericDataset ? JsonSerializer.Serialize(_colorRanges) : "[]",
             ExtraInfo = extraInfoObj is null ? null : JsonSerializer.Serialize(extraInfoObj),
             // Save the long module name returned by backend
-            SourceModule = _selectedModuleName,
+            SourceModule = GetModuleCode(_selectedModuleName)?.ToUpperInvariant() ?? _selectedModuleName,
             // Non-IM fields
             Atributo = !string.IsNullOrWhiteSpace(_selectedAtributo) ? _selectedAtributo : null,
             Type = _selectedType
@@ -703,6 +795,4 @@ Console.WriteLine("========================");
         public decimal Max { get; set; }
         public string Color { get; set; } = "#00FF00";
     }
-
-    
 }
