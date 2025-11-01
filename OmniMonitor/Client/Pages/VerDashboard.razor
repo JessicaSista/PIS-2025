@@ -1,48 +1,112 @@
-@page "/dashboards/view/{DashboardId:int}"
-@attribute [Authorize]
+@page "/dashboards/view/{slug}"
+@layout DashboardViewerLayout
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components.Web
 @using System.Text.Json
 @using System.Linq
-@using Blazored.LocalStorage
 @using OmniMonitor.Client.Shared
+@using System.Net
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<Dashboards> Localizer
-@inject ILocalStorageService LocalStorage
 
 <PageTitle>Dashboards</PageTitle>
 
-<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
-    <MudStack>
-        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@dashName</MudText>
-    </MudStack>
-</MudStack>
-
-<MudStack Justify="Justify.SpaceBetween" Class="mx-4 mb-4">
-    <MudText Typo="Typo.body1" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">@dashDesc</MudText>
-</MudStack>
-
-@if (cardsData.Any())
-{
-    <DashboardReadOnly CardsData="@cardsData"
-                       dashboardId="@DashboardId" />
-}
-else
+@if (isInitialLoading)
 {
     <MudStack Class="mx-4" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height: 50vh;">
-        <MudText Typo="Typo.subtitle1" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">@Localizer["SinVisualizaciones"]</MudText>
+        <MudProgressCircular Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Large" Indeterminate="true" />
     </MudStack>
+}
+else if (requiresPassword && !passwordValidated)
+{
+    <MudStack Class="mx-4" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height: 60vh;">
+        <MudPaper Class="pa-6" Elevation="8" Style="max-width:420px;width:100%;">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.h5" Style="font-family:Inter,Roboto,sans-serif;">Este dashboard es privado</MudText>
+                <MudText Typo="Typo.body2" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">
+                    Ingresa la contraseña para continuar.
+                </MudText>
+
+                <MudTextField T="string"
+                              Label="Contraseña"
+                              InputType="@(showPassword ? InputType.Text : InputType.Password)"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@(showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                              OnAdornmentClick="TogglePasswordVisibility"
+                              @bind-Value="passwordInput"
+                              Disabled="@isValidatingPassword"
+                              Immediate="true"
+                              OnKeyDown="HandlePasswordKeyDown" />
+
+                @if (!string.IsNullOrEmpty(passwordError))
+                {
+                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@passwordError</MudText>
+                }
+
+                <MudButton @ref="passwordButton"
+                           Variant="Variant.Filled"
+                           Color="MudBlazor.Color.Primary"
+                           Disabled="@(isValidatingPassword || string.IsNullOrWhiteSpace(passwordInput))"
+                           OnClick="ValidatePasswordAsync">
+                    @if (isValidatingPassword)
+                    {
+                        <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="me-2" />
+                        <span>Validando...</span>
+                        }
+                        else
+                        {
+                        <span>Acceder</span>
+                        }
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+}
+else if (hasDashboardData)
+{
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+        <MudStack>
+            <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@dashName</MudText>
+        </MudStack>
+    </MudStack>
+
+    <MudStack Justify="Justify.SpaceBetween" Class="mx-4 mb-4">
+        <MudText Typo="Typo.body1" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">@dashDesc</MudText>
+    </MudStack>
+
+    @if (cardsData.Any())
+    {
+        <DashboardReadOnly CardsData="@cardsData"
+                           dashboardId="@dashboardId" />
+    }
+    else
+    {
+        <MudStack Class="mx-4" AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height: 50vh;">
+            <MudText Typo="Typo.subtitle1" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">@Localizer["SinVisualizaciones"]</MudText>
+        </MudStack>
+    }
 }
 
 @code {
-    [Parameter] public int DashboardId { get; set; }
+    [Parameter] public string? Slug { get; set; }
 
     private string dashName = string.Empty;
     private string dashDesc = string.Empty;
     private List<(int Id, int CardType, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new();
+    private int dashboardId;
+    private bool requiresPassword;
+    private bool passwordValidated;
+    private bool isInitialLoading = true;
+    private bool isValidatingPassword;
+    private bool hasDashboardData;
+    private string passwordInput = string.Empty;
+    private string? passwordError;
+    private MudButton? passwordButton;
+    private bool showPassword;
 
     private const int DefaultAnchoSm = 6;
     private const int DefaultAnchoMd = 4;
@@ -53,14 +117,123 @@ else
     {
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrEmpty(token))
+            if (string.IsNullOrWhiteSpace(Slug))
             {
-                Snackbar.Add("No se encontró el token de autenticación.", Severity.Warning);
+                Snackbar.Add("No se proporcionó un identificador válido para el dashboard.", Severity.Error);
+                isInitialLoading = false;
                 return;
             }
 
-            var response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}&token={Uri.EscapeDataString(token)}");
+            var shareResponse = await Http.GetAsync($"api/Dashboard/getShare/{Uri.EscapeDataString(Slug)}");
+            if (!shareResponse.IsSuccessStatusCode)
+            {
+                Snackbar.Add("No se pudo resolver el enlace compartido del dashboard.", Severity.Error);
+                isInitialLoading = false;
+                return;
+            }
+
+            var shareData = await shareResponse.Content.ReadFromJsonAsync<ShareResponseDto>();
+            if (shareData == null || shareData.dashBoardId <= 0)
+            {
+                Snackbar.Add("El enlace compartido no contiene un dashboard válido.", Severity.Warning);
+                isInitialLoading = false;
+                return;
+            }
+
+            dashboardId = shareData.dashBoardId;
+            requiresPassword = string.Equals(shareData.Visibility, "private", StringComparison.OrdinalIgnoreCase);
+            passwordValidated = !requiresPassword;
+
+            if (passwordValidated)
+            {
+                await LoadDashboardAsync();
+            }
+            else
+            {
+                isInitialLoading = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar el dashboard: {ex.Message}", Severity.Error);
+            isInitialLoading = false;
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ValidatePasswordAsync()
+    {
+        passwordError = null;
+
+        if (string.IsNullOrWhiteSpace(passwordInput))
+        {
+            passwordError = "Debes ingresar una contraseña.";
+            return;
+        }
+
+        if (Slug == null)
+        {
+            Snackbar.Add("No se puede validar la contraseña sin un identificador.", Severity.Error);
+            return;
+        }
+
+        isValidatingPassword = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var request = new ValidateSharePasswordRequestDto { Password = passwordInput };
+            var validationResponse = await Http.PostAsJsonAsync($"api/Dashboard/ValidateShare/{Uri.EscapeDataString(Slug)}/validate", request);
+
+            if (validationResponse.IsSuccessStatusCode)
+            {
+                var validationData = await validationResponse.Content.ReadFromJsonAsync<ValidateSharePasswordResponseDto>();
+                if (validationData?.IsValid == true)
+                {
+                    passwordValidated = true;
+                    if (validationData.DashboardId.HasValue)
+                    {
+                        dashboardId = validationData.DashboardId.Value;
+                    }
+                    passwordInput = string.Empty;
+                    await LoadDashboardAsync();
+                    return;
+                }
+
+                passwordError = "La contraseña ingresada es incorrecta.";
+            }
+            else if (validationResponse.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                passwordError = "La contraseña ingresada es incorrecta.";
+            }
+            else
+            {
+                passwordError = "No se pudo validar la contraseña. Intenta nuevamente.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al validar la contraseña: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isValidatingPassword = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        isInitialLoading = true;
+        hasDashboardData = false;
+        cardsData.Clear();
+
+        try
+        {
+            var response = await Http.GetAsync($"api/Dashboard/GetDashboardSinToken?id={dashboardId}");
             if (!response.IsSuccessStatusCode)
             {
                 Snackbar.Add($"No se pudo cargar el dashboard ({response.StatusCode}).", Severity.Error);
@@ -80,12 +253,6 @@ else
             var visualizations = dashboardData.Tarjetas?
                 .Select(t => (t.CardId, t.TipoCard))
                 .ToList() ?? new List<(int CardId, int TipoCard)>();
-
-            if (!visualizations.Any())
-            {
-                cardsData.Clear();
-                return;
-            }
 
             var cardsDesign = new List<JsonElement>();
             var jsonDesign = string.IsNullOrWhiteSpace(dashboardData.JsonDiseno) ? "{ \"cards\": []}" : dashboardData.JsonDiseno;
@@ -139,10 +306,30 @@ else
 
                 cardsData.Add((cardId, cardType, anchoSm, anchoMd, anchoLg, alto));
             }
+
+            hasDashboardData = true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error al cargar el dashboard: {ex.Message}", Severity.Error);
         }
+        finally
+        {
+            isInitialLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HandlePasswordKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && passwordButton is not null && !passwordButton.Disabled)
+        {
+            await ValidatePasswordAsync();
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
     }
 }
