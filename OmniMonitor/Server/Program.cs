@@ -1,14 +1,17 @@
+using System.Text;
+using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Models;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
-using System.Text;
-using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +21,6 @@ ConfigurationManager configuration = builder.Configuration;
 builder.Logging.ClearProviders();
 builder.Logging.AddDebug();
 builder.Logging.AddConsole();
-builder.Configuration.AddJsonFile("ApiConfig.json", optional: false, reloadOnChange: true);
 builder.Services.Configure<ApiConfig>(builder.Configuration);
 
 if (OperatingSystem.IsWindows())
@@ -38,7 +40,7 @@ builder.Logging.AddAzureWebAppDiagnostics();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. ASP.NET Core Identity Configuration (AÑADIDO)
+// 2. ASP.NET Core Identity Configuration (AÃ‘ADIDO)
 builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequireNonAlphanumeric = false;
@@ -123,6 +125,7 @@ builder.Services.AddScoped<IJoinConfigurationService, JoinConfigurationService>(
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddScoped<IKpiAMService, KpiAMService>();
+builder.Services.AddScoped<IPasswordHasher<SharedLink>, PasswordHasher<SharedLink>>();
 builder.Services.AddHttpClient();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -196,7 +199,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Ocurrió un error durante el seeding de la base de datos.");
+        logger.LogError(ex, "Ocurriï¿½ un error durante el seeding de la base de datos.");
     }
 }
 

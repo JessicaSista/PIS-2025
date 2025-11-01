@@ -1,45 +1,33 @@
 @using MudBlazor
 
 <MudButton Variant="Variant.Filled"
-           Class="add-button"
+           Color="MudBlazor.Color.Primary"
            StartIcon="@Icons.Material.Filled.Add"
            OnClick="OnClick"
            Href="@Href"
-           Disabled="@Disabled">
+           Disabled="@Disabled"
+           Class="@($"add-button {CssClass}")"
+           Style="background-color: var(--action-button);
+           color: var(--action-button-text);
+           border: 1px solid var(--action-button);
+           font-weight: 500;
+           text-transform: none;
+           border-radius: 0.5rem;
+           padding: 0.5rem 1rem;
+           font-family: Inter, Roboto, sans-serif;
+           box-shadow: none;
+           transition: background-color 0.16s ease, color 0.16s ease, transform 0.12s ease;">
     <span class="button-text">@ChildContent</span>
 </MudButton>
 
 <style>
-    .add-button {
-        background-color: var(--action-button);
-        color: var(--action-button-text);
-        border: 1px solid var(--action-button);
-        font-weight: 500;
-        text-transform: none;
-        border-radius: 0.5rem;
-        padding: 0.5rem 1rem;
-        font-family: Inter, Roboto, sans-serif;
-        box-shadow: none;
-        transition: background-color 0.16s ease, color 0.16s ease, transform 0.12s ease;
+    .add-button:hover {
+        background-color: var(--action-button-hover) !important;
+        transform: translateY(-1px) scale(1.01);
     }
 
-        .add-button:hover {
-            background-color: color-mix(in srgb, var(--action-button) 85%, black);
-            transform: translateY(-1px) scale(1.01);
-        }
-
-        .add-button:active {
-            transform: scale(0.995);
-        }
-
-        .add-button:focus {
-            outline-offset: 2px;
-        }
-
     @@media (max-width: 768px) {
-        .add-button
-
-    {
+    .add-button{
         width: fit-content !important;
         min-width: 0 !important;
         padding: 9px !important;
@@ -48,16 +36,6 @@
     .add-button .button-text,
     .add-button .mud-button-icon-end {
         display: none !important;
-    }
-
-    .add-button .mud-button-label,
-    .add-button .mud-button-label > * {
-        width: auto !important;
-        min-width: 0 !important;
-        max-width: none !important;
-        flex: 0 0 auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
     }
 
     .add-button .mud-button-icon-start,

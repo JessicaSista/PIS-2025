@@ -11,6 +11,8 @@ namespace OmniMonitor.Server.Services
 {
     public interface IDatasetAmService
     {
+    Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username);
+    Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username);
         Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset);
         Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username);
         Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username);
@@ -228,19 +230,8 @@ namespace OmniMonitor.Server.Services
             if (datasetAM == null)
                 throw new InvalidOperationException($"No se encontró el DatasetAM con ID {datasetAM.Id_Dataset}.");
 
-            // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
-            if (datasetAM.Nombre != request.Nombre)
-            {
-                var duplicateDataset = await _context.DatasetAM
-                    .FirstOrDefaultAsync(d => d.Username == datasetAM.Username && 
-                                            d.Nombre == datasetAM.Nombre && 
-                                            d.Id_Dataset != datasetAM.Id_Dataset);
-                
-                if (duplicateDataset != null)
-                {
-                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{datasetAM.Nombre}' para el usuario '{datasetAM.Username}'.");
-                }
-            }
+            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncAM)
+            // para garantizar unicidad global entre todos los módulos
 
             // Actualiza los campos simples
             datasetAM.Nombre = request.Nombre;
@@ -361,6 +352,72 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username)
+        {
+            if (datasetId <= 0)
+                throw new ArgumentException("Debe especificar un id de dataset válido.");
 
+            var assets = await _context.Set<DatasetAsset>()
+                .Where(a => a.DatasetAMId == datasetId)
+                .ToListAsync();
+
+            var reducedList = new List<DatasetReducedAMDTO>();
+            foreach (var asset in assets)
+            {
+                if (int.TryParse(asset.Id_Asset, out int assetId))
+                {
+                    var assetInfo = await _sondaAMService.GetAssetById(assetId, username);
+                    if (assetInfo != null)
+                    {
+                        reducedList.Add(new DatasetReducedAMDTO
+                        {
+                            nombre = assetInfo.Name,
+                            codigo = assetInfo.Code,
+                            address = assetInfo.Address,
+                            referencia = assetInfo.Reference,
+                            bundle = assetInfo.BundleDto?.Name ?? assetInfo.BundleId.ToString(),
+                            brand = assetInfo.BrandDto?.Name,
+                            state = assetInfo.StateDto?.Name,
+                            modelo = assetInfo.ModelDto?.Name,
+                            responsable = assetInfo.ResponsibleDto?.Name,
+                            proveedor = assetInfo.ProviderDto?.Name
+                        });
+                    }
+                }
+            }
+            return reducedList;
+        }
+
+    public async Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username)
+        {
+            if (datasetId <= 0)
+                throw new ArgumentException("Debe especificar un id de dataset válido.");
+
+            var events = await _context.Set<DatasetEventTaskInstance>()
+                .Where(a => a.DatasetAMId == datasetId)
+                .ToListAsync();
+
+            var reducedList = new List<DatasetReducedAMEventsDTO>();
+            foreach (var eventItem in events)
+            {
+                // Obtener el DTO completo usando el servicio externo
+                var eventTaskInstanceDto = await _sondaAMService.GetEventTaskInstanceById(eventItem.Id_Event_Task_Instance, username);
+                if (eventTaskInstanceDto != null)
+                {
+                    reducedList.Add(new DatasetReducedAMEventsDTO
+                    {
+                        eventTask = eventTaskInstanceDto.EventTaskDto?.Subject,
+                        autor = eventTaskInstanceDto.TakenBy?.Name,
+                        state = eventTaskInstanceDto.State,
+                        subject = eventTaskInstanceDto.Subject,
+                        takenBy = eventTaskInstanceDto.TakenBy?.Name,
+                        critico = eventTaskInstanceDto.Critical.HasValue ? (eventTaskInstanceDto.Critical.Value ? "Sí" : "No") : "No"
+                    });
+                }
+            }
+            return reducedList;
+        }
     }
 }
+
+    

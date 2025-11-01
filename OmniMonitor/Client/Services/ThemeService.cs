@@ -58,6 +58,7 @@ namespace OmniMonitor.Client.Services
             --card-text-primary: #212121;
             --card-text-secondary: #546E7A;
             --action-button: #028DFF;
+            --action-button-hover: #027ae6; 
             --action-button-text: #FFFFFF;
         ";
 
@@ -103,6 +104,7 @@ namespace OmniMonitor.Client.Services
             --card-text-primary: #BCC3C5;
             --card-text-secondary: #69818D;
             --action-button: #FFFFFF;
+            --action-button-hover: #E0E0E0;
             --action-button-text: #000000;
             
             --fondo-drawer: #1A1818;

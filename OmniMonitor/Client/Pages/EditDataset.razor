@@ -31,7 +31,8 @@
                Variant="Variant.Outlined"
                Class="flex-grow-1 dark-field"
                InputClass="dark-field-input"
-               PopoverClass="dark-field-popover">
+               PopoverClass="dark-field-popover"
+               Disabled="true">
         @foreach (var tipo in tiposDataset)
         {
             <MudSelectItem Value="@tipo">@tipo</MudSelectItem>
@@ -68,7 +69,6 @@ else if (selectedTipo == "Insight Monitor")
                       @bind-Value="addDesc"
                       Placeholder="@Localizer["AgregarDescripcion"]"
                       Variant="Variant.Outlined"
-                      TextFieldType="MudBlazor.TextFieldType.Multiline"
                       Lines="3"
                       Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
                       MaxLength="200"
@@ -1182,7 +1182,7 @@ else if (selectedTipo == "Insight Monitor")
             }
             else
             {
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?page=1&token={GetEncodedToken()}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?token={GetEncodedToken()}");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -1291,7 +1291,8 @@ else if (selectedTipo == "Insight Monitor")
                 DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
-            var response = await Http.PutAsJsonAsync($"api/Dataset/{id}", request);
+            var response = await Http.PutAsJsonAsync($"api/Dataset/{id}?token={GetEncodedToken()}", request);
+
 
             if (response.IsSuccessStatusCode)
             {
@@ -1521,7 +1522,7 @@ else if (selectedTipo == "Insight Monitor")
                 StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}", request);
+            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1695,7 +1696,7 @@ else if (selectedTipo == "Insight Monitor")
                 NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/{id}", request);
+            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/{id}?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetUM>();
@@ -1905,7 +1906,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -1926,7 +1927,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            var url = $"api/SondaEM/Category/alert?Categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -2003,8 +2004,7 @@ else if (selectedTipo == "Insight Monitor")
                 AlertIds = selectedAlertIds.Any() ? selectedAlertIds.ToList() : null,
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
             };
-
-            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/{id}", request);
+            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/{id}?token={GetEncodedToken()}", request);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetEM>();

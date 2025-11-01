@@ -262,6 +262,49 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("OmniMonitor.Server.Models.SharedLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DashboardId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("SharedLinks");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
                 {
                     b.Property<int>("IdDashboard")
@@ -818,6 +861,11 @@ namespace OmniMonitor.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Atributo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasAnnotation("Relational:JsonPropertyName", "atributo");
+
                     b.Property<string>("ColorRanges")
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("Relational:JsonPropertyName", "colorRanges");
@@ -855,6 +903,10 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("Relational:JsonPropertyName", "sourceModule");
+
+                    b.Property<int?>("Type")
+                        .HasColumnType("int")
+                        .HasAnnotation("Relational:JsonPropertyName", "type");
 
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)")
@@ -1533,6 +1585,17 @@ namespace OmniMonitor.Server.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("OmniMonitor.Server.Models.SharedLink", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DashboardDto", "Dashboard")
+                        .WithMany()
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>

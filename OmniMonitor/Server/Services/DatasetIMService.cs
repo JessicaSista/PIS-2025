@@ -222,19 +222,8 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el dataset con ID {dataset.Id}.");
             }
 
-            // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
-            if (!string.IsNullOrEmpty(dataset.Name) && dataset.Name != dataset.Name)
-            {
-                var duplicateDataset = await _context.DatasetsIM
-                    .FirstOrDefaultAsync(d => d.Username == dataset.Username && 
-                                            d.Name == dataset.Name && 
-                                            d.Id != dataset.Id);
-                
-                if (duplicateDataset != null)
-                {
-                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{dataset.Name}' para el usuario '{dataset.Username}'.");
-                }
-            }
+            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncIM)
+            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos
             dataset.Name = request.Name;
