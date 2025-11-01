@@ -325,6 +325,150 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
+        /// Obtiene todos los datasets de todos los módulos con paginación.
+        /// </summary>
+        [HttpGet("GetAllDatasetsDtoPaginated")]
+        [ProducesResponseType(typeof(PaginatedDatasetDto), 200)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<PaginatedDatasetDto>> GetAllDatasetsDtoPaginated(
+            string token, 
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+
+                var datasetDtos = new List<DatasetDto>();
+
+                // Obtener datasets IM
+                var datasetsIM = await _context.Datasets
+                    .Include(d => d.DatasetIM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsIM)
+                {
+                    if (dataset.DatasetIM.Any())
+                    {
+                        var imDataset = dataset.DatasetIM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = imDataset.Id,
+                            Nombre = imDataset.Name,
+                            Descripcion = imDataset.Description ?? string.Empty,
+                            Module = "Insight Monitor"
+                        });
+                    }
+                }
+
+                // Obtener datasets UM
+                var datasetsUM = await _context.Datasets
+                    .Include(d => d.DatasetUM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsUM)
+                {
+                    if (dataset.DatasetUM.Any())
+                    {
+                        var umDataset = dataset.DatasetUM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = umDataset.Id,
+                            Nombre = umDataset.Name,
+                            Descripcion = umDataset.Description ?? string.Empty,
+                            Module = "Urban Monitor"
+                        });
+                    }
+                }
+
+                // Obtener datasets AM
+                var datasetsAM = await _context.Datasets
+                    .Include(d => d.DatasetAM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsAM)
+                {
+                    if (dataset.DatasetAM.Any())
+                    {
+                        var amDataset = dataset.DatasetAM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = amDataset.Id_Dataset,
+                            Nombre = amDataset.Nombre,
+                            Descripcion = amDataset.Descripcion ?? string.Empty,
+                            Module = "Asset Manager"
+                        });
+                    }
+                }
+
+                // Obtener datasets EM
+                var datasetsEM = await _context.Datasets
+                    .Include(d => d.DatasetEM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsEM)
+                {
+                    if (dataset.DatasetEM.Any())
+                    {
+                        var emDataset = dataset.DatasetEM.First();
+                        datasetDtos.Add(new DatasetDto
+                        {
+                            Id = emDataset.Id,
+                            Nombre = emDataset.Name,
+                            Descripcion = emDataset.Description ?? string.Empty,
+                            Module = "Event Manager"
+                        });
+                    }
+                }
+
+                // Aplicar filtro de búsqueda si existe
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string normalizedSearch = NormalizeText(search);
+                    datasetDtos = datasetDtos.Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                // Calcular totales
+                int totalCount = datasetDtos.Count;
+                int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+                // Validar página
+                if (page < 1) page = 1;
+                if (page > totalPages && totalPages > 0) page = totalPages;
+
+                // Aplicar paginación
+                var paginatedItems = datasetDtos
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                // Crear respuesta paginada
+                var result = new PaginatedDatasetDto
+                {
+                    Items = paginatedItems,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = totalPages,
+                    HasPreviousPage = page > 1,
+                    HasNextPage = page < totalPages
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
         /// </summary>
         private static string NormalizeText(string text)

@@ -96,6 +96,46 @@
             </MudItem>
         }
     </MudGrid>
+
+    @* Controles de paginación *@
+    @if (totalPages > 1)
+    {
+        <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft" 
+                           Disabled="@(!hasPreviousPage)" 
+                           OnClick="@(() => GoToPage(1))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+            
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" 
+                           Disabled="@(!hasPreviousPage)" 
+                           OnClick="@(() => GoToPage(currentPage - 1))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+            
+            <MudText Typo="Typo.body2" Class="mx-3">
+                @Localizer["Página"] @currentPage @Localizer["de"] @totalPages
+            </MudText>
+            
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" 
+                           Disabled="@(!hasNextPage)" 
+                           OnClick="@(() => GoToPage(currentPage + 1))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+            
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight" 
+                           Disabled="@(!hasNextPage)" 
+                           OnClick="@(() => GoToPage(totalPages))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+        </MudStack>
+
+        <MudStack Row Justify="Justify.Center" Class="mb-4">
+            <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                @Localizer["Mostrando"] @filteredDatasets.Count @Localizer["de"] @totalCount @Localizer["datasets"]
+            </MudText>
+        </MudStack>
+    }
 </MudContainer>
 
 
@@ -104,6 +144,14 @@
     private List<DatasetDto> datasets = new();
     private List<DatasetDto> filteredDatasets = new();
     private System.Threading.Timer? _debounceTimer;
+    
+    // Variables de paginación
+    private int currentPage = 1;
+    private int pageSize = 9;
+    private int totalPages = 0;
+    private int totalCount = 0;
+    private bool hasPreviousPage = false;
+    private bool hasNextPage = false;
 
     // Propiedad con setter que dispara el filtrado con debounce
     private string _searchText = string.Empty;
@@ -120,9 +168,20 @@
             // Crear un nuevo timer que ejecutará la búsqueda después de 500ms
             _debounceTimer = new System.Threading.Timer(_ =>
             {
-                InvokeAsync(async () => await LoadDatasetsAsync());
+                InvokeAsync(async () => 
+                {
+                    currentPage = 1; // Reset a la primera página cuando se busca
+                    await LoadDatasetsAsync();
+                });
             }, null, 500, Timeout.Infinite);
         }
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        await LoadDatasetsAsync();
     }
 
     private void EditarDataset(DatasetDto dataset)
@@ -254,8 +313,8 @@
             // Configurar el header de autorización
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            // Usar el endpoint unificado que obtiene todos los datasets
-            var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";
+            // Usar el endpoint paginado
+            var url = $"api/DatasetUM/GetAllDatasetsDtoPaginated?token={Uri.EscapeDataString(token)}&page={currentPage}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 url += $"&search={Uri.EscapeDataString(searchText)}";
@@ -264,26 +323,33 @@
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                var loadedDatasets = await response.Content.ReadFromJsonAsync<List<DatasetDto>>();
-                if (loadedDatasets != null)
+                var paginatedResult = await response.Content.ReadFromJsonAsync<PaginatedDatasetDto>();
+                if (paginatedResult != null)
                 {
-                    datasets = loadedDatasets;
-                    filteredDatasets = loadedDatasets;
-                    Console.WriteLine($"DEBUG: Total datasets cargados: {loadedDatasets.Count}");
+                    filteredDatasets = paginatedResult.Items ?? new List<DatasetDto>();
+                    totalCount = paginatedResult.TotalCount;
+                    totalPages = paginatedResult.TotalPages;
+                    currentPage = paginatedResult.Page;
+                    hasPreviousPage = paginatedResult.HasPreviousPage;
+                    hasNextPage = paginatedResult.HasNextPage;
+                    
+                    Console.WriteLine($"DEBUG: Página {currentPage}/{totalPages}, Total: {totalCount}, Mostrando: {filteredDatasets.Count}");
                 }
                 else
                 {
                     Snackbar.Add(Localizer["ErrorCargarDatos"], Severity.Warning);
-                    datasets = new List<DatasetDto>();
                     filteredDatasets = new List<DatasetDto>();
+                    totalCount = 0;
+                    totalPages = 0;
                 }
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Snackbar.Add($"{Localizer["ErrorCargarDatos"]}: {error}", Severity.Error);
-                datasets = new List<DatasetDto>();
                 filteredDatasets = new List<DatasetDto>();
+                totalCount = 0;
+                totalPages = 0;
             }
 
             StateHasChanged();
@@ -291,8 +357,9 @@
         catch (Exception ex)
         {
             Snackbar.Add($"{Localizer["ErrorInicializar"]} {ex.Message}", Severity.Error);
-            datasets = new List<DatasetDto>();
             filteredDatasets = new List<DatasetDto>();
+            totalCount = 0;
+            totalPages = 0;
         }
     }
 
