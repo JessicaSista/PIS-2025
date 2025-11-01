@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Server.Services;
@@ -91,6 +92,30 @@ namespace OmniMonitor.Server.Controllers
                 if (dashboard == null)
                 {
                     return NotFound($"No se encontró el dashboard con ID {id} para el usuario {username}.");
+                }
+
+                return Ok(dashboard);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener el dashboard: {ex.Message}");
+            }
+        }
+
+        [HttpGet("GetDashboardSinToken")]
+        [ProducesResponseType(typeof(DashboardResponse), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DashboardResponse>> GetDashboardSinToken(int id)
+        {
+            try
+            {
+                DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdAsyncSinToken(id);
+                if (dashboard == null)
+                {
+                    return NotFound($"No se encontró el dashboard con ID {id}");
                 }
 
                 return Ok(dashboard);
@@ -323,6 +348,150 @@ namespace OmniMonitor.Server.Controllers
         {
             List<DashboardSummaryResponse> result = await _dashboardService.SearchDashboardsByTextAsync(query);
             return Ok(result);
+        }
+
+        [HttpPost("createShare/{dashboardId}/share")]
+        [ProducesResponseType(typeof(ShareResponseDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<ShareResponseDto>> CreateShareLink(int dashboardId, [FromBody] ShareRequestDto request, [FromQuery] string token)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return Unauthorized(new { message = "Token inválido." });
+                }
+
+                var response = await _dashboardService.CreateShareLinkAsync(dashboardId, request, username);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error interno al crear el enlace.", details = ex.Message });
+            }
+        }
+
+        [HttpGet("getShares/{dashboardId}/share")]
+        [ProducesResponseType(typeof(List<ShareResponseDto>), 200)]
+        [ProducesResponseType(401)]
+        public async Task<ActionResult<List<ShareResponseDto>>> GetShareLinksForDashboard(int dashboardId, [FromQuery] string token)
+        {
+            try
+            {
+                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
+
+                var response = await _dashboardService.GetAllByDashboardAsync(dashboardId, username);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error interno.", details = ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("getShare/{slug}")]
+        [ProducesResponseType(typeof(ShareResponseDto), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<ShareResponseDto>> GetPublicShareLink(string slug)
+        {
+            try
+            {
+                var response = await _dashboardService.GetBySlugAsync(slug);
+                if (response == null)
+                {
+                    return NotFound(new { message = "Enlace no encontrado, inválido o expirado." });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("ValidateShare/{slug}/validate")]
+        [ProducesResponseType(typeof(ValidateSharePasswordResponseDto), 200)]
+        [ProducesResponseType(401)]
+        public async Task<ActionResult<ValidateSharePasswordResponseDto>> ValidateSharePassword(string slug, [FromBody] ValidateSharePasswordRequestDto request)
+        {
+            if (!ModelState.IsValid) return BadRequest();
+            try
+            {
+                var response = await _dashboardService.ValidatePasswordAsync(slug, request.Password);
+                if (!response.IsValid)
+                {
+                    return Unauthorized(response);
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+            }
+        }
+
+        [HttpPut("UpdateShare/{slug}")]
+        [ProducesResponseType(typeof(ShareResponseDto), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<ShareResponseDto>> UpdateShareLink(string slug, [FromBody] ShareRequestDto request, [FromQuery] string token)
+        {
+            if (!ModelState.IsValid) return BadRequest();
+            try
+            {
+                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
+
+                var response = await _dashboardService.UpdateShareLinkAsync(slug, request, username);
+                if (response == null)
+                {
+                    return NotFound(new { message = "Enlace no encontrado o no autorizado para este usuario." });
+                }
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+            }
+        }
+
+        [HttpDelete("DeleteShare/{slug}")]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> DeleteShareLink(string slug, [FromQuery] string token)
+        {
+            try
+            {
+                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
+
+                var success = await _dashboardService.DeleteShareLinkAsync(slug, username);
+                if (!success)
+                {
+                    return NotFound(new { message = "Enlace no encontrado o no autorizado para este usuario." });
+                }
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+            }
         }
     }
 }

@@ -331,13 +331,20 @@
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         var returnTo = GetQueryParam("returnTo");
-        var newKpiIdStr = GetQueryParam("newKpiId");
+        var newDatasetIdStr = GetQueryParam("newDatasetId");
         DialogParameters parameters = new DialogParameters
         {
             ["ReturnTo"] = returnTo,
-            ["NewKpiId"] = int.TryParse(newKpiIdStr, out var nid) ? nid : (int?)null
+            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var ndid) ? ndid : (int?)null
         };
-        await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
+        var dialogRef = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
+        var result = await dialogRef.Result; // Wait until dialog closes before cleaning URL
+
+        // Clean query parameters AFTER closing the dialog to avoid focus issues
+        if (!string.IsNullOrEmpty(returnTo))
+        {
+            Nav.NavigateTo("/visualizaciones", forceLoad: false);
+        }
 
         await CargarKpisAsync();
         StateHasChanged();
