@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -45,6 +46,10 @@ namespace OmniMonitor.Server.Controllers
                 Kpi newKpi = await _kpiService.CreateKpiAsync(request, username);
 
                 return Ok(newKpi);
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, $"DB Error: {ex.InnerException?.Message ?? ex.Message}");
             }
             catch (ArgumentException ex)
             {
