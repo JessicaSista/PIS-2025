@@ -22,6 +22,7 @@ namespace OmniMonitor.Server.Services
     {
         Task<DashboardResponse> CreateDashboardAsync(CreateDashboardRequest request, string username);
         Task<DashboardResponse?> GetDashboardByIdAsync(int idDashboard, string username);
+        Task<DashboardResponse?> GetDashboardByIdAsyncSinToken(int idDashboard);
         Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username, string? query);
         Task<bool> ValidateCardIdsAsync(List<int> cardIds);
         Task<bool> ValidateLayoutAsync(DashboardLayout layout);
@@ -146,6 +147,51 @@ namespace OmniMonitor.Server.Services
             };
 
             
+
+            // Mapear las tarjetas
+            response.Tarjetas = dashboard.GrupoVisualizaciones
+                .OrderBy(gv => gv.Orden)
+                .Select(gv => new DashboardCardResponse
+                {
+                    IdGrupoVisualizacion = gv.IdGrupoVisualizacion,
+                    CardId = gv.IdVisualizacion,
+                    TipoCard = gv.TipoCard,
+                    PropsConfiguracion = gv.PropsConfiguracion,
+                    FechaAgregado = gv.FechaAgregado,
+                    Visualizacion = gv.Visualizacion != null ? new VisualizacionInfo
+                    {
+                        IdVisualizacion = gv.Visualizacion.IdVisualizacion,
+                        Nombre = gv.Visualizacion.Nombre,
+                        FechaDesde = gv.Visualizacion.FechaDesde,
+                        FechaHasta = gv.Visualizacion.FechaHasta,
+                        JsonDesign = gv.Visualizacion.JsonDesign
+                    } : null
+                }).ToList();
+
+            return response;
+        }
+
+        public async Task<DashboardResponse?> GetDashboardByIdAsyncSinToken(int idDashboard)
+        {
+            var dashboard = await _context.Dashboards
+                .Include(d => d.GrupoVisualizaciones)
+                    .ThenInclude(gv => gv.Visualizacion)
+                .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard);
+
+            if (dashboard == null)
+                return null;
+
+            var response = new DashboardResponse
+            {
+                IdDashboard = dashboard.IdDashboard,
+                Username = dashboard.Username,
+                Nombre = dashboard.Nombre,
+                Descripcion = dashboard.Descripcion,
+                GrupoVisualizacion = dashboard.GrupoVisualizacion,
+                JsonDiseno = dashboard.JsonDiseno,
+                FechaCreacion = dashboard.FechaCreacion,
+                FechaModificacion = dashboard.FechaModificacion
+            };
 
             // Mapear las tarjetas
             response.Tarjetas = dashboard.GrupoVisualizaciones
