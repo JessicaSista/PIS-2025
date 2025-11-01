@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Razor.TagHelpers;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using OmniMonitor.Shared.Dtos.AM;
 using OmniMonitor.Shared.Dtos.EM;
 
@@ -14,6 +17,7 @@ namespace OmniMonitor.Server.Services
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
+        Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId);
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
         Task DeleteKpiAsync(int kpiId, string? username = null);
@@ -74,7 +78,6 @@ namespace OmniMonitor.Server.Services
                 default:
                     throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
-
             var newKpi = new Kpi
             {
                 Name = request.Name,
@@ -87,7 +90,7 @@ namespace OmniMonitor.Server.Services
                 DefaultColor = request.DefaultColor,
                 ColorRanges = request.ColorRanges,
                 ExtraInfo = request.ExtraInfo,
-                Atributo = request.Atributo,
+                Atributo = string.IsNullOrWhiteSpace(request.Atributo) ? string.Empty : request.Atributo,
                 Username = username ?? string.Empty,
                 Type = request.Type
             };
@@ -279,16 +282,40 @@ namespace OmniMonitor.Server.Services
             return existingKpi;
         }
 
-        // Helper privado para validar formato hex (#RRGGBB o #RGB)
-        private bool IsValidHexColor(string color)
+        private string? NormalizeHexColor(string? color)
         {
-            if (string.IsNullOrWhiteSpace(color)) return false;
+            if (string.IsNullOrWhiteSpace(color)) return null;
             color = color.Trim();
-            if (!color.StartsWith("#")) return false;
-            var hex = color.Substring(1);
-            return hex.Length == 3 || hex.Length == 6 && System.Text.RegularExpressions.Regex.IsMatch(hex, @"\A\b[0-9a-fA-F]+\b\Z");
+
+            // #RGB -> #RRGGBB
+            var mShort = Regex.Match(color, @"^#([0-9A-Fa-f]{3})$");
+            if (mShort.Success)
+            {
+                var s = mShort.Groups[1].Value;
+                return $"#{s[0]}{s[0]}{s[1]}{s[1]}{s[2]}{s[2]}".ToUpperInvariant();
+            }
+
+            // #RRGGBB -> ok
+            var mLong = Regex.Match(color, @"^#([0-9A-Fa-f]{6})$");
+            if (mLong.Success)
+                return color.ToUpperInvariant();
+
+            // #RRGGBBAA -> strip alpha and return #RRGGBB
+            var mWithAlpha = Regex.Match(color, @"^#([0-9A-Fa-f]{8})$");
+            if (mWithAlpha.Success)
+            {
+                var hex8 = mWithAlpha.Groups[1].Value;
+                var rgb = hex8.Substring(0, 6);
+                return $"#{rgb}".ToUpperInvariant();
+            }
+
+            return null;
         }
 
+        private bool IsValidHexColor(string? color)
+        {
+            return NormalizeHexColor(color) != null;
+        }
 
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
@@ -322,6 +349,40 @@ namespace OmniMonitor.Server.Services
 
                 case "UM":
                     response = await CalculateUmKpiAsync(kpi, username);
+                    break;
+
+                default:
+                    throw new ArgumentException($"SourceModule no soportado: {kpi.SourceModule}");
+            }
+
+            if (response == null)
+                throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
+
+            return response;
+        }
+
+        public async Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId)
+        {
+            var kpi = await GetKpiDefinitionAsync(kpiId);
+
+            KpiResponse? response = null;
+
+            switch (kpi.SourceModule.ToUpper())
+            {
+                case "AM":
+                    response = await CalculateAmKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "EM":
+                    response = await CalculateEmKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "IM":
+                    response = await CalculateImKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "UM":
+                    response = await CalculateUmKpiAsync(kpi, kpi.Username);
                     break;
 
                 default:

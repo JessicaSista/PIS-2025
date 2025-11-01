@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -46,6 +47,10 @@ namespace OmniMonitor.Server.Controllers
 
                 return Ok(newKpi);
             }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, $"DB Error: {ex.InnerException?.Message ?? ex.Message}");
+            }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);
@@ -83,6 +88,30 @@ namespace OmniMonitor.Server.Controllers
                 if (kpi == null)
                 {
                     return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                }
+
+                return Ok(kpi);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+
+        [HttpGet("getKpiSinToken")]
+        [ProducesResponseType(typeof(KpiResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<KpiResponse>> GetKpiByIdSinToken(int id)
+        {
+            try
+            {
+                KpiResponse kpi = await _kpiService.CalculateKpiValueAsyncSinToken(id);
+                if (kpi == null)
+                {
+                    return NotFound($"No se encontró el KPI con ID {id}");
                 }
 
                 return Ok(kpi);
