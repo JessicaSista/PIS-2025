@@ -330,6 +330,28 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpGet("sensors/dataSinToken")]
+        [ProducesResponseType(typeof(List<SensorData>), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<SensorData>>> GetSensorDataSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
+        {
+            try
+            {
+                List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDateSinToken(deviceId, sensorName, dateFrom, dateTo);
+                if (sensorData == null || sensorData.Count == 0)
+                {
+                    return NotFound($"No se encontraron datos para el sensor '{sensorName}' del dispositivo {deviceId} en el rango de fechas especificado.");
+                }
+
+                return Ok(sensorData);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener los datos del sensor: {ex.Message}");
+            }
+        }
+
         [HttpGet("zones")]
         [ProducesResponseType(typeof(List<Zone>), 200)]
         [ProducesResponseType(500)]
