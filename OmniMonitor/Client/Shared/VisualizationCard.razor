@@ -21,7 +21,7 @@
         <MudCardContent Style="color: #A8C4D0">
             @if (_seriesData.Any())
             {
-                <ApexChart TItem="ChartPoint">
+                <ApexChart TItem="ChartPoint" Height="320" Options="_chartOptions">
                     @foreach (var serie in _seriesData)
                     {
                         <ApexPointSeries TItem="ChartPoint"
@@ -58,6 +58,21 @@
 
     private SeriesType _seriesType = SeriesType.Line;
     private List<DatasetSeries> _seriesData = new();
+    private readonly ApexChartOptions<ChartPoint> _chartOptions = new()
+    {
+        Xaxis = new XAxis
+        {
+            TickAmount = 4,
+            Labels = new XAxisLabels
+            {
+                Rotate = -35,
+                Style = new AxisLabelStyle
+                {
+                    FontSize = "8px"
+                },
+            }
+        }
+    };
 
     protected override void OnParametersSet()
     {
@@ -93,7 +108,7 @@
                     : "#00FFE7";
 
                 System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
-                    ? tProp.GetDateTime().ToString("yyyy-MM-ddTHH:mm")
+                    ? tProp.GetDateTime().ToString("dd/MM/yyyy HH:mm")
                     : null;
 
                 double value = 0;
@@ -113,7 +128,7 @@
 
                 grouped[datasetName].Points.Add(new ChartPoint
                 {
-                    X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
+                    X = timestamp ?? DateTime.Now.ToString("HH:mm"),
                     Y = value
                 });
             }
