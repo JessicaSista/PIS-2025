@@ -75,11 +75,11 @@
                             <ActivatorContent>
                                 <MudTooltip Text="@_color">
                                     <div style="
-                                                        width: 56.5px;
-                                                        height: 56.5px;
-                                                        border-radius: 6px;
-                                                        cursor: pointer;
-                                                        background-color:@_color;">
+                                                            width: 56.5px;
+                                                            height: 56.5px;
+                                                            border-radius: 6px;
+                                                            cursor: pointer;
+                                                            background-color:@_color;">
                                     </div>
                                 </MudTooltip>
                             </ActivatorContent>
@@ -113,46 +113,53 @@
                               Style="background: var(--card);" />
 
                 <!-- Module-specific UI -->
-                @if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+                <!-- Si el módulo soporta métricas mostramos la select de métricas -->
+                @if (ModuleHasMetric)
                 {
-                    <!-- IM: Metric + DateRange -->
                     <MudSelect T="string" @bind-Value="_metric"
                                Label="@Localizer["Metric"]"
                                Variant="Variant.Outlined"
                                Dense="true"
                                Style="background: var(--card);"
                                Required="true">
-                        @foreach (var tipo in (_isNumericDataset ? _kpiTypes : new List<string> { "lastValue" }))
+                        @foreach (var tipo in GetMetricOptions())
                         {
                             <MudSelectItem T="string" Value="@tipo">@_metricLabels[tipo]</MudSelectItem>
                         }
                     </MudSelect>
 
-                    <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
-
-                    <div style="display:flex; flex-wrap:wrap; gap:12px;">
-                        <div>
-                            <MudDatePicker @bind-Date="_dateFrom"
-                                           Label="@Localizer["From"]"
-                                           Variant="Variant.Outlined"
-                                           Style="width:180px;"
-                                           Required="true" />
-                        </div>
-                        <div>
-                            <MudDatePicker @bind-Date="_dateTo"
-                                           Label="@Localizer["To"]"
-                                           Variant="Variant.Outlined"
-                                           Style="width:180px;"
-                                           Required="true" />
-                        </div>
-                    </div>
-
-                    @if (_dateRangeInvalid)
+                    @* Solo para IM mostramos DateRange *@
+                    @if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                     {
-                        <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@Localizer["DateRangeInvalid"]</MudText>
+                        <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
+
+                        <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <MudDatePicker @bind-Date="_dateFrom"
+                                               Label="@Localizer["From"]"
+                                               Variant="Variant.Outlined"
+                                               Style="width:180px;"
+                                               Required="true" />
+                            </div>
+                            <div>
+                                <MudDatePicker @bind-Date="_dateTo"
+                                               Label="@Localizer["To"]"
+                                               Variant="Variant.Outlined"
+                                               Style="width:180px;"
+                                               Required="true" />
+                            </div>
+                        </div>
+
+                        @if (_dateRangeInvalid)
+                        {
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@Localizer["DateRangeInvalid"]</MudText>
+                        }
                     }
                 }
-                else if (!string.IsNullOrEmpty(_selectedModuleName))
+
+                /* --- importante: mostramos atributos para TODOS los módulos que NO sean Insight Monitor,
+                incluyendo AM/EM/UM — esto reemplaza el antiguo 'else if' que ocultaba la UI cuando había métricas */
+                @if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     <!-- Non-IM modules: Type buttons + Atributo + Valor -->
                     <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["ModuleType"]</MudText>
@@ -160,7 +167,6 @@
                     <div class="d-flex" style="gap:8px; margin-bottom:8px;">
                         @if (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase))
                         {
-                            <!-- ahora llamamos SetType para que cargue field-types -->
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
@@ -173,12 +179,10 @@
                         else if (string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase))
                         {
-                            <!-- Now supports EM and Event Manager -->
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
                         }
-
                     </div>
 
                     <MudSelect T="string" @bind-Value="SelectedAtributo"
@@ -221,6 +225,7 @@
                     }
                 }
 
+
                 <!-- Color ranges for numeric datasets (both IM and non-IM) -->
                 @if (_isNumericDataset)
                 {
@@ -252,9 +257,9 @@
                                 <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
                                     <ActivatorContent>
                                         <div style="width: 36px; height: 36px; border-radius: 6px;
-                                                                                                    border: 1px solid var(--borde-drawer);
-                                                                                                    cursor: pointer;
-                                                                                                    background-color:@range.Color;">
+                                                                                                                border: 1px solid var(--borde-drawer);
+                                                                                                                cursor: pointer;
+                                                                                                                background-color:@range.Color;">
                                         </div>
                                     </ActivatorContent>
                                     <ChildContent>
@@ -311,25 +316,24 @@
     private bool _isNumericDataset = false;
 
     // module detection
-    private string? _selectedModuleName; 
-    private List<string> _attributes = new();          
+    private string? _selectedModuleName;
+    private List<string> _attributes = new();
     private string? _selectedAtributo;
-    private List<string> _attributeValues = new();    
+    private List<string> _attributeValues = new();
     private string? _selectedAttributeValue;
-    private int? _selectedType;                       
+    private int? _selectedType;
 
     // common fields
     private decimal _multiplier = 1;
     private string _name = string.Empty;
     private string _description = string.Empty;
-    private string _metric = "lastValue"; // only used for IM
+    private string _metric = "lastValue";
     private string _color = "#FFFFFF";
     private DateTime? _dateFrom;
     private DateTime? _dateTo;
     private bool _isLoadingDatasets = true;
     private bool _isSubmitting = false;
 
-    private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<ColorRange> _colorRanges = new();
 
     private string? _serverError;
@@ -346,6 +350,47 @@
                 _ = OnAtributoChanged(value ?? string.Empty);
             }
         }
+    }
+
+    // 1) Helpers y labels (agregados)
+    private Dictionary<string, string> _metricLabels = new()
+    {
+        { "lastValue", "Last Value" },
+        { "average", "Average" },
+        { "min", "Minimum" },
+        { "max", "Maximum" },
+        { "count", "Count" },
+        { "percentage", "Percentage" }
+    };
+
+    private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
+    private List<string> _countPercentTypes = new() { "count", "percentage" };
+
+    // helper: el módulo acepta las métricas count/percentage
+    private bool ModuleUsesCountPercentage =>
+        !string.IsNullOrWhiteSpace(_selectedModuleName) &&
+        (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "AM", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "UM", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase));
+
+    // helper: el módulo tiene métrica (IM o los otros)
+    private bool ModuleHasMetric =>
+        string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase)
+        || ModuleUsesCountPercentage;
+
+    // helper: obtener las opciones de métrica según módulo
+    private IEnumerable<string> GetMetricOptions()
+    {
+        if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+            return _isNumericDataset ? _kpiTypes : new List<string> { "lastValue" };
+
+        if (ModuleUsesCountPercentage)
+            return _countPercentTypes;
+
+        return new List<string>();
     }
 
     protected override async Task OnInitializedAsync()
@@ -369,6 +414,7 @@
             }
 
             var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";
+
             var response = await Http.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
@@ -436,6 +482,7 @@
         }
     }
 
+    // 3) OnDatasetChanged: no comprobar numericidad para AM/EM/UM y setear _metric por defecto
     private async Task OnDatasetChanged(string selectedKey)
     {
         _selectedDatasetKey = selectedKey;
@@ -475,12 +522,36 @@
             }
         }
 
-        if (_selectedDatasetId != 0)
-            await UpdateSensorType(_selectedDatasetId);
-        else
-            _isNumericDataset = false;
-
         _selectedModuleName = _selectedDatasetModule;
+
+        // Si el módulo es AM/EM/UM asumimos dataset numérico (no hacemos la comprobación)
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (!string.IsNullOrWhiteSpace(moduleCode) &&
+            (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase)
+             || moduleCode.Equals("em", StringComparison.OrdinalIgnoreCase)
+             || moduleCode.Equals("um", StringComparison.OrdinalIgnoreCase)))
+        {
+            _isNumericDataset = true;
+        }
+        else
+        {
+            // para IM y otros módulos hacemos la comprobación del sensor (si aplica)
+            if (_selectedDatasetId != 0)
+                await UpdateSensorType(_selectedDatasetId);
+            else
+                _isNumericDataset = false;
+        }
+
+        // setear métrica por defecto según módulo
+        if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+        {
+            _metric = "lastValue";
+        }
+        else if (ModuleUsesCountPercentage)
+        {
+            _metric = "count";
+        }
+
         _attributes.Clear();
         _selectedAtributo = null;
         _attributeValues.Clear();
@@ -531,7 +602,7 @@
             "um" => "um",
             "insight monitor" => "im",
             "im" => "im",
-            _ => s 
+            _ => s
         };
     }
 
@@ -570,7 +641,7 @@
 
     private async Task SetType(int type)
     {
-        if (_selectedType == type) return; 
+        if (_selectedType == type) return;
         _selectedType = type;
 
         await LoadFieldTypes();
@@ -623,14 +694,7 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
-    private Dictionary<string, string> _metricLabels = new()
-    {
-        { "lastValue", "Last Value" },
-        { "average", "Average" },
-        { "min", "Minimum" },
-        { "max", "Maximum" }
-    };
-
+    // 4) IsFormValid actualizado: exigir métrica para esos módulos
     private bool IsFormValid
     {
         get
@@ -638,23 +702,28 @@
             if (_selectedDatasetId == 0) return false;
             if (string.IsNullOrWhiteSpace(_name)) return false;
 
-            // IM requires metric and date range for certain metrics
-            if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+            // Si el módulo usa métricas (IM o AM/EM/UM con count/percentage) exigir métrica
+            if (ModuleHasMetric)
             {
                 if (string.IsNullOrWhiteSpace(_metric)) return false;
-                if ((_metric == "average" || _metric == "min" || _metric == "max"))
+
+                // Para IM, las métricas average/min/max requieren date range
+                if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!_dateFrom.HasValue || !_dateTo.HasValue || _dateRangeInvalid) return false;
+                    if ((_metric == "average" || _metric == "min" || _metric == "max"))
+                    {
+                        if (!_dateFrom.HasValue || !_dateTo.HasValue || _dateRangeInvalid) return false;
+                    }
                 }
             }
-            else if (!string.IsNullOrEmpty(_selectedModuleName))
+
+            // Para todos los módulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
+            if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
             {
-                // non-IM requires Type and Atributo selected; if atributo requires value, require that too
                 if (!_selectedType.HasValue) return false;
                 if (_attributes != null && _attributes.Any())
                 {
                     if (string.IsNullOrWhiteSpace(_selectedAtributo)) return false;
-                    // if attribute has values loaded, require selected
                     if (_attributeValues != null && _attributeValues.Any() && string.IsNullOrWhiteSpace(_selectedAttributeValue))
                         return false;
                 }
@@ -663,6 +732,7 @@
             return true;
         }
     }
+
 
     private async Task Submit()
     {
@@ -734,20 +804,19 @@
             Description = _description?.Trim(),
             DatasetId = _selectedDatasetId,
             Unit = "x",
-            // Metric only for IM
-            Metric = string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase) ? _metric : null,
+            // 4) Metric: enviarla si el módulo soporta métricas (IM o AM/EM/UM)
+            Metric = ModuleHasMetric ? _metric : null,
             // Multiplier only if numeric
             Multiplier = _isNumericDataset ? (double?)_multiplier : null,
             DefaultColor = _color,
             ColorRanges = _isNumericDataset ? JsonSerializer.Serialize(_colorRanges) : "[]",
             ExtraInfo = extraInfoObj is null ? null : JsonSerializer.Serialize(extraInfoObj),
-            // Save the long module name returned by backend
+            // Save the long module name returned by backend (but passing module code uppercased)
             SourceModule = GetModuleCode(_selectedModuleName)?.ToUpperInvariant() ?? _selectedModuleName,
             // Non-IM fields
             Atributo = !string.IsNullOrWhiteSpace(_selectedAtributo) ? _selectedAtributo : null,
             Type = _selectedType
         };
-
         _isSubmitting = true;
         try
         {

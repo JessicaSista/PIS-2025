@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -14,12 +15,18 @@ namespace OmniMonitor.Server.Controllers
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IKpiService _kpiService;
         private readonly ISondaIMService _sondaIMService;
+        private readonly ILogger<KPIController> _logger;
 
-        public KPIController(ISondaAuthService sondaAuthService, IKpiService kpiService, ISondaIMService sondaIMService)
+        public KPIController(
+            ISondaAuthService sondaAuthService,
+            IKpiService kpiService,
+            ISondaIMService sondaIMService,
+            ILogger<KPIController> logger)
         {
-            _sondaAuthService = sondaAuthService;
-            _kpiService = kpiService;
-            _sondaIMService = sondaIMService;
+            _sondaAuthService = sondaAuthService ?? throw new ArgumentNullException(nameof(sondaAuthService));
+            _kpiService = kpiService ?? throw new ArgumentNullException(nameof(kpiService));
+            _sondaIMService = sondaIMService ?? throw new ArgumentNullException(nameof(sondaIMService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         [HttpPost("")]
@@ -49,14 +56,17 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (DbUpdateException ex)
             {
+                _logger.LogError(ex, "CreateKpi: DB error");
                 return StatusCode(500, $"DB Error: {ex.InnerException?.Message ?? ex.Message}");
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning(ex, "CreateKpi: argument error");
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "CreateKpi: unexpected error");
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
@@ -94,6 +104,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "GetKpiById: unexpected error for id={Id}", id);
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
@@ -120,14 +131,17 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogWarning(ex, "DeleteKpi: not found id={Id}", id);
                 return NotFound(new { ex.Message });
             }
             catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning(ex, "DeleteKpi: unauthorized id={Id}", id);
                 return StatusCode(403, new { ex.Message });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "DeleteKpi: unexpected error for id={Id}", id);
                 return StatusCode(500, new { Message = $"Error interno: {ex.Message}" });
             }
         }
@@ -165,18 +179,22 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogWarning(ex, "UpdateKpiPartial: not found id={Id}", id);
                 return NotFound(ex.Message);
             }
             catch (UnauthorizedAccessException ex)
             {
+                _logger.LogWarning(ex, "UpdateKpiPartial: unauthorized id={Id}", id);
                 return BadRequest(ex.Message);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning(ex, "UpdateKpiPartial: argument error for id={Id}", id);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "UpdateKpiPartial: unexpected error for id={Id}", id);
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
@@ -201,6 +219,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "GetAllKpis: unexpected error");
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
@@ -228,11 +247,10 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "GetMetricInfoByModule: unexpected error for module={Module}", module);
                 return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
             }
         }
-
-
 
         [HttpGet("testDates")]
         [ProducesResponseType(typeof(List<DeviceData>), 200)]
@@ -258,11 +276,10 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "TestGetDeviceDataByDate: unexpected error");
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
-
-
 
         [HttpGet("test")]
         public ActionResult<Kpi> GetTestKpi()
@@ -352,42 +369,69 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int choice,
             [FromQuery] string token)
         {
+            // Log: llegada de la petición
+            _logger.LogInformation("GET field-values called. datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
+
             try
             {
                 if (datasetId <= 0)
+                {
+                    _logger.LogWarning("GetFieldValues: invalid datasetId {DatasetId}", datasetId);
                     return BadRequest("Debe especificar un ID de dataset válido.");
+                }
 
                 if (string.IsNullOrWhiteSpace(modulo))
+                {
+                    _logger.LogWarning("GetFieldValues: missing modulo");
                     return BadRequest("Debe especificar el módulo.");
+                }
 
                 if (string.IsNullOrWhiteSpace(campo))
+                {
+                    _logger.LogWarning("GetFieldValues: missing campo");
                     return BadRequest("Debe especificar el campo.");
+                }
 
                 // Validar token y obtener usuario
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 if (string.IsNullOrEmpty(username))
+                {
+                    _logger.LogWarning("GetFieldValues: invalid token");
                     return BadRequest("Token inválido.");
+                }
 
                 List<string> fieldValues = await _kpiService.GetFieldValuesAsync(datasetId, modulo, campo, choice, username);
 
                 if (fieldValues == null || !fieldValues.Any())
+                {
+                    _logger.LogInformation("GetFieldValues: no values found for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
                     return Ok(new List<string>()); // Retornar lista vacía en lugar de NotFound
+                }
+
+                // Log: mostrar resumen de la respuesta
+                if (fieldValues.Count <= 20)
+                {
+                    // para respuestas pequeñas loguea el contenido
+                    _logger.LogInformation("GetFieldValues: returning {Count} values: {Values}", fieldValues.Count, string.Join(", ", fieldValues));
+                }
+                else
+                {
+                    // para respuestas grandes solo loguea el count
+                    _logger.LogInformation("GetFieldValues: returning {Count} values (content omitted in logs)", fieldValues.Count);
+                }
 
                 return Ok(fieldValues);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogWarning(ex, "GetFieldValues: argument error for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "GetFieldValues: unexpected error for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
     }
 }
-
-
-
-
-
