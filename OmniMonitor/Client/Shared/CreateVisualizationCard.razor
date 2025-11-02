@@ -27,7 +27,7 @@
                 <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: var(--card); border-radius: 3px; " Spacing="3">
                     <MudItem Lg="4" Sm="4" Xs="12" Class="pl-0 pt-0">
                         <MudText Typo="Typo.h6">@Localizer["Dataset"]</MudText>
-                        <MudText Typo="Typo.body1">@($"{dsItem.DatasetId} - {dsItem.DatasetName}")</MudText>
+                        <MudText Typo="Typo.body1">@dsItem.DatasetName</MudText>
                         @*
                         <MudSelect T="int" @bind-Value="dsItem.DatasetId" Variant="Variant.Outlined" Dense="true">
                             @foreach (DatasetDto ds in _datasets)
@@ -44,8 +44,8 @@
 
                     <MudItem Lg="3" Sm="3" Xs="12" Class="pt-0">
                         <MudText Typo="Typo.h6">Atributo</MudText>
-                        <MudSelect T="System.String" Variant="Variant.Outlined" Dense="true">
-                            @foreach (System.String attr in _entityAttributes[dsItem.DatasetType])
+                        <MudSelect T="System.String" @bind-Value="dsItem.EntityAttribute" Variant="Variant.Outlined" Dense="true">
+                            @foreach (System.String attr in _entityAttributes[dsItem.Entity])
                             {
                                 <MudSelectItem T="System.String" Value="attr">
                                     @attr
@@ -200,25 +200,26 @@
         await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
     }
 
-    private Task HandleDatasetSelected(DatasetDto dataset)
+    private async Task HandleDatasetSelected(DatasetDto dataset)
     {
         if (_selectedDatasets.Any(sd => sd.DatasetId == dataset.Id && sd.DatasetType == dataset.Module))
         {
             Snackbar.Add(Localizer["DatasetAlreadyAdded"], Severity.Info);
-            return Task.CompletedTask;
+            return;
         }
-
+        System.String entity = await GetEntityFromDatasetAsync(dataset.Id, dataset.Module);
         _selectedDatasets.Add(new DatasetSelection
         {
             DatasetId = dataset.Id,
             DatasetName = dataset.Nombre,
-            DatasetType = dataset.Module,
+            Entity = entity,
+            EntityAttribute = _entityAttributes[entity][0],
             Multiplier = 1.0M,
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Success);
         StateHasChanged();
-        return Task.CompletedTask;
+        return;
     }
 
     private Task HandleNewDataset()
@@ -311,7 +312,12 @@
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.DatasetId,
-                    JsonDiseño =  "{ \"Multiplier\": " + ((double)ds.Multiplier).ToString(System.Globalization.CultureInfo.InvariantCulture) + ", \"Color\": \"" + ds.Color + "\" }"
+                    JsonDiseño = JsonSerializer.Serialize( new Dictionary<string, object>
+                    {
+                        { "Multiplier", (double)ds.Multiplier },
+                        { "Color", ds.Color },
+                        { "EntityAttribute", ds.EntityAttribute }
+                    })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
                 FechaHasta = _endDate.Value.Date + _endHour.Value
@@ -321,7 +327,7 @@
 
             if (!response.IsSuccessStatusCode)
             {
-                var error = await response.Content.ReadAsStringAsync();
+                System.String error = await response.Content.ReadAsStringAsync();
                 Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
             }
             else
@@ -355,6 +361,11 @@
         _beginHour = new TimeSpan(0, 0, 0);
         _endDate = today;
         _endHour = new TimeSpan(23, 59, 0);
+
+        AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        string? username = authState.User.Identity?.Name;
+        string token = await LocalStorage.GetItemAsync<string>("authToken");
+        Console.WriteLine(token);
 
         /* ====CAMBIARON LA CARGA DE LOS DATASETS PARA UN MODAL -> esto no deberia ser necesario====
         try
@@ -411,6 +422,8 @@
         public int DatasetId { get; set; }
         public System.String DatasetName {get; set;}
         public System.String DatasetType {get; set;}
+        public System.String Entity {get; set;}
+        public System.String EntityAttribute {get; set;}
         public decimal Multiplier { get; set; }
         public string Color { get; set; } = "rgb(0, 255, 231)";
         
@@ -473,8 +486,78 @@
         }
     }
 
-    private System.String getEntityFromDataset(System.Int32 datasetId)
+    private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
     {
-        return "";
+        try
+        {
+            AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            string? username = authState.User.Identity?.Name;
+            string? token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(Localizer["UserNotFound"], Severity.Warning);
+                _datasets = new List<DatasetDto>();
+                throw new InvalidOperationException("No se encontró el usuario autenticado.");
+            }
+
+            if(module=="Insight Monitor")
+            {
+                HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}&token={token}");
+                DatasetIM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetIM>();
+
+                if (datasetFromApi == null)
+                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                return datasetFromApi.ContentType == "0" ? "Sensor" : "Device";
+            }
+            else if(module=="Asset Manager")
+            {
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={datasetId}&token={token}");
+                DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
+
+                if (datasetFromApi == null)
+                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+
+                return datasetFromApi.Type_Dataset == 2 ? "Asset" : "EventAM";
+            }
+            else if(module=="Urban Monitor")
+            {
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}&token={token}");
+                DatasetUM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetUM>();
+
+                if (datasetFromApi == null)
+                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+
+                //una solucion fea para saber el tipo, pero funciona... :thumbsup
+                return datasetFromApi.DatasetNews.Count > 0 ? "New" : "EventUM";
+            }
+            else
+            {
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetEM/{datasetId}?token={token}");
+                DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
+
+                if (datasetFromApi == null)
+                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                
+                List<System.String> Types = datasetFromApi.ContentType.Split(',').Select(s => s.Trim()).ToList();
+                if(Types.Contains("Extensions"))
+                {
+                    return "Extension";
+                }
+                else if(Types.Contains("Alerts")){
+                    return "Alert";
+                }
+                else
+                {
+                    return "EventEM";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            return string.Empty;
+        }
     }
+
 }
