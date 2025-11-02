@@ -258,7 +258,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                string username = await _sondaAuthService.GetUserByTokenOmAsync(token);
 
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
                 if (dataset == null)

@@ -530,7 +530,7 @@ public class SondaIMService : ISondaIMService
 
     public async Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync("visitante");
+        string token = await _sondaAuthService.GetUserTokenImAsync("visitante");
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["TimeSerie"];
 

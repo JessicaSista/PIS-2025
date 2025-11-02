@@ -270,45 +270,45 @@ namespace OmniMonitor.Server.Services
         /// </summary>
         public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request)
         {
-            if (datasetIm == null)
+            if (dataset == null)
             {
                 _logger.LogWarning("El dataset a actualizar es nulo.");
-                throw new ArgumentNullException(nameof(datasetIm), "El dataset no puede ser nulo.");
+                throw new ArgumentNullException(nameof(dataset), "El dataset no puede ser nulo.");
             }
 
-            if (string.IsNullOrEmpty(updateRequest.Name))
+            if (string.IsNullOrEmpty(request.Name))
             {
                 _logger.LogWarning("El nombre del dataset es nulo o vacío.");
                 throw new ArgumentException("El nombre del dataset es obligatorio.");
             }
 
             // Validar que no exista otro dataset con el mismo nombre (excluyendo el actual)
-            if (!string.IsNullOrEmpty(datasetIm.Name))
+            if (!string.IsNullOrEmpty(dataset.Name))
             {
                 var duplicateDataset = await _context.DatasetsIM
-                    .FirstOrDefaultAsync(d => d.Username == datasetIm.Username && 
-                                            d.Name == datasetIm.Name && 
-                                            d.Id != datasetIm.Id);
+                    .FirstOrDefaultAsync(d => d.Username == dataset.Username && 
+                                            d.Name == dataset.Name && 
+                                            d.Id != dataset.Id);
                 
                 if (duplicateDataset != null)
                 {
-                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{datasetIm.Name}' para el usuario '{datasetIm.Username}'.");
+                    throw new InvalidOperationException($"Ya existe un dataset con el nombre '{dataset.Name}' para el usuario '{dataset.Username}'.");
                 }
             }
 
-            datasetIm.Name = updateRequest.Name;
-            datasetIm.Description = updateRequest.Description;
-            datasetIm.Id_Source = updateRequest.SourceId;
-            datasetIm.Id_Group = updateRequest.GroupId;
-            datasetIm.SensorName = updateRequest.SensorName;
-            datasetIm.Is_Dataset = updateRequest.IsDataset;
-            datasetIm.ContentType = updateRequest.ContentType;
+            dataset.Name = request.Name;
+            dataset.Description = request.Description;
+            dataset.Id_Source = request.SourceId;
+            dataset.Id_Group = request.GroupId;
+            dataset.SensorName = request.SensorName;
+            dataset.Is_Dataset = request.IsDataset;
+            dataset.ContentType = request.ContentType;
 
-            _context.Entry(datasetIm).Property(d => d.Id_Source).IsModified = true;
-            _context.Entry(datasetIm).Property(d => d.Id_Group).IsModified = true;
-            _context.Entry(datasetIm).Property(d => d.SensorName).IsModified = true;
+            _context.Entry(dataset).Property(d => d.Id_Source).IsModified = true;
+            _context.Entry(dataset).Property(d => d.Id_Group).IsModified = true;
+            _context.Entry(dataset).Property(d => d.SensorName).IsModified = true;
 
-            var existingDevicesToRemove = datasetIm.DatasetDevices
+            var existingDevicesToRemove = dataset.DatasetDevices
                 .Where(dd => dd.Id > 0)
                 .ToList();
 
@@ -317,26 +317,26 @@ namespace OmniMonitor.Server.Services
                 _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
             }
 
-            datasetIm.DatasetDevices.Clear();
+            dataset.DatasetDevices.Clear();
 
-            if (updateRequest.DeviceIds != null)
+            if (request.DeviceIds != null)
             {
-                foreach (var deviceId in updateRequest.DeviceIds)
+                foreach (var deviceId in request.DeviceIds)
                 {
-                    datasetIm.DatasetDevices.Add(new()
+                    dataset.DatasetDevices.Add(new()
                     {
-                        DatasetId = datasetIm.Id,
+                        DatasetId = dataset.Id,
                         Id_device = deviceId
                     });
                 }
             }
 
-            _context.DatasetsIM.Update(datasetIm);
+            _context.DatasetsIM.Update(dataset);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("DatasetIM actualizado correctamente con ID {DatasetId} para el usuario {Username}.", datasetIm.Id, datasetIm.Username);
+            _logger.LogInformation("DatasetIM actualizado correctamente con ID {DatasetId} para el usuario {Username}.", dataset.Id, dataset.Username);
 
-            return datasetIm;
+            return dataset;
         }
 
         /// <inheritdoc/>
