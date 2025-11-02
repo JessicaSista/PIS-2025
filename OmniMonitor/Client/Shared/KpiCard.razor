@@ -15,11 +15,7 @@
             <MudTooltip Text="@Kpi.Name">
                 <MudText Class="mb-4"
                          Typo="Typo.h6"
-                         Style="color:{TextPrimaryColor};
-                                font-weight:600;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;">
+                         Style="@($"color: {TextPrimaryColor}; font-weight:600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;")">
                     @Kpi.Name
                 </MudText>
             </MudTooltip>
@@ -35,7 +31,7 @@
             else
             {
                 <MudText Typo="Typo.h4"
-                         Style="color: {TextPrimaryColor}">
+                         Style="@($"color: {TextPrimaryColor}")">
                     @Kpi.Value?.ToString()
                 </MudText>
             }
@@ -72,11 +68,41 @@
         $"background-color:{GetTransparentColor(Kpi.ActualColor ?? "#00FFE7", 0.15)}; " +
         $"border:2px solid {Kpi.ActualColor ?? "#00FFE7"}; " +
         $"border-radius: 2px; flex-grow: 1;";
-    private bool IsDarkBackground =>
-    (Kpi.ActualColor ?? "#00FFE7").ToLower() == "#000000";
+    private bool IsDarkBackground
+    {
+        get
+        {
+            var color = Kpi.ActualColor ?? "#00FFE7";
+            return IsDarkColor(color);
+        }
+    }
+
+    private bool IsDarkColor(string hexColor)
+    {
+        try
+        {
+            if (hexColor.StartsWith("#"))
+                hexColor = hexColor.Substring(1);
+
+            if (hexColor.Length == 3)
+                hexColor = string.Concat(hexColor.Select(c => $"{c}{c}"));
+
+            int r = Convert.ToInt32(hexColor.Substring(0, 2), 16);
+            int g = Convert.ToInt32(hexColor.Substring(2, 2), 16);
+            int b = Convert.ToInt32(hexColor.Substring(4, 2), 16);
+
+            double luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+
+            return luminance < 128; 
+        }
+        catch
+        {
+            return false;
+        }
+    }
     private bool IsLightTheme => ThemeService?.CurrentMode == ThemeMode.Light;
     private string TextPrimaryColor =>
-    (IsLightTheme && IsDarkBackground) ? "white" : "var(--card-text-primary)";
+    (IsLightTheme && IsDarkBackground) ? "#ffffff" : "var(--card-text-primary)";
 
     private string GetTransparentColor(string colorInput, double opacity)
     {

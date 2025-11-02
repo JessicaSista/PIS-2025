@@ -150,7 +150,7 @@
                     var _chartType = design.RootElement.GetProperty("ChartType").ToString();
                     _seriesType = MapSeriesType(_chartType);
 
-                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
+                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.DatasetId));
 
                     var allData = new List<object>();
                     try
@@ -173,12 +173,12 @@
                                         if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
                                         {
                                             multiplier = multProp.GetDecimal();
-                                            Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.Name}: {multiplier}");
+                                            Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.NameDataset}: {multiplier}");
                                         }
                                         if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
                                         {
                                             color = colorProp.GetString() ?? "#00FFE7";
-                                            Console.WriteLine($"Color for dataset {grupoDataset.Dataset.Name}: {color}");
+                                            Console.WriteLine($"Color for dataset {grupoDataset.Dataset.NameDataset}: {color}");
                                         }
                                     }
                                     catch { Console.WriteLine("fallo"); }
