@@ -105,7 +105,7 @@
         {
             @for (int i = 0; i < 3; i++)
             {
-                <MudItem xs="12" sm="12" md="6" lg="4" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
+                <MudItem xs="12" sm="6" md="3" lg="3" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
                     <MudPaper Class="pa-4" Style="height: 200px;">
                         <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="100%" />
                     </MudPaper>
@@ -118,11 +118,10 @@
                     .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
                     v.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
             {
-                <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"KPI_{kpi.Id}")" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
+                <MudItem xs="12" sm="6" md="3" lg="3" @key="kpi" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
                     <div style="position: relative;">
                         <!-- KPI Card -->
-                        <KpiViewer Kpi="kpi" />
-
+                        <KpiCard Kpi="kpi" />
                         <!-- Menu -->
                         <MudMenu Icon="@Icons.Material.Filled.MoreVert"
                                  AnchorOrigin="Origin.TopRight"
@@ -247,6 +246,23 @@
             {
                 var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
                 _kpis = kpisFromApi ?? new();
+                //BORRAR
+                // resumen
+                var total = _kpis.Count;
+                var missingDefault = _kpis.Where(k => string.IsNullOrWhiteSpace(k.ActualColor)).ToList();
+                Console.WriteLine($"Kpis total: {total}, sin DefaultColor: {missingDefault.Count}");
+
+                // detallar los que faltan
+                foreach (var m in missingDefault)
+                {
+                    Console.WriteLine($"Missing DefaultColor -> Id: {m.Id}, Name: {m.Name}");
+                }
+
+                // opcional: ver el JSON crudo (útil para ver si backend envía la propiedad)
+                var raw = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("Raw response JSON:");
+                Console.WriteLine(raw);
+                //BORRAR
             }
             else
             {
@@ -331,13 +347,20 @@
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         var returnTo = GetQueryParam("returnTo");
-        var newKpiIdStr = GetQueryParam("newKpiId");
+        var newDatasetIdStr = GetQueryParam("newDatasetId");
         DialogParameters parameters = new DialogParameters
         {
             ["ReturnTo"] = returnTo,
-            ["NewKpiId"] = int.TryParse(newKpiIdStr, out var nid) ? nid : (int?)null
+            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var ndid) ? ndid : (int?)null
         };
-        await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
+        var dialogRef = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
+        var result = await dialogRef.Result; // Wait until dialog closes before cleaning URL
+
+        // Clean query parameters AFTER closing the dialog to avoid focus issues
+        if (!string.IsNullOrEmpty(returnTo))
+        {
+            Nav.NavigateTo("/visualizaciones", forceLoad: false);
+        }
 
         await CargarKpisAsync();
         StateHasChanged();

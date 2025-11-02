@@ -102,6 +102,30 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpGet("GetDashboardSinToken")]
+        [ProducesResponseType(typeof(DashboardResponse), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DashboardResponse>> GetDashboardSinToken(int id)
+        {
+            try
+            {
+                DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdAsyncSinToken(id);
+                if (dashboard == null)
+                {
+                    return NotFound($"No se encontró el dashboard con ID {id}");
+                }
+
+                return Ok(dashboard);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener el dashboard: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Obtiene todos los dashboards de un usuario específico.
         /// </summary>

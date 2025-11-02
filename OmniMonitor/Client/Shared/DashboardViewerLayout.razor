@@ -1,0 +1,48 @@
+@using MudBlazor
+@using OmniMonitor.Client.Services
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeService ThemeService
+
+<MudSnackbarProvider />
+
+<div style="@ThemeService.CurrentThemeVariables">
+    <MudThemeProvider Theme="ThemeService.CurrentTheme"
+                      IsDarkMode="@(ThemeService.CurrentMode == ThemeMode.Dark)" />
+    <MudPopoverProvider />
+    <MudDialogProvider />
+    @if (_isThemeInitialized)
+    {
+        <MudLayout>
+            <MudMainContent Class="d-flex flex-grow" Style="padding-top: 0;">
+                <MudContainer MaxWidth="MaxWidth.False" Class="px-4 pb-4 d-flex flex-column flex-grow">
+                    @Body
+                </MudContainer>
+            </MudMainContent>
+        </MudLayout>
+    }
+</div>
+
+@code {
+    private bool _isThemeInitialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ThemeService.InitializeThemeAsync();
+
+        _isThemeInitialized = true;
+        await InvokeAsync(StateHasChanged);
+
+        ThemeService.OnThemeChange += ThemeChanged;
+    }
+
+    private void ThemeChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChange -= ThemeChanged;
+    }
+}

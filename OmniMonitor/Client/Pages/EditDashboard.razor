@@ -1,4 +1,4 @@
-﻿@page "/dashboards/edit/{DashboardId:int}"
+@page "/dashboards/edit/{DashboardId:int}"
 @attribute [Authorize]
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
@@ -25,12 +25,20 @@
         <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@(dashName)</MudText>
     </MudStack>
 
-    <MudButton Variant="Variant.Filled"
-               Color="MudBlazor.Color.Primary"
-               StartIcon="@Icons.Material.Filled.Save"
-               OnClick="GuardarCambiosAsync">
-        Guardar Cambios
-    </MudButton>
+    <MudStack Row Spacing="2">
+        <MudButton Variant="Variant.Outlined"
+                   Color="MudBlazor.Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Share"
+                   OnClick="OpenShareDialog">
+            @Localizer["Compartir"]
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="GuardarCambiosAsync">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </MudStack>
     
 </MudStack>
 
@@ -71,9 +79,7 @@
     private string dashDesc = string.Empty;
 
     private List<(int,int)> _visualizationsIDs = new List<(int,int)> { };
-
-    private List<(int,int)> _visulaizationsToSave = new List<(int,int)> { };
-    private List<(int, int)> _visulaizationsToDelete = new List<(int, int)> { };
+    private List<(string Action, int Id, int Type)> _actionHistory = new List<(string, int, int)> { };
 
     // ID, AnchoSm, AnchoMd, AnchoLg, Alto
     private List<(int Id, int CardType, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new List<(int, int, int, int, int, int)> { };
@@ -144,6 +150,31 @@
     }
 
 
+    private void RegisterAction(string action, int id, int type)
+    {
+        for (int i = _actionHistory.Count - 1; i >= 0; i--)
+        {
+            if (_actionHistory[i].Id == id && _actionHistory[i].Type == type)
+            {
+                if (_actionHistory[i].Action != action)
+                {
+                    _actionHistory.RemoveAt(i);
+                    return;
+                }
+                break;
+            }
+        }
+        _actionHistory.Add((action, id, type));
+    }
+
+    private async Task OpenShareDialog()
+    {
+        DialogOptions options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
+        DialogParameters parameters = new DialogParameters { ["DashboardId"] = DashboardId };
+        await DialogService.ShowAsync<ShareDashboardDialog>("Compartir Dashboard", parameters, options);
+    }
+
+
     private void HandleNewVisualization((int Id, int Type) newVisualization)
     {
         const int DefaultAnchoSm = 6;
@@ -161,7 +192,7 @@
         }
         _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
 
-        _visulaizationsToSave.Add((newVisualization.Id, newVisualization.Type));
+        RegisterAction("add", newVisualization.Id, newVisualization.Type);
 
         cardsData.Add((newVisualization.Id, newVisualization.Type, DefaultAnchoSm, DefaultAnchoMd, DefaultAnchoLg, DefaultAlto));
 
@@ -191,7 +222,7 @@
 
         _visualizationsIDs.Remove((deletedVisualization.Id, deletedVisualization.Type));
 
-        _visulaizationsToDelete.Add((deletedVisualization.Id, deletedVisualization.Type));
+        RegisterAction("delete", deletedVisualization.Id, deletedVisualization.Type);
 
         int countRemoved = cardsData.RemoveAll(card => card.Id == deletedVisualization.Id && card.CardType == deletedVisualization.Type);
 
@@ -235,69 +266,65 @@
     {
         AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         System.String? username = authState.User.Identity?.Name;
-        bool allNewCardsSaved = true;
+        bool allActionsOk = true;
 
-        
-        foreach (var (id, type) in _visulaizationsToSave)
+        foreach (var action in _actionHistory)
         {
+            var (op, id, type) = action;
             try
             {
-                using (JsonDocument doc = JsonDocument.Parse("{}"))
+                if (op == "add")
                 {
-                    OmniMonitor.Shared.Dtos.DashboardCard request = new OmniMonitor.Shared.Dtos.DashboardCard
+                    using (JsonDocument doc = JsonDocument.Parse("{}"))
                     {
-                        CardId = id,
-                        TipoCard = type,
-                        Props = doc.RootElement.Clone()
-                    };
+                        OmniMonitor.Shared.Dtos.DashboardCard request = new OmniMonitor.Shared.Dtos.DashboardCard
+                        {
+                            CardId = id,
+                            TipoCard = type,
+                            Props = doc.RootElement.Clone()
+                        };
 
-                    HttpResponseMessage? response = await Http.PostAsJsonAsync($"api/Dashboard/{DashboardId}/card?username={username}", request);
+                        HttpResponseMessage? response = await Http.PostAsJsonAsync($"api/Dashboard/{DashboardId}/card?username={username}", request);
 
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            allActionsOk = false;
+                            string error = await response.Content.ReadAsStringAsync();
+                            Snackbar.Add($"Error al agregar la visualización {id}: {error}", Severity.Error);
+                            break;
+                        }
+                    }
+                }
+                else if (op == "delete")
+                {
+                    string deleteUri = $"api/Dashboard/{DashboardId}/card/{id}/{type}?username={username}";
+                    HttpResponseMessage? response = await Http.DeleteAsync(deleteUri);
                     if (!response.IsSuccessStatusCode)
                     {
-                        allNewCardsSaved = false;
+                        allActionsOk = false;
                         string error = await response.Content.ReadAsStringAsync();
-                        Snackbar.Add($"Error al agregar la visualización {id}: {error}", Severity.Error);
+                        Snackbar.Add($"Error al eliminar la visualización ID: {id}, Type: {type}: {response.ReasonPhrase}. {error}", Severity.Error);
+                        break;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Tarjeta eliminada del servidor: ID: {id}, Type: {type}.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                allNewCardsSaved = false;
-                Console.WriteLine($"Error al guardar visualización ID: {id}, Type: {type} en el dashboard: {ex.Message}");
-                Snackbar.Add($"Error interno al guardar visualización ID: {id}, Type: {type}.", Severity.Error);
+                allActionsOk = false;
+                Console.WriteLine($"Error procesando acción '{op}' para ID: {id}, Type: {type}: {ex.Message}");
+                Snackbar.Add($"Error interno procesando acción '{op}' para ID: {id}, Type: {type}.", Severity.Error);
+                break;
             }
         }
 
-        if (!allNewCardsSaved && _visulaizationsToSave.Any())
+        if (!allActionsOk && _actionHistory.Any())
         {
-            Snackbar.Add("Se produjo un error al guardar una o más tarjetas nuevas. Diseño no actualizado.", Severity.Warning);
+            Snackbar.Add("Se produjo un error al procesar una o más acciones. Diseño no actualizado.", Severity.Warning);
             return;
-        }
-
-        foreach (var (id, type) in _visulaizationsToDelete)
-        {
-            try
-            {
-                string deleteUri = $"api/Dashboard/{DashboardId}/card/{id}/{type}?username={username}";
-
-                HttpResponseMessage? response = await Http.DeleteAsync(deleteUri);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    string error = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add($"Error al eliminar la visualización ID: {id}, Type: {type}: {response.ReasonPhrase}. {error}", Severity.Error);
-                }
-                else
-                {
-                    Console.WriteLine($"Tarjeta eliminada del servidor: ID: {id}, Type: {type}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al eliminar visualización  ID: {id}, Type: {type} del dashboard: {ex.Message}");
-                Snackbar.Add($"Error interno al eliminar visualización  ID: {id}, Type: {type}.", Severity.Error);
-            }
         }
 
         try
@@ -310,42 +337,52 @@
                 alto = card.Alto
             }).ToList();
 
-            // Creamos el objeto anónimo raíz que contiene la propiedad "cards"
             var designRootObject = new { cards = cardsDesignList };
-
-
-            // 2. Serializar el objeto C# A UN STRING JSON temporal
             string tempJsonString = JsonSerializer.Serialize(designRootObject);
 
-            // 3. Parsear el STRING JSON de vuelta a un JsonDocument
             using (JsonDocument doc = JsonDocument.Parse(tempJsonString))
             {
-                // 4. Obtener la JsonElement raíz (que es el objeto JSON completo)
                 JsonElement nuevoJsonDisenoElement = doc.RootElement.Clone();
 
-                // 5. Convertir la JsonElement a STRING usando GetRawText()
                 string newJsonDesign = nuevoJsonDisenoElement.GetRawText();
 
                 Console.WriteLine("Nuevo JSON de Diseño (obtenido vía GetRawText):");
                 Console.WriteLine(newJsonDesign);
 
-                // 6. ENVIAR LA SOLICITUD HTTP PUT A /api/Dashboard/{id}/config
-
                 string requestUri = $"api/Dashboard/{DashboardId}/config?username={username}";
-
-                // Usamos el string final y ESPECIFICAMOS application/json
 
                 string token = await LocalStorage.GetItemAsync<string>("authToken");
                 Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
                 var response = await Http.PutAsJsonAsync(requestUri, newJsonDesign);
 
-                // ... (Resto del manejo de la respuesta) ...
                 if (response.IsSuccessStatusCode)
                 {
+                    try
+                    {
+                        var orderedCards = cardsData.Select(card => new OmniMonitor.Shared.Dtos.DashboardCard
+                        {
+                            CardId = card.Id,
+                            TipoCard = card.CardType,
+                            Props = JsonDocument.Parse("{}").RootElement.Clone()
+                        }).ToList();
+
+                        string requestOrderUri = $"api/Dashboard/{DashboardId}/cards/order?username={username}&jsonConfig={System.Uri.EscapeDataString(newJsonDesign)}";
+                        var reorderResponse = await Http.PutAsJsonAsync(requestOrderUri, orderedCards);
+                        if (!reorderResponse.IsSuccessStatusCode)
+                        {
+                            string reorderError = await reorderResponse.Content.ReadAsStringAsync();
+                            Snackbar.Add($"Error al actualizar el orden de las tarjetas: {reorderResponse.ReasonPhrase}. {reorderError}", Severity.Error);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error al actualizar el orden de las tarjetas: {ex.Message}");
+                        Snackbar.Add($"Error interno al actualizar el orden de las tarjetas.", Severity.Error);
+                    }
+
                     Snackbar.Add("Diseño del Dashboard guardado exitosamente.", Severity.Success);
-                    _visulaizationsToSave.Clear();
-                    _visulaizationsToDelete.Clear();
+                    _actionHistory.Clear();
                 }
                 else
                 {
@@ -354,7 +391,6 @@
                 }
             }
 
-            
         }
         catch (Exception ex)
         {
@@ -363,6 +399,5 @@
         }
 
     }
-
 
 }
