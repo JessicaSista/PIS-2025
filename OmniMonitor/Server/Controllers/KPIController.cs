@@ -330,8 +330,10 @@ namespace OmniMonitor.Server.Controllers
                 case "am":
                     if (choice == 1)
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMDTO).GetProperties().Select(p => p.Name).ToList();
-                    else
+                    else if (choice == 2)
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMEventsDTO).GetProperties().Select(p => p.Name).ToList();
+                    else  
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.ReducedStockDatasetAM).GetProperties().Select(p => p.Name).ToList();
                     break;
                 case "em":
                     // Puedes elegir el DTO según el tipo de dato que quieras mostrar

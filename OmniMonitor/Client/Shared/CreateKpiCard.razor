@@ -785,15 +785,15 @@
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
             if (_dateFrom.HasValue && _dateTo.HasValue)
-                extraInfoObj = new { dateFrom = _dateFrom.Value.ToString("o"), dateTo = _dateTo.Value.ToString("o") };
+                extraInfoObj = JsonSerializer.Serialize(new { dateFrom = _dateFrom.Value.ToString("o"), dateTo = _dateTo.Value.ToString("o") });
             else
-                extraInfoObj = new { };
+                extraInfoObj = JsonSerializer.Serialize(new { });
         }
         else
         {
             // for non-IM modules we store selected attribute value in extraInfo (optional)
             if (!string.IsNullOrWhiteSpace(_selectedAttributeValue))
-                extraInfoObj = new { selectedValue = _selectedAttributeValue };
+                extraInfoObj = _selectedAttributeValue;
             else
                 extraInfoObj = new { };
         }
@@ -810,7 +810,7 @@
             Multiplier = _isNumericDataset ? (double?)_multiplier : null,
             DefaultColor = _color,
             ColorRanges = _isNumericDataset ? JsonSerializer.Serialize(_colorRanges) : "[]",
-            ExtraInfo = extraInfoObj is null ? null : JsonSerializer.Serialize(extraInfoObj),
+            ExtraInfo = extraInfoObj is null ? null : extraInfoObj.ToString(),
             // Save the long module name returned by backend (but passing module code uppercased)
             SourceModule = GetModuleCode(_selectedModuleName)?.ToUpperInvariant() ?? _selectedModuleName,
             // Non-IM fields
