@@ -148,6 +148,28 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpGet("GetDatasetSinToken")]
+        [ProducesResponseType(typeof(DatasetIM), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetIM>> GetDatasetByIdSinToken(int datasetId)
+        {
+            try
+            {
+                DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsyncSinToken(datasetId);
+                if (dataset == null)
+                {
+                    return NotFound($"No se encontró el dataset con ID {datasetId}");
+                }
+
+                return Ok(dataset);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
