@@ -1,0 +1,194 @@
+@using MudBlazor
+@using OmniMonitor.Shared
+@using OmniMonitor.Shared.Dtos
+
+<MudStack>
+    <MudText Typo="Typo.h6" Class="mb-2">Datasets Seleccionados</MudText>
+
+    @if (SelectedDatasets.Any())
+    {
+        @foreach (var dataset in SelectedDatasets)
+        {
+            <MudCard Outlined="true" Class="mb-4">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.body1">@dataset.Nombre</MudText>
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
+                                @GetModuleLabel(dataset)
+                            </MudChip>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                @GetDatasetDescription(dataset)
+                            </MudText>
+                        </MudStack>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="MudBlazor.Size.Small"
+                                       OnClick="@(() => NotifyDatasetToggle(dataset))" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.caption" Class="mr-2">Entidad</MudText>
+                        <MudSelect T="EntityName"
+                                   Dense="true"
+                                   Value="@GetSelectedEntity(dataset)"
+                                   ValueChanged="@(entity => NotifyEntityChanged(dataset, entity))">
+                            @foreach (var option in GetEntityOptions(dataset.Module))
+                            {
+                                <MudSelectItem Value="@option">@option.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        }
+    }
+    else
+    {
+        <MudText Class="mb-4" Color="MudBlazor.Color.Secondary">No hay datasets seleccionados</MudText>
+    }
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.h6" Class="mb-2">Datasets Disponibles</MudText>
+    <MudTextField Value="@SearchText"
+                  ValueChanged="@(value => NotifySearchChanged(value))"
+                  Immediate="true"
+                  Placeholder="Buscar Datasets..."
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  IconSize="MudBlazor.Size.Small"
+                  Class="mb-4"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense" />
+
+    @{ var entries = FilteredDatasets ?? Array.Empty<DatasetDto>(); }
+    @if (entries.Any(d => !DatasetIsSelected(d)))
+    {
+        <MudList T="DatasetDto" Dense="true">
+            @foreach (var dataset in entries.Where(d => !DatasetIsSelected(d)))
+            {
+                <MudListItem OnClick="@(() => NotifyDatasetToggle(dataset))"
+                             Style="cursor: pointer;">
+                    <MudStack Spacing="1">
+                        <MudText>@dataset.Nombre</MudText>
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
+                                @GetModuleLabel(dataset)
+                            </MudChip>
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                @GetDatasetDescription(dataset)
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    }
+    else if (!string.IsNullOrWhiteSpace(SearchText))
+    {
+        <MudText>No se encontraron datasets que coincidan con la búsqueda</MudText>
+    }
+    else
+    {
+        <MudText>No hay datasets disponibles</MudText>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public IReadOnlyList<DatasetDto> SelectedDatasets { get; set; } = Array.Empty<DatasetDto>();
+    [Parameter] public IReadOnlyList<DatasetDto>? FilteredDatasets { get; set; }
+        = Array.Empty<DatasetDto>();
+    [Parameter] public EventCallback<DatasetDto> OnDatasetToggle { get; set; }
+    [Parameter] public Func<DatasetDto, bool>? IsDatasetSelected { get; set; }
+    [Parameter] public Func<DatasetDto, EntityName>? ResolveSelectedEntity { get; set; }
+    [Parameter] public Func<string?, IEnumerable<EntityName>>? ResolveEntityOptions { get; set; }
+    [Parameter] public EventCallback<EntitySelectionChangedArgs> OnEntityChanged { get; set; }
+    [Parameter] public string SearchText { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnSearchTextChanged { get; set; }
+
+    private bool DatasetIsSelected(DatasetDto dataset)
+    {
+        if (dataset == null)
+        {
+            return false;
+        }
+
+        if (IsDatasetSelected != null)
+        {
+            return IsDatasetSelected.Invoke(dataset);
+        }
+
+        return SelectedDatasets.Any(s => s.Id == dataset.Id && string.Equals(s.Module, dataset.Module, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private EntityName GetSelectedEntity(DatasetDto dataset)
+    {
+        if (ResolveSelectedEntity != null)
+        {
+            return ResolveSelectedEntity.Invoke(dataset);
+        }
+
+        return EntityName.Device;
+    }
+
+    private IEnumerable<EntityName> GetEntityOptions(string? module)
+    {
+        if (ResolveEntityOptions != null)
+        {
+            return ResolveEntityOptions.Invoke(module);
+        }
+
+        return Array.Empty<EntityName>();
+    }
+
+    private string GetModuleLabel(DatasetDto dataset)
+    {
+        var moduleLabel = string.IsNullOrWhiteSpace(dataset?.Module) ? "Insight Monitor" : dataset!.Module!;
+        return moduleLabel;
+    }
+
+    private string GetDatasetDescription(DatasetDto dataset)
+    {
+        var description = dataset?.Descripcion;
+        return string.IsNullOrWhiteSpace(description) ? "Sin descripción" : description!;
+    }
+
+    private async Task NotifyDatasetToggle(DatasetDto dataset)
+    {
+        if (OnDatasetToggle.HasDelegate)
+        {
+            await OnDatasetToggle.InvokeAsync(dataset);
+        }
+    }
+
+    private async Task NotifyEntityChanged(DatasetDto dataset, EntityName entity)
+    {
+        if (OnEntityChanged.HasDelegate)
+        {
+            await OnEntityChanged.InvokeAsync(new EntitySelectionChangedArgs
+            {
+                Dataset = dataset,
+                Entity = entity
+            });
+        }
+    }
+
+    private async Task NotifySearchChanged(string value)
+    {
+        SearchText = value;
+        if (OnSearchTextChanged.HasDelegate)
+        {
+            await OnSearchTextChanged.InvokeAsync(value);
+        }
+    }
+
+    public class EntitySelectionChangedArgs
+    {
+        public DatasetDto Dataset { get; set; } = new();
+        public EntityName Entity { get; set; }
+            = EntityName.Device;
+    }
+}

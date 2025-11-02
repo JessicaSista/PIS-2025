@@ -1,0 +1,89 @@
+@using MudBlazor
+
+<div class="tab-button-grid mb-4">
+    <MudButton Class="tab-button"
+               Variant="@GetButtonVariant("datasets")"
+               Color="@GetButtonColor("datasets")"
+               Style="@GetButtonStyle("datasets")"
+               OnClick="@(async () => await OnTabChange.InvokeAsync("datasets"))">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <MudIcon Icon="@Icons.Material.Filled.Dataset"
+                     Color="MudBlazor.Color.Primary"
+                     Size="MudBlazor.Size.Medium" />
+            <MudText Typo="Typo.caption"
+                     Color="MudBlazor.Color.Primary"
+                     Class="mt-1"
+                     Style="font-weight:bold;">
+                Datasets
+            </MudText>
+        </div>
+    </MudButton>
+
+    <MudButton Class="tab-button"
+               Variant="@GetButtonVariant("joins")"
+               Color="@GetButtonColor("joins")"
+               Style="@GetButtonStyle("joins")"
+               OnClick="@(async () => await OnTabChange.InvokeAsync("joins"))">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <MudIcon Icon="@Icons.Material.Filled.JoinInner"
+                     Color="MudBlazor.Color.Primary"
+                     Size="MudBlazor.Size.Medium" />
+            <MudText Typo="Typo.caption"
+                     Color="MudBlazor.Color.Primary"
+                     Class="mt-1"
+                     Style="font-weight:bold;">
+                Joins
+            </MudText>
+        </div>
+    </MudButton>
+
+    <MudButton Class="tab-button"
+               Variant="@GetButtonVariant("columnas")"
+               Color="@GetButtonColor("columnas")"
+               Style="@GetButtonStyle("columnas")"
+               OnClick="@(async () => await OnTabChange.InvokeAsync("columnas"))">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <MudIcon Icon="@Icons.Material.Filled.ViewColumn"
+                     Color="MudBlazor.Color.Primary"
+                     Size="MudBlazor.Size.Medium" />
+            <MudText Typo="Typo.caption"
+                     Color="MudBlazor.Color.Primary"
+                     Class="mt-1"
+                     Style="font-weight:bold;">
+                Columnas
+            </MudText>
+        </div>
+    </MudButton>
+
+    <MudButton Class="tab-button"
+               Variant="@GetButtonVariant("filtros")"
+               Color="@GetButtonColor("filtros")"
+               Style="@GetButtonStyle("filtros")"
+               OnClick="@(async () => await OnTabChange.InvokeAsync("filtros"))">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <MudIcon Icon="@Icons.Material.Filled.FilterAlt"
+                     Color="MudBlazor.Color.Primary"
+                     Size="MudBlazor.Size.Medium" />
+            <MudText Typo="Typo.caption"
+                     Color="MudBlazor.Color.Primary"
+                     Class="mt-1"
+                     Style="font-weight:bold;">
+                Filtros
+            </MudText>
+        </div>
+    </MudButton>
+</div>
+
+@code {
+    [Parameter] public string ActiveTab { get; set; } = "datasets";
+    [Parameter] public EventCallback<string> OnTabChange { get; set; }
+
+    private Variant GetButtonVariant(string tabName) =>
+        ActiveTab == tabName ? Variant.Filled : Variant.Text;
+
+    private MudBlazor.Color GetButtonColor(string tabName) =>
+        ActiveTab == tabName ? MudBlazor.Color.Primary : MudBlazor.Color.Inherit;
+
+    private string GetButtonStyle(string tabName) =>
+        ActiveTab == tabName ? "background-color: var(--seleccion);" : string.Empty;
+}

@@ -121,7 +121,7 @@
 
     private Task NavigateToEditarReporte(int id)
     {
-        NavigationManager.NavigateTo($"editarReporte/{id}", forceLoad: true);
+        NavigationManager.NavigateTo($"editarReporte/{id}");
         return Task.CompletedTask;
     }
 
@@ -203,7 +203,7 @@
                 }
             }
 
-            NavigationManager.NavigateTo($"editarReporte/{id}", forceLoad: true);
+            NavigationManager.NavigateTo($"editarReporte/{id}");
         }
         catch (Exception ex)
         {
@@ -390,12 +390,12 @@
                     try
                     {
                         await CargarReportes();
-                        NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}");
                     }
                     catch (Exception loadEx)
                     {
                         Console.WriteLine($"[ERROR] Error al cargar reportes: {loadEx.Message}");
-                        NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}");
                     }
                 }
                 else

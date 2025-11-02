@@ -1,0 +1,151 @@
+@using MudBlazor
+@using OmniMonitor.Client.Pages
+@using OmniMonitor.Shared.Dtos
+
+<MudStack>
+    <MudToolBar Dense="true" DisableGutters="true" Class="mb-4">
+        <MudText Typo="Typo.body1">Columnas a mostrar</MudText>
+        <MudSpacer />
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined"
+                       Size="MudBlazor.Size.Small"
+                       Style="border-color: var(--mud-palette-lines-default);"
+                       OnClick="@(async () => await NotifySelectAll())">
+                Todas
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Size="MudBlazor.Size.Small"
+                       Style="border-color: var(--mud-palette-lines-default);"
+                       OnClick="@(async () => await NotifyDeselectAll())">
+                Ninguna
+            </MudButton>
+        </MudStack>
+    </MudToolBar>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        @if (SelectedDatasets.Any())
+        {
+            if (HasJoinColumns && Joins.Any(j => j.ServerJoinId.HasValue))
+            {
+                @foreach (var join in Joins.Where(j => j.ServerJoinId.HasValue))
+                {
+                    var joinId = join.ServerJoinId!.Value;
+                    var columnsForJoin = AvailableColumns.Where(c => c.IsJoin && c.JoinId == joinId).ToList();
+                    if (!columnsForJoin.Any())
+                    {
+                        continue;
+                    }
+
+                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@GetJoinLabel(joinId)</MudText>
+
+                    @foreach (var group in columnsForJoin.GroupBy(c => c.GroupLabel))
+                    {
+                        if (!string.IsNullOrWhiteSpace(group.Key))
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">@group.Key</MudText>
+                        }
+
+                        <MudGrid Spacing="2">
+                            @foreach (var column in group)
+                            {
+                                <MudItem Xs="12">
+                                    <MudCheckBox T="bool"
+                                                 Label="@column.DisplayName"
+                                                 Checked="@column.IsVisible"
+                                                 CheckedChanged="@(async _ => await NotifyColumnToggled(column))"
+                                                 Dense="true" />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    }
+                }
+            }
+            else
+            {
+                @foreach (var dataset in SelectedDatasets)
+                {
+                    var columnsForDataset = AvailableColumns.Where(c => !c.IsJoin && c.DatasetId == dataset.Id).ToList();
+                    if (!columnsForDataset.Any())
+                    {
+                        continue;
+                    }
+
+                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@GetDatasetLabel(dataset)</MudText>
+                    <MudGrid Spacing="2">
+                        @foreach (var column in columnsForDataset)
+                        {
+                            <MudItem Xs="12">
+                                <MudCheckBox T="bool"
+                                             Label="@column.DisplayName"
+                                             Checked="@column.IsVisible"
+                                             CheckedChanged="@(async _ => await NotifyColumnToggled(column))"
+                                             Dense="true" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                }
+            }
+        }
+        else
+        {
+            <MudText>Selecciona al menos un dataset para ver las columnas disponibles</MudText>
+        }
+    </MudPaper>
+</MudStack>
+
+@code {
+    [Parameter] public IReadOnlyList<DatasetDto> SelectedDatasets { get; set; } = Array.Empty<DatasetDto>();
+    [Parameter] public IReadOnlyList<EditReport.JoinDto> Joins { get; set; } = Array.Empty<EditReport.JoinDto>();
+    [Parameter] public List<EditReport.ColumnDefinition> AvailableColumns { get; set; } = new();
+    [Parameter] public bool HasJoinColumns { get; set; }
+    [Parameter] public EventCallback OnSelectAllColumns { get; set; }
+    [Parameter] public EventCallback OnDeselectAllColumns { get; set; }
+    [Parameter] public EventCallback<EditReport.ColumnDefinition> OnColumnToggled { get; set; }
+    [Parameter] public Func<DatasetDto, string>? ResolveDatasetLabel { get; set; }
+    [Parameter] public Func<int, string>? ResolveJoinLabel { get; set; }
+
+    private async Task NotifySelectAll()
+    {
+        if (OnSelectAllColumns.HasDelegate)
+        {
+            await OnSelectAllColumns.InvokeAsync();
+        }
+    }
+
+    private async Task NotifyDeselectAll()
+    {
+        if (OnDeselectAllColumns.HasDelegate)
+        {
+            await OnDeselectAllColumns.InvokeAsync();
+        }
+    }
+
+    private async Task NotifyColumnToggled(EditReport.ColumnDefinition column)
+    {
+        if (OnColumnToggled.HasDelegate)
+        {
+            await OnColumnToggled.InvokeAsync(column);
+        }
+    }
+
+    private string GetDatasetLabel(DatasetDto dataset)
+    {
+        if (ResolveDatasetLabel != null)
+        {
+            return ResolveDatasetLabel.Invoke(dataset);
+        }
+
+        var moduleLabel = string.IsNullOrWhiteSpace(dataset.Module) ? "Insight Monitor" : dataset.Module!;
+        return string.IsNullOrWhiteSpace(moduleLabel) ? dataset.Nombre ?? string.Empty : $"{dataset.Nombre} ({moduleLabel})";
+    }
+
+    private string GetJoinLabel(int joinId)
+    {
+        if (ResolveJoinLabel != null)
+        {
+            return ResolveJoinLabel.Invoke(joinId);
+        }
+
+        return $"Join {joinId}";
+    }
+}

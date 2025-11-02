@@ -1,0 +1,173 @@
+@using MudBlazor
+@using OmniMonitor.Client.Pages
+@using OmniMonitor.Shared.Dtos
+
+<MudStack>
+    <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudItem>
+            <MudText Typo="Typo.body1">Configurar Joins</MudText>
+        </MudItem>
+        <MudItem>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Size="MudBlazor.Size.Small"
+                           Style="border-color: var(--mud-palette-lines-default);"
+                           OnClick="@(async () => await NotifyJoinAdd())">
+                    Agregar Join
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Spacing="3" Class="mt-4">
+        @if (Joins.Any())
+        {
+            @foreach (var join in Joins)
+            {
+                <MudPaper @key="join.Id" Class="pa-4" Elevation="1">
+                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudItem>
+                            <MudText Typo="Typo.subtitle2">Join #@join.Id</MudText>
+                        </MudItem>
+                        <MudItem>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="MudBlazor.Color.Error"
+                                           OnClick="@(() => NotifyJoinRemove(join))" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudGrid Spacing="2" Class="mt-2">
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string"
+                                       Label="Dataset Izquierdo"
+                                       Value="@join.LeftDataset"
+                                       ValueChanged="@(value => OnLeftDatasetChanged(join, value))">
+                                @foreach (var dataset in SelectedDatasets)
+                                {
+                                    <MudSelectItem Value="@dataset.Nombre">@dataset.Nombre</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string" Label="Campo de Unión (Izquierdo)" @bind-Value="join.LeftField">
+                                @foreach (var option in GetPropertyNames(join.LeftDataset))
+                                {
+                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string" Label="Tipo de Comparación" @bind-Value="join.Comparison">
+                                <MudSelectItem Value="Equal">Igual a (=)</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string" Label="Tipo de Join" @bind-Value="join.JoinType">
+                                <MudSelectItem Value="Inner">Inner Join</MudSelectItem>
+                                <MudSelectItem Value="LeftOuter">Left Outer</MudSelectItem>
+                                <MudSelectItem Value="RightOuter">Right Outer</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string"
+                                       Label="Dataset Derecho"
+                                       Value="@join.RightDataset"
+                                       ValueChanged="@(value => OnRightDatasetChanged(join, value))">
+                                @foreach (var dataset in SelectedDatasets.Where(d => !string.Equals(d.Nombre, join.LeftDataset, StringComparison.Ordinal)))
+                                {
+                                    <MudSelectItem Value="@dataset.Nombre">@dataset.Nombre</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string" Label="Campo de Unión (Derecho)" @bind-Value="join.RightField">
+                                @foreach (var option in GetPropertyNames(join.RightDataset))
+                                {
+                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+        }
+    </MudStack>
+
+    @if (Joins.Any())
+    {
+        <MudButton Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Class="mt-4"
+                   OnClick="@(async () => await NotifyApplyJoins())">
+            Aplicar Joins
+        </MudButton>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public IReadOnlyList<DatasetDto> SelectedDatasets { get; set; } = Array.Empty<DatasetDto>();
+    [Parameter] public List<EditReport.JoinDto> Joins { get; set; } = new();
+    [Parameter] public EventCallback OnJoinAdd { get; set; }
+    [Parameter] public EventCallback<EditReport.JoinDto> OnJoinRemove { get; set; }
+    [Parameter] public EventCallback OnApplyJoins { get; set; }
+    [Parameter] public Func<string?, IEnumerable<string>>? ResolvePropertyNames { get; set; }
+    [Parameter] public EventCallback<EditReport.JoinDto> OnJoinDatasetsChanged { get; set; }
+
+    private IEnumerable<string> GetPropertyNames(string? datasetName)
+    {
+        if (!string.IsNullOrWhiteSpace(datasetName) && ResolvePropertyNames != null)
+        {
+            return ResolvePropertyNames.Invoke(datasetName);
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private async Task OnLeftDatasetChanged(EditReport.JoinDto join, string? datasetName)
+    {
+        join.LeftDataset = datasetName ?? string.Empty;
+        if (OnJoinDatasetsChanged.HasDelegate)
+        {
+            await OnJoinDatasetsChanged.InvokeAsync(join);
+        }
+    }
+
+    private async Task OnRightDatasetChanged(EditReport.JoinDto join, string? datasetName)
+    {
+        join.RightDataset = datasetName ?? string.Empty;
+        if (OnJoinDatasetsChanged.HasDelegate)
+        {
+            await OnJoinDatasetsChanged.InvokeAsync(join);
+        }
+    }
+
+    private async Task NotifyJoinAdd()
+    {
+        if (OnJoinAdd.HasDelegate)
+        {
+            await OnJoinAdd.InvokeAsync();
+        }
+    }
+
+    private async Task NotifyJoinRemove(EditReport.JoinDto join)
+    {
+        if (OnJoinRemove.HasDelegate)
+        {
+            await OnJoinRemove.InvokeAsync(join);
+        }
+    }
+
+    private async Task NotifyApplyJoins()
+    {
+        if (OnApplyJoins.HasDelegate)
+        {
+            await OnApplyJoins.InvokeAsync();
+        }
+    }
+}
