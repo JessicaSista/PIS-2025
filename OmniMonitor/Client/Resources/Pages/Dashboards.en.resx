@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -170,5 +170,11 @@
   </data>
   <data name="PreguntaEliminar1" xml:space="preserve">
     <value>Are you sure you want to delete the dashboard {0}?</value>
+  </data>
+  <data name="Compartir" xml:space="preserve">
+    <value>Share</value>
+  </data>
+  <data name="GuardarCambios" xml:space="preserve">
+    <value>Save Changes</value>
   </data>
 </root>

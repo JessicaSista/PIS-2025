@@ -95,6 +95,28 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpGet("GetVisualizacionByIdSinToken")]
+        [ProducesResponseType(typeof(Visualizacion), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<Visualizacion>> GetVisualizacionByIdSinToken(int idVisualizacion)
+        {
+            try
+            {
+                Visualizacion? visualizacion = await _visualizacionService.GetVisualizacionByIdAsyncSinToken(idVisualizacion);
+                if (visualizacion == null)
+                {
+                    return NotFound($"No se encontró la visualización con ID {idVisualizacion}");
+                }
+
+                return Ok(visualizacion);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener la visualización: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Elimina una visualización por su ID.
         /// </summary>

@@ -44,14 +44,16 @@ namespace OmniMonitor.Server.Services
         /// <param name="username">Nombre de usuario.</param>
         /// <returns>El dataset IM encontrado o null.</returns>
         Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username);
+        Task<DatasetIM?> GetDatasetIMByIdForEditAsyncSinToken(int datasetId);
+        
 
         /// <summary>
         /// Actualiza un dataset IM existente.
         /// </summary>
         /// <param name="datasetIm">Entidad DatasetIM a actualizar.</param>
-        /// <param name="updateRequest">Datos para la actualización.</param>
+        /// <param name="request">Datos para la actualización.</param>
         /// <returns>El dataset IM actualizado.</returns>
-        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM datasetIm, CreateDatasetIMRequest updateRequest);
+        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request);
 
         /// <summary>
         /// Elimina un dataset IM.
@@ -256,8 +258,17 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && string.Equals(d.Username, username));
         }
 
-        /// <inheritdoc/>
-        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM datasetIm, CreateDatasetIMRequest updateRequest)
+        public async Task<DatasetIM?> GetDatasetIMByIdForEditAsyncSinToken(int datasetId)
+        {
+            return await _context.DatasetsIM
+                .Include(d => d.DatasetDevices)
+                .FirstOrDefaultAsync(d => d.Id == datasetId);
+        }
+
+        /// <summary>
+        /// Actualiza un dataset existente.
+        /// </summary>
+        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request)
         {
             if (datasetIm == null)
             {

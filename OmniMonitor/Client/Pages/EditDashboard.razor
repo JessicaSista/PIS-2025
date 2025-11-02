@@ -25,12 +25,20 @@
         <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@(dashName)</MudText>
     </MudStack>
 
-    <MudButton Variant="Variant.Filled"
-               Color="MudBlazor.Color.Primary"
-               StartIcon="@Icons.Material.Filled.Save"
-               OnClick="GuardarCambiosAsync">
-        Guardar Cambios
-    </MudButton>
+    <MudStack Row Spacing="2">
+        <MudButton Variant="Variant.Outlined"
+                   Color="MudBlazor.Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Share"
+                   OnClick="OpenShareDialog">
+            @Localizer["Compartir"]
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="GuardarCambiosAsync">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </MudStack>
     
 </MudStack>
 
@@ -158,6 +166,14 @@
         }
         _actionHistory.Add((action, id, type));
     }
+
+    private async Task OpenShareDialog()
+    {
+        DialogOptions options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
+        DialogParameters parameters = new DialogParameters { ["DashboardId"] = DashboardId };
+        await DialogService.ShowAsync<ShareDashboardDialog>("Compartir Dashboard", parameters, options);
+    }
+
 
     private void HandleNewVisualization((int Id, int Type) newVisualization)
     {
