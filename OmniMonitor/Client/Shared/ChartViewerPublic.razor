@@ -1,0 +1,366 @@
+@using ApexCharts
+@using MudBlazor.Extensions
+@using OmniMonitor.Shared.Dtos
+@using System.Text.Json
+@using Blazored.LocalStorage
+@using System.Globalization
+@using Microsoft.Extensions.Localization
+@* 
+@using System.Reflection.Metadata
+@inject ISnackbar SnackbarService*@
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+@* @inject IStringLocalizer<Visualizations> Localizer *@
+
+
+<MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
+
+    
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    @if (ShowIcon) {
+                        <MudPaper Square="true" Class="pa-2" Style="background-color: #1d283a !important; color: #f4f8fd; border-radius: 2px">
+                            <MudIcon Icon="@GetIcon(_chartType)" />
+                        </MudPaper>
+                    }
+                    else
+                    {
+                        <div style="width: 0px;"></div>
+                    }
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    @if (ShowTitle) {   
+                        <MudText Typo="Typo.h6" Style="color: var(--card-text-primary)" >@_title</MudText>
+                    }
+                </CardHeaderContent>
+            </MudCardHeader>
+    
+            @* <MudText Class="px-7 py-5" Typo="Typo.h6"
+                     Style="color: var(--card-text-primary)">@_title</MudText> *@
+
+            <MudCardContent Class="pl-7 pr-8"
+                            Style="color: var(--card-text-secondary); height: 100%">
+                @if (_seriesData.Any())
+                {
+                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="320" Options="_chartOptions">
+                        @foreach (var serie in _seriesData)
+                        {
+                            <ApexPointSeries TItem="ChartPoint"
+                                             Items="serie.Points"
+                                             Name="@serie.DatasetName"
+                                             SeriesType="@_seriesType"
+                                             XValue="@(p => p.X)"
+                                             YValue="@(p => (decimal)p.Y)"
+                                             Color="@serie.Color" />
+                        }
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudSkeleton />
+                }
+            </MudCardContent>
+
+
+            <MudCardActions Class="d-block">
+                @if (ShowDatasetsInfo)
+                {
+                    <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
+                }
+                @if (ShowLastUpdatedInfo)
+                {
+                    <MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>
+                }
+            </MudCardActions>
+        
+</MudItem>
+
+@code {
+
+    //Parametros
+    [Parameter] public int VisualizationId { get; set; }
+
+    // Para recargar la gráfica desde el exterior
+    [Parameter]
+    public int ChartReloadKey
+    {
+        get => _chartKey;
+        set
+        {
+            if (_chartKey != value)
+            {
+                _chartKey = value;
+                StateHasChanged();
+            }
+        }
+    }
+
+    [Parameter] public bool ShowTitle { get; set; } = true;
+    [Parameter] public bool ShowIcon { get; set; } = false;
+    [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
+    [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
+
+    // Local Variables
+    private string _authenticatedUser = string.Empty;
+    private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
+
+    private System.String _title { get; set; } = string.Empty;
+    private System.String _datasetNames { get; set; } = string.Empty;
+
+    // Chart Variables
+    private SeriesType _seriesType = SeriesType.Line;
+    private List<DatasetSeries> _seriesData = new();
+    private string _chartType { get; set; } = "line";
+    private List<object> _dataCharts { get; set; } = new();
+    private ApexChart<ChartPoint>? _apexChart;
+    private readonly ApexChartOptions<ChartPoint> _chartOptions = new()
+    {
+        Xaxis = new XAxis
+        {
+            TickAmount = 4,
+            Labels = new XAxisLabels
+            {
+                Rotate = -35,
+                Style = new AxisLabelStyle
+                {
+                    FontSize = "8px"
+                },
+            }
+        }
+    };
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionByIdSinToken?idVisualizacion={VisualizationId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                if (cardVisualization != null)
+                {
+                    _title = cardVisualization.Nombre;
+
+                    JsonDocument design = JsonDocument.Parse(cardVisualization.JsonDesign);
+                    var _chartType = design.RootElement.GetProperty("ChartType").ToString();
+                    _seriesType = MapSeriesType(_chartType);
+
+                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
+
+                    var allData = new List<object>();
+                    try
+                    {
+                        var dateFrom = cardVisualization.FechaDesde;
+                        var dateTo = cardVisualization.FechaHasta;
+
+                        foreach (var grupoDataset in cardVisualization.GrupoDatasets)
+                        {
+                            try
+                            {
+                                decimal multiplier = 1.0M;
+                                string color = "#00FFE7";
+
+                                if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
+                                {
+                                    try
+                                    {
+                                        var designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
+                                        if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
+                                        {
+                                            multiplier = multProp.GetDecimal();
+                                            Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.Name}: {multiplier}");
+                                        }
+                                        if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
+                                        {
+                                            color = colorProp.GetString() ?? "#00FFE7";
+                                            Console.WriteLine($"Color for dataset {grupoDataset.Dataset.Name}: {color}");
+                                        }
+                                    }
+                                    catch { Console.WriteLine("fallo"); }
+                                }
+
+                                var datasetResponse = await Http.GetAsync($"api/Dataset/GetDatasetSinToken?datasetId={grupoDataset.Dataset.Id}");
+
+                                if (datasetResponse.IsSuccessStatusCode)
+                                {
+                                    var dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
+
+                                    if (dataset != null)
+                                    {
+                                        if (dataset.DatasetDevices.Any())
+                                        {
+                                            foreach (var datasetDevice in dataset.DatasetDevices)
+                                            {
+                                                try
+                                                {
+                                                    var sensorDataResponse = await Http.GetAsync(
+                                                        $"api/SondaMain/sensors/dataSinToken?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
+                                                    );
+
+                                                    if (sensorDataResponse.IsSuccessStatusCode)
+                                                    {
+                                                        var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
+
+                                                        if (sensorData != null && sensorData.Any())
+                                                        {
+                                                            foreach (var data in sensorData)
+                                                            {
+                                                                decimal numericValue;
+
+                                                                if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
+                                                                {
+                                                                    numericValue = parsedDecimal;
+                                                                }
+                                                                else
+                                                                {
+                                                                    numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+                                                                }
+
+                                                                allData.Add(new
+                                                                {
+                                                                    Timestamp = data.Time,
+                                                                    Value = numericValue * multiplier,
+                                                                    Color = color,
+                                                                    DatasetName = dataset.Name,
+                                                                    SensorName = dataset.SensorName,
+                                                                    DeviceId = datasetDevice.Id_device
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                catch (Exception ex)
+                                                {
+                                                    Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
+                            }
+                        }
+                        _seriesData = BuildSeriesFromData(allData);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error procesando visualización {cardVisualization.IdVisualizacion}: {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
+        }
+    }
+
+
+    private SeriesType MapSeriesType(string type)
+    {
+        if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
+            return SeriesType.Line;
+        return parsed;
+    }
+
+    private List<DatasetSeries> BuildSeriesFromData(List<object> data)
+    {
+        var grouped = new Dictionary<string, DatasetSeries>();
+
+        foreach (var item in data)
+        {
+            try
+            {
+                System.String json = JsonSerializer.Serialize(item);
+                using JsonDocument? doc = JsonDocument.Parse(json);
+                JsonElement root = doc.RootElement;
+
+                System.String datasetName = root.TryGetProperty("DatasetName", out var dnProp)
+                    ? dnProp.GetString() ?? "SinNombre"
+                    : "SinNombre";
+
+                System.String color = root.TryGetProperty("Color", out var colorProp)
+                    ? colorProp.GetString() ?? "#00FFE7"
+                    : "#00FFE7";
+
+                System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
+                    ? tProp.GetDateTime().ToString("dd/MM/yyyy HH:mm")
+                    : null;
+
+                double value = 0;
+                if (root.TryGetProperty("Value", out var vProp))
+                {
+                    double.TryParse(vProp.ToString(), out value);
+                }
+
+                if (!grouped.ContainsKey(datasetName))
+                {
+                    grouped[datasetName] = new DatasetSeries
+                    {
+                        DatasetName = datasetName,
+                        Color = color
+                    };
+                }
+
+                grouped[datasetName].Points.Add(new ChartPoint
+                {
+                    X = timestamp ?? DateTime.Now.ToString("HH:mm"),
+                    Y = value
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
+            }
+        }
+
+        return grouped.Values.ToList();
+    }
+
+    private string GetIcon(string chartType)
+    {
+        return chartType switch
+        {
+            "line" => Icons.Material.Filled.ShowChart,
+            "bar" => Icons.Material.Filled.BarChart,
+            "area" => Icons.Material.Filled.AreaChart,
+            "pie" => Icons.Material.Filled.PieChart,
+            "donut" => Icons.Material.Filled.DonutLarge,
+            "radialBar" => Icons.Material.Filled.DonutSmall,
+            "scatter" => Icons.Material.Filled.BubbleChart,
+            "heatmap" => Icons.Material.Filled.GridOn,
+            "radar" => Icons.Material.Filled.Radar,
+            "bubble" => Icons.Material.Filled.BubbleChart,
+            "candlestick" => Icons.Material.Filled.CandlestickChart,
+            "boxPlot" => Icons.Material.Filled.Analytics,
+            "treemap" => Icons.Material.Filled.AccountTree,
+            _ => Icons.Material.Filled.InsertChart
+        };
+    }
+
+    public class DatasetSeries
+    {
+        public System.String DatasetName { get; set; } = String.Empty;
+        public System.String Color { get; set; } = "#00FFE7";
+        public List<ChartPoint> Points { get; set; } = new();
+    }
+
+    public class ChartPoint
+    {
+        public System.String X { get; set; } = string.Empty;
+        public double Y { get; set; }
+    }
+
+}
