@@ -150,7 +150,7 @@
                     var _chartType = design.RootElement.GetProperty("ChartType").ToString();
                     _seriesType = MapSeriesType(_chartType);
 
-                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.DatasetId));
 
                     var allData = new List<object>();
                     try
