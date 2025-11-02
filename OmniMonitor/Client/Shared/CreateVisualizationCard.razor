@@ -156,6 +156,9 @@
 
     [Parameter]
     public int? NewDatasetId { get; set; }
+    
+    [Parameter]
+    public string? NewDatasetModule { get; set; }
 
     private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "radialBar", "scatter", "heatmap", "radar", "bubble", "candlestick", "boxPlot", "treemap"};
     private string _selectedChartType = "line";
@@ -166,7 +169,6 @@
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
 
-    private List<DatasetDto> _datasets = new List<DatasetDto>();
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
 
     private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
@@ -212,6 +214,7 @@
         {
             DatasetId = dataset.Id,
             DatasetName = dataset.Nombre,
+            DatasetType = dataset.Module,
             Entity = entity,
             EntityAttribute = _entityAttributes[entity][0],
             Multiplier = 1.0M,
@@ -237,7 +240,8 @@
             {
                 DatasetId = s.DatasetId,
                 Multiplier = s.Multiplier,
-                Color = s.Color
+                Color = s.Color,
+                Module = s.DatasetType
             }).ToList()
         };
 
@@ -348,10 +352,7 @@
     private void Cancel()
     {
         _mudDialog.Cancel();
-        if (string.Equals(ReturnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
-        {
-            Nav.NavigateTo("/visualizaciones", forceLoad: false);
-        }
+        Nav.NavigateTo("/visualizaciones", forceLoad: false);
     }
 
     protected override async Task OnInitializedAsync()
@@ -365,46 +366,8 @@
         AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         string? username = authState.User.Identity?.Name;
         string token = await LocalStorage.GetItemAsync<string>("authToken");
-        Console.WriteLine(token);
 
-        /* ====CAMBIARON LA CARGA DE LOS DATASETS PARA UN MODAL -> esto no deberia ser necesario====
-        try
-        {
-            AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            string? username = authState.User.Identity?.Name;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            if (string.IsNullOrEmpty(username))
-            {
-                Snackbar.Add(Localizer["UserNotFound"], Severity.Warning);
-                _datasets = new List<DatasetDto>();
-                return;
-            }
-
-            HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllDatasetsDto?token=" + token);
-            if (response.IsSuccessStatusCode)
-            {
-                List<DatasetDto>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDto>>();
-
-                _datasets = _datasetsFromApi?.Select(d => new DatasetDto
-                {
-                    Id = d.Id,
-                    Nombre = d.Nombre,
-                    Descripcion = d.Descripcion ?? "Sin descripcion"
-                }).ToList() ?? new List<DatasetDto>();
-            }
-            else
-            {
-                Snackbar.Add(Localizer["ErrorLoadingDatasets", response.StatusCode], Severity.Error);
-                _datasets = new List<DatasetDto>();
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(Localizer["GeneralError", ex.Message], Severity.Error);
-            _datasets = new List<DatasetDto>();
-        }
-        */
+        
 
         await RestoreDraftAndHandleReturnAsync();
     }
@@ -435,6 +398,7 @@
         {
             var returnTo = ReturnTo;
             int? newDatasetId = NewDatasetId;
+            string? newDatasetModule = NewDatasetModule;
 
             if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
             {
@@ -451,10 +415,13 @@
                     _selectedDatasets = draft.SelectedDatasets?.Select(d => new DatasetSelection
                     {
                         DatasetId = d.DatasetId,
+                        DatasetType = d.Module,
                         Multiplier = d.Multiplier,
                         Color = string.IsNullOrWhiteSpace(d.Color) ? "rgb(0, 255, 231)" : d.Color
                     }).ToList() ?? new();
 
+                    // Hydrate missing fields (Name, Type, Entity, Attribute) for restored draft
+                    await HydrateSelectionsAsync(_selectedDatasets);
                     StateHasChanged();
                 }
 
@@ -462,12 +429,22 @@
                 {
                     if (!_selectedDatasets.Any(sd => sd.DatasetId == newDatasetId.Value))
                     {
-                        _selectedDatasets.Add(new DatasetSelection
+                        // Hydrate info for the new dataset id and then add
+                        var hydrated = await HydrateSingleDatasetAsync(newDatasetId.Value, newDatasetModule);
+                        if (hydrated != null)
                         {
-                            DatasetId = newDatasetId.Value,
-                            Multiplier = 1.0M,
-                            Color = "rgb(0, 255, 231)"
-                        });
+                            _selectedDatasets.Add(hydrated);
+                        }
+                        else
+                        {
+                            // Fallback minimal add if hydration failed
+                            _selectedDatasets.Add(new DatasetSelection
+                            {
+                                DatasetId = newDatasetId.Value,
+                                Multiplier = 1.0M,
+                                Color = "rgb(0, 255, 231)"
+                            });
+                        }
                         Snackbar.Add(Localizer["NewDatasetAdded"], Severity.Success);
                     }
                 }
@@ -486,18 +463,144 @@
         }
     }
 
+    private async Task HydrateSelectionsAsync(List<DatasetSelection> selections)
+    {
+        if (selections == null || selections.Count == 0) return;
+        string? token = await LocalStorage.GetItemAsync<string>("authToken");
+        foreach (var sel in selections)
+        {
+            if (!string.IsNullOrWhiteSpace(sel.DatasetName) && !string.IsNullOrWhiteSpace(sel.DatasetType) && !string.IsNullOrWhiteSpace(sel.Entity))
+            {
+                continue;
+            }
+            var info = await TryFetchDatasetInfoAsync(sel.DatasetId, token, sel.DatasetType);
+            if (info != null)
+            {
+                sel.DatasetName = info.Value.Name;
+                sel.DatasetType = info.Value.Module;
+                var entity = await GetEntityFromDatasetAsync(sel.DatasetId, info.Value.Module);
+                sel.Entity = entity;
+                if (!string.IsNullOrWhiteSpace(entity) && _entityAttributes.TryGetValue(entity, out var attrs) && attrs.Count > 0)
+                {
+                    sel.EntityAttribute = attrs[0];
+                }
+            }
+        }
+    }
+
+    private async Task<DatasetSelection?> HydrateSingleDatasetAsync(int datasetId, string? hintedModule = null)
+    {
+        string? token = await LocalStorage.GetItemAsync<string>("authToken");
+        var info = await TryFetchDatasetInfoAsync(datasetId, token, hintedModule);
+        if (info == null)
+        {
+            return null;
+        }
+        var module = info.Value.Module;
+        var entity = await GetEntityFromDatasetAsync(datasetId, module);
+        string? entityAttr = null;
+        if (!string.IsNullOrWhiteSpace(entity) && _entityAttributes.TryGetValue(entity, out var attrs) && attrs.Count > 0)
+        {
+            entityAttr = attrs[0];
+        }
+        return new DatasetSelection
+        {
+            DatasetId = datasetId,
+            DatasetName = info.Value.Name,
+            DatasetType = module,
+            Entity = entity,
+            EntityAttribute = entityAttr ?? selDefault(entity),
+            Multiplier = 1.0M,
+            Color = "rgb(0, 255, 231)"
+        };
+
+        static string? selDefault(string e)
+        {
+            return null;
+        }
+    }
+
+    private async Task<(string Name, string Module)?> TryFetchDatasetInfoAsync(int datasetId, string? token, string? hintedModule = null)
+    {
+        try
+        {
+            // 1) Resolve module: use hinted module if provided, else detect
+            string? module = hintedModule;
+            if (string.IsNullOrWhiteSpace(module))
+            {
+                var moduleResp = await Http.GetAsync($"api/Dataset/GetDatasetModule?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
+                if (!moduleResp.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                module = (await moduleResp.Content.ReadAsStringAsync())?.Trim('"');
+                if (string.IsNullOrWhiteSpace(module)) return null;
+            }
+
+            // 2) Fetch dataset by module to get its display name (minimal, aligned to backend DTOs)
+            if (string.Equals(module, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+            {
+                var resp = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var dto = await resp.Content.ReadFromJsonAsync<DatasetIM>();
+                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Name))
+                        return (Name: dto.Name, Module: module);
+                }
+            }
+            else if (string.Equals(module, "Asset Manager", StringComparison.OrdinalIgnoreCase))
+            {
+                var resp = await Http.GetAsync($"api/DatasetAM/GetDatasetAMById?id={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var dto = await resp.Content.ReadFromJsonAsync<DatasetAM>();
+                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Nombre))
+                        return (Name: dto.Nombre, Module: module);
+                }
+            }
+            else if (string.Equals(module, "Urban Monitor", StringComparison.OrdinalIgnoreCase))
+            {
+                var resp = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var dto = await resp.Content.ReadFromJsonAsync<DatasetUM>();
+                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Name))
+                        return (Name: dto.Name, Module: module);
+                }
+            }
+            else if (string.Equals(module, "Event Manager", StringComparison.OrdinalIgnoreCase))
+            {
+                var resp = await Http.GetAsync($"api/DatasetEM/{datasetId}?token={Uri.EscapeDataString(token ?? string.Empty)}");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var dto = await resp.Content.ReadFromJsonAsync<DatasetEM>();
+                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Name))
+                        return (Name: dto.Name, Module: module);
+                }
+            }
+
+            return (Name: $"Dataset {datasetId}", Module: module);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    
+
     private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
     {
         try
         {
             AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            // ... (rest of the code remains the same)
             string? username = authState.User.Identity?.Name;
             string? token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
                 Snackbar.Add(Localizer["UserNotFound"], Severity.Warning);
-                _datasets = new List<DatasetDto>();
                 throw new InvalidOperationException("No se encontró el usuario autenticado.");
             }
 

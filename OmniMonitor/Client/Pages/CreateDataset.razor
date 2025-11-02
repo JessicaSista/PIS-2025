@@ -974,7 +974,16 @@
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
                 ShowSuccess($"'{created?.Nombre}' {Localizer["DatasetCreadoExito"]}");
-                Nav.NavigateTo("/datasets");
+                var returnTo = GetQueryParam("returnTo");
+                if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase) && created is not null)
+                {
+                    // AM uses Id_Dataset for module-specific id in GET by id
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={created.Id_Dataset}&newDatasetModule=Asset%20Manager", forceLoad: false);
+                }
+                else
+                {
+                    Nav.NavigateTo("/datasets");
+                }
             }
             else
             {
@@ -1375,7 +1384,16 @@
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetUM>();
                 ShowSuccess($"'{created?.Name}' {Localizer["DatasetCreadoExito"]}");
-                Nav.NavigateTo("/datasets");
+                var returnTo = GetQueryParam("returnTo");
+                if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase) && created is not null)
+                {
+                    // UM uses Id as module-specific id
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={created.Id}&newDatasetModule=Urban%20Monitor", forceLoad: false);
+                }
+                else
+                {
+                    Nav.NavigateTo("/datasets");
+                }
             }
             else
             {
@@ -1599,7 +1617,16 @@
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();
                 ShowSuccess($"'{created?.Name}' {Localizer["DatasetCreadoExito"]}");
-                Nav.NavigateTo("/datasets");
+                var returnTo = GetQueryParam("returnTo");
+                if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase) && created is not null)
+                {
+                    // EM uses Id as module-specific id
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={created.Id}&newDatasetModule=Event%20Manager", forceLoad: false);
+                }
+                else
+                {
+                    Nav.NavigateTo("/datasets");
+                }
             }
             else
             {

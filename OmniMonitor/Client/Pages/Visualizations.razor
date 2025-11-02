@@ -332,37 +332,23 @@
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         var returnTo = GetQueryParam("returnTo");
         var newDatasetIdStr = GetQueryParam("newDatasetId");
+        var newDatasetModule = GetQueryParam("newDatasetModule");
         DialogParameters parameters = new DialogParameters
         {
             ["ReturnTo"] = returnTo,
-            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var ndid) ? ndid : (int?)null
+            ["NewDatasetId"] = int.TryParse(newDatasetIdStr, out var ndid) ? ndid : (int?)null,
+            ["NewDatasetModule"] = string.IsNullOrWhiteSpace(newDatasetModule) ? null : newDatasetModule
         };
         var dialogRef = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["NewVisualization"], parameters, options);
-        var result = await dialogRef.Result; // Wait until dialog closes before cleaning URL
-
-        // Clean query parameters AFTER closing the dialog to avoid focus issues
-        if (!string.IsNullOrEmpty(returnTo))
-        {
-            Nav.NavigateTo("/visualizaciones", forceLoad: false);
-        }
+        // Do not clean or override the URL here. The dialog handles navigation/cleanup on Submit/Cancel.
+        await dialogRef.Result;
 
         await CargarKpisAsync();
         StateHasChanged();
     }
 
 
-    private async Task HandleReturnToVisualizationCreateAsync()
-    {
-        try
-        {
-            var returnTo = GetQueryParam("returnTo");
-            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
-            {
-                await OpenDialogCreateVisualizationCard();
-            }
-        }
-        catch { }
-    }
+    
 
     private static Dictionary<string, string> ParseQueryString(string? query)
     {
