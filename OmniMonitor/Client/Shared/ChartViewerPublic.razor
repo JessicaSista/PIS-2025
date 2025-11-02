@@ -1,4 +1,4 @@
-﻿@using ApexCharts
+@using ApexCharts
 @using MudBlazor.Extensions
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
@@ -137,7 +137,7 @@
         {
             string token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}&token={token}");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionByIdSinToken?idVisualizacion={VisualizationId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -184,7 +184,7 @@
                                     catch { Console.WriteLine("fallo"); }
                                 }
 
-                                var datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
+                                var datasetResponse = await Http.GetAsync($"api/Dataset/GetDatasetSinToken?datasetId={grupoDataset.Dataset.Id}");
 
                                 if (datasetResponse.IsSuccessStatusCode)
                                 {
@@ -199,7 +199,7 @@
                                                 try
                                                 {
                                                     var sensorDataResponse = await Http.GetAsync(
-                                                        $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
+                                                        $"api/SondaMain/sensors/dataSinToken?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
                                                     );
 
                                                     if (sensorDataResponse.IsSuccessStatusCode)

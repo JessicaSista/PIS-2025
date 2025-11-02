@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Razor.TagHelpers;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using OmniMonitor.Shared.Dtos.AM;
 using OmniMonitor.Shared.Dtos.EM;
 
@@ -14,6 +17,7 @@ namespace OmniMonitor.Server.Services
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
+        Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId);
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
         Task DeleteKpiAsync(int kpiId, string? username = null);
@@ -71,10 +75,9 @@ namespace OmniMonitor.Server.Services
                     await ValidateImKpiRequestAsync(request, username);
                     break;
 
-                default:
-                    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
+               //default:
+               //    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
-
             var newKpi = new Kpi
             {
                 Name = request.Name,
@@ -87,7 +90,7 @@ namespace OmniMonitor.Server.Services
                 DefaultColor = request.DefaultColor,
                 ColorRanges = request.ColorRanges,
                 ExtraInfo = request.ExtraInfo,
-                Atributo = request.Atributo,
+                Atributo = string.IsNullOrWhiteSpace(request.Atributo) ? string.Empty : request.Atributo,
                 Username = username ?? string.Empty,
                 Type = request.Type
             };
@@ -279,16 +282,40 @@ namespace OmniMonitor.Server.Services
             return existingKpi;
         }
 
-        // Helper privado para validar formato hex (#RRGGBB o #RGB)
-        private bool IsValidHexColor(string color)
+        private string? NormalizeHexColor(string? color)
         {
-            if (string.IsNullOrWhiteSpace(color)) return false;
+            if (string.IsNullOrWhiteSpace(color)) return null;
             color = color.Trim();
-            if (!color.StartsWith("#")) return false;
-            var hex = color.Substring(1);
-            return hex.Length == 3 || hex.Length == 6 && System.Text.RegularExpressions.Regex.IsMatch(hex, @"\A\b[0-9a-fA-F]+\b\Z");
+
+            // #RGB -> #RRGGBB
+            var mShort = Regex.Match(color, @"^#([0-9A-Fa-f]{3})$");
+            if (mShort.Success)
+            {
+                var s = mShort.Groups[1].Value;
+                return $"#{s[0]}{s[0]}{s[1]}{s[1]}{s[2]}{s[2]}".ToUpperInvariant();
+            }
+
+            // #RRGGBB -> ok
+            var mLong = Regex.Match(color, @"^#([0-9A-Fa-f]{6})$");
+            if (mLong.Success)
+                return color.ToUpperInvariant();
+
+            // #RRGGBBAA -> strip alpha and return #RRGGBB
+            var mWithAlpha = Regex.Match(color, @"^#([0-9A-Fa-f]{8})$");
+            if (mWithAlpha.Success)
+            {
+                var hex8 = mWithAlpha.Groups[1].Value;
+                var rgb = hex8.Substring(0, 6);
+                return $"#{rgb}".ToUpperInvariant();
+            }
+
+            return null;
         }
 
+        private bool IsValidHexColor(string? color)
+        {
+            return NormalizeHexColor(color) != null;
+        }
 
         public async Task<Kpi> GetKpiDefinitionAsync(int kpiId)
         {
@@ -322,6 +349,40 @@ namespace OmniMonitor.Server.Services
 
                 case "UM":
                     response = await CalculateUmKpiAsync(kpi, username);
+                    break;
+
+                default:
+                    throw new ArgumentException($"SourceModule no soportado: {kpi.SourceModule}");
+            }
+
+            if (response == null)
+                throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
+
+            return response;
+        }
+
+        public async Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId)
+        {
+            var kpi = await GetKpiDefinitionAsync(kpiId);
+
+            KpiResponse? response = null;
+
+            switch (kpi.SourceModule.ToUpper())
+            {
+                case "AM":
+                    response = await CalculateAmKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "EM":
+                    response = await CalculateEmKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "IM":
+                    response = await CalculateImKpiAsync(kpi, kpi.Username);
+                    break;
+
+                case "UM":
+                    response = await CalculateUmKpiAsync(kpi, kpi.Username);
                     break;
 
                 default:
@@ -415,6 +476,7 @@ namespace OmniMonitor.Server.Services
                 // Buscar assets relacionados al dataset
                 var reducedAssets = await _datasetAmService.GetReducedAssetsByDatasetIdAsync(kpi.DatasetId, username);
                 response = await _kpiAMService.CalculateAmKpiAsync(kpi, username, reducedAssets);
+                return response;
             }
             else if (kpi.Type == 2)
             {
@@ -441,14 +503,132 @@ namespace OmniMonitor.Server.Services
                 Console.WriteLine("Resultado devuelto por CalculateAmKpiAsync:");
                 Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
                 return result;
+            } else if (kpi.Type == 3) // Stock
+            {
+                        var datasetAM = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
+                        var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
+                        if (datasetAM.Grupo_Event_Task_Instance != null)
+                        {
+                            Console.WriteLine($"EventTaskInstances count: {datasetAM.Grupo_Event_Task_Instance.Count}");
+                            foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
+                            {
+                                if (eventTaskInstance.Grupo_Stock != null)
+                                {
+                                    Console.WriteLine($"  Grupo_Stock count: {eventTaskInstance.Grupo_Stock.Count}");
+                                    foreach (var dsStock in eventTaskInstance.Grupo_Stock)
+                                    {
+                                        Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
+                                        var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
+                                        if (stockDto != null)
+                                        {
+                                            Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
+                                            stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
+                                            {
+                                                Nombre = stockDto.Name,
+                                                Cantidad = stockDto.Quantity,
+                                                Proveedor = stockDto.Provider?.Name ?? string.Empty,
+                                                Sku = stockDto.Sku ?? string.Empty,
+                                                Minimo = stockDto.Minimum,
+                                                Bundle = stockDto.Bundle?.Name ?? stockDto.BundleId.ToString(),
+                                                Supervisor = stockDto.Supervisor?.UserName ?? string.Empty
+                                            });
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (kpi.Atributo.ToLower() != "cantidad" && kpi.Atributo.ToLower() != "minimo")
+                        {
+                            return await _kpiAMService.CalculateAmKpiAsync(kpi, username, stockData);
+                        } else {
+                            
+                            var aux = ExtractFieldValuesFromLists(stockData, kpi.Atributo);
+                            Console.WriteLine($"Valores extraídos para atributo '{kpi.Atributo}': [{string.Join(", ", aux)}]");
+                            switch (kpi.Metric.ToLower())
+                            {
+                                case "count":
+                                    if (aux is IEnumerable<float> floatList)
+                                    {
+                                        float suma = floatList.Sum();
+                                        string color = kpi.DefaultColor;
+                                        if (!string.IsNullOrEmpty(kpi.ColorRanges))
+                                        {
+                                            color = GetColorForValue(kpi.ColorRanges, suma, kpi.DefaultColor);
+                                            Console.WriteLine($"[DEBUG] Calculando color para KPI {kpi.Id}: valor={suma}, color={color}, rangos={kpi.ColorRanges}");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"[DEBUG] Usando color por defecto para KPI {kpi.Id}: valor={suma}, color={color}");
+                                        }
+                                        return new KpiResponse
+                                        {
+                                            Id = kpi.Id,
+                                            Name = kpi.Name,
+                                            ActualColor = color,
+                                            Value = suma
+                                        };
+                                    }
+                                    return new KpiResponse
+                                    {
+                                        Id = kpi.Id,
+                                        Name = kpi.Name,
+                                        ActualColor = kpi.DefaultColor,
+                                        Value = 0
+                                    };
+                                case "percentage":
+                                    if (aux is IEnumerable<float> floatListAvg && floatListAvg.Any())
+                                    {
+                                        double promedio = floatListAvg.Average();
+                                        string color = kpi.DefaultColor;
+                                        if (!string.IsNullOrEmpty(kpi.ColorRanges))
+                                        {
+                                            color = GetColorForValue(kpi.ColorRanges, promedio, kpi.DefaultColor);
+                                            Console.WriteLine($"[DEBUG] Calculando color para KPI {kpi.Id}: valor={promedio}, color={color}, rangos={kpi.ColorRanges}");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"[DEBUG] Usando color por defecto para KPI {kpi.Id}: valor={promedio}, color={color}");
+                                        }
+                                        return new KpiResponse
+                                        {
+                                            Id = kpi.Id,
+                                            Name = kpi.Name,
+                                            ActualColor = color,
+                                            Value = Math.Round(promedio, 2)
+                                        };
+                                    }
+                                    return new KpiResponse
+                                    {
+                                        Id = kpi.Id,
+                                        Name = kpi.Name,
+                                        ActualColor = kpi.DefaultColor,
+                                        Value = 0
+                                    };
+                                default:
+                                    return new KpiResponse
+                                    {
+                                        Id = kpi.Id,
+                                        Name = kpi.Name,
+                                        ActualColor = kpi.DefaultColor,
+                                        Value = $"Atributo no soportado para Stock: {kpi.Atributo}"
+                                    };
+                            }
+                        }
+            } else {
+                return new KpiResponse
+                {
+                    Name = kpi.Name,
+                    ActualColor = kpi.DefaultColor,
+                    Value = null
+                };
             }
             // Otros tipos o default
-            return new KpiResponse
-            {
-                Name = kpi.Name,
-                ActualColor = kpi.DefaultColor,
-                Value = null
-            };
+            
         }
 
         private async Task<KpiResponse> CalculateEmKpiAsync(Kpi kpi, string username)
@@ -491,22 +671,22 @@ namespace OmniMonitor.Server.Services
             else if (kpi.Type == 2)
             {
                 // Buscar alertas relacionadas al dataset
-                var eventIds = dataset.DatasetEvents.Select(e => e.Id_event).ToList();
-                        var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
-                        foreach (var id in eventIds)
+                var eventIds = dataset.DatasetEvents.Select(e => e.Id_event).ToHashSet();
+                var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
+                var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
+                foreach (var evento in allEvents)
+                {
+                    if (eventIds.Contains(evento.Id))
+                    {
+                        eventDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO
                         {
-                            var evento = await _sondaEMService.GetEventById(id, username);
-                            if (evento != null)
-                            {
-                                eventDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO
-                                {
-                                    Nombre = evento.Name,
-                                    Origen = evento.Origin,
-                                    Estado = evento.State,
-                                    Direccion = evento.Address?.DisplayName
-                                });
-                            }
-                        }
+                            Nombre = evento.Name,
+                            Origen = evento.Origin,
+                            Estado = evento.State,
+                            Direccion = evento.Address?.DisplayName
+                        });
+                    }
+                }
                 return await _kpiAMService.CalculateAmKpiAsync(kpi, username, eventDtos);
             }
             else if (kpi.Type == 3)
@@ -847,9 +1027,9 @@ namespace OmniMonitor.Server.Services
                     var ranges = JsonSerializer.Deserialize<List<ColorRange>>(kpi.ColorRanges);
                     if (ranges != null)
                     {
-                        var matched = ranges.FirstOrDefault(r => average >= r.Min && average <= r.Max);
+                        var matched = ranges.FirstOrDefault(r => average >= r.min && average <= r.max);
                         if (matched != null)
-                            actualColor = matched.Color;
+                            actualColor = matched.color;
                     }
                 }
                 catch
@@ -870,8 +1050,6 @@ namespace OmniMonitor.Server.Services
                 Type = sensorType
             };
         }
-
-
 
 
         private async Task<KpiResponse> CalculateMinKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
@@ -1010,9 +1188,9 @@ namespace OmniMonitor.Server.Services
                     var ranges = JsonSerializer.Deserialize<List<ColorRange>>(kpi.ColorRanges);
                     if (ranges != null)
                     {
-                        var matched = ranges.FirstOrDefault(r => minValue >= r.Min && minValue <= r.Max);
+                        var matched = ranges.FirstOrDefault(r => minValue >= r.min && minValue <= r.max);
                         if (matched != null)
-                            actualColor = matched.Color;
+                            actualColor = matched.color;
                     }
                 }
                 catch
@@ -1033,7 +1211,6 @@ namespace OmniMonitor.Server.Services
                 Type = sensorType
             };
         }
-
 
         public async Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule)
         {
@@ -1061,13 +1238,9 @@ namespace OmniMonitor.Server.Services
                     throw new ArgumentException($"SourceModule no soportado: {sourceModule}");
             }
 
-            // Si quisieras, podrías hacerlo async por compatibilidad con interfaces o futura DB
             await Task.CompletedTask;
             return metrics;
         }
-
-
-
 
         private async Task<KpiResponse> CalculateMaxKpiIMAsync(Kpi kpi, DatasetIM dataset, string username)
         {
@@ -1205,9 +1378,9 @@ namespace OmniMonitor.Server.Services
                     var ranges = JsonSerializer.Deserialize<List<ColorRange>>(kpi.ColorRanges);
                     if (ranges != null)
                     {
-                        var matched = ranges.FirstOrDefault(r => maxValue >= r.Min && maxValue <= r.Max);
+                        var matched = ranges.FirstOrDefault(r => maxValue >= r.min && maxValue <= r.max);
                         if (matched != null)
-                            actualColor = matched.Color;
+                            actualColor = matched.color;
                     }
                 }
                 catch
@@ -1229,27 +1402,74 @@ namespace OmniMonitor.Server.Services
             };
         }
 
-
-
-        private string GetColorForValue(string colorRangesJson, double value, string defaultColor)
+        public string GetColorForValue(string colorRangesJson, double value, string defaultColor)
         {
             try
             {
-                var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson);
-                if (ranges == null) return defaultColor;
+                var options = new System.Text.Json.JsonSerializerOptions();
+                options.Converters.Add(new FlexibleColorRangeConverter());
+                var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson, options);
+                if (ranges == null)
+                {
+                    Console.WriteLine($"[DEBUG] ColorRanges nulo. Usando color por defecto: {defaultColor}");
+                    return defaultColor;
+                }
 
+                Console.WriteLine($"[DEBUG] Buscando color para valor: {value}. Rango JSON: {colorRangesJson}");
                 foreach (var range in ranges)
                 {
-                    if (value >= range.Min && value <= range.Max)
-                        return range.Color;
+                    Console.WriteLine($"[DEBUG] Rango: min={range.min}, max={range.max}, color={range.color}");
+                    if (value >= range.min && value <= range.max)
+                    {
+                        Console.WriteLine($"[DEBUG] Valor {value} está en el rango [{range.min}, {range.max}]. Color seleccionado: {range.color}");
+                        return range.color;
+                    }
                 }
+                Console.WriteLine($"[DEBUG] Ningún rango coincide para valor {value}. Usando color por defecto: {defaultColor}");
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[DEBUG] Error al deserializar ColorRanges o calcular color: {ex.Message}. Usando color por defecto: {defaultColor}");
                 return defaultColor;
             }
-
             return defaultColor;
+        }
+
+                // Custom converter para ColorRange que acepta min/max/color o Min/Max/Color
+        public class FlexibleColorRangeConverter : System.Text.Json.Serialization.JsonConverter<ColorRange>
+        {
+            public override ColorRange Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+            {
+                double min = 0, max = 0;
+                string color = "#000000";
+                if (reader.TokenType != System.Text.Json.JsonTokenType.StartObject)
+                    throw new System.Text.Json.JsonException();
+                while (reader.Read())
+                {
+                    if (reader.TokenType == System.Text.Json.JsonTokenType.EndObject)
+                        break;
+                    if (reader.TokenType == System.Text.Json.JsonTokenType.PropertyName)
+                    {
+                        string prop = reader.GetString();
+                        reader.Read();
+                        switch (prop.ToLower())
+                        {
+                            case "min": min = reader.GetDouble(); break;
+                            case "max": max = reader.GetDouble(); break;
+                            case "color": color = reader.GetString(); break;
+                        }
+                    }
+                }
+                return new ColorRange { min = min, max = max, color = color };
+            }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, ColorRange value, System.Text.Json.JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("min", value.min);
+                writer.WriteNumber("max", value.max);
+                writer.WriteString("color", value.color);
+                writer.WriteEndObject();
+            }
         }
 
         public async Task<List<string>> GetFieldValuesAsync(int datasetId, string modulo, string campo, int choice, string username)
@@ -1268,7 +1488,7 @@ namespace OmniMonitor.Server.Services
             switch (modulo.ToUpperInvariant())
             {
                 case "AM":
-                    var datasetAM = await _context.DatasetAM.FirstOrDefaultAsync(d => d.DatasetId == datasetId);
+                    var datasetAM = await _context.DatasetAM.FirstOrDefaultAsync(d => d.Id_Dataset == datasetId);
                     if (datasetAM == null)
                         throw new ArgumentException($"No se encontró un dataset AM con ID {datasetId}.");
 
@@ -1281,6 +1501,53 @@ namespace OmniMonitor.Server.Services
                     {
                         var eventsData = await _datasetAmService.GetReducedEventsByDatasetIdAsync(datasetId, username);
                         fieldValues = await _kpiAMService.GetFieldValuesAsync(eventsData, campo);
+                    }
+                    else if (choice == 3) // Stock
+                    {
+                        datasetAM = await _datasetAmService.GetDatasetAMByIdAsync(datasetId, username);
+                        var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
+                        if (datasetAM.Grupo_Event_Task_Instance != null)
+                        {
+                            Console.WriteLine($"EventTaskInstances count: {datasetAM.Grupo_Event_Task_Instance.Count}");
+                            foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
+                            {
+                                if (eventTaskInstance.Grupo_Stock != null)
+                                {
+                                    Console.WriteLine($"  Grupo_Stock count: {eventTaskInstance.Grupo_Stock.Count}");
+                                    foreach (var dsStock in eventTaskInstance.Grupo_Stock)
+                                    {
+                                        Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
+                                        var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
+                                        if (stockDto != null)
+                                        {
+                                            Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
+                                            stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
+                                            {
+                                                Nombre = stockDto.Name,
+                                                Cantidad = stockDto.Quantity,
+                                                Proveedor = stockDto.Provider?.Name ?? string.Empty,
+                                                Sku = stockDto.Sku ?? string.Empty,
+                                                Minimo = stockDto.Minimum,
+                                                Bundle = stockDto.Bundle?.Name ?? stockDto.BundleId.ToString(),
+                                                Supervisor = stockDto.Supervisor?.UserName ?? string.Empty
+                                            });
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        
+                        Console.WriteLine($"StockData count: {stockData.Count}");
+                        foreach (var s in stockData)
+                        {
+                            Console.WriteLine($"Stock Nombre: {s.Nombre}");
+                        }
+                        fieldValues = await _kpiAMService.GetFieldValuesAsync(stockData, campo);
                     }
                     break;
 
@@ -1313,12 +1580,12 @@ namespace OmniMonitor.Server.Services
                     // Events
                     else if (choice == 2 && datasetEM.DatasetEvents != null && datasetEM.DatasetEvents.Any())
                     {
-                        var eventIds = datasetEM.DatasetEvents.Select(e => e.Id_event).ToList();
+                        var eventIds = datasetEM.DatasetEvents.Select(e => e.Id_event).ToHashSet();
+                        var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
                         var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
-                        foreach (var id in eventIds)
+                        foreach (var evento in allEvents)
                         {
-                            var evento = await _sondaEMService.GetEventById(id, username);
-                            if (evento != null)
+                            if (eventIds.Contains(evento.Id))
                             {
                                 eventDtos.Add(new OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO
                                 {
@@ -1466,21 +1733,45 @@ namespace OmniMonitor.Server.Services
             return values;
         }
 
+        private List<float> ExtractFieldValuesFromLists<T>(List<T> dataList, string fieldName)
+        {
+            var values = new List<float>();
+
+            if (dataList == null || !dataList.Any())
+                return values;
+
+            var type = typeof(T);
+            var property = type.GetProperty(fieldName);
+
+            if (property == null)
+                throw new ArgumentException($"El campo '{fieldName}' no existe en el tipo {type.Name}.");
+
+            foreach (var item in dataList)
+            {
+                var value = property.GetValue(item);
+                if (value != null && !string.IsNullOrWhiteSpace(value.ToString()))
+                {
+                        values.Add(Convert.ToSingle(value));
+                }
+            }
+
+            return values;
+        }
         
         public class ColorRange
         {
             [JsonPropertyName("min")]
-            public double Min { get; set; }
+            public double min { get; set; }
 
             [JsonPropertyName("max")]
-            public double Max { get; set; }
+            public double max { get; set; }
 
             [JsonPropertyName("color")]
-            public string Color { get; set; } = "#000000";
+            public string color { get; set; } = "#000000";
         }
 
     }
 
-        }
+} 
 
 

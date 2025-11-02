@@ -1,6 +1,7 @@
 ﻿@using OmniMonitor.Shared.Dtos
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
+@using System.Text.Json
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
@@ -37,25 +38,24 @@
 
                     <!-- Dataset select -->
                     <div style="display: flex; flex-direction: column;">
-                        <MudSelect T="int"
-                                   Label="Dataset"
-                                   Value="_selectedDatasetId"
+                        <MudSelect T="string"
+                                   Label="@Localizer["Dataset"]"
+                                   Value="_selectedDatasetKey"
                                    ValueChanged="OnDatasetChanged"
                                    Variant="Variant.Outlined"
                                    Dense="true"
-                                   Style="background: var(--card); width: 280px;"
+                                   Style="background: var(--card); width: 380px;"
                                    Required="true">
-                            @foreach (var ds in _datasets)
+                            @foreach (var ds in _datasetItems)
                             {
-                                var displayName = ds.Name;
-                                <MudSelectItem T="int" Value="@ds.Id">
-                                    @displayName (@(ds.ContentType ?? ds.SensorName ?? "—"))
+                                <MudSelectItem T="string" Value="@ds.Key">
+                                    @($"{ds.Nombre}")
                                 </MudSelectItem>
                             }
                         </MudSelect>
                     </div>
 
-                    <!-- Multiplier-->
+                    <!-- Multiplier (visible si dataset numérico) -->
                     @if (_isNumericDataset)
                     {
                         <div style="display: flex; flex-direction: column;">
@@ -75,11 +75,11 @@
                             <ActivatorContent>
                                 <MudTooltip Text="@_color">
                                     <div style="
-                                            width: 56.5px;
-                                            height: 56.5px;
-                                            border-radius: 6px;
-                                            cursor: pointer;
-                                            background-color:@_color;">
+                                                            width: 56.5px;
+                                                            height: 56.5px;
+                                                            border-radius: 6px;
+                                                            cursor: pointer;
+                                                            background-color:@_color;">
                                     </div>
                                 </MudTooltip>
                             </ActivatorContent>
@@ -101,6 +101,7 @@
                               Label="@Localizer["Name"]"
                               Variant="Variant.Outlined"
                               Required="true"
+                              MaxLength="50"
                               Style="background: var(--card);" />
 
                 <!-- Description -->
@@ -111,47 +112,121 @@
                               MaxLength="200"
                               Style="background: var(--card);" />
 
-                <!-- Metric -->
-                <MudSelect T="string" @bind-Value="_metric"
-                           Label="@Localizer["Metric"]"
-                           Variant="Variant.Outlined"
-                           Dense="true"
-                           Style="background: var(--card);"
-                           Required="true">
-
-                    @foreach (var tipo in (_isNumericDataset ? _kpiTypes : new List<string> { "lastValue" }))
-                    {
-                        <MudSelectItem T="string" Value="@tipo">@_metricLabels[tipo]</MudSelectItem>
-                    }
-                </MudSelect>
-
-
-                <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
-
-                <div style="display:flex; flex-wrap:wrap; gap:12px;">
-                    <div>
-                        <MudDatePicker @bind-Date="_dateFrom"
-                                        Label="@Localizer["From"]"
-                                        Variant="Variant.Outlined"
-                                        Style="width:180px;"
-                                        Required="true" />
-                    </div>
-                    <div>
-                        <MudDatePicker @bind-Date="_dateTo"
-                                        Label="@Localizer["To"]"
-                                        Variant="Variant.Outlined"
-                                        Style="width:180px;"
-                                        Required="true" />
-                    </div>
-                </div>
-
-                @if (_dateRangeInvalid)
+                <!-- Module-specific UI -->
+                <!-- Si el módulo soporta métricas mostramos la select de métricas -->
+                @if (ModuleHasMetric)
                 {
-                    <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@Localizer["DateRangeInvalid"]</MudText>
-                }
-                
+                    <MudSelect T="string" @bind-Value="_metric"
+                               Label="@Localizer["Metric"]"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="background: var(--card);"
+                               Required="true">
+                        @foreach (var tipo in GetMetricOptions())
+                        {
+                            <MudSelectItem T="string" Value="@tipo">@_metricLabels[tipo]</MudSelectItem>
+                        }
+                    </MudSelect>
 
-                <!-- Color range -->
+                    @* Solo para IM mostramos DateRange *@
+                    @if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["DateRange"]</MudText>
+
+                        <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                            <div>
+                                <MudDatePicker @bind-Date="_dateFrom"
+                                               Label="@Localizer["From"]"
+                                               Variant="Variant.Outlined"
+                                               Style="width:180px;"
+                                               Required="true" />
+                            </div>
+                            <div>
+                                <MudDatePicker @bind-Date="_dateTo"
+                                               Label="@Localizer["To"]"
+                                               Variant="Variant.Outlined"
+                                               Style="width:180px;"
+                                               Required="true" />
+                            </div>
+                        </div>
+
+                        @if (_dateRangeInvalid)
+                        {
+                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">@Localizer["DateRangeInvalid"]</MudText>
+                        }
+                    }
+                }
+
+                /* --- importante: mostramos atributos para TODOS los módulos que NO sean Insight Monitor,
+                incluyendo AM/EM/UM — esto reemplaza el antiguo 'else if' que ocultaba la UI cuando había métricas */
+                @if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+                {
+                    <!-- Non-IM modules: Type buttons + Atributo + Valor -->
+                    <MudText Typo="Typo.body1" Style="color: var(--text-primary);">@Localizer["ModuleType"]</MudText>
+
+                    <div class="d-flex" style="gap:8px; margin-bottom:8px;">
+                        @if (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
+                        }
+                        else if (string.Equals(_selectedModuleName, "Urban Monitor", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Noticia</MudButton>
+                        }
+                        else if (string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
+                        }
+                    </div>
+
+                    <MudSelect T="string" @bind-Value="SelectedAtributo"
+                               Label="@Localizer["Atributo"]"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Style="background: var(--card); width: 280px;">
+                        @if (_attributes != null && _attributes.Any())
+                        {
+                            @foreach (var a in _attributes)
+                            {
+                                <MudSelectItem T="string" Value="@a">@a</MudSelectItem>
+                            }
+                        }
+                        else
+                        {
+                            <MudSelectItem T="string" Disabled="true">—</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (!string.IsNullOrEmpty(_selectedAtributo))
+                    {
+                        <MudSelect T="string" @bind-Value="_selectedAttributeValue"
+                                   Label="@Localizer["Valor"]"
+                                   Variant="Variant.Outlined"
+                                   Dense="true"
+                                   Style="background: var(--card); width: 280px;">
+                            @if (_attributeValues != null && _attributeValues.Any())
+                            {
+                                @foreach (var v in _attributeValues)
+                                {
+                                    <MudSelectItem T="string" Value="@v">@v</MudSelectItem>
+                                }
+                            }
+                            else
+                            {
+                                <MudSelectItem T="string" Disabled="true">@Localizer["NoData"]</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                }
+
+
+                <!-- Color ranges for numeric datasets (both IM and non-IM) -->
                 @if (_isNumericDataset)
                 {
                     <MudDivider Class="my-2" />
@@ -182,9 +257,9 @@
                                 <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
                                     <ActivatorContent>
                                         <div style="width: 36px; height: 36px; border-radius: 6px;
-                                                                border: 1px solid var(--borde-drawer);
-                                                                cursor: pointer;
-                                                                background-color:@range.Color;">
+                                                                                                                border: 1px solid var(--borde-drawer);
+                                                                                                                cursor: pointer;
+                                                                                                                background-color:@range.Color;">
                                         </div>
                                     </ActivatorContent>
                                     <ChildContent>
@@ -216,7 +291,7 @@
         <MudButton Color="MudBlazor.Color.Primary"
                    OnClick="Submit"
                    Disabled="!IsFormValid || _isSubmitting">
-                   @Localizer["Save"]
+            @Localizer["Save"]
         </MudButton>
     </DialogActions>
 </MudDialog>
@@ -224,10 +299,31 @@
 @code {
     [CascadingParameter] public required IMudDialogInstance _mudDialog { get; set; }
 
-    private List<DatasetIM> _datasets = new();
+    // dataset items with module for unique key
+    private class DatasetItem
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = string.Empty;
+        public string Module { get; set; } = string.Empty;
+        public string Key => $"{Module}__{Id}";
+    }
+
+    private List<DatasetItem> _datasetItems = new();
+    private string? _selectedDatasetKey;
     private int _selectedDatasetId;
+    private string? _selectedDatasetModule;
+
     private bool _isNumericDataset = false;
 
+    // module detection
+    private string? _selectedModuleName;
+    private List<string> _attributes = new();
+    private string? _selectedAtributo;
+    private List<string> _attributeValues = new();
+    private string? _selectedAttributeValue;
+    private int? _selectedType;
+
+    // common fields
     private decimal _multiplier = 1;
     private string _name = string.Empty;
     private string _description = string.Empty;
@@ -238,11 +334,64 @@
     private bool _isLoadingDatasets = true;
     private bool _isSubmitting = false;
 
-    private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<ColorRange> _colorRanges = new();
 
     private string? _serverError;
     private bool _dateRangeInvalid => (_metric is "average" or "min" or "max") && _dateFrom.HasValue && _dateTo.HasValue && (_dateFrom > _dateTo);
+
+    public string? SelectedAtributo
+    {
+        get => _selectedAtributo;
+        set
+        {
+            if (_selectedAtributo != value)
+            {
+                _selectedAtributo = value;
+                _ = OnAtributoChanged(value ?? string.Empty);
+            }
+        }
+    }
+
+    // 1) Helpers y labels (agregados)
+    private Dictionary<string, string> _metricLabels = new()
+    {
+        { "lastValue", "Last Value" },
+        { "average", "Average" },
+        { "min", "Minimum" },
+        { "max", "Maximum" },
+        { "count", "Count" },
+        { "percentage", "Percentage" }
+    };
+
+    private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
+    private List<string> _countPercentTypes = new() { "count", "percentage" };
+
+    // helper: el módulo acepta las métricas count/percentage
+    private bool ModuleUsesCountPercentage =>
+        !string.IsNullOrWhiteSpace(_selectedModuleName) &&
+        (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "AM", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "UM", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
+         || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase));
+
+    // helper: el módulo tiene métrica (IM o los otros)
+    private bool ModuleHasMetric =>
+        string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase)
+        || ModuleUsesCountPercentage;
+
+    // helper: obtener las opciones de métrica según módulo
+    private IEnumerable<string> GetMetricOptions()
+    {
+        if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+            return _isNumericDataset ? _kpiTypes : new List<string> { "lastValue" };
+
+        if (ModuleUsesCountPercentage)
+            return _countPercentTypes;
+
+        return new List<string>();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,26 +402,78 @@
     {
         _isLoadingDatasets = true;
         _serverError = null;
+
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Dataset/user?token={Uri.EscapeDataString(token)}");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _serverError = "Token no encontrado";
+                _datasetItems = new List<DatasetItem>();
+                return;
+            }
+
+            var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";
+
+            var response = await Http.GetAsync(url);
 
             if (response.IsSuccessStatusCode)
             {
-                _datasets = await response.Content.ReadFromJsonAsync<List<DatasetIM>>() ?? new();
-                _selectedDatasetId = _datasets.FirstOrDefault()?.Id ?? 0;
-                if (_selectedDatasetId != 0)
-                    await UpdateSensorType(_selectedDatasetId);
+                var loadedDatasets = await response.Content.ReadFromJsonAsync<List<DatasetDto>>() ?? new();
+
+                var items = loadedDatasets.Select(ds =>
+                {
+                    string moduleName = string.Empty;
+                    try
+                    {
+                        var moduleProp = ds.GetType().GetProperty("Module") ?? ds.GetType().GetProperty("SourceModule");
+                        if (moduleProp != null)
+                        {
+                            var val = moduleProp.GetValue(ds) as string;
+                            if (!string.IsNullOrWhiteSpace(val))
+                                moduleName = val.Trim();
+                        }
+                    }
+                    catch
+                    {
+                        moduleName = string.Empty;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(moduleName))
+                        moduleName = "Unknown";
+
+                    return new DatasetItem
+                    {
+                        Id = ds.Id,
+                        Nombre = ds.Nombre,
+                        Module = moduleName
+                    };
+                })
+                .OrderBy(i => i.Module)
+                .ThenBy(i => i.Nombre)
+                .ToList();
+
+                _datasetItems = items;
+
+                var first = _datasetItems.FirstOrDefault();
+                if (first != null)
+                {
+                    _selectedDatasetKey = first.Key;
+                    _selectedDatasetId = first.Id;
+                    _selectedDatasetModule = first.Module;
+                    await OnDatasetChanged(_selectedDatasetKey);
+                }
             }
             else
             {
-                Snackbar.Add(Localizer["ErrorFetchingDatasets"], Severity.Warning);
+                _serverError = $"Error cargando datasets: {response.ReasonPhrase}";
+                _datasetItems = new List<DatasetItem>();
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add(Localizer["ErrorLoadingDatasets", ex.Message], Severity.Error);
+            _serverError = $"Error al cargar datasets: {ex.Message}";
+            _datasetItems = new List<DatasetItem>();
         }
         finally
         {
@@ -281,10 +482,83 @@
         }
     }
 
-    private async Task OnDatasetChanged(int datasetId)
+    // 3) OnDatasetChanged: no comprobar numericidad para AM/EM/UM y setear _metric por defecto
+    private async Task OnDatasetChanged(string selectedKey)
     {
-        _selectedDatasetId = datasetId;
-        await UpdateSensorType(datasetId);
+        _selectedDatasetKey = selectedKey;
+
+        if (string.IsNullOrWhiteSpace(_selectedDatasetKey))
+        {
+            _selectedDatasetId = 0;
+            _selectedDatasetModule = null;
+            _selectedModuleName = null;
+            return;
+        }
+
+        var idx = _selectedDatasetKey.LastIndexOf("__", StringComparison.Ordinal);
+        if (idx >= 0)
+        {
+            var modulePart = _selectedDatasetKey.Substring(0, idx);
+            var idPart = _selectedDatasetKey.Substring(idx + 2);
+
+            if (int.TryParse(idPart, out var id))
+                _selectedDatasetId = id;
+            else
+                _selectedDatasetId = 0;
+
+            _selectedDatasetModule = string.IsNullOrWhiteSpace(modulePart) ? null : modulePart;
+        }
+        else
+        {
+            if (int.TryParse(_selectedDatasetKey, out var idOnly))
+            {
+                _selectedDatasetId = idOnly;
+                _selectedDatasetModule = null;
+            }
+            else
+            {
+                _selectedDatasetId = 0;
+                _selectedDatasetModule = null;
+            }
+        }
+
+        _selectedModuleName = _selectedDatasetModule;
+
+        // Si el módulo es AM/EM/UM asumimos dataset numérico (no hacemos la comprobación)
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (!string.IsNullOrWhiteSpace(moduleCode) &&
+            (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase)
+             || moduleCode.Equals("em", StringComparison.OrdinalIgnoreCase)
+             || moduleCode.Equals("um", StringComparison.OrdinalIgnoreCase)))
+        {
+            _isNumericDataset = true;
+        }
+        else
+        {
+            // para IM y otros módulos hacemos la comprobación del sensor (si aplica)
+            if (_selectedDatasetId != 0)
+                await UpdateSensorType(_selectedDatasetId);
+            else
+                _isNumericDataset = false;
+        }
+
+        // setear métrica por defecto según módulo
+        if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+        {
+            _metric = "lastValue";
+        }
+        else if (ModuleUsesCountPercentage)
+        {
+            _metric = "count";
+        }
+
+        _attributes.Clear();
+        _selectedAtributo = null;
+        _attributeValues.Clear();
+        _selectedAttributeValue = null;
+        _selectedType = null;
+
+        StateHasChanged();
     }
 
     private async Task UpdateSensorType(int datasetId)
@@ -313,63 +587,215 @@
         }
     }
 
+    private string? GetModuleCode(string? moduleLongName)
+    {
+        if (string.IsNullOrWhiteSpace(moduleLongName)) return null;
+
+        var s = moduleLongName.Trim().ToLowerInvariant();
+        return s switch
+        {
+            "asset manager" => "am",
+            "am" => "am",
+            "event manager" => "em",
+            "em" => "em",
+            "urban monitor" => "um",
+            "um" => "um",
+            "insight monitor" => "im",
+            "im" => "im",
+            _ => s
+        };
+    }
+
+    private async Task LoadFieldTypes()
+    {
+        _attributes.Clear();
+        _selectedAtributo = null;
+        _attributeValues.Clear();
+        _selectedAttributeValue = null;
+
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (string.IsNullOrWhiteSpace(moduleCode) || !_selectedType.HasValue)
+            return;
+
+        try
+        {
+            var resp = await Http.GetAsync($"api/Kpi/field-types?modulo={Uri.EscapeDataString(moduleCode)}&choice={_selectedType.Value}");
+
+            if (resp.IsSuccessStatusCode)
+            {
+                var list = await resp.Content.ReadFromJsonAsync<List<string>>() ?? new();
+                _attributes = list;
+            }
+            else
+            {
+                _attributes = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading field types: {ex.Message}");
+            _attributes = new();
+        }
+        StateHasChanged();
+    }
+
+    private async Task SetType(int type)
+    {
+        if (_selectedType == type) return;
+        _selectedType = type;
+
+        await LoadFieldTypes();
+    }
+
+    private async Task OnAtributoChanged(string atributo)
+    {
+        _selectedAtributo = atributo;
+        _attributeValues.Clear();
+        _selectedAttributeValue = null;
+
+        if (string.IsNullOrWhiteSpace(_selectedAtributo))
+            return;
+
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (string.IsNullOrWhiteSpace(moduleCode))
+            return;
+
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            // si _selectedType es null, mandar 0 por seguridad (o podrías requerir que el usuario elija tipo)
+            var choice = _selectedType ?? 0;
+
+            var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}&token={Uri.EscapeDataString(token ?? "")}";
+
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                _attributeValues = await resp.Content.ReadFromJsonAsync<List<string>>() ?? new();
+                Console.WriteLine(_attributeValues);
+            }
+            else
+            {
+                _attributeValues = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching field values: {ex.Message}");
+            _attributeValues = new();
+        }
+
+        StateHasChanged();
+    }
+
     private void AddRange() => _colorRanges.Add(new ColorRange());
 
     private void RemoveRange(ColorRange range) => _colorRanges.Remove(range);
 
     private void Cancel() => _mudDialog.Cancel();
 
-    private Dictionary<string, string> _metricLabels = new()
+    // 4) IsFormValid actualizado: exigir métrica para esos módulos
+    private bool IsFormValid
     {
-        { "lastValue", "Last Value" },
-        { "average", "Average" },
-        { "min", "Minimum" },
-        { "max", "Maximum" }
-    };
+        get
+        {
+            if (_selectedDatasetId == 0) return false;
+            if (string.IsNullOrWhiteSpace(_name)) return false;
 
-    private bool IsFormValid =>
-     _selectedDatasetId != 0 &&
-     !string.IsNullOrWhiteSpace(_name) &&
-     !string.IsNullOrWhiteSpace(_metric) &&
-     (
-         (_metric != "average" && _metric != "min" && _metric != "max")
-         || (_dateFrom.HasValue && _dateTo.HasValue && !_dateRangeInvalid)
-     );
+            // Si el módulo usa métricas (IM o AM/EM/UM con count/percentage) exigir métrica
+            if (ModuleHasMetric)
+            {
+                if (string.IsNullOrWhiteSpace(_metric)) return false;
+
+                // Para IM, las métricas average/min/max requieren date range
+                if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+                {
+                    if ((_metric == "average" || _metric == "min" || _metric == "max"))
+                    {
+                        if (!_dateFrom.HasValue || !_dateTo.HasValue || _dateRangeInvalid) return false;
+                    }
+                }
+            }
+
+            // Para todos los módulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
+            if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!_selectedType.HasValue) return false;
+                if (_attributes != null && _attributes.Any())
+                {
+                    if (string.IsNullOrWhiteSpace(_selectedAtributo)) return false;
+                    if (_attributeValues != null && _attributeValues.Any() && string.IsNullOrWhiteSpace(_selectedAttributeValue))
+                        return false;
+                }
+            }
+
+            return true;
+        }
+    }
 
 
     private async Task Submit()
     {
         _serverError = null;
 
+        // client-side validation
         if (string.IsNullOrWhiteSpace(_name))
         {
             Snackbar.Add(Localizer["KpiNameRequired"], Severity.Warning);
             return;
         }
 
-        
-        if (!_dateFrom.HasValue || !_dateTo.HasValue)
+        if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
-            Snackbar.Add(Localizer["DateRangeRequired"], Severity.Warning);
-            return;
-        }
-
-        if (_dateFrom > _dateTo)
-        {
-            Snackbar.Add(Localizer["DateRangeInvalid"], Severity.Warning);
-            return;
-        }
-        
-
-        object extraInfoObj;
-
-        if ( _dateFrom.HasValue && _dateTo.HasValue)
-        {
-            extraInfoObj = new { dateFrom = _dateFrom.Value.ToString("o"), dateTo = _dateTo.Value.ToString("o") };
+            if ((_metric == "average" || _metric == "min" || _metric == "max"))
+            {
+                if (!_dateFrom.HasValue || !_dateTo.HasValue)
+                {
+                    Snackbar.Add(Localizer["DateRangeRequired"], Severity.Warning);
+                    return;
+                }
+                if (_dateFrom > _dateTo)
+                {
+                    Snackbar.Add(Localizer["DateRangeInvalid"], Severity.Warning);
+                    return;
+                }
+            }
         }
         else
         {
-            extraInfoObj = new { };
+            if (!_selectedType.HasValue)
+            {
+                Snackbar.Add(Localizer["InvalidForm"], Severity.Warning);
+                return;
+            }
+            if (_attributes != null && _attributes.Any() && string.IsNullOrWhiteSpace(_selectedAtributo))
+            {
+                Snackbar.Add(Localizer["InvalidForm"], Severity.Warning);
+                return;
+            }
+            if (_attributeValues != null && _attributeValues.Any() && string.IsNullOrWhiteSpace(_selectedAttributeValue))
+            {
+                Snackbar.Add(Localizer["InvalidForm"], Severity.Warning);
+                return;
+            }
+        }
+
+        // prepare extraInfo
+        object? extraInfoObj = null;
+        if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
+        {
+            if (_dateFrom.HasValue && _dateTo.HasValue)
+                extraInfoObj = JsonSerializer.Serialize(new { dateFrom = _dateFrom.Value.ToString("o"), dateTo = _dateTo.Value.ToString("o") });
+            else
+                extraInfoObj = JsonSerializer.Serialize(new { });
+        }
+        else
+        {
+            // for non-IM modules we store selected attribute value in extraInfo (optional)
+            if (!string.IsNullOrWhiteSpace(_selectedAttributeValue))
+                extraInfoObj = _selectedAttributeValue;
+            else
+                extraInfoObj = new { };
         }
 
         var request = new KpiRequest
@@ -378,19 +804,24 @@
             Description = _description?.Trim(),
             DatasetId = _selectedDatasetId,
             Unit = "x",
-            Metric = _metric,
-            Multiplier = (double)_multiplier,
+            // 4) Metric: enviarla si el módulo soporta métricas (IM o AM/EM/UM)
+            Metric = ModuleHasMetric ? _metric : null,
+            // Multiplier only if numeric
+            Multiplier = _isNumericDataset ? (double?)_multiplier : null,
             DefaultColor = _color,
-            ColorRanges = _isNumericDataset ? System.Text.Json.JsonSerializer.Serialize(_colorRanges) : "[]",
-            ExtraInfo = System.Text.Json.JsonSerializer.Serialize(extraInfoObj),
-            SourceModule = "IM"
+            ColorRanges = _isNumericDataset ? JsonSerializer.Serialize(_colorRanges) : "[]",
+            ExtraInfo = extraInfoObj is null ? null : extraInfoObj.ToString(),
+            // Save the long module name returned by backend (but passing module code uppercased)
+            SourceModule = GetModuleCode(_selectedModuleName)?.ToUpperInvariant() ?? _selectedModuleName,
+            // Non-IM fields
+            Atributo = !string.IsNullOrWhiteSpace(_selectedAtributo) ? _selectedAtributo : null,
+            Type = _selectedType
         };
-
         _isSubmitting = true;
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.PostAsJsonAsync($"api/Kpi?token={Uri.EscapeDataString(token)}", request);
+            var response = await Http.PostAsJsonAsync($"api/Kpi?token={Uri.EscapeDataString(token ?? "")}", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -399,7 +830,6 @@
             }
             else
             {
-                // try to extract a useful error message from the server
                 string serverMsg;
                 try
                 {
@@ -412,7 +842,6 @@
                     serverMsg = response.ReasonPhrase ?? "Unknown server error";
                 }
 
-                // show in snackbar and inside dialog
                 _serverError = Localizer["ErrorCreatingKpi", serverMsg];
                 Snackbar.Add(_serverError, Severity.Error);
             }
@@ -434,14 +863,5 @@
         public decimal Min { get; set; }
         public decimal Max { get; set; }
         public string Color { get; set; } = "#00FF00";
-    }
-
-    // Minimal DTO stub: DatasetIM must match what the API returns for the dataset list
-    private class DatasetIM
-    {
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public string? ContentType { get; set; }
-        public string? SensorName { get; set; }
     }
 }

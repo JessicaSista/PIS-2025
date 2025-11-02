@@ -44,6 +44,7 @@ public interface ISondaIMService
 
     //****************SENSORS*****************
     Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username);
+    Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo);
     //*****************************************
 
 
@@ -353,6 +354,35 @@ public class SondaIMService : ISondaIMService
 
         return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
+
+    public async Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
+    {
+        string token = await _sondaAuthService.GetUserTokenIMAsync("visitante");
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Analytic"]["TimeSerie"];
+
+        string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
+        string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
+
+        string datesParameter = $"{formattedDateFrom},{formattedDateTo}";
+
+        string encodedDates = Uri.EscapeDataString(datesParameter);
+
+        string url = $"{baseUrl}{endpoint}?deviceId={deviceId}&sensorName={sensorName}&dates={encodedDates}";
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        Console.WriteLine($"URL GetSensorDataByDate: {url}");
+
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    }
+
     public async Task<int> GetSSDeviceCount(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;

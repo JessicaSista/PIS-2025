@@ -148,6 +148,28 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpGet("GetDatasetSinToken")]
+        [ProducesResponseType(typeof(DatasetIM), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetIM>> GetDatasetByIdSinToken(int datasetId)
+        {
+            try
+            {
+                DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsyncSinToken(datasetId);
+                if (dataset == null)
+                {
+                    return NotFound($"No se encontró el dataset con ID {datasetId}");
+                }
+
+                return Ok(dataset);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
@@ -234,12 +256,9 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                Console.WriteLine($"[TRACE] Token recibido: {token}");
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                Console.WriteLine($"[TRACE] Usuario: {username}");
 
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
-                Console.WriteLine($"[TRACE] Dataset encontrado: {dataset?.Id}, Source: {dataset?.Id_Source}, SensorName: {dataset?.SensorName}");
                 if (dataset == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId}.");
@@ -258,7 +277,6 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
                 }
 
-                // Recorrer los devices del source, obtener cada uno por GetDeviceById y buscar el sensor ahí
                 if (source.Devices != null)
                 {
                     foreach (Device dev in source.Devices)
