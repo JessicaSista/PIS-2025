@@ -1754,7 +1754,7 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Dataset")
                         .WithMany()
                         .HasForeignKey("DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
