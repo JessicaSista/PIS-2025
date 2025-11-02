@@ -63,7 +63,7 @@ namespace OmniMonitor.Server.Services
                 case "count":
                     response = await CountStateGeneric(kpi, items, username);
                     break;
-                case "porcentaje":
+                case "percentage":
                     response = await CalculateAverageKpiGeneric(kpi, items, username);
                     break;
                 case "state":
@@ -81,13 +81,18 @@ namespace OmniMonitor.Server.Services
             var estadoNecesario = kpi.ExtraInfo ?? "";
             var atributo = kpi.Atributo ?? "";
                 int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            string color = kpi.DefaultColor;
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+                color = GetColorForValue(kpi.ColorRanges, count, kpi.DefaultColor);
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "count",
                 Value = count,
-                Unit = null
+                Unit = null,
+                ActualColor = color
             };
         }
 
@@ -97,13 +102,19 @@ namespace OmniMonitor.Server.Services
             var atributo = kpi.Atributo ?? "";
                 int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             double porcentaje = (items.Count > 0) ? (double)count / items.Count * 100.0 : 0.0;
+            double porcentajeFormateado = Math.Round(porcentaje, 2);
+            string color = kpi.DefaultColor;
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+                color = GetColorForValue(kpi.ColorRanges, porcentajeFormateado, kpi.DefaultColor);
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "average",
-                Value = porcentaje,
-                Unit = "%"
+                Value = porcentajeFormateado,
+                Unit = "%",
+                ActualColor = color
             };
         }
 
@@ -113,25 +124,117 @@ namespace OmniMonitor.Server.Services
             var atributo = kpi.Atributo ?? "";
             if (items.Count == 1)
             {
+                string color = kpi.DefaultColor;
+                if (!string.IsNullOrEmpty(kpi.ColorRanges))
+                {
+                    var val = GetAssetFieldValue(items[0], atributo);
+                    double numVal = 0;
+                    double.TryParse(val, out numVal);
+                    color = GetColorForValue(kpi.ColorRanges, numVal, kpi.DefaultColor);
+                }
                 return new KpiResponse
                 {
+                    Id = kpi.Id,
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Type = "state",
-                        Value = GetAssetFieldValue(items[0], atributo) ?? "Desconocido",
-                    Unit = null
+                    Value = GetAssetFieldValue(items[0], atributo) ?? "Desconocido",
+                    Unit = null,
+                    ActualColor = color
                 };
             }
-                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            string color2 = kpi.DefaultColor;
+            if (!string.IsNullOrEmpty(kpi.ColorRanges))
+                color2 = GetColorForValue(kpi.ColorRanges, count, kpi.DefaultColor);
             return new KpiResponse
             {
+                Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "state",
                 Value = count,
-                Unit = null
+                Unit = null,
+                ActualColor = color2
             };
         }
+
+        public string GetColorForValue(string colorRangesJson, double value, string defaultColor)
+        {
+            try
+            {
+                var options = new System.Text.Json.JsonSerializerOptions();
+                options.Converters.Add(new FlexibleColorRangeConverter());
+                var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson, options);
+                if (ranges == null)
+                {
+                    Console.WriteLine($"[DEBUG] ColorRanges nulo. Usando color por defecto: {defaultColor}");
+                    return defaultColor;
+                }
+
+                Console.WriteLine($"[DEBUG] Buscando color para valor: {value}. Rango JSON: {colorRangesJson}");
+                foreach (var range in ranges)
+                {
+                    Console.WriteLine($"[DEBUG] Rango: min={range.min}, max={range.max}, color={range.color}");
+                    if (value >= range.min && value <= range.max)
+                    {
+                        Console.WriteLine($"[DEBUG] Valor {value} está en el rango [{range.min}, {range.max}]. Color seleccionado: {range.color}");
+                        return range.color;
+                    }
+                }
+                Console.WriteLine($"[DEBUG] Ningún rango coincide para valor {value}. Usando color por defecto: {defaultColor}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DEBUG] Error al deserializar ColorRanges o calcular color: {ex.Message}. Usando color por defecto: {defaultColor}");
+                return defaultColor;
+            }
+            return defaultColor;
+        }
+
+                // Custom converter para ColorRange que acepta min/max/color o Min/Max/Color
+        public class FlexibleColorRangeConverter : System.Text.Json.Serialization.JsonConverter<ColorRange>
+        {
+            public override ColorRange Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+            {
+                double min = 0, max = 0;
+                string color = "#000000";
+                if (reader.TokenType != System.Text.Json.JsonTokenType.StartObject)
+                    throw new System.Text.Json.JsonException();
+                while (reader.Read())
+                {
+                    if (reader.TokenType == System.Text.Json.JsonTokenType.EndObject)
+                        break;
+                    if (reader.TokenType == System.Text.Json.JsonTokenType.PropertyName)
+                    {
+                        string prop = reader.GetString();
+                        reader.Read();
+                        switch (prop.ToLower())
+                        {
+                            case "min": min = reader.GetDouble(); break;
+                            case "max": max = reader.GetDouble(); break;
+                            case "color": color = reader.GetString(); break;
+                        }
+                    }
+                }
+                return new ColorRange { min = min, max = max, color = color };
+            }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, ColorRange value, System.Text.Json.JsonSerializerOptions options)
+            {
+                writer.WriteStartObject();
+                writer.WriteNumber("min", value.min);
+                writer.WriteNumber("max", value.max);
+                writer.WriteString("color", value.color);
+                writer.WriteEndObject();
+            }
+        }
+
+        public class ColorRange
+        {
+            public double min { get; set; }
+            public double max { get; set; }
+            public string color { get; set; }
+        }
+
     }
-}   
-        
+}
