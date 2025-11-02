@@ -7,12 +7,12 @@
              Outlined="true">
         @if (!_isKpi)
         {
-            <ChartViewer @key="_chartViewerKey" ChartReloadKey="@_chartKey" VisualizationId="@VisualizationId" />
+            <ChartViewerPublic @key="_chartViewerKey" ChartReloadKey="@_chartKey" VisualizationId="@VisualizationId" />
         }
         else
         {
             <div class="d-flex flex-grow: 1; pa-5">
-                <KpiViewer KpiId="@VisualizationId" />
+                <KpiViewerPublic KpiId="@VisualizationId" />
             </div>
         }
     </MudCard>
