@@ -70,6 +70,9 @@
   <data name="PublicLink" xml:space="preserve">
     <value>Enlace público</value>
   </data>
+  <data name="LastLink" xml:space="preserve">
+    <value>Último enlace</value>
+  </data>
   <data name="GenerateLinkPlaceholder" xml:space="preserve">
     <value>Genera un enlace para copiar</value>
   </data>

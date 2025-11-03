@@ -27,7 +27,7 @@
             </MudStack></MudPaper>
 
             <MudStack>
-                <MudText Typo="Typo.subtitle2">@Localizer["PublicLink"]</MudText>
+                <MudText Typo="Typo.subtitle2">@Localizer["LastLink"]</MudText>
                 <MudTextField @bind-Value="shareUrl" ReadOnly="true" Variant="Variant.Outlined" Placeholder="@Localizer["GenerateLinkPlaceholder"]" Adornment="Adornment.End">
                     <AdornmentIcon>@Icons.Material.Filled.ContentCopy</AdornmentIcon>
                     <OnAdornmentClick>CopyLink</OnAdornmentClick>
@@ -146,13 +146,6 @@
         try
         {
             loading = true;
-            // Nuevo comportamiento: no borrar enlaces al apagar. Si se enciende y no hay enlace público, crear uno.
-            if (isPublic && links.Count == 0)
-            {
-                var created = await ShareLinkService.CreateShare(DashboardId, new ShareRequestDto { Visibility = "public" });
-                links.Add(created);
-                Snackbar.Add(Localizer["PublicLinkGenerated"], Severity.Success);
-            }
         }
         catch (Exception ex)
         {
