@@ -41,11 +41,11 @@
             }
             else
             {
-                @foreach (var ds in _datasets)
+                @foreach (DatasetDtoGenerico ds in _datasets)
                 {
                     <MudButton FullWidth="true"
                                Variant="MudBlazor.Variant.Outlined"
-                               OnClick="@(() => SelectDataset(ds.Id))"
+                               OnClick="@(() => SelectDataset(ds))"
                                Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
                                Class="pa-0">
                         <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
@@ -67,12 +67,12 @@
     public required IMudDialogInstance MudDialog { get; set; }
 
     [Parameter]
-    public EventCallback<int> OnDatasetSelected { get; set; }
+    public EventCallback<DatasetDtoGenerico> OnDatasetSelected { get; set; }
 
     [Parameter]
     public EventCallback OnNewDataset { get; set; }
 
-    private List<DatasetDto> _datasets = new();
+    private List<DatasetDtoGenerico> _datasets = new();
     private bool _isLoading = true;
     
 
@@ -90,7 +90,7 @@
             }
 
             var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var req = new HttpRequestMessage(HttpMethod.Get, $"api/Dataset/user?token={Uri.EscapeDataString(token)}&_ts={ts}");
+            var req = new HttpRequestMessage(HttpMethod.Get, $"api/DatasetUM/GetAllGenericDatasetDtos?token={Uri.EscapeDataString(token)}");
             req.Headers.Accept.Clear();
             req.Headers.Accept.ParseAdd("application/json");
             var response = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
@@ -106,37 +106,14 @@
                 }
                 else
                 {
-                    try
+                    List<DatasetDtoGenerico>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+                    if (_datasetsFromApi is not null)
                     {
-                        var json = JsonDocument.Parse(text).RootElement;
-                        var list = new List<DatasetDto>();
-                        if (json.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var el in json.EnumerateArray())
-                            {
-                                int id = 0;
-                                if (el.TryGetProperty("Id", out var idProp) && idProp.TryGetInt32(out var idVal)) id = idVal;
-                                else if (el.TryGetProperty("id", out var idProp2) && idProp2.TryGetInt32(out var idVal2)) id = idVal2;
-
-                                string nombre = string.Empty;
-                                if (el.TryGetProperty("Nombre", out var n1)) nombre = n1.GetString() ?? string.Empty;
-                                else if (el.TryGetProperty("Name", out var n2)) nombre = n2.GetString() ?? string.Empty;
-                                else if (el.TryGetProperty("name", out var n3)) nombre = n3.GetString() ?? string.Empty;
-
-                                string descripcion = string.Empty;
-                                if (el.TryGetProperty("Descripcion", out var d1)) descripcion = d1.GetString() ?? string.Empty;
-                                else if (el.TryGetProperty("Description", out var d2)) descripcion = d2.GetString() ?? string.Empty;
-                                else if (el.TryGetProperty("description", out var d3)) descripcion = d3.GetString() ?? string.Empty;
-
-                                list.Add(new DatasetDto { Id = id, Nombre = nombre, Descripcion = descripcion });
-                            }
-                        }
-                        _datasets = list;
+                        _datasets = _datasetsFromApi;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Snackbar.Add(Localizer["ErrorLoadingDatasets"], Severity.Error);
-                        _datasets = new();
+                        _datasets = new List<DatasetDtoGenerico>();
                     }
                 }
             }
@@ -158,11 +135,11 @@
         }
     }
 
-    private async Task SelectDataset(int id)
+    private async Task SelectDataset(DatasetDtoGenerico dataset)
     {
         if (OnDatasetSelected.HasDelegate)
         {
-            await OnDatasetSelected.InvokeAsync(id);
+            await OnDatasetSelected.InvokeAsync(dataset);
         }
         MudDialog.Close(DialogResult.Ok(true));
     }

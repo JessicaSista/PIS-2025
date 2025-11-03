@@ -45,5 +45,6 @@ namespace OmniMonitor.Client.Services
         public int DatasetId { get; set; }
         public decimal Multiplier { get; set; } = 1.0M;
         public string Color { get; set; } = "#00FFE7";
+        public string? Module { get; set; }
     }
 }
