@@ -89,7 +89,7 @@
 <!-- Dashboard grid -->
 <MudContainer Fixed="false">
     <MudGrid GutterSize="3" Justify="Justify.FlexStart">
-        @if (dashboards == null)
+        @if (filteredDashboards == null)
         {
             @for (int i = 0; i < 8; i++)
             {
@@ -140,13 +140,61 @@
             }
         }
     </MudGrid>
+
+    @* Controles de paginación *@
+    @if (totalPages > 1)
+    {
+        <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft" 
+                           Disabled="@(!hasPreviousPage)" 
+                           OnClick="@(() => GoToPage(1))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+            
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" 
+                           Disabled="@(!hasPreviousPage)" 
+                           OnClick="@(() => GoToPage(currentPage - 1))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+            
+            <MudText Typo="Typo.body2" Class="mx-3">
+                @Localizer["Página"] @currentPage @Localizer["de"] @totalPages
+            </MudText>
+            
+            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" 
+                           Disabled="@(!hasNextPage)" 
+                           OnClick="@(() => GoToPage(currentPage + 1))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+            
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight" 
+                           Disabled="@(!hasNextPage)" 
+                           OnClick="@(() => GoToPage(totalPages))"
+                           Size="MudBlazor.Size.Small"
+                           Color="MudBlazor.Color.Primary" />
+        </MudStack>
+
+        <MudStack Row Justify="Justify.Center" Class="mb-4">
+            <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                @Localizer["Mostrando"] @filteredDashboards.Count @Localizer["de"] @totalCount dashboards
+            </MudText>
+        </MudStack>
+    }
 </MudContainer>
 
 
 @code {
-    private List<DashboardSummaryResponse>? dashboards = null;
+    // Eliminada variable 'dashboards', solo se usa 'filteredDashboards'
     private List<DashboardSummaryResponse> filteredDashboards = new();
     private string _searchText = string.Empty;
+    
+    // Variables de paginación
+    private int currentPage = 1;
+    private int pageSize = 12;
+    private int totalPages = 0;
+    private int totalCount = 0;
+    private bool hasPreviousPage = false;
+    private bool hasNextPage = false;
 
     private string searchText
     {
@@ -154,31 +202,16 @@
         set
         {
             _searchText = value ?? string.Empty;
-            ApplyFilter();
+            currentPage = 1; // Reset a la primera página cuando se busca
+            _ = LoadDashboardsAsync(); // Cargar con el nuevo filtro
         }
     }
 
-    private void ApplyFilter()
+    private async Task GoToPage(int page)
     {
-        if (dashboards == null)
-        {
-            filteredDashboards = new List<DashboardSummaryResponse>();
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_searchText))
-        {
-            filteredDashboards = dashboards.ToList();
-        }
-        else
-        {
-            var normalizedSearch = NormalizeText(_searchText);
-            filteredDashboards = dashboards
-                .Where(d =>
-                    NormalizeText(d.Nombre).Contains(normalizedSearch) ||
-                    NormalizeText(d.Descripcion ?? string.Empty).Contains(normalizedSearch))
-                .ToList();
-        }
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        await LoadDashboardsAsync();
     }
 
     protected override async Task OnInitializedAsync()
@@ -192,8 +225,7 @@
             if (string.IsNullOrEmpty(username))
             {
                 Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
-                dashboards = new List<DashboardSummaryResponse>();
-                ApplyFilter();
+                filteredDashboards = new List<DashboardSummaryResponse>();
                 return;
             }
 
@@ -202,8 +234,9 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading dashboards: {ex.Message}", Severity.Error);
-            dashboards = new List<DashboardSummaryResponse>();
-            ApplyFilter();
+            filteredDashboards = new List<DashboardSummaryResponse>();
+            totalCount = 0;
+            totalPages = 0;
         }
     }
 
@@ -212,21 +245,51 @@
         try
         {
             string token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Snackbar.Add(Localizer["TokenMissing"], Severity.Warning);
+                filteredDashboards = new List<DashboardSummaryResponse>();
+                totalCount = 0;
+                totalPages = 0;
+                StateHasChanged();
+                return;
+            }
 
-            var result = await Http.GetFromJsonAsync<List<DashboardSummaryResponse>>(
-                $"api/Dashboard/GetAllDashboards?token={token}"
-            );
+            // Construir URL con paginación
+            var url = $"api/Dashboard/GetAllDashboardsPaginated?token={token}&page={currentPage}&pageSize={pageSize}";
+            if (!string.IsNullOrWhiteSpace(_searchText))
+            {
+                url += $"&query={Uri.EscapeDataString(_searchText)}";
+            }
 
-            dashboards = result ?? new List<DashboardSummaryResponse>();
-            ApplyFilter();
+            var result = await Http.GetFromJsonAsync<PaginatedDashboardDto>(url);
+
+            if (result != null)
+            {
+                filteredDashboards = result.Items ?? new List<DashboardSummaryResponse>();
+                totalCount = result.TotalCount;
+                totalPages = result.TotalPages;
+                currentPage = result.Page;
+                hasPreviousPage = result.HasPreviousPage;
+                hasNextPage = result.HasNextPage;
+                
+                Console.WriteLine($"DEBUG: Página {currentPage}/{totalPages}, Total: {totalCount}, Mostrando: {filteredDashboards.Count}");
+            }
+            else
+            {
+                filteredDashboards = new List<DashboardSummaryResponse>();
+                totalCount = 0;
+                totalPages = 0;
+            }
 
             StateHasChanged();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading dashboards: {ex.Message}", Severity.Error);
-            dashboards = new List<DashboardSummaryResponse>();
-            ApplyFilter();
+            filteredDashboards = new List<DashboardSummaryResponse>();
+            totalCount = 0;
+            totalPages = 0;
             StateHasChanged();
         }
     }
@@ -266,7 +329,6 @@
             if (string.IsNullOrEmpty(username))
             {
                 Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
-                dashboards = dashboards ?? new List<DashboardSummaryResponse>();
                 filteredDashboards = new List<DashboardSummaryResponse>();
                 return;
             }
@@ -284,19 +346,8 @@
                 var created = await response.Content.ReadFromJsonAsync<DashboardResponse>();
                 if (created != null)
                 {
-                    dashboards = dashboards ?? new List<DashboardSummaryResponse>();
-                    dashboards.Add(new DashboardSummaryResponse
-                    {
-                        IdDashboard = created.IdDashboard,
-                        Nombre = created.Nombre,
-                        Descripcion = created.Descripcion,
-                        FechaCreacion = created.FechaCreacion,
-                        FechaModificacion = created.FechaModificacion,
-                        CantidadTarjetas = created.Tarjetas?.Count ?? 0
-                    });
-
-                    ApplyFilter();
-                    StateHasChanged();
+                    // Recargar la lista paginada desde el servidor
+                    await LoadDashboardsAsync();
                     await JS.InvokeVoidAsync("equalizeCardHeights");
                     Snackbar.Add($"'{created.Nombre}' created successfully", Severity.Success);
                 }
@@ -430,7 +481,7 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    dashboards?.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
+                    // dashboards eliminado, solo se usa filteredDashboards
                     filteredDashboards.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
                     Snackbar.Add($"'{dashboard.Nombre}' deleted successfully", Severity.Success);
                 }
@@ -448,19 +499,12 @@
         }
     }
 
-    private string NormalizeText(string text)
-    {
-        if (string.IsNullOrEmpty(text)) return string.Empty;
-        var formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
-        var withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
-        return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
-    }
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (dashboards != null && dashboards.Count > 0)
+        if (filteredDashboards != null && filteredDashboards.Count > 0)
         {
             await JS.InvokeVoidAsync("equalizeCardHeights");
         }
     }
 }
+

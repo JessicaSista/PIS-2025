@@ -124,10 +124,17 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> DeleteVisualizacion(int idVisualizacion)
+        public async Task<IActionResult> DeleteVisualizacion(int idVisualizacion, [FromQuery] string token)
         {
+            ArgumentNullException.ThrowIfNull(token);
             try
             {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(username))
+                {
+                    return Unauthorized("Token inválido o usuario no encontrado.");
+                }
+
                 using (IServiceScope scope = HttpContext.RequestServices.CreateScope())
                 {
                     Context.ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<Context.ApplicationDbContext>();
@@ -167,10 +174,15 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(500)]
         public async Task<IActionResult> EditVisualizacion(int idVisualizacion, [FromQuery] string token, [FromBody] CreateVisualizacionRequest request)
         {
-            // Hay que revisar esta funcion que no verifica el token.
             ArgumentNullException.ThrowIfNull(token);
             try
             {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(username))
+                {
+                    return Unauthorized("Token inválido o usuario no encontrado.");
+                }
+
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -186,9 +198,26 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontró la visualización con ID {idVisualizacion}.");
                 }
 
+                // Validar nombre único (excepto la propia visualización)
+                bool nombreDuplicado = await db.Visualizaciones
+                    .AnyAsync(v => v.IdVisualizacion != idVisualizacion && v.Nombre == request.Nombre);
+                if (nombreDuplicado)
+                {
+                    return BadRequest($"Ya existe otra visualización con el nombre '{request.Nombre}'.");
+                }
+
+                // Validar fechas
+                if (request.FechaDesde > request.FechaHasta)
+                {
+                    return BadRequest("La fecha de inicio debe ser anterior o igual a la fecha de fin.");
+                }
+                if (request.FechaDesde == default || request.FechaHasta == default)
+                {
+                    return BadRequest("Las fechas de inicio y fin deben ser válidas.");
+                }
+
                 // Actualizar campos principales
                 visualizacion.Nombre = request.Nombre;
-                visualizacion.Username = request.Username;
                 visualizacion.FechaDesde = request.FechaDesde;
                 visualizacion.FechaHasta = request.FechaHasta;
                 visualizacion.JsonDesign = request.JsonDiseñoGeneral;

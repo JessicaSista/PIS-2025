@@ -153,6 +153,68 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
+        /// Obtiene todos los dashboards de un usuario específico con paginación.
+        /// </summary>
+        /// <param name="token">Token de autenticación del usuario.</param>
+        /// <param name="page">Número de página (default: 1).</param>
+        /// <param name="pageSize">Tamaño de página (default: 9).</param>
+        /// <param name="query">Texto de búsqueda opcional.</param>
+        /// <returns>Dashboards paginados del usuario.</returns>
+        /// <response code="200">Lista paginada de dashboards obtenida exitosamente.</response>
+        /// <response code="401">Usuario no autenticado.</response>
+        /// <response code="500">Error interno del servidor.</response>
+        [HttpGet("GetAllDashboardsPaginated")]
+        [ProducesResponseType(typeof(PaginatedDashboardDto), 200)]
+        [ProducesResponseType(401)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<PaginatedDashboardDto>> GetAllDashboardsPaginated(
+            string token, 
+            [FromQuery] int page = 1, 
+            [FromQuery] int pageSize = 9,
+            [FromQuery] string? query = null)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                
+                // Obtener todos los dashboards (con filtro de búsqueda si existe)
+                List<DashboardSummaryResponse> allDashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
+
+                // Calcular totales
+                int totalCount = allDashboards.Count;
+                int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+                // Validar página
+                if (page < 1) page = 1;
+                if (page > totalPages && totalPages > 0) page = totalPages;
+
+                // Aplicar paginación
+                var paginatedItems = allDashboards
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                // Crear respuesta paginada
+                var result = new PaginatedDashboardDto
+                {
+                    Items = paginatedItems,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = totalPages,
+                    HasPreviousPage = page > 1,
+                    HasNextPage = page < totalPages
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener los dashboards: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Valida una lista de cardIds (IdVisualizacion).
         /// </summary>
         /// <param name="cardIds">Lista de IDs de visualizaciones a validar.</param>
