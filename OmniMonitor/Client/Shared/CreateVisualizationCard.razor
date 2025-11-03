@@ -28,17 +28,6 @@
                     <MudItem Lg="4" Sm="4" Xs="12" Class="pl-0 pt-0">
                         <MudText Typo="Typo.h6">@Localizer["Dataset"]</MudText>
                         <MudText Typo="Typo.body1">@dsItem.DatasetName</MudText>
-                        @*
-                        <MudSelect T="int" @bind-Value="dsItem.DatasetId" Variant="Variant.Outlined" Dense="true">
-                            @foreach (DatasetDto ds in _datasets)
-                            {
-                                <MudSelectItem T="int" Value="@ds.Id" Disabled="@(_selectedDatasets.Any(sds => sds.DatasetId == ds.Id && sds.DatasetId != dsItem.DatasetId))">
-                                    @ds.Nombre
-                                </MudSelectItem>
-                            }
-                            
-                        </MudSelect>
-                        *@
                     </MudItem>
 
 
@@ -194,7 +183,7 @@
     {
         var parameters = new DialogParameters
         {
-            { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDto>(this, HandleDatasetSelected) },
+            { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDtoGenerico>(this, HandleDatasetSelected) },
             { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) }
         };
 
@@ -202,7 +191,7 @@
         await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
     }
 
-    private async Task HandleDatasetSelected(DatasetDto dataset)
+    private async Task HandleDatasetSelected(DatasetDtoGenerico dataset)
     {
         if (_selectedDatasets.Any(sd => sd.DatasetId == dataset.Id && sd.DatasetType == dataset.Module))
         {
@@ -320,6 +309,8 @@
                     {
                         { "Multiplier", (double)ds.Multiplier },
                         { "Color", ds.Color },
+                        { "Module", ds.DatasetType},
+                        { "Entity", ds.Entity},
                         { "EntityAttribute", ds.EntityAttribute }
                     })
                 }).ToList(),
@@ -367,7 +358,7 @@
         string? username = authState.User.Identity?.Name;
         string token = await LocalStorage.GetItemAsync<string>("authToken");
 
-        
+        Console.WriteLine(token);
 
         await RestoreDraftAndHandleReturnAsync();
     }
@@ -594,7 +585,6 @@
         try
         {
             AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            // ... (rest of the code remains the same)
             string? username = authState.User.Identity?.Name;
             string? token = await LocalStorage.GetItemAsync<string>("authToken");
 
@@ -604,7 +594,7 @@
                 throw new InvalidOperationException("No se encontró el usuario autenticado.");
             }
 
-            if(module=="Insight Monitor")
+            if(module.Equals("Insight Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}&token={token}");
                 DatasetIM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetIM>();
@@ -613,7 +603,7 @@
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
                 return datasetFromApi.ContentType == "0" ? "Sensor" : "Device";
             }
-            else if(module=="Asset Manager")
+            else if(module.Equals("Asset Manager"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={datasetId}&token={token}");
                 DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
@@ -623,7 +613,7 @@
 
                 return datasetFromApi.Type_Dataset == 2 ? "Asset" : "EventAM";
             }
-            else if(module=="Urban Monitor")
+            else if(module.Equals("Urban Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}&token={token}");
                 DatasetUM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetUM>();
