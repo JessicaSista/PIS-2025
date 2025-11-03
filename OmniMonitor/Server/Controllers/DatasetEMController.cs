@@ -125,7 +125,7 @@ namespace OmniMonitor.Server.Controllers
         /// Actualiza un dataset EM existente.
         /// </summary>
         [HttpPut("{datasetId}")]
-        [RequirePermission("Crear Datasets EM")]
+        //[RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
