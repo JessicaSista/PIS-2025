@@ -1,0 +1,99 @@
+@using MudBlazor
+@using OmniMonitor.Client.Pages
+@using OmniMonitor.Shared.Dtos
+
+<MudStack>
+    <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudItem>
+            <MudText Typo="Typo.body1">Filtros por columna</MudText>
+        </MudItem>
+        <MudItem>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Size="MudBlazor.Size.Small"
+                           Style="border-color: var(--mud-palette-lines-default);"
+                           OnClick="@(async () => await NotifyFilterAdd())">
+                    Agregar Filtro
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Spacing="3" Class="mt-4">
+        @if (Filters.Any())
+        {
+            @foreach (var filter in Filters)
+            {
+                <MudPaper @key="filter.Id" Class="pa-4" Elevation="1">
+                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudItem>
+                            <MudText Typo="Typo.subtitle2">Filtro #@filter.Id</MudText>
+                        </MudItem>
+                        <MudItem>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="MudBlazor.Color.Error"
+                                           OnClick="@(() => NotifyFilterRemove(filter))" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudGrid Spacing="2" Class="mt-2">
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string"
+                                       Label="Columna"
+                                       PopoverClass="wider-popover"
+                                       @bind-Value="filter.Column">
+                                @foreach (var column in GetVisibleColumns())
+                                {
+                                    <MudSelectItem Value="@column.Name">@column.DisplayName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12" Sm="6">
+                            <MudSelect T="string" Label="Operador" @bind-Value="filter.Operator">
+                                <MudSelectItem Value="@OperatorEqual">Igual a (=)</MudSelectItem>
+                                <MudSelectItem Value="@OperatorGreater">Mayor a (&gt;)</MudSelectItem>
+                                <MudSelectItem Value="@OperatorLess">Menor a (&lt;)</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem Xs="12">
+                            <MudTextField T="string" Label="Valor" @bind-Value="filter.Value" Clearable="true" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+        }
+    </MudStack>
+</MudStack>
+
+@code {
+    [Parameter] public List<EditReport.FilterDto> Filters { get; set; } = new();
+    [Parameter] public IReadOnlyList<EditReport.ColumnDefinition> AvailableColumns { get; set; } = Array.Empty<EditReport.ColumnDefinition>();
+    [Parameter] public EventCallback OnFilterAdd { get; set; }
+    [Parameter] public EventCallback<EditReport.FilterDto> OnFilterRemove { get; set; }
+
+    private static readonly string OperatorEqual = "=";
+    private static readonly string OperatorGreater = ">";
+    private static readonly string OperatorLess = "<";
+
+    private IEnumerable<EditReport.ColumnDefinition> GetVisibleColumns() =>
+        AvailableColumns.Where(c => c.IsVisible);
+
+    private async Task NotifyFilterAdd()
+    {
+        if (OnFilterAdd.HasDelegate)
+        {
+            await OnFilterAdd.InvokeAsync();
+        }
+    }
+
+    private async Task NotifyFilterRemove(EditReport.FilterDto filter)
+    {
+        if (OnFilterRemove.HasDelegate)
+        {
+            await OnFilterRemove.InvokeAsync(filter);
+        }
+    }
+}

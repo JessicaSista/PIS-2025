@@ -14,73 +14,62 @@
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>@Localizer["PageTitle"]</PageTitle>
+<PageTitle>@Localizer["Reportes"]</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-0 pt-2">
-    <!-- Fila 1: Título y botón -->
-    <MudGrid Class="mb-2">
-        <MudItem xs="12" sm="6" Class="d-flex align-center">
-            <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
-                @Localizer["Title"]
-            </MudText>
-        </MudItem>
-        <MudItem xs="12" sm="6" Class="d-flex justify-sm-end mt-sm-0 mt-2">
-            <AddButton OnClick="CrearReporte">
-                @Localizer["NewReportButton"]
-            </AddButton>
-        </MudItem>
-    </MudGrid>
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
+            @Localizer["Title"]
+        </MudText>
+    </MudStack>
+    <AddButton OnClick="CrearReporte">
+        @Localizer["NewReportButton"]
+    </AddButton>
+</MudStack>
 
-    <!-- Fila 2: Descripción -->
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
     <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
         @Localizer["Description"]
     </MudText>
+</MudStack>
 
-    <!-- Fila 3: Barra de búsqueda -->
-    <MudGrid Class="mb-4">
-        <MudItem xs="12" sm="8" md="6" lg="5" xl="4">
-            <MudTextField @bind-Value="_searchText"
-                          Immediate="true"
-                          Placeholder="@Localizer["SearchPlaceholder"]"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Class="w-100 search-field"
-                          Style="height: 40px;"
-                          InputStyle="padding-left: 8px;"
-                          AdornmentColor="MudBlazor.Color.Default"
-                          IconColor="MudBlazor.Color.Default"
-                          AdornmentMargin="Margin.Dense" />
-        </MudItem>
-    </MudGrid>
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
+    <MudTextField @bind-Value="_searchText"
+                  Immediate="true"
+                  Placeholder="@Localizer["SearchPlaceholder"]"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="flex-grow-1" />
+</MudStack>
 
-    <!-- Fila 4: Grid de tarjetas o mensaje cuando no hay reportes -->
+<MudContainer Fixed="true" Class="pl-4 pr-6">
     @if (_isLoading)
     {
         <MudGrid Class="justify-center">
             <MudProgressCircular Color="MudBlazor.Color.Primary" Class="my-4" />
         </MudGrid>
     }
-    else if (!_reportes.Any())
+    else if (!_reportesFiltrados.Any())
     {
-        <MudPaper Class="pa-8 text-center" Elevation="0">
-            <MudIcon Icon="@Icons.Material.Filled.FolderOff" Size="MudBlazor.Size.Large" Class="mb-2" />
-            <MudText Typo="Typo.h6" Class="mb-4">@Localizer["NoReports"]</MudText>
-            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="CrearReporte">
-                @Localizer["CreateFirstReport"]
-            </MudButton>
-        </MudPaper>
+        <MudGrid Class="justify-center my-6">
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
+                    @Localizer["NoReports"]
+                </MudText>
+            </MudItem>
+        </MudGrid>
     }
     else
     {
-        <MudGrid Spacing="2">
+        <MudGrid GutterSize="3">
             @foreach (var reporte in _reportesFiltrados)
             {
                 <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
                     <ReportCardComponent Reporte="reporte"
                                        OnNavigate="@NavigateToEditarReporte"
                                        OnEdit="@EditarReporte"
-                                       OnDelete="@EliminarReporte"
+                                       OnDelete="@ConfirmarEliminarReporte"
                                        Class="flex-grow-1" />
                 </MudItem>
             }
@@ -132,7 +121,7 @@
 
     private Task NavigateToEditarReporte(int id)
     {
-        NavigationManager.NavigateTo($"editarReporte/{id}", forceLoad: true);
+        NavigationManager.NavigateTo($"editarReporte/{id}");
         return Task.CompletedTask;
     }
 
@@ -214,7 +203,7 @@
                 }
             }
 
-            NavigationManager.NavigateTo($"editarReporte/{id}", forceLoad: true);
+            NavigationManager.NavigateTo($"editarReporte/{id}");
         }
         catch (Exception ex)
         {
@@ -222,8 +211,39 @@
         }
     }
 
-    private async Task EliminarReporte(int id)
+    private async Task ConfirmarEliminarReporte(int id)
     {
+        var reporte = _reportes.FirstOrDefault(r => r.Id == id);
+        if (reporte == null)
+        {
+            Snackbar.Add("No se encontró el reporte seleccionado.", Severity.Warning);
+            return;
+        }
+
+        const string titulo = "Confirmar eliminación";
+        var mensajeMarkup = (MarkupString)$"¿Desea eliminar el reporte <b>{reporte.Nombre}</b>?";
+
+        bool? confirm = await DialogService.ShowMessageBox(
+            titulo,
+            mensajeMarkup,
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (confirm == true)
+        {
+            await EliminarReporte(reporte);
+        }
+    }
+
+    private async Task EliminarReporte(ReporteDto reporte)
+    {
+        if (reporte == null)
+        {
+            return;
+        }
+
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
@@ -233,18 +253,13 @@
                 return;
             }
 
-            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={id}&token={token}");
+            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={reporte.Id}&token={token}");
 
             if (response.IsSuccessStatusCode)
             {
-                var reporteAEliminar = _reportes.FirstOrDefault(r => r.Id == id);
-                if (reporteAEliminar != null)
-                {
-                    _reportes.Remove(reporteAEliminar);
-                    await GuardarReportes();
-                    Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
-                    StateHasChanged();
-                }
+                Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
+                await CargarReportes();
+                await GuardarReportes();
             }
             else
             {
@@ -375,12 +390,12 @@
                     try
                     {
                         await CargarReportes();
-                        NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}");
                     }
                     catch (Exception loadEx)
                     {
                         Console.WriteLine($"[ERROR] Error al cargar reportes: {loadEx.Message}");
-                        NavigationManager.NavigateTo($"editarReporte/{reportId}", forceLoad: true);
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}");
                     }
                 }
                 else

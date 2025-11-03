@@ -46,438 +46,34 @@
     <MudGrid Spacing="4">
 
         <MudItem Xs="12" Sm="5" Md="4">
-            <MudPaper Class="pa-4" Elevation="2" Style="height: 75vh; overflow-y: auto;">
-                
-                <div class="tab-button-grid mb-4">
-                    <MudButton Class="tab-button"
-                               Variant="@GetButtonVariant("datasets")"
-                               Color="@GetButtonColor("datasets")"
-                               OnClick="@(() => SetActiveTab("datasets"))"
-                               Style="@GetButtonStyle("datasets")">
-                        <div style="display:flex; flex-direction:column; align-items:center;">
-                            <MudIcon Icon="@Icons.Material.Filled.Dataset" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Medium" />
-                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Primary" Class="mt-1" Style="font-weight:bold;">
-                                Datasets
-                            </MudText>
-                        </div>
-                    </MudButton>
-
-                    <MudButton Class="tab-button"
-                               Variant="@GetButtonVariant("joins")"
-                               Color="@GetButtonColor("joins")"
-                               OnClick="@(() => SetActiveTab("joins"))"
-                               Style="@GetButtonStyle("joins")">
-                        <div style="display:flex; flex-direction:column; align-items:center;">
-                            <MudIcon Icon="@Icons.Material.Filled.JoinInner" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Medium" />
-                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Primary" Class="mt-1" Style="font-weight:bold;">
-                                Joins
-                            </MudText>
-                        </div>
-                    </MudButton>
-
-                    <MudButton Class="tab-button"
-                               Variant="@GetButtonVariant("columnas")"
-                               Color="@GetButtonColor("columnas")"
-                               OnClick="@(() => SetActiveTab("columnas"))"
-                               Style="@GetButtonStyle("columnas")">
-                        <div style="display:flex; flex-direction:column; align-items:center;">
-                            <MudIcon Icon="@Icons.Material.Filled.ViewColumn" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Medium" />
-                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Primary" Class="mt-1" Style="font-weight:bold;">
-                                Columnas
-                            </MudText>
-                        </div>
-                    </MudButton>
-
-                    <MudButton Class="tab-button"
-                               Variant="@GetButtonVariant("filtros")"
-                               Color="@GetButtonColor("filtros")"
-                               OnClick="@(() => SetActiveTab("filtros"))"
-                               Style="@GetButtonStyle("filtros")">
-                        <div style="display:flex; flex-direction:column; align-items:center;">
-                            <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Medium" />
-                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Primary" Class="mt-1" Style="font-weight:bold;">
-                                Filtros
-                            </MudText>
-                        </div>
-                    </MudButton>
-                </div>
-
-
-
-                @if (activeTab == "datasets")
-                {   
-                    <MudText Typo="Typo.h6" Class="mb-2">Datasets Seleccionados</MudText>
-                    
-                    @if (selectedDatasets.Any())
-                    {
-                        @foreach (var dataset in selectedDatasets)
-                        {
-                            <MudCard Outlined="true" Class="mb-4">
-                                <MudCardHeader>
-                                    <CardHeaderContent>
-                                        <MudText Typo="Typo.body1">@dataset.Nombre</MudText>
-                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                            <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
-                                                @dataset.Module
-                                            </MudChip>
-                                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                                                @(string.IsNullOrWhiteSpace(dataset.Descripcion) ? "Sin descripción" : dataset.Descripcion)
-                                            </MudText>
-                                        </MudStack>
-                                    </CardHeaderContent>
-                                    <CardHeaderActions>
-                                        <MudIconButton 
-                                            Icon="@Icons.Material.Filled.Close" 
-                                            Size="MudBlazor.Size.Small"
-                                            OnClick="@(() => ToggleDatasetSelection(dataset))" />
-                                    </CardHeaderActions>
-                                </MudCardHeader>
-                                <MudCardContent>
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                        <MudText Typo="Typo.caption" Class="mr-2">Entidad</MudText>
-                                        <MudSelect T="EntityName" Dense="true" Value="@GetSelectedEntity(dataset)" ValueChanged="@(e => OnEntityChanged(dataset, e))">
-                                            @{ var entityOptionsForDataset = GetEntityOptions(dataset.Module); }
-                                            @foreach (var e in entityOptionsForDataset)
-                                            {
-                                                <MudSelectItem Value="@e">@e.ToString()</MudSelectItem>
-                                            }
-                                        </MudSelect>
-                                    </MudStack>
-                                </MudCardContent>
-                            </MudCard>
-                        }
-                    }
-                    else
-                    {
-                        <MudText Class="mb-4" Color="MudBlazor.Color.Secondary">No hay datasets seleccionados</MudText>
-                    }
-
-                    <MudDivider Class="my-4" />
-
-                    <MudText Typo="Typo.h6" Class="mb-2">Datasets Disponibles</MudText>
-                    <MudTextField 
-                        T="string" 
-                        Value="@searchText"
-                        ValueChanged="@(newValue => { searchText = newValue; FilterDatasets(); })"
-                        Immediate="true"
-                        Placeholder="Buscar Datasets..." 
-                        Adornment="Adornment.Start" 
-                        AdornmentIcon="@Icons.Material.Filled.Search" 
-                        IconSize="MudBlazor.Size.Small" 
-                        Class="mb-4" 
-                        Variant="Variant.Outlined" 
-                        Margin="Margin.Dense" />
-
-                    @if (filteredDatasets.Any(d => !IsSelected(d)))
-                    {
-                        <MudList T="DatasetDto" Dense="true">
-                            @foreach (var dataset in filteredDatasets.Where(d => !IsSelected(d)))
-                            {
-                                <MudListItem 
-                                    T="DatasetDto"
-                                    OnClick="@(() => ToggleDatasetSelection(dataset))"
-                                    Style="cursor: pointer;">
-                                    <MudStack Spacing="1">
-                                        <MudText>@dataset.Nombre</MudText>
-                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                                            <MudChip T="object" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small">
-                                                @dataset.Module
-                                            </MudChip>
-                                            <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
-                                                @(string.IsNullOrWhiteSpace(dataset.Descripcion) ? "Sin descripción" : dataset.Descripcion)
-                                            </MudText>
-                                        </MudStack>
-                                    </MudStack>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    }
-                    else if (!string.IsNullOrWhiteSpace(searchText))
-                    {
-                        <MudText>No se encontraron datasets que coincidan con la búsqueda</MudText>
-                    }
-                    else
-                    {
-                        <MudText>No hay datasets disponibles</MudText>
-                    }
-                }
-
-                @if (activeTab == "joins")
-                {
-                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudItem>
-                            <MudText Typo="Typo.body1">Configurar Joins</MudText>
-                        </MudItem>
-                        <MudItem>
-                            <MudStack Row="true" Spacing="2">
-                                <MudButton Variant="Variant.Outlined"
-                                            StartIcon="@Icons.Material.Filled.Add"
-                                            Size="MudBlazor.Size.Small"
-                                            OnClick="AgregarJoin"
-                                            Style="border-color: var(--mud-palette-lines-default);">
-                                    Agregar Join
-                                </MudButton>
-                            </MudStack>
-                        </MudItem>
-                    </MudGrid>
-
-                    <MudStack Spacing="3" Class="mt-4">
-                    @if (joins.Count > 0)
-                    {
-                        @foreach (var join in joins)
-                        {
-                            <MudPaper @key="join.Id" Class="pa-4" Elevation="1">
-                                <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudItem>
-                                        <MudText Typo="Typo.subtitle2">Join #@join.Id</MudText>
-                                    </MudItem>
-                                    <MudItem>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
-                                                    OnClick="@(() => EliminarJoin(join))" />
-                                    </MudItem>
-                                </MudGrid>
-
-                                <MudGrid Spacing="2" Class="mt-2">
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Dataset Izquierdo" Value="@join.LeftDataset"
-                                                  ValueChanged="@(value => { join.LeftDataset = value; UpdateJoinFields(join); })">
-                                            @foreach (var dataset in selectedDatasets)
-                                            {
-                                                <MudSelectItem Value="@dataset.Nombre">@dataset.Nombre</MudSelectItem>
-                                            }
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Campo de Unión (Izquierdo)" @bind-Value="join.LeftField">
-                                            @if (!string.IsNullOrEmpty(join.LeftDataset))
-                                            {
-                                                var leftProps = GetEntityPropertyNamesForDatasetName(join.LeftDataset);
-                                                foreach (var p in leftProps)
-                                                {
-                                                    <MudSelectItem Value="@p">@p</MudSelectItem>
-                                                }
-                                            }
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Tipo de Comparación" @bind-Value="join.Comparison">
-                                            <MudSelectItem Value="@("Equal")">Igual a (=)</MudSelectItem>
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Tipo de Join" @bind-Value="join.JoinType">
-                                            <MudSelectItem Value="@("Inner")">Inner Join</MudSelectItem>
-                                            <MudSelectItem Value="@("LeftOuter")">Left Outer</MudSelectItem>
-                                            <MudSelectItem Value="@("RightOuter")">Right Outer</MudSelectItem>
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Dataset Derecho" Value="@join.RightDataset"
-                                                  ValueChanged="@(value => { join.RightDataset = value; UpdateJoinFields(join); })">
-                                            @foreach (var dataset in selectedDatasets.Where(d => d.Nombre != join.LeftDataset))
-                                            {
-                                                <MudSelectItem Value="@dataset.Nombre">@dataset.Nombre</MudSelectItem>
-                                            }
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Campo de Unión (Derecho)" @bind-Value="join.RightField">
-                                            @if (!string.IsNullOrEmpty(join.RightDataset))
-                                            {
-                                                var rightProps = GetEntityPropertyNamesForDatasetName(join.RightDataset);
-                                                foreach (var p in rightProps)
-                                                {
-                                                    <MudSelectItem Value="@p">@p</MudSelectItem>
-                                                }
-                                            }
-                                        </MudSelect>
-                                    </MudItem>
-                                </MudGrid>
-
-                                
-                            </MudPaper>
-                        }
-                    }
-                    </MudStack>
-                    @if (joins.Any())
-                    {
-                        <MudButton 
-                            Variant="Variant.Filled" 
-                            Color="MudBlazor.Color.Primary" 
-                            OnClick="AplicarJoins" 
-                            Class="mt-4">
-                            Aplicar Joins
-                        </MudButton>
-                    }
-                }
-                @if (activeTab == "columnas")
-                {
-                    <MudToolBar Dense="true" DisableGutters="true" Class="mb-4">
-                        <MudText Typo="Typo.body1">Columnas a mostrar</MudText>
-                        <MudSpacer />
-                        <MudStack Row="true" Spacing="2">
-                            <MudButton Variant="Variant.Outlined"
-                                    Size="MudBlazor.Size.Small"
-                                    OnClick="SelectAllColumns"
-                                    Style="border-color: var(--mud-palette-lines-default);">
-                                Todas
-                            </MudButton>
-                            <MudButton Variant="Variant.Outlined"
-                                    Size="MudBlazor.Size.Small"
-                                    OnClick="DeselectAllColumns"
-                                    Style="border-color: var(--mud-palette-lines-default);">
-                                Ninguna
-                            </MudButton>
-                        </MudStack>
-                    </MudToolBar>
-
-                    <MudPaper Class="pa-4 mb-4" Elevation="1">
-                        @if (selectedDatasets.Any())
-                        {
-                            if (HasJoinColumns)
-                            {
-                                foreach (var join in joins.Where(j => j.ServerJoinId.HasValue))
-                                {
-                                    var joinId = join.ServerJoinId!.Value;
-                                    var joinName = GetJoinDisplayName(joinId);
-                                    var columnsForJoin = availableColumns
-                                        .Where(c => c.IsJoin && c.JoinId == joinId)
-                                        .ToList();
-
-                                    if (!columnsForJoin.Any())
-                                    {
-                                        continue;
-                                    }
-
-                                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@joinName</MudText>
-                                    @foreach (var group in columnsForJoin.GroupBy(c => c.GroupLabel))
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(group.Key))
-                                        {
-                                            <MudText Typo="Typo.subtitle2" Class="mb-1 mt-2">@group.Key</MudText>
-                                        }
-
-                                        <MudGrid Spacing="2">
-                                            @foreach (var column in group)
-                                            {
-                                                <MudItem Xs="12" Sm="12" Md="12">
-                                                    <MudCheckBox T="bool"
-                                                                 Label="@column.DisplayName"
-                                                                 Checked="@column.IsVisible"
-                                                                 @onclick="@(() => ToggleColumnVisibility(column))"
-                                                                 Dense="true" />
-                                                </MudItem>
-                                            }
-                                        </MudGrid>
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                foreach (var dataset in selectedDatasets)
-                                {
-                                    var datasetLabel = GetDatasetDisplayLabel(dataset);
-                                    var columnsForDataset = availableColumns
-                                        .Where(c => !c.IsJoin && c.DatasetId == dataset.Id)
-                                        .ToList();
-
-                                    if (!columnsForDataset.Any())
-                                    {
-                                        continue;
-                                    }
-
-                                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@datasetLabel</MudText>
-                                    <MudGrid Spacing="2">
-                                        @foreach (var column in columnsForDataset)
-                                        {
-                                            <MudItem Xs="12" Sm="12" Md="12">
-                                                <MudCheckBox T="bool"
-                                                             Label="@column.DisplayName"
-                                                             Checked="@column.IsVisible"
-                                                             @onclick="@(() => ToggleColumnVisibility(column))"
-                                                             Dense="true" />
-                                            </MudItem>
-                                        }
-                                    </MudGrid>
-                                }
-                            }
-                        }
-
-                        else
-                        {
-                            <MudText>Selecciona al menos un dataset para ver las columnas disponibles</MudText>
-                        }
-                    </MudPaper>
-                }
-
-                @if (activeTab == "filtros")
-                {
-                    <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                        <MudItem>
-                            <MudText Typo="Typo.body1">Filtros por columna</MudText>
-                        </MudItem>
-                        <MudItem>
-                            <MudStack Row="true" Spacing="2">
-                                <MudButton Variant="Variant.Outlined"
-                                            StartIcon="@Icons.Material.Filled.Add"
-                                            Size="MudBlazor.Size.Small"
-                                            OnClick="AgregarFiltro"
-                                            Style="border-color: var(--mud-palette-lines-default);">
-                                    Agregar Filtro
-                                </MudButton>
-                            </MudStack>
-                        </MudItem>
-                    </MudGrid>
-
-                    <MudStack Spacing="3" Class="mt-4">
-                    @if (filters.Count > 0)
-                    {
-                        @foreach (var filter in filters)
-                        {
-                            <MudPaper @key="filter.Id" Class="pa-4" Elevation="1">
-                                <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                    <MudItem>
-                                        <MudText Typo="Typo.subtitle2">Filtro #@filter.Id</MudText>
-                                    </MudItem>
-                                    <MudItem>
-                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error"
-                                                    OnClick="@(() => EliminarFiltro(filter))" />
-                                    </MudItem>
-                                </MudGrid>
-
-                                <MudGrid Spacing="2" Class="mt-2">
-                                     <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Columna" @bind-Value="filter.Column" PopoverClass="wider-popover">
-                                            @foreach (var column in availableColumns.Where(c => c.IsVisible))
-                                            {
-                                                <MudSelectItem Value="@column.Name">@column.DisplayName</MudSelectItem>
-                                            }
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12" Sm="6">
-                                        <MudSelect T="string" Label="Operador" @bind-Value="filter.Operator">
-                                            <MudSelectItem Value="@("=")">Igual a (=)</MudSelectItem>
-                                            <MudSelectItem Value="@(">")">Mayor a (&gt;)</MudSelectItem>
-                                            <MudSelectItem Value="@("<")">Menor a (&lt;)</MudSelectItem>
-                                        </MudSelect>
-                                    </MudItem>
-
-                                    <MudItem Xs="12">
-                                        <MudTextField T="string" Label="Valor" @bind-Value="filter.Value" Clearable="true" />
-                                    </MudItem>
-                                </MudGrid>
-                            </MudPaper>
-                        }
-                    }
-                    </MudStack>
-                }
-            </MudPaper>
+            <ReportConfiguration
+                ActiveTab="@activeTab"
+                OnActiveTabChanged="SetActiveTab"
+                SelectedDatasets="@selectedDatasets"
+                FilteredDatasets="@filteredDatasets"
+                OnDatasetToggle="ToggleDatasetSelection"
+                IsDatasetSelected="@IsSelected"
+                ResolveSelectedEntity="@GetSelectedEntity"
+                ResolveEntityOptions="@GetEntityOptions"
+                OnDatasetEntityChanged="@HandleDatasetEntityChanged"
+                DatasetSearchText="@searchText"
+                OnDatasetSearchTextChanged="@HandleDatasetSearchTextChanged"
+                AvailableColumns="@availableColumns"
+                Joins="@joins"
+                HasJoinColumns="@HasJoinColumns"
+                OnSelectAllColumns="SelectAllColumns"
+                OnDeselectAllColumns="DeselectAllColumns"
+                OnColumnToggled="ToggleColumnVisibility"
+                ResolveDatasetLabel="@GetDatasetDisplayLabel"
+                ResolveJoinLabel="@GetJoinDisplayName"
+                OnJoinAdd="@HandleJoinAdd"
+                OnJoinRemove="EliminarJoin"
+                OnApplyJoins="AplicarJoins"
+                ResolvePropertyNamesForDataset="@GetEntityPropertyNamesForDatasetName"
+                OnJoinDatasetsChanged="@HandleJoinDatasetsChanged"
+                Filters="@filters"
+                OnFilterAdd="@HandleFilterAdd"
+                OnFilterRemove="@HandleFilterRemove" />
         </MudItem>
 
         <MudItem Xs="12" Sm="7" Md="8">
@@ -519,7 +115,7 @@
                     else
                     {
                         <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">
-                            Vista previa
+                            Seleccione al menos una columna
                         </MudText>
                     }
                 }
@@ -1066,7 +662,7 @@
         var colToUpdate = availableColumns.FirstOrDefault(c => c.Name == column.Name);
         if (colToUpdate != null)
         {
-            colToUpdate.IsVisible = !colToUpdate.IsVisible;
+            colToUpdate.IsVisible = column.IsVisible;
         }
         StateHasChanged();
     }
@@ -1336,6 +932,45 @@
         StateHasChanged(); // Forzar actualización de la UI
     }
     
+    private Task HandleDatasetEntityChanged(DatasetSelector.EntitySelectionChangedArgs args)
+    {
+        OnEntityChanged(args.Dataset, args.Entity);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleDatasetSearchTextChanged(string value)
+    {
+        searchText = value;
+        return Task.CompletedTask;
+    }
+
+    private Task HandleJoinAdd()
+    {
+        AgregarJoin();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleJoinDatasetsChanged(JoinDto join)
+    {
+        UpdateJoinFields(join);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleFilterAdd()
+    {
+        AgregarFiltro();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleFilterRemove(FilterDto filter)
+    {
+        EliminarFiltro(filter);
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
     private void UpdateAvailableColumns()
     {
         if (!selectedDatasets.Any())
@@ -2041,15 +1676,6 @@
         }
     }
 
-    private Variant GetButtonVariant(string tabName) =>
-        activeTab == tabName ? Variant.Filled : Variant.Text;
-
-    private MudBlazor.Color GetButtonColor(string tabName) =>
-        activeTab == tabName ? MudBlazor.Color.Primary : MudBlazor.Color.Inherit;
-
-    private string GetButtonStyle(string tabName) =>
-        activeTab == tabName ? "background-color: var(--seleccion);" : string.Empty;
-
     // --- Generar JSON de configuración ---
     private async Task GenerarJsonConfig()
     {
@@ -2071,63 +1697,108 @@
             }
 
             var sources = new List<object>();
+            var datasetColumns = visibleColumns.Where(c => !c.IsJoin).ToList();
+            var joinColumns = visibleColumns.Where(c => c.IsJoin).ToList();
 
-            string ResolveDatasetModule(ColumnDefinition column)
+            if (datasetColumns.Any())
             {
-                var dataset = selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
-                    ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
-                    ?? selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId)
-                    ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId);
+                string ResolveDatasetModule(ColumnDefinition column)
+                {
+                    var dataset = selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
+                        ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId && string.Equals(d.Nombre, column.DatasetName, StringComparison.OrdinalIgnoreCase))
+                        ?? selectedDatasets.FirstOrDefault(d => d.Id == column.DatasetId)
+                        ?? datasets.FirstOrDefault(d => d.Id == column.DatasetId);
 
-                return dataset?.Module ?? string.Empty;
+                    return dataset?.Module ?? string.Empty;
+                }
+
+                var datasetGroups = datasetColumns
+                    .GroupBy(c => new
+                    {
+                        DatasetId = c.DatasetId,
+                        Module = ResolveDatasetModule(c)
+                    });
+
+                foreach (var group in datasetGroups)
+                {
+                    if (group.Key.DatasetId <= 0)
+                    {
+                        continue;
+                    }
+
+                    var columns = group.Select(c =>
+                    {
+                        var alias = string.IsNullOrWhiteSpace(c.DisplayName) ? c.PropertyName : c.DisplayName;
+                        var attribute = $"{c.Entity}_{c.PropertyName}";
+                        return new Dictionary<string, string>
+                        {
+                            ["attribute"] = attribute,
+                            ["as"] = alias
+                        };
+                    }).ToList();
+
+                    if (!columns.Any())
+                    {
+                        continue;
+                    }
+
+                    var representative = group.First();
+                    var entity = representative.Entity;
+                    var selectedDataset = selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
+                        ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
+                        ?? selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId)
+                        ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId);
+                    var sourceModule = GetSourceModuleForDataset(selectedDataset?.Module);
+
+                    sources.Add(new
+                    {
+                        sourceType = "dataset",
+                        sourceModule,
+                        sourceId = group.Key.DatasetId,
+                        entityName = entity.ToString(),
+                        columns
+                    });
+                }
             }
 
-            var datasetGroups = visibleColumns
-                .GroupBy(c => new
-                {
-                    DatasetId = c.DatasetId,
-                    Module = ResolveDatasetModule(c)
-                });
-
-            foreach (var group in datasetGroups)
+            if (joinColumns.Any())
             {
-                if (group.Key.DatasetId <= 0)
+                var unresolvedJoinColumns = joinColumns.Where(c => !c.JoinId.HasValue).ToList();
+                if (unresolvedJoinColumns.Any())
                 {
-                    continue;
+                    Snackbar.Add("Hay columnas de joins sin un join aplicado. Guarde los joins antes de generar el reporte.", Severity.Warning);
+                    Logger?.LogWarning("[EditarReporte] Columnas de join sin JoinId: {Columns}", string.Join(", ", unresolvedJoinColumns.Select(c => c.Name)));
                 }
 
-                var columns = group.Select(c =>
+                var joinGroups = joinColumns
+                    .Where(c => c.JoinId.HasValue)
+                    .GroupBy(c => c.JoinId!.Value);
+
+                foreach (var group in joinGroups)
                 {
-                    var alias = string.IsNullOrWhiteSpace(c.DisplayName) ? c.PropertyName : c.DisplayName;
-                    var attribute = $"{c.Entity}_{c.PropertyName}";
-                    return new Dictionary<string, string>
+                    var columns = group.Select(c =>
                     {
-                        ["attribute"] = attribute,
-                        ["as"] = alias
-                    };
-                }).ToList();
+                        var alias = string.IsNullOrWhiteSpace(c.DisplayName) ? c.PropertyName : c.DisplayName;
+                        var attribute = $"{c.Entity}_{c.PropertyName}";
+                        return new Dictionary<string, string>
+                        {
+                            ["attribute"] = attribute,
+                            ["as"] = alias
+                        };
+                    }).ToList();
 
-                if (!columns.Any())
-                {
-                    continue;
+                    if (!columns.Any())
+                    {
+                        continue;
+                    }
+
+                    sources.Add(new
+                    {
+                        sourceType = "join",
+                        sourceId = group.Key,
+                        columns
+                    });
                 }
-
-                var representative = group.First();
-                var entity = representative.Entity;
-                var selectedDataset = selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
-                    ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId && string.Equals(d.Module, group.Key.Module, StringComparison.OrdinalIgnoreCase))
-                    ?? selectedDatasets.FirstOrDefault(d => d.Id == group.Key.DatasetId)
-                    ?? datasets.FirstOrDefault(d => d.Id == group.Key.DatasetId);
-                var sourceModule = GetSourceModuleForDataset(selectedDataset?.Module);
-
-                sources.Add(new
-                {
-                    sourceType = "dataset",
-                    sourceModule,
-                    sourceId = group.Key.DatasetId,
-                    entityName = entity.ToString(),
-                    columns
-                });
             }
 
             if (!sources.Any())
