@@ -61,15 +61,15 @@
 
                         <MudItem Xs="12" Sm="6">
                             <MudSelect T="string" Label="Tipo de Comparación" @bind-Value="join.Comparison">
-                                <MudSelectItem Value="Equal">Igual a (=)</MudSelectItem>
+                                <MudSelectItem Value="@("Equal")">Igual a (=)</MudSelectItem>
                             </MudSelect>
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
                             <MudSelect T="string" Label="Tipo de Join" @bind-Value="join.JoinType">
-                                <MudSelectItem Value="Inner">Inner Join</MudSelectItem>
-                                <MudSelectItem Value="LeftOuter">Left Outer</MudSelectItem>
-                                <MudSelectItem Value="RightOuter">Right Outer</MudSelectItem>
+                                <MudSelectItem Value="@("Inner")">Inner Join</MudSelectItem>
+                                <MudSelectItem Value="@("LeftOuter")">Left Outer</MudSelectItem>
+                                <MudSelectItem Value="@("RightOuter")">Right Outer</MudSelectItem>
                             </MudSelect>
                         </MudItem>
 
@@ -112,7 +112,7 @@
 
 @code {
     [Parameter] public IReadOnlyList<DatasetDto> SelectedDatasets { get; set; } = Array.Empty<DatasetDto>();
-    [Parameter] public List<EditReport.JoinDto> Joins { get; set; } = new();
+    [Parameter] public IReadOnlyList<EditReport.JoinDto> Joins { get; set; } = Array.Empty<EditReport.JoinDto>();
     [Parameter] public EventCallback OnJoinAdd { get; set; }
     [Parameter] public EventCallback<EditReport.JoinDto> OnJoinRemove { get; set; }
     [Parameter] public EventCallback OnApplyJoins { get; set; }

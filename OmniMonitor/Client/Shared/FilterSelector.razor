@@ -52,9 +52,9 @@
 
                         <MudItem Xs="12" Sm="6">
                             <MudSelect T="string" Label="Operador" @bind-Value="filter.Operator">
-                                <MudSelectItem Value="=">Igual a (=)</MudSelectItem>
-                                <MudSelectItem Value=">">Mayor a (&gt;)</MudSelectItem>
-                                <MudSelectItem Value="<">Menor a (&lt;)</MudSelectItem>
+                                <MudSelectItem Value="@OperatorEqual">Igual a (=)</MudSelectItem>
+                                <MudSelectItem Value="@OperatorGreater">Mayor a (&gt;)</MudSelectItem>
+                                <MudSelectItem Value="@OperatorLess">Menor a (&lt;)</MudSelectItem>
                             </MudSelect>
                         </MudItem>
 
@@ -73,6 +73,10 @@
     [Parameter] public IReadOnlyList<EditReport.ColumnDefinition> AvailableColumns { get; set; } = Array.Empty<EditReport.ColumnDefinition>();
     [Parameter] public EventCallback OnFilterAdd { get; set; }
     [Parameter] public EventCallback<EditReport.FilterDto> OnFilterRemove { get; set; }
+
+    private static readonly string OperatorEqual = "=";
+    private static readonly string OperatorGreater = ">";
+    private static readonly string OperatorLess = "<";
 
     private IEnumerable<EditReport.ColumnDefinition> GetVisibleColumns() =>
         AvailableColumns.Where(c => c.IsVisible);

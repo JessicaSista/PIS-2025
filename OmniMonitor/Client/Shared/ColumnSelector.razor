@@ -2,6 +2,67 @@
 @using OmniMonitor.Client.Pages
 @using OmniMonitor.Shared.Dtos
 
+<style>
+    .column-checkbox {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        width: 100%;
+        font-size: 0.95rem;
+    }
+
+    .column-checkbox input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 1.1rem;
+        height: 1.1rem;
+        border-radius: 4px;
+        border: 2px solid var(--mud-palette-lines-default, rgba(255, 255, 255, 0.6));
+        background-color: transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+        position: relative;
+    }
+
+    .column-checkbox input[type="checkbox"]:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+        border-color: var(--mud-palette-primary-main);
+    }
+
+    .column-checkbox input[type="checkbox"]::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0.34rem;
+        height: 0.62rem;
+        border: solid transparent;
+        border-width: 0 0.16rem 0.16rem 0;
+        transform: translate(-50%, -60%) rotate(45deg) scale(0);
+        transform-origin: center;
+        transition: transform 0.12s ease-in-out, border-color 0.12s ease-in-out;
+    }
+
+    .column-checkbox input[type="checkbox"]:checked {
+        border-color: var(--card-text-primary, var(--text-primary, #212121));
+        background-color: var(--card-text-primary, var(--text-primary, #212121));
+    }
+
+    .column-checkbox input[type="checkbox"]:checked::after {
+        transform: translate(-50%, -60%) rotate(45deg) scale(1);
+        border-color: #ffffff;
+    }
+
+    .column-checkbox span {
+        flex: 1;
+    }
+</style>
+
 <MudStack>
     <MudToolBar Dense="true" DisableGutters="true" Class="mb-4">
         <MudText Typo="Typo.body1">Columnas a mostrar</MudText>
@@ -49,11 +110,12 @@
                             @foreach (var column in group)
                             {
                                 <MudItem Xs="12">
-                                    <MudCheckBox T="bool"
-                                                 Label="@column.DisplayName"
-                                                 Checked="@column.IsVisible"
-                                                 CheckedChanged="@(async _ => await NotifyColumnToggled(column))"
-                                                 Dense="true" />
+                                    <label class="column-checkbox">
+                                        <input type="checkbox"
+                                               checked="@column.IsVisible"
+                                               @onchange="@(args => HandleColumnChanged(column, args))" />
+                                        <span>@column.DisplayName</span>
+                                    </label>
                                 </MudItem>
                             }
                         </MudGrid>
@@ -75,11 +137,12 @@
                         @foreach (var column in columnsForDataset)
                         {
                             <MudItem Xs="12">
-                                <MudCheckBox T="bool"
-                                             Label="@column.DisplayName"
-                                             Checked="@column.IsVisible"
-                                             CheckedChanged="@(async _ => await NotifyColumnToggled(column))"
-                                             Dense="true" />
+                                <label class="column-checkbox">
+                                    <input type="checkbox"
+                                           checked="@column.IsVisible"
+                                           @onchange="@(args => HandleColumnChanged(column, args))" />
+                                    <span>@column.DisplayName</span>
+                                </label>
                             </MudItem>
                         }
                     </MudGrid>
@@ -120,8 +183,16 @@
         }
     }
 
-    private async Task NotifyColumnToggled(EditReport.ColumnDefinition column)
+    private async Task HandleColumnChanged(EditReport.ColumnDefinition column, ChangeEventArgs args)
     {
+        var isChecked = args?.Value switch
+        {
+            bool boolValue => boolValue,
+            string stringValue => string.Equals(stringValue, "on", StringComparison.OrdinalIgnoreCase) || string.Equals(stringValue, "true", StringComparison.OrdinalIgnoreCase),
+            _ => false
+        };
+
+        column.IsVisible = isChecked;
         if (OnColumnToggled.HasDelegate)
         {
             await OnColumnToggled.InvokeAsync(column);
