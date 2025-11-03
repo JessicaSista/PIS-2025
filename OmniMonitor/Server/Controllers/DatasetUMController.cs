@@ -324,6 +324,125 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+                /// <summary>
+        /// Devuelve todos los datasets en formato DatasetDtoGenerico.
+        /// </summary>
+        [HttpGet("GetAllGenericDatasetDtos")]
+        [ProducesResponseType(typeof(List<DatasetDtoGenerico>), 200)]
+        [ProducesResponseType(500)]
+    public async Task<ActionResult<List<DatasetDtoGenerico>>> GetAllGenericDatasetDtos(string token, [FromQuery] string? search = null)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+
+                var datasetDtos = new List<DatasetDtoGenerico>();
+
+                // Obtener datasets IM
+                var datasetsIM = await _context.Datasets
+                    .Include(d => d.DatasetIM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsIM)
+                {
+                    if (dataset.DatasetIM.Any())
+                    {
+                        var imDataset = dataset.DatasetIM.First();
+                        datasetDtos.Add(new DatasetDtoGenerico
+                        {
+                            Id = imDataset.Id,
+                            IdGenerico = imDataset.DatasetId,
+                            Nombre = imDataset.Name,
+                            Descripcion = imDataset.Description ?? string.Empty,
+                            Module = "Insight Monitor"
+                        });
+                    }
+                }
+
+                // Obtener datasets UM
+                var datasetsUM = await _context.Datasets
+                    .Include(d => d.DatasetUM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsUM)
+                {
+                    if (dataset.DatasetUM.Any())
+                    {
+                        var umDataset = dataset.DatasetUM.First();
+                        datasetDtos.Add(new DatasetDtoGenerico
+                        {
+                            Id = umDataset.Id,
+                            IdGenerico = umDataset.DatasetId,
+                            Nombre = umDataset.Name,
+                            Descripcion = umDataset.Description ?? string.Empty,
+                            Module = "Urban Monitor"
+                        });
+                    }
+                }
+
+                // Obtener datasets AM
+                var datasetsAM = await _context.Datasets
+                    .Include(d => d.DatasetAM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsAM)
+                {
+                    if (dataset.DatasetAM.Any())
+                    {
+                        var amDataset = dataset.DatasetAM.First();
+                        datasetDtos.Add(new DatasetDtoGenerico
+                        {
+                            Id = amDataset.Id_Dataset,
+                            IdGenerico = amDataset.DatasetId,
+                            Nombre = amDataset.Nombre,
+                            Descripcion = amDataset.Descripcion ?? string.Empty,
+                            Module = "Asset Manager"
+                        });
+                    }
+                }
+
+                // Obtener datasets EM
+                var datasetsEM = await _context.Datasets
+                    .Include(d => d.DatasetEM)
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager)
+                    .ToListAsync();
+
+                foreach (var dataset in datasetsEM)
+                {
+                    if (dataset.DatasetEM.Any())
+                    {
+                        var emDataset = dataset.DatasetEM.First();
+                        datasetDtos.Add(new DatasetDtoGenerico
+                        {
+                            Id = emDataset.Id,
+                            IdGenerico = emDataset.DatasetId,
+                            Nombre = emDataset.Name,
+                            Descripcion = emDataset.Description ?? string.Empty,
+                            Module = "Event Manager"
+                        });
+                    }
+                }
+
+                // Aplicar filtro de búsqueda si existe
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string normalizedSearch = NormalizeText(search);
+                    datasetDtos = datasetDtos.Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                return Ok(datasetDtos);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+            }
+        }
+
+
+
         /// <summary>
         /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
         /// </summary>
@@ -350,5 +469,7 @@ namespace OmniMonitor.Server.Controllers
             // 3) Normalizar de vuelta a FormC
             return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
         }
+
+        
     }
 }
