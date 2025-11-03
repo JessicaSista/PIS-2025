@@ -114,6 +114,7 @@
     [Parameter] public bool ShowIcon { get; set; } = false;
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
     [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
+    [Parameter] public bool retrieveOnInitialized {get; set;} = true;
 
     // Local Variables
     private Visualizacion _visualization {get; set;}
@@ -172,6 +173,10 @@
                     _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
                 }
             }
+            if(retrieveOnInitialized)
+            {
+                await retrieveData();
+            }
         }
         catch (Exception ex)
         {
@@ -181,6 +186,7 @@
 
     private async Task retrieveData(){
         _retrievingData = true;
+        StateHasChanged();
         var allData = new List<object>();
         try
         {
