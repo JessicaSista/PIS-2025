@@ -5,6 +5,7 @@
 @using Blazored.LocalStorage
 @using System.Globalization
 @using Microsoft.Extensions.Localization
+@using System.ComponentModel
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -214,6 +215,8 @@
             string token = await LocalStorage.GetItemAsync<string>("authToken");
             DateTime dateFrom = _visualization.FechaDesde;
             DateTime dateTo = _visualization.FechaHasta;
+            
+            List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
 
             foreach (var grupoDataset in _visualization.GrupoDatasets)
             {
@@ -333,23 +336,48 @@
                         };
                         HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data?token={token}", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                        _seriesData.Add(new DatasetSeries
-                        {
-                            DatasetName = displayName,
-                            Color = color,
-                            Points = visualizationResponse.Values
-                                .Select(v => new ChartPoint
-                                {
-                                    X = v.Name,
-                                    Y = v.Value * multiplier
-                                })
-                                .ToList()
-                        });
+                        tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
+                }
+            }
+            if(tmpDataDatasets.Any())
+            {
+                // dominio de la funcion a graficar
+                List<System.String> domain = new List<System.String>();
+                foreach (var (_, _, _, dataList) in tmpDataDatasets)
+                {
+                    foreach (var data in dataList)
+                    {
+                        if (!domain.Contains(data.Name))
+                        {
+                            domain.Add(data.Name);
+                        }
+                    }
+                }
+
+                // diccionario para manejo mas eficiente
+                List<Dictionary<System.String, System.Int32>> countValuesDatasets = tmpDataDatasets
+                .Select(tuple => tuple.Item4.ToDictionary(v => v.Name, v => v.Value))
+                .ToList();
+
+                // creacion de la funcion final a graficar
+                for(System.Int32 index = 0; index < tmpDataDatasets.Count; index++)
+                {
+                    _seriesData.Add(new DatasetSeries
+                    {
+                        DatasetName = tmpDataDatasets[index].Item1,
+                        Color = tmpDataDatasets[index].Item2,
+                        Points = domain.Select( point => new ChartPoint
+                        {
+                            X = point,
+                            Y = countValuesDatasets[index].ContainsKey(point) ? countValuesDatasets[index][point] * tmpDataDatasets[index].Item3 : 0
+                        })
+                        .ToList()
+                    });
                 }
             }
             _retrievingData = false;

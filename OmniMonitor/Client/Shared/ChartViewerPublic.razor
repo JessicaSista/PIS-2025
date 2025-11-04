@@ -46,12 +46,12 @@
                         @foreach (var serie in _seriesData)
                         {
                             <ApexPointSeries TItem="ChartPoint"
-                                             Items="serie.Points"
-                                             Name="@serie.DatasetName"
-                                             SeriesType="@_seriesType"
-                                             XValue="@(p => p.X)"
-                                             YValue="@(p => (decimal)p.Y)"
-                                             Color="@serie.Color" />
+                                            Items="serie.Points"
+                                            Name="@serie.DatasetName"
+                                            SeriesType="@_seriesType"
+                                            XValue="@(p => p.X)"
+                                            YValue="@(p => (decimal)p.Y)"
+                                            Color="@serie.Color" />
                         }
                     </ApexChart>
                 }

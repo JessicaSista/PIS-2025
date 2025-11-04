@@ -205,7 +205,7 @@
         System.String entity = await GetEntityFromDatasetAsync(dataset.Id, dataset.Module);
         _selectedDatasets.Add(new DatasetSelection
         {
-            DatasetId = dataset.Id,
+            DatasetId = dataset.IdGenerico,
             DatasetName = dataset.Nombre,
             DatasetType = dataset.Module,
             Entity = entity,
@@ -316,7 +316,7 @@
                         { "Module", ds.DatasetType},
                         { "Entity", ds.Entity},
                         { "EntityAttribute", ds.EntityAttribute },
-                        { "DisplayName", ds.DisplayName}
+                        { "DisplayName", System.String.IsNullOrEmpty(ds.DisplayName) ?  ds.DatasetName : ds.DisplayName}
                     })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
