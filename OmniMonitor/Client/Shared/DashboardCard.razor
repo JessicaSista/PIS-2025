@@ -63,70 +63,18 @@
                  
         @if (!_esKPI)
         {
-            @* <MudText Class="px-7 py-5" Typo="Typo.h6"
-                     Style="color: var(--card-text-primary)">@_title</MudText> *@
-
-            @* <MudCardContent Class="pl-7 pr-8"
-                            Style="color: var(--card-text-secondary)"> *@
-                
-
-                @* @if (_seriesData.Any())
-                {
-                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="@(Height - 130)">
-                        @foreach (var serie in _seriesData)
-                        {
-                            <ApexPointSeries TItem="ChartPoint"
-                                             Items="serie.Points"
-                                             Name="@serie.DatasetName"
-                                             SeriesType="@_seriesType"
-                                             XValue="@(p => p.X)"
-                                             YValue="@(p => (decimal)p.Y)"
-                                             Color="@serie.Color" />
-                        }
-                    </ApexChart>
-                }
-                else
-                {
-                    <MudSkeleton/>
-                } *@
+            
 
             <ChartViewer @key="_chartViewerKey" ChartReloadKey="@_chartKey" VisualizationId="VisualizationId" />
-
-            @* </MudCardContent> *@
-
+            
 
         } 
         else
         {
-                @* <MudItem lg=@WidthLg md=6 sm=12 xs=12>
-                    <MudCard Style="background-color: var(--card); color: var(--card-text-primary); border: 1px solid #374151; border-radius:7px;">
-                        <MudCardContent>
-                            <MudContainer Class="d-flex flex-column gap-2">
-                                <!-- Título en color secundario -->
-                                <MudText Typo="Typo.body2" Style="color: #647984; font-weight: bold;">@Title</MudText>
-
-                                <!-- Valor principal en color primario -->
-                                <MudText Typo="Typo.h4" Style="color: var(--card-text-primary); font-weight: 500;">$2,405.90</MudText>
-
-                                <!-- Variación KPI en color fijo amarillo -->
-                                <MudText Typo="Typo.body2" Style=" var(--card-text-secondary)">+12.5% desde último mes</MudText>
-                            </MudContainer>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem> *@
-
-            @* <MudItem xs="12" sm="6" md="3" lg="3">
-                <KpiCard Title="@_kpiName"
-                         Value="@_kpiValue"
-                         Description="@_kpiDescription"
-                         LastUpdated="@(DateTime.Now.ToString("g"))"
-                         Color="@_kpiColor" />
-            </MudItem> *@
 
             <div class="d-flex flex-grow: 1; pa-5">
                 <KpiViewer KpiId="@VisualizationId"/>
             </div>
-            
 
         }
     </MudCard>

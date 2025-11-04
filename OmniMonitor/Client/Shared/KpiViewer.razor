@@ -1,6 +1,9 @@
 ﻿@using MudBlazor
+@using Blazored.LocalStorage
 @using OmniMonitor.Shared.Dtos
 @using Microsoft.Extensions.Localization
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
 @inject IStringLocalizer<VisualizationCard> Localizer
 
 <MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
@@ -63,7 +66,44 @@
 
 @code {
     [Parameter]
+    public int KpiId { get; set; } = 0;
+    [Parameter]
     public KpiResponse Kpi { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (KpiId != 0)
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            string requestUri = $"api/KPI/{KpiId}?token={token}";
+
+            try
+            {
+                var response = await Http.GetAsync(requestUri);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                    if (kpiData != null)
+                    {
+                        Kpi = kpiData;
+                    }
+                }
+                else
+                {
+                    // Manejar errores (400, 404, etc.)
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error al obtener KPI {KpiId}. Código: {response.StatusCode}. Mensaje: {errorContent}");
+                    // Snackbar.Add($"Error: {errorContent}", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error interno al llamar al endpoint de KPI: {ex.Message}");
+                // Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
+            }
+        }
+    }
 
     private string CardStyle =>
         $"background-color:{GetTransparentColor(Kpi.ActualColor ?? "#00FFE7", 0.15)}; " +
