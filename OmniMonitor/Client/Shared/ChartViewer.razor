@@ -35,30 +35,44 @@
                     }
                 </CardHeaderContent>
             </MudCardHeader>
-    
-            @* <MudText Class="px-7 py-5" Typo="Typo.h6"
-                     Style="color: var(--card-text-primary)">@_title</MudText> *@
 
             <MudCardContent Class="pl-7 pr-8"
                             Style="color: var(--card-text-secondary); height: 100%">
-                @if (_seriesData.Any())
-                {
-                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="320" Options="_chartOptions">
-                        @foreach (DatasetSeries serie in _seriesData)
-                        {
-                            <ApexPointSeries TItem="ChartPoint"
-                                             Items="serie.Points"
-                                             Name="@serie.DatasetName"
-                                             SeriesType="@_seriesType"
-                                             XValue="@(p => p.X)"
-                                             YValue="@(p => (decimal)p.Y)"
-                                             Color="@serie.Color" />
-                        }
-                    </ApexChart>
+                @if(_dataRetrieved){
+                    @if (_seriesData.Any())
+                    {
+                        <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
+                            @foreach (DatasetSeries serie in _seriesData)
+                            {
+                                <ApexPointSeries TItem="ChartPoint"
+                                                Items="serie.Points"
+                                                Name="@serie.DatasetName"
+                                                SeriesType="@_seriesType"
+                                                XValue="@(p => p.X)"
+                                                YValue="@(p => (decimal)p.Y)"
+                                                Color="@serie.Color" />
+                            }
+                        </ApexChart>
+                    }
+                    else
+                    {
+                        <MudSkeleton />
+                    }
                 }
-                else
-                {
-                    <MudSkeleton />
+                else{
+                    <MudContainer Class="d-flex justify-center align-center" Style="min-height: 270px">
+                        <MudButton Disabled="@_retrievingData" OnClick="retrieveData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
+                            @if (_retrievingData)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
+                                <MudText Class="ms-2">Cargando...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Cargar Datos</MudText>
+                            }
+                        </MudButton>
+                    </MudContainer>
                 }
             </MudCardContent>
 
@@ -100,8 +114,12 @@
     [Parameter] public bool ShowIcon { get; set; } = false;
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
     [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
+    [Parameter] public bool retrieveOnInitialized {get; set;} = true;
 
     // Local Variables
+    private Visualizacion _visualization {get; set;}
+    private bool _dataRetrieved = false;
+    private bool _retrievingData = false;
     private string _authenticatedUser = string.Empty;
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
 
@@ -143,6 +161,7 @@
             if (response.IsSuccessStatusCode)
             {
                 Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                _visualization = cardVisualization;
                 if (cardVisualization != null)
                 {
                     _title = cardVisualization.Nombre;
@@ -151,159 +170,173 @@
                     var _chartType = design.RootElement.GetProperty("ChartType").ToString();
                     _seriesType = MapSeriesType(_chartType);
 
-                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.DatasetId));
-
-                    var allData = new List<object>();
-                    try
-                    {
-                        var dateFrom = cardVisualization.FechaDesde;
-                        var dateTo = cardVisualization.FechaHasta;
-
-                        foreach (var grupoDataset in cardVisualization.GrupoDatasets)
-                        {
-                            try
-                            {
-                                decimal multiplier = 1.0M;
-                                System.String color = "#00FFE7";
-                                System.String attribute = String.Empty;
-                                System.String module = String.Empty;
-                                System.String entity = String.Empty;
-
-                                if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
-                                {
-                                    JsonDocument? designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
-                                    if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
-                                    {
-                                        multiplier = multProp.GetDecimal();
-                                    }
-                                    if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
-                                    {
-                                        color = colorProp.GetString() ?? "#00FFE7";
-                                    }
-                                    if (designDoc.RootElement.TryGetProperty("EntityAttribute", out var attributeProp))
-                                    {
-                                        attribute = attributeProp.GetString();
-                                    }
-                                    if (designDoc.RootElement.TryGetProperty("Module", out var moduleProp))
-                                    {
-                                        module = moduleProp.GetString();
-                                    }
-                                    if (designDoc.RootElement.TryGetProperty("Entity", out var entityProp))
-                                    {
-                                        entity = entityProp.GetString();
-                                    }
-                                }
-                                if(module.Equals("Insight Monitor"))
-                                {
-                                    HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
-
-                                    if (datasetResponse.IsSuccessStatusCode)
-                                    {
-                                        DatasetIM? dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
-
-                                        if (dataset != null)
-                                        {
-                                            if (dataset.DatasetDevices.Any())
-                                            {
-                                                foreach (var datasetDevice in dataset.DatasetDevices)
-                                                {
-                                                    try
-                                                    {
-                                                        var sensorDataResponse = await Http.GetAsync(
-                                                            $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
-                                                        );
-
-                                                        if (sensorDataResponse.IsSuccessStatusCode)
-                                                        {
-                                                            var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
-
-                                                            if (sensorData != null && sensorData.Any())
-                                                            {
-                                                                foreach (var data in sensorData)
-                                                                {
-                                                                    decimal numericValue;
-
-                                                                    if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
-                                                                    {
-                                                                        numericValue = parsedDecimal;
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-                                                                    }
-
-                                                                    allData.Add(new
-                                                                    {
-                                                                        Timestamp = data.Time,
-                                                                        Value = numericValue * multiplier,
-                                                                        Color = color,
-                                                                        DatasetName = dataset.Name,
-                                                                        SensorName = dataset.SensorName,
-                                                                        DeviceId = datasetDevice.Id_device
-                                                                    });
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    catch (Exception ex)
-                                                    {
-                                                        Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
-                                                    }
-                                                }
-                                            }
-                                            else
-                                            {
-                                                Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
-                                            }
-                                        }
-                                    }
-                                    _seriesData = BuildSeriesFromData(allData);
-                                }
-                                else
-                                {
-                                    VisualizationRequest? req = new VisualizationRequest
-                                    {
-                                        moduleType = (ModuleType)Enum.Parse(typeof(ModuleType), module.Replace(" ", "")),
-                                        entity = (EntityName)Enum.Parse(typeof(EntityName), entity),
-                                        column = attribute,
-                                        datasetId = grupoDataset.DatasetId,
-                                        dateFrom = dateFrom,
-                                        dateTo = dateTo
-                                    };
-                                    HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data?token={token}", req);
-                                    VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                                    Console.WriteLine("Valores de la visualización:");
-                                    _seriesData.Add(new DatasetSeries
-                                    {
-                                        DatasetName = entity.ToString(),
-                                        Color = color,
-                                        Points = visualizationResponse.Values
-                                            .Select(v => new ChartPoint
-                                            {
-                                                X = v.Name,
-                                                Y = v.Value
-                                            })
-                                            .ToList()
-                                    });
-    
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error procesando visualización {cardVisualization.IdVisualizacion}: {ex.Message}");
-                    }
+                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
                 }
+            }
+            if(retrieveOnInitialized)
+            {
+                await retrieveData();
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
+        }
+    }
+
+    private async Task retrieveData(){
+        _retrievingData = true;
+        StateHasChanged();
+        var allData = new List<object>();
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            DateTime dateFrom = _visualization.FechaDesde;
+            DateTime dateTo = _visualization.FechaHasta;
+
+            foreach (var grupoDataset in _visualization.GrupoDatasets)
+            {
+                try
+                {
+                    decimal multiplier = 1.0M;
+                    System.String color = "#00FFE7";
+                    System.String attribute = String.Empty;
+                    System.String module = String.Empty;
+                    System.String entity = String.Empty;
+                    System.String displayName = String.Empty;
+
+                    if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
+                    {
+                        JsonDocument? designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
+                        if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
+                        {
+                            multiplier = multProp.GetDecimal();
+                        }
+                        if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
+                        {
+                            color = colorProp.GetString() ?? "#00FFE7";
+                        }
+                        if (designDoc.RootElement.TryGetProperty("EntityAttribute", out var attributeProp))
+                        {
+                            attribute = attributeProp.GetString();
+                        }
+                        if (designDoc.RootElement.TryGetProperty("Module", out var moduleProp))
+                        {
+                            module = moduleProp.GetString();
+                        }
+                        if (designDoc.RootElement.TryGetProperty("Entity", out var entityProp))
+                        {
+                            entity = entityProp.GetString();
+                        }
+                        if(designDoc.RootElement.TryGetProperty("DisplayName", out var displayNameProp))
+                        {
+                            displayName = displayNameProp.GetString();
+                        }
+                    }
+                    if(module.Equals("Insight Monitor"))
+                    {
+                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
+
+                        if (datasetResponse.IsSuccessStatusCode)
+                        {
+                            DatasetIM? dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
+
+                            if (dataset != null)
+                            {
+                                if (dataset.DatasetDevices.Any())
+                                {
+                                    foreach (var datasetDevice in dataset.DatasetDevices)
+                                    {
+                                        try
+                                        {
+                                            var sensorDataResponse = await Http.GetAsync(
+                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
+                                            );
+
+                                            if (sensorDataResponse.IsSuccessStatusCode)
+                                            {
+                                                var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
+
+                                                if (sensorData != null && sensorData.Any())
+                                                {
+                                                    foreach (var data in sensorData)
+                                                    {
+                                                        decimal numericValue;
+
+                                                        if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
+                                                        {
+                                                            numericValue = parsedDecimal;
+                                                        }
+                                                        else
+                                                        {
+                                                            numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+                                                        }
+
+                                                        allData.Add(new
+                                                        {
+                                                            Timestamp = data.Time,
+                                                            Value = numericValue * multiplier,
+                                                            Color = color,
+                                                            DatasetName = dataset.Name,
+                                                            SensorName = dataset.SensorName,
+                                                            DeviceId = datasetDevice.Id_device
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
+                                }
+                            }
+                        }
+                        _seriesData = BuildSeriesFromData(allData);
+                    }
+                    else
+                    {
+                        VisualizationRequest? req = new VisualizationRequest
+                        {
+                            moduleType = (ModuleType)Enum.Parse(typeof(ModuleType), module.Replace(" ", "")),
+                            entity = (EntityName)Enum.Parse(typeof(EntityName), entity),
+                            column = attribute,
+                            datasetId = grupoDataset.DatasetId,
+                            dateFrom = dateFrom,
+                            dateTo = dateTo
+                        };
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data?token={token}", req);
+                        VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
+                        _seriesData.Add(new DatasetSeries
+                        {
+                            DatasetName = displayName,
+                            Color = color,
+                            Points = visualizationResponse.Values
+                                .Select(v => new ChartPoint
+                                {
+                                    X = v.Name,
+                                    Y = v.Value
+                                })
+                                .ToList()
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
+                }
+            }
+            _retrievingData = false;
+            _dataRetrieved = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error procesando visualización {_visualization.IdVisualizacion}: {ex.Message}");
         }
     }
 
