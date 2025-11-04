@@ -25,14 +25,18 @@
             @foreach (DatasetSelection dsItem in _selectedDatasets)
             {
                 <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: var(--card); border-radius: 3px; " Spacing="3">
-                    <MudItem Lg="4" Sm="4" Xs="12" Class="pl-0 pt-0">
-                        <MudText Typo="Typo.h6">@Localizer["Dataset"]</MudText>
+                    <MudItem Lg="2" Sm="2" Xs="12" Class="pl-0 pt-0">
+                        <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Dataset"]</MudText>
                         <MudText Typo="Typo.body1">@dsItem.DatasetName</MudText>
                     </MudItem>
-
-
+                    
                     <MudItem Lg="3" Sm="3" Xs="12" Class="pt-0">
-                        <MudText Typo="Typo.h6">Atributo</MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--text-primary)">Nombre a mostrar</MudText>
+                        <MudTextField @bind-Value="dsItem.DisplayName" Variant="Variant.Outlined" Dense="true">@dsItem.DisplayName</MudTextField>
+                    </MudItem>
+
+                    <MudItem Lg="2" Sm="2" Xs="12" Class="pt-0">
+                        <MudText Typo="Typo.body2" Style="color: var(--text-primary)">Atributo</MudText>
                         <MudSelect T="System.String" @bind-Value="dsItem.EntityAttribute" Variant="Variant.Outlined" Dense="true">
                             @foreach (System.String attr in _entityAttributes[dsItem.Entity])
                             {
@@ -45,7 +49,7 @@
 
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
-                        <MudText Typo="Typo.h6">@Localizer["Multiplier"]</MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Multiplier"]</MudText>
                         <MudNumericField HideSpinButtons="true" 
                                         Immediate = "true"
                                         @bind-Value="dsItem.Multiplier" 
@@ -55,7 +59,7 @@
                     </MudItem>
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
-                        <MudText Typo="Typo.h6">@Localizer["Color"]</MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Color"]</MudText>
                         <MudColorPicker @bind-Text="dsItem.Color" Style="@($"color: {dsItem.Color};")" Placeholder="Seleccionar color" Variant="Variant.Outlined"/>
                     </MudItem>
                     <MudItem Lg="1" Sm="1" Xs="2" Class="d-flex align-items-center">
@@ -206,7 +210,7 @@
             DatasetType = dataset.Module,
             Entity = entity,
             EntityAttribute = _entityAttributes[entity][0],
-            Multiplier = 1.0M,
+            Multiplier = 1,
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Success);
@@ -312,7 +316,7 @@
                         { "Module", ds.DatasetType},
                         { "Entity", ds.Entity},
                         { "EntityAttribute", ds.EntityAttribute },
-                        { "DisplayName", ds.DatasetName}
+                        { "DisplayName", ds.DisplayName}
                     })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
@@ -375,6 +379,7 @@
     public class DatasetSelection
     {
         public int DatasetId { get; set; }
+        public System.String DisplayName {get; set;}
         public System.String DatasetName {get; set;}
         public System.String DatasetType {get; set;}
         public System.String Entity {get; set;}
@@ -433,7 +438,7 @@
                             _selectedDatasets.Add(new DatasetSelection
                             {
                                 DatasetId = newDatasetId.Value,
-                                Multiplier = 1.0M,
+                                Multiplier = 1,
                                 Color = "rgb(0, 255, 231)"
                             });
                         }

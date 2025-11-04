@@ -234,7 +234,8 @@ namespace OmniMonitor.Server.Controllers
                 foreach (DatasetConfig ds in request.Datasets)
                 {
                     // Validar que el dataset exista en la tabla DatasetIM
-                    bool datasetExiste = db.DatasetsIM.Any(d => d.Id == ds.DatasetId);
+                    // se cambia por datasets en general
+                    bool datasetExiste = db.Datasets.Any(d => d.Id == ds.DatasetId);
                     if (!datasetExiste)
                     {
                         return BadRequest($"El dataset con ID {ds.DatasetId} no existe.");
