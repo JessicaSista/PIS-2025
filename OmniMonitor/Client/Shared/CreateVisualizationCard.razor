@@ -233,6 +233,10 @@
             SelectedDatasets = _selectedDatasets.Select(s => new DatasetSelectionDraft
             {
                 DatasetId = s.DatasetId,
+                DatasetName = s.DatasetName,
+                DatasetType = s.DatasetType,
+                Entity = s.Entity,
+                EntityAttribute = s.EntityAttribute,
                 Multiplier = s.Multiplier,
                 Color = s.Color,
                 Module = s.DatasetType
@@ -431,14 +435,15 @@
                 {
                     if (!_selectedDatasets.Any(sd => sd.DatasetId == newDatasetId.Value))
                     {
-                        // Hydrate info for the new dataset id and then add
+                        
+                        /*// Hydrate info for the new dataset id and then add
                         var hydrated = await HydrateSingleDatasetAsync(newDatasetId.Value, newDatasetModule);
                         if (hydrated != null)
                         {
                             _selectedDatasets.Add(hydrated);
                         }
                         else
-                        {
+                        {*/ // no estaba funcionando correctamente esto
                             // Fallback minimal add if hydration failed
                             if(System.String.IsNullOrEmpty(newDatasetModule))
                             {
@@ -452,7 +457,10 @@
                             HttpResponseMessage response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
                             List<DatasetDtoGenerico>? datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
                             DatasetDtoGenerico addedDataset = datasetsFromApi.Single(ds => ds.Id == newDatasetId.Value && ds.Module == newDatasetModule);
+                            Console.WriteLine(addedDataset);
+                            Console.WriteLine(newDatasetModule);
                             System.String entity = await GetEntityFromDatasetAsync(NewDatasetId.Value, addedDataset.Module);
+                            Console.WriteLine(entity);
 
                             _selectedDatasets.Add(new DatasetSelection
                             {
@@ -465,7 +473,8 @@
                                 Multiplier = 1,
                                 Color = "rgb(0, 255, 231)",
                             });
-                        }
+                            Console.WriteLine(entity);
+                        //}
                         Snackbar.Add(Localizer["NewDatasetAdded"], Severity.Success);
                     }
                 }
