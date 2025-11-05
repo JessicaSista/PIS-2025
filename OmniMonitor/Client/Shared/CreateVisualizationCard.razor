@@ -451,7 +451,7 @@
                             
                             HttpResponseMessage response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
                             List<DatasetDtoGenerico>? datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
-                            DatasetDtoGenerico addedDataset = datasetsFromApi.Single(ds => ds.IdGenerico == newDatasetId.Value && ds.Module == newDatasetModule);
+                            DatasetDtoGenerico addedDataset = datasetsFromApi.Single(ds => ds.Id == newDatasetId.Value && ds.Module == newDatasetModule);
                             System.String entity = await GetEntityFromDatasetAsync(NewDatasetId.Value, addedDataset.Module);
 
                             _selectedDatasets.Add(new DatasetSelection
