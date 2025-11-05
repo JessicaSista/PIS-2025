@@ -408,9 +408,54 @@
                     System.String displayName = root.GetProperty("DisplayName").GetString();
                     System.String module = root.GetProperty("Module").GetString();
 
+                    System.Int32 idDatasetModulo;
+                    AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                    string? username = authState.User.Identity?.Name;
+                    string token = await LocalStorage.GetItemAsync<string>("authToken");
+                    
+                    if(module.Equals("Insight Monitor"))
+                    {
+                        HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={grupoDataset.DatasetId}&token={token}");
+                        DatasetIM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetIM>();
+
+                        if (datasetFromApi == null)
+                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                        idDatasetModulo = datasetFromApi.DatasetId;
+                    }
+                    else if(module.Equals("Asset Manager"))
+                    {
+                        HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={grupoDataset.DatasetId}&token={token}");
+                        DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
+
+                        if (datasetFromApi == null)
+                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
+
+                        idDatasetModulo = datasetFromApi.DatasetId;
+                    }
+                    else if(module.Equals("Urban Monitor"))
+                    {
+                        HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={grupoDataset.DatasetId}&token={token}");
+                        DatasetUM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetUM>();
+
+                        if (datasetFromApi == null)
+                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
+
+                        idDatasetModulo = datasetFromApi.DatasetId;
+                    }
+                    else
+                    {
+                        HttpResponseMessage? response = await Http.GetAsync($"api/DatasetEM/{grupoDataset.DatasetId}?token={token}");
+                        DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
+
+                        if (datasetFromApi == null)
+                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                        
+                        idDatasetModulo = datasetFromApi.DatasetId;
+                    }
+
                     _selectedDatasets.Add(new DatasetSelection
                     {
-                        DatasetId = grupoDataset.DatasetId,
+                        DatasetId = idDatasetModulo,
                         DatasetName = grupoDataset.Dataset.NameDataset,
                         DatasetType = module,
                         Multiplier = multiplier,
