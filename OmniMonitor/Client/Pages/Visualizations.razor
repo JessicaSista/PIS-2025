@@ -174,7 +174,7 @@
                     <MudPaper Class="pa-4" Style="background-color: var(--card);">
                         <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
-                            <ChartViewer VisualizationId="@chartId" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false"/>
+                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" VisualizationId="@chartId" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true"/>
 
                         </MudCard>
                     </MudPaper>
@@ -493,6 +493,11 @@
         {
             Snackbar.Add(Localizer["InternError"], Severity.Error);
         }
+    }
+
+    private Task OnVisualizationDeleted(System.Int32 deletedId){
+        _charts.RemoveAll(c => c.Id == deletedId);
+        return Task.CompletedTask;
     }
 
 }

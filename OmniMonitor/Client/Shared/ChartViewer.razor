@@ -5,9 +5,9 @@
 @using Blazored.LocalStorage
 @using System.Globalization
 @using Microsoft.Extensions.Localization
-@* 
-@using System.Reflection.Metadata
-@inject ISnackbar SnackbarService*@
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -31,9 +31,24 @@
                 </CardHeaderAvatar>
                 <CardHeaderContent>
                     @if (ShowTitle) {   
-                        <MudText Typo="Typo.h6" Style="color: var(--card-text-primary)" >@_title</MudText>
+                        <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)" >@_title</MudText>
                     }
                 </CardHeaderContent>
+
+                <CardHeaderActions>
+                    @if (showCustomizationIcon)
+                    {
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert">
+                            <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
+                                <MudText Typo="Typo.body2">Editar</MudText>
+                            </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => DeleteVisualization())">
+                                <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>Eliminar</MudText>
+                            </MudMenuItem>
+                        </MudMenu>
+                    }
+                </CardHeaderActions>
+                
             </MudCardHeader>
 
             <MudCardContent Class="pl-7 pr-8"
@@ -56,12 +71,12 @@
                     }
                     else
                     {
-                        <MudSkeleton />
+                        <MudText>No se encontraron datos</MudText>
                     }
                 }
                 else{
                     <MudContainer Class="d-flex justify-center align-center" Style="min-height: 270px">
-                        <MudButton Disabled="@_retrievingData" OnClick="retrieveData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
+                        <MudButton Disabled="@_retrievingData" OnClick="RetrieveData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
                             @if (_retrievingData)
                             {
                                 <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
@@ -84,7 +99,7 @@
                 }
                 @if (ShowLastUpdatedInfo)
                 {
-                    <MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>
+                    @*<MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>*@
                 }
             </MudCardActions>
         
@@ -115,6 +130,8 @@
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
     [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
+    [Parameter] public bool showCustomizationIcon {get; set;} = false;
+    [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
 
     // Local Variables
     private Visualizacion _visualization {get; set;}
@@ -148,9 +165,12 @@
         }
     };
 
-
-
     protected override async Task OnInitializedAsync()
+    {
+        await DownloadVisualization();
+    }
+
+    private async Task DownloadVisualization()
     {
         try
         {
@@ -175,7 +195,7 @@
             }
             if(retrieveOnInitialized)
             {
-                await retrieveData();
+                await RetrieveData();
             }
         }
         catch (Exception ex)
@@ -184,7 +204,8 @@
         }
     }
 
-    private async Task retrieveData(){
+    private async Task RetrieveData(){
+        _dataRetrieved = false;
         _retrievingData = true;
         StateHasChanged();
         var allData = new List<object>();
@@ -198,7 +219,7 @@
             {
                 try
                 {
-                    decimal multiplier = 1.0M;
+                    decimal multiplier = 1;
                     System.String color = "#00FFE7";
                     System.String attribute = String.Empty;
                     System.String module = String.Empty;
@@ -320,7 +341,7 @@
                                 .Select(v => new ChartPoint
                                 {
                                     X = v.Name,
-                                    Y = v.Value
+                                    Y = v.Value * multiplier
                                 })
                                 .ToList()
                         });
@@ -390,7 +411,7 @@
                 grouped[datasetName].Points.Add(new ChartPoint
                 {
                     X = timestamp ?? DateTime.Now.ToString("HH:mm"),
-                    Y = value
+                    Y = (decimal)value
                 });
             }
             catch (Exception ex)
@@ -423,6 +444,47 @@
         };
     }
 
+    private async Task OpenEditVisualizationDialog()
+    {
+        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
+        DialogResult? result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            _seriesData.Clear();
+            _seriesData = new List<DatasetSeries>();
+            await DownloadVisualization();
+            await RetrieveData();
+            StateHasChanged();
+            _chartKey++;
+            Snackbar.Add("Visualización actualizada", Severity.Success);
+        }
+    }
+
+    private async Task DeleteVisualization()
+    {
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}?token={token}");
+            if(response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Visualizacion eliminada", Severity.Success);
+                await OnDeleted.InvokeAsync(_visualization == null ? VisualizationId : _visualization.IdVisualizacion);
+            }
+            else
+            {
+                Snackbar.Add("No se pudo eliminar la visualizacion", Severity.Warning);
+            }
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add("Error inesperado", Severity.Error);
+        }
+    }
+
     public class DatasetSeries
     {
         public System.String DatasetName { get; set; } = String.Empty;
@@ -433,7 +495,7 @@
     public class ChartPoint
     {
         public System.String X { get; set; } = string.Empty;
-        public double Y { get; set; }
+        public decimal Y { get; set; }
     }
 
 }
