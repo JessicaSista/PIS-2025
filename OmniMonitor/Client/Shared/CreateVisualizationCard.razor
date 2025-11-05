@@ -203,6 +203,7 @@
             return;
         }
         System.String entity = await GetEntityFromDatasetAsync(dataset.Id, dataset.Module);
+        Console.WriteLine(entity);
         _selectedDatasets.Add(new DatasetSelection
         {
             DatasetId = dataset.IdGenerico,
@@ -412,7 +413,11 @@
                     _selectedDatasets = draft.SelectedDatasets?.Select(d => new DatasetSelection
                     {
                         DatasetId = d.DatasetId,
+                        DatasetName = d.DatasetName,
                         DatasetType = d.Module,
+                        Entity = d.Entity,
+                        DisplayName = d.DisplayName,
+                        EntityAttribute = d.EntityAttribute,
                         Multiplier = d.Multiplier,
                         Color = string.IsNullOrWhiteSpace(d.Color) ? "rgb(0, 255, 231)" : d.Color
                     }).ToList() ?? new();
@@ -435,11 +440,30 @@
                         else
                         {
                             // Fallback minimal add if hydration failed
+                            if(System.String.IsNullOrEmpty(newDatasetModule))
+                            {
+                                newDatasetModule = "Insight Monitor";
+                            }
+
+                            AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                            string? username = authState.User.Identity?.Name;
+                            string token = await LocalStorage.GetItemAsync<string>("authToken");
+                            
+                            HttpResponseMessage response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
+                            List<DatasetDtoGenerico>? datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+                            DatasetDtoGenerico addedDataset = datasetsFromApi.Single(ds => ds.IdGenerico == newDatasetId.Value && ds.Module == newDatasetModule);
+                            System.String entity = await GetEntityFromDatasetAsync(NewDatasetId.Value, addedDataset.Module);
+
                             _selectedDatasets.Add(new DatasetSelection
                             {
-                                DatasetId = newDatasetId.Value,
+                                DatasetId = addedDataset.IdGenerico,
+                                DatasetName = addedDataset.Nombre,
+                                DatasetType = addedDataset.Module,
+                                DisplayName = addedDataset.Nombre,
+                                Entity = entity,
+                                EntityAttribute = _entityAttributes[entity][0],
                                 Multiplier = 1,
-                                Color = "rgb(0, 255, 231)"
+                                Color = "rgb(0, 255, 231)",
                             });
                         }
                         Snackbar.Add(Localizer["NewDatasetAdded"], Severity.Success);
@@ -583,8 +607,6 @@
             return null;
         }
     }
-
-    
 
     private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
     {
