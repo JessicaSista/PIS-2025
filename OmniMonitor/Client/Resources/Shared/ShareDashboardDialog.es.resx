@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" msdata:Ordinal="5" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ShareDashboard" xml:space="preserve">
+    <value>Compartir Dashboard</value>
+  </data>
+  <data name="PublicAccess" xml:space="preserve">
+    <value>Acceso público</value>
+  </data>
+  <data name="PublicAccessDescription" xml:space="preserve">
+    <value>Cualquier persona con el enlace puede ver este reporte</value>
+  </data>
+  <data name="PublicLink" xml:space="preserve">
+    <value>Enlace público</value>
+  </data>
+  <data name="LastLink" xml:space="preserve">
+    <value>Último enlace</value>
+  </data>
+  <data name="GenerateLinkPlaceholder" xml:space="preserve">
+    <value>Genera un enlace para copiar</value>
+  </data>
+  <data name="PrivatePassword" xml:space="preserve">
+    <value>Contraseña para enlace privado</value>
+  </data>
+  <data name="PrivatePasswordDescription" xml:space="preserve">
+    <value>El enlace requerirá esta contraseña para acceder.</value>
+  </data>
+  <data name="EnterPassword" xml:space="preserve">
+    <value>Ingresa una contraseña</value>
+  </data>
+  <data name="ExistingLinks" xml:space="preserve">
+    <value>Enlaces existentes</value>
+  </data>
+  <data name="GenerateNewLink" xml:space="preserve">
+    <value>Generar nuevo enlace</value>
+  </data>
+  <data name="NoLinksYet" xml:space="preserve">
+    <value>No hay enlaces aún.</value>
+  </data>
+  <data name="Created" xml:space="preserve">
+    <value>Creado</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="PublicLinkGenerated" xml:space="preserve">
+    <value>Enlace público generado</value>
+  </data>
+  <data name="PasswordRequired" xml:space="preserve">
+    <value>Por favor, ingresa una contraseña para el enlace privado</value>
+  </data>
+  <data name="NewLinkGenerated" xml:space="preserve">
+    <value>Nuevo enlace generado</value>
+  </data>
+  <data name="LinkDeleted" xml:space="preserve">
+    <value>Enlace eliminado</value>
+  </data>
+  <data name="LinkCopied" xml:space="preserve">
+    <value>Enlace copiado al portapapeles</value>
+  </data>
+  <data name="CopyFailed" xml:space="preserve">
+    <value>No se pudo copiar el enlace</value>
+  </data>
+  <data name="ErrorLoadingLinks" xml:space="preserve">
+    <value>Error al cargar enlaces</value>
+  </data>
+  <data name="ErrorUpdatingAccess" xml:space="preserve">
+    <value>Error al actualizar acceso público</value>
+  </data>
+  <data name="ErrorGeneratingLink" xml:space="preserve">
+    <value>Error al generar enlace</value>
+  </data>
+  <data name="ErrorDeletingLink" xml:space="preserve">
+    <value>Error al eliminar enlace</value>
+  </data>
+</root>

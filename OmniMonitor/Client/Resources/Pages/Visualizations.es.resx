@@ -144,4 +144,19 @@
   <data name="NoKpisAvailable" xml:space="preserve">
     <value>No hay KPIs disponibles.</value>
   </data>
+  <data name="Confirmación" xml:space="preserve">
+    <value>Confirmación</value>
+  </data>
+  <data name="PreguntaEliminar1" xml:space="preserve">
+    <value>¿Desea eliminar {0}?</value>
+  </data>
+  <data name="Eliminar" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Cancelar" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Editar" xml:space="preserve">
+    <value>Editar</value>
+  </data>
 </root>

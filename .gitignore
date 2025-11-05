@@ -40,3 +40,4 @@ artifacts/
 *.tmp
 *.bak
 *.backup
+UpgradeLog.htm

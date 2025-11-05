@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -38,15 +39,10 @@ namespace OmniMonitor.Shared.Dtos
 
         // Relación con los resources seleccionados explícitamente
         public virtual ICollection<DatasetCategory> DatasetCategory { get; set; } = new List<DatasetCategory>();
+        public int DatasetId { get; set; }  // Clave foránea
+        [ForeignKey(nameof(DatasetId))]
+        public virtual Datasets Datasets { get; set; } = null!;
 
-        // IDs para la búsqueda dinámica cuando no se seleccionan explícitamente
-        public int? Id_Alert { get; set; }
-        public int? Id_Event { get; set; }
-        public int? Id_Extension { get; set; }
-        public int? Id_Category { get; set; }
-        public string? AlertState { get; set; }
-        public string? EventState { get; set; }
-        public string? ExtensionState { get; set; }
-        public string? CategoryState { get; set; }
+
     }
 }

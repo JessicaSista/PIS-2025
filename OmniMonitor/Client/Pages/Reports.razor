@@ -1,0 +1,417 @@
+@page "/reportes"
+@attribute [Authorize]
+@using MudBlazor
+@using OmniMonitor.Client.Shared
+@using System.Text.Json
+@using Microsoft.Extensions.Localization
+@using OmniMonitor.Shared.Dtos
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject NavigationManager NavigationManager
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
+@inject IStringLocalizer<Reports> Localizer
+@inject HttpClient Http
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>@Localizer["Reportes"]</PageTitle>
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
+            @Localizer["Title"]
+        </MudText>
+    </MudStack>
+    <AddButton OnClick="CrearReporte">
+        @Localizer["NewReportButton"]
+    </AddButton>
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
+        @Localizer["Description"]
+    </MudText>
+</MudStack>
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
+    <MudTextField @bind-Value="_searchText"
+                  Immediate="true"
+                  Placeholder="@Localizer["SearchPlaceholder"]"
+                  Variant="Variant.Outlined"
+                  Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search"
+                  Class="flex-grow-1" />
+</MudStack>
+
+<MudContainer Fixed="true" Class="pl-4 pr-6">
+    @if (_isLoading)
+    {
+        <MudGrid Class="justify-center">
+            <MudProgressCircular Color="MudBlazor.Color.Primary" Class="my-4" />
+        </MudGrid>
+    }
+    else if (!_reportesFiltrados.Any())
+    {
+        <MudGrid Class="justify-center my-6">
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
+                    @Localizer["NoReports"]
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    }
+    else
+    {
+        <MudGrid GutterSize="3">
+            @foreach (var reporte in _reportesFiltrados)
+            {
+                <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
+                    <ReportCardComponent Reporte="reporte"
+                                       OnNavigate="@NavigateToEditarReporte"
+                                       OnEdit="@EditarReporte"
+                                       OnDelete="@ConfirmarEliminarReporte"
+                                       Class="flex-grow-1" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private string _searchText = "";
+    private List<ReporteDto> _reportes = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await CargarReportes();
+
+            var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+            if (!string.IsNullOrEmpty(uri.Query))
+            {
+                var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+                foreach (var q in query)
+                {
+                    var kv = q.Split('=', 2);
+                    if (kv.Length == 2 && kv[0] == "snackbar")
+                    {
+                        var mensaje = Uri.UnescapeDataString(kv[1]);
+                        Snackbar.Add(mensaje, Severity.Success, config =>
+                        {
+                            config.SnackbarVariant = Variant.Filled;
+                            config.Action = "OK";
+                            config.ActionColor = MudBlazor.Color.Primary;
+                        });
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al inicializar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private IEnumerable<ReporteDto> _reportesFiltrados =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? _reportes
+            : _reportes.Where(r => r.Nombre.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    private Task NavigateToEditarReporte(int id)
+    {
+        NavigationManager.NavigateTo($"editarReporte/{id}");
+        return Task.CompletedTask;
+    }
+
+    private async Task EditarReporte(int id)
+    {
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
+                return;
+            }
+
+            var response = await Http.GetAsync($"api/reports/{id}?token={Uri.EscapeDataString(token)}");
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al cargar el reporte: {errorBody}", Severity.Error);
+                return;
+            }
+
+            var report = await response.Content.ReadFromJsonAsync<Report>();
+            if (report == null)
+            {
+                Snackbar.Add("No se encontró la información del reporte", Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                ["Username"] = report.Username ?? string.Empty,
+                ["IsEditMode"] = true,
+                ["ReportId"] = report.Id,
+                ["InitialName"] = report.Name ?? string.Empty,
+                ["InitialDescription"] = report.Description ?? string.Empty,
+                ["ExistingNames"] = _reportes
+                    .Where(r => r.Id != id)
+                    .Select(r => r.Nombre ?? string.Empty)
+                    .ToList()
+            };
+
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Editar Reporte", parameters, options);
+            var result = await dialog.Result;
+
+            if (result == null || result.Canceled || result.Data is not CreateReportDialog.ReportDialogResult editResult)
+            {
+                return;
+            }
+
+            var trimmedName = editResult.Name.Trim();
+            var trimmedDescription = string.IsNullOrWhiteSpace(editResult.Description)
+                ? null
+                : editResult.Description.Trim();
+
+            var currentName = report.Name ?? string.Empty;
+            var currentDescription = report.Description ?? string.Empty;
+            var hasNameChange = !string.Equals(currentName, trimmedName, StringComparison.Ordinal);
+            var hasDescriptionChange = !string.Equals(currentDescription, trimmedDescription ?? string.Empty, StringComparison.Ordinal);
+
+            if (hasNameChange || hasDescriptionChange)
+            {
+                var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
+                var updateUrl =
+                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}&token={Uri.EscapeDataString(token)}";
+
+                var updateResponse = await Http.PutAsync(updateUrl, null);
+                if (updateResponse.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Reporte actualizado correctamente", Severity.Success);
+                    await CargarReportes();
+                }
+                else
+                {
+                    var updateError = await updateResponse.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error al actualizar el reporte: {updateError}", Severity.Error);
+                    return;
+                }
+            }
+
+            NavigationManager.NavigateTo($"editarReporte/{id}");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al editar el reporte: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ConfirmarEliminarReporte(int id)
+    {
+        var reporte = _reportes.FirstOrDefault(r => r.Id == id);
+        if (reporte == null)
+        {
+            Snackbar.Add("No se encontró el reporte seleccionado.", Severity.Warning);
+            return;
+        }
+
+        const string titulo = "Confirmar eliminación";
+        var mensajeMarkup = (MarkupString)$"¿Desea eliminar el reporte <b>{reporte.Nombre}</b>?";
+
+        bool? confirm = await DialogService.ShowMessageBox(
+            titulo,
+            mensajeMarkup,
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (confirm == true)
+        {
+            await EliminarReporte(reporte);
+        }
+    }
+
+    private async Task EliminarReporte(ReporteDto reporte)
+    {
+        if (reporte == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
+                return;
+            }
+
+            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={reporte.Id}&token={token}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
+                await CargarReportes();
+                await GuardarReportes();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al eliminar el reporte: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar el reporte: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void VerReporte(int id)
+    {
+        NavigationManager.NavigateTo($"/reporte/{id}");
+    }
+
+    private async Task GuardarReportes()
+    {
+        try
+        {
+            var reportesJson = JsonSerializer.Serialize(_reportes);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "reportes", reportesJson);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar reportes: {ex.Message}");
+        }
+    }
+
+    private async Task CargarReportes()
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(Localizer["ErrorUsuario"], Severity.Warning);
+                _reportes = new List<ReporteDto>();
+                return;
+            }
+
+            string? token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrEmpty(token))
+            {
+                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
+                return;
+            }
+
+            var response = await Http.GetAsync($"api/reports/by-user?token={token}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var reportsFromApi = await response.Content.ReadFromJsonAsync<List<Report>>();
+                _reportes = reportsFromApi?.Select(d => new ReporteDto
+                {
+                    Id = d.Id,
+                    Nombre = d.Name,
+                    Descripcion = d.Description ?? string.Empty
+                }).ToList() ?? new List<ReporteDto>();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                Snackbar.Add("Sesión expirada. Por favor, inicia sesión nuevamente.", Severity.Warning);
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al cargar los reportes: {response.StatusCode}", Severity.Error);
+                Console.WriteLine($"Error al cargar reportes: {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar los reportes: {ex.Message}", Severity.Error);
+            Console.WriteLine($"Excepción al cargar reportes: {ex}");
+            _reportes = new List<ReporteDto>();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CrearReporte()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add(Localizer["ErrorUsuario"], Severity.Error);
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                ["Username"] = username,
+                ["ExistingNames"] = (_reportes ?? new List<ReporteDto>())
+                    .Select(r => r.Nombre ?? string.Empty)
+                    .ToList()
+            };
+
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Crear Nuevo Reporte", parameters, options);
+            var result = await dialog.Result;
+            if (result == null)
+            {
+                Console.WriteLine("[WARN] El diálogo de creación retornó un resultado nulo");
+                return;
+            }
+
+            if (!result.Canceled)
+            {
+                if (result.Data is int reportId)
+                {
+                    try
+                    {
+                        await CargarReportes();
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}");
+                    }
+                    catch (Exception loadEx)
+                    {
+                        Console.WriteLine($"[ERROR] Error al cargar reportes: {loadEx.Message}");
+                        NavigationManager.NavigateTo($"editarReporte/{reportId}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] El diálogo se cerró con un tipo de dato inesperado: {result.Data?.GetType().Name ?? "null"}");
+                    await CargarReportes();
+                }
+            }
+            else
+            {
+                Console.WriteLine("[INFO] El usuario canceló la creación del reporte");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al crear el reporte: {ex.Message}", Severity.Error);
+        }
+    }
+}

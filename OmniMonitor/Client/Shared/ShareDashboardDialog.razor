@@ -1,0 +1,243 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components
+@using OmniMonitor.Shared.Dtos
+@using Microsoft.Extensions.Localization
+@inject OmniMonitor.Client.Services.ShareLinkService ShareLinkService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IStringLocalizer<ShareDashboardDialog> Localizer
+
+<MudDialog Class="mud-width-full" MaxWidth="MaxWidth.Medium" FullWidth="true" Style="background-color: var(--fondo-dialog)">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
+            <MudIcon Icon="@Icons.Material.Filled.Share" Class="mb-n1"/>
+            @Localizer["ShareDashboard"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="2">
+
+            <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-surface);"><MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack>
+                    <MudText Typo="Typo.subtitle2">@Localizer["PublicAccess"]</MudText>
+                    <MudText Typo="Typo.caption">@Localizer["PublicAccessDescription"]</MudText>
+                </MudStack>
+                <MudSwitch Checked="@isPublic" Color="MudBlazor.Color.Success" T="bool" @onclick="@(() => TogglePublicAccess(!isPublic))" />
+            </MudStack></MudPaper>
+
+            <MudStack>
+                <MudText Typo="Typo.subtitle2">@Localizer["LastLink"]</MudText>
+                <MudTextField @bind-Value="shareUrl" ReadOnly="true" Variant="Variant.Outlined" Placeholder="@Localizer["GenerateLinkPlaceholder"]" Adornment="Adornment.End">
+                    <AdornmentIcon>@Icons.Material.Filled.ContentCopy</AdornmentIcon>
+                    <OnAdornmentClick>CopyLink</OnAdornmentClick>
+                </MudTextField>
+            </MudStack>
+
+            <div @key="isPublic">
+                @if (!isPublic)
+                {
+                    <MudStack>
+                        <MudText Typo="Typo.subtitle2">@Localizer["PrivatePassword"]</MudText>
+                        <MudText Typo="Typo.caption">@Localizer["PrivatePasswordDescription"]</MudText>
+                        <MudTextField @bind-Value="privatePassword"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Password"
+                                      Placeholder="@Localizer["EnterPassword"]"
+                                      Immediate="true" />
+                    </MudStack>
+                }
+            </div>
+
+            <MudDivider Class="my-2" />
+
+            <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.subtitle2">@Localizer["ExistingLinks"]</MudText>
+                <MudButton Variant="Variant.Outlined" Color="MudBlazor.Color.Primary" StartIcon="@Icons.Material.Filled.AddLink" Disabled="loading" OnClick="GenerateNewLink">@Localizer["GenerateNewLink"]</MudButton>
+            </MudStack>
+
+            <MudList T="string" Dense="true" Class="mt-1">
+                @if (links.Count == 0)
+                {
+                    <MudText Typo="Typo.caption">@Localizer["NoLinksYet"]</MudText>
+                }
+                else
+                {
+                    @foreach (var link in links)
+                    {
+                        var url = BuildPublicUrl(link.Slug);
+                        <MudListItem T="string">
+                            <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mud-width-full">
+                                <MudStack>
+                                    <MudText Typo="Typo.body2">@url</MudText>
+                                    <MudText Typo="Typo.caption">@Localizer["Created"]: @link.CreatedAt.ToLocalTime()</MudText>
+                                </MudStack>
+                                <MudStack Row Spacing="1">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="MudBlazor.Color.Default" OnClick="() => CopyText(url)" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" Disabled="loading" OnClick="() => DeleteLink(link.Slug)" />
+                                </MudStack>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                }
+            </MudList>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" OnClick="Close" Style="color: var(--text-primary);">@Localizer["Close"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public int DashboardId { get; set; }
+
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+
+    private bool loading = false;
+    private bool isPublic = false;
+    private string shareUrl = string.Empty;
+    private string? privatePassword;
+    private List<ShareResponseDto> links = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLinks();
+        UpdateShareUrlFromCurrent();
+    }
+
+    private async Task LoadLinks()
+    {
+        try
+        {
+            loading = true;
+            links = await ShareLinkService.GetShares(DashboardId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorLoadingLinks"]}: {ex.Message}", Severity.Error);
+        }
+        finally { loading = false; }
+    }
+
+    // isPublic is solely controlled by the switch (two-way bound). Do not override it from link list.
+
+    private string BuildPublicUrl(string slug)
+    {
+        // Ruta pública acordada: '/dashboards/view/{slug}' (read-only view handled by another team)
+        return Navigation.BaseUri.TrimEnd('/') + "/dashboards/view/" + slug;
+    }
+
+    private void UpdateShareUrlFromCurrent()
+    {
+        var last = links.OrderByDescending(l => l.CreatedAt).FirstOrDefault();
+        shareUrl = last != null ? BuildPublicUrl(last.Slug) : string.Empty;
+    }
+
+    private async Task TogglePublicAccess(bool newValue)
+    {
+        // Sync local state with switch value immediately
+        isPublic = newValue;
+        if (isPublic)
+        {
+            privatePassword = string.Empty;
+        }
+        StateHasChanged();
+        if (loading) return;
+        try
+        {
+            loading = true;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorUpdatingAccess"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+            UpdateShareUrlFromCurrent();
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateNewLink()
+    {
+        try
+        {
+            loading = true;
+            if (!isPublic && string.IsNullOrWhiteSpace(privatePassword))
+            {
+                Snackbar.Add(Localizer["PasswordRequired"], Severity.Warning);
+                return;
+            }
+
+            var request = new ShareRequestDto
+            {
+                Visibility = isPublic ? "public" : "private",
+                Password = isPublic ? null : privatePassword
+            };
+
+            var created = await ShareLinkService.CreateShare(DashboardId, request);
+            links.Add(created);
+            shareUrl = BuildPublicUrl(created.Slug);
+            if (!isPublic)
+            {
+                privatePassword = string.Empty;
+            }
+            Snackbar.Add(Localizer["NewLinkGenerated"], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorGeneratingLink"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteLink(string slug)
+    {
+        try
+        {
+            loading = true;
+            await ShareLinkService.DeleteShare(slug);
+            links.RemoveAll(l => l.Slug == slug);
+            Snackbar.Add(Localizer["LinkDeleted"], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["ErrorDeletingLink"]}: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            loading = false;
+            UpdateShareUrlFromCurrent();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyLink()
+    {
+        if (string.IsNullOrWhiteSpace(shareUrl)) return;
+        await CopyText(shareUrl);
+    }
+
+    private async Task CopyText(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add(Localizer["LinkCopied"], Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add(Localizer["CopyFailed"], Severity.Error);
+        }
+    }
+
+    private void Close()
+    {
+        MudDialog?.Close(DialogResult.Ok(true));
+    }
+}

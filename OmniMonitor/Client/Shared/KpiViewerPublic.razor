@@ -1,0 +1,173 @@
+@using MudBlazor
+@using OmniMonitor.Shared.Dtos
+@using Microsoft.Extensions.Localization
+@using System.Net
+
+@inject HttpClient Http
+@inject IStringLocalizer<VisualizationCard> Localizer
+
+<MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
+    <MudCard Elevation="0"
+             Style="background-color: transparent; display:flex; flex-direction:column; height:100%;">
+        <MudCardContent Style="flex:1; display:flex; flex-direction:column;">
+            @if (_isLoading)
+            {
+                <MudSkeleton Height="100%" />
+            }
+            else if (!string.IsNullOrEmpty(_loadError))
+            {
+                <MudAlert Severity="Severity.Error">@_loadError</MudAlert>
+            }
+            else if (_kpi is null)
+            {
+                <MudAlert Severity="Severity.Info">No se encontró información para este KPI.</MudAlert>
+            }
+            else
+            {
+                <MudTooltip Text="@_kpi.Name">
+                    <MudText Class="mb-4"
+                             Typo="Typo.h6"
+                             Style="color: var(--card-text-primary);
+                                    font-weight:600;
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;">
+                        @_kpi.Name
+                    </MudText>
+                </MudTooltip>
+
+                @if (string.IsNullOrEmpty(_kpi.Value?.ToString()) || _kpi.Value?.ToString() == "—")
+                {
+                    <MudText Typo="Typo.body2"
+                             Style="color: var(--card-text-secondary); font-weight: bold;">
+                        @Localizer["NoData"]
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.h4"
+                             Style="color: var(--card-text-primary)">
+                        @_kpi.Value
+                    </MudText>
+                }
+
+                @if (!string.IsNullOrEmpty(_kpi.Description))
+                {
+                    <MudText Typo="Typo.body2"
+                             Style="color: var(--card-text-secondary);
+                                    margin-top:4px;
+                                    white-space: normal;
+                                    word-wrap: break-word;
+                                    overflow-wrap: break-word;">
+                        @_kpi.Description
+                    </MudText>
+                }
+
+                <div style="margin-top:auto; display:flex; justify-content:flex-end;">
+                    <MudText Style="color:var(--card-text-secondary); font-size:0.7rem;">
+                        @Localizer["Actualizado"]: @(DateTime.Now.ToString("yyyy-MM-dd HH:mm"))
+                    </MudText>
+                </div>
+            }
+        </MudCardContent>
+    </MudCard>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public int KpiId { get; set; }
+
+    private KpiResponse? _kpi;
+    private bool _isLoading = true;
+    private string? _loadError;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (KpiId <= 0)
+        {
+            _kpi = null;
+            _loadError = "Identificador de KPI inválido.";
+            _isLoading = false;
+            return;
+        }
+
+        _isLoading = true;
+        _loadError = null;
+
+        try
+        {
+            var response = await Http.GetAsync($"api/KPI/getKpiSinToken?id={KpiId}");
+            if (response.IsSuccessStatusCode)
+            {
+                _kpi = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                if (_kpi == null)
+                {
+                    _loadError = "No se pudo interpretar la respuesta del KPI.";
+                }
+            }
+            else if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _kpi = null;
+                _loadError = $"No se encontró el KPI con ID {KpiId}.";
+            }
+            else
+            {
+                _kpi = null;
+                _loadError = $"No se pudo cargar el KPI (código {(int)response.StatusCode}).";
+            }
+        }
+        catch (Exception ex)
+        {
+            _kpi = null;
+            _loadError = $"Error al cargar el KPI: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string CardStyle
+    {
+        get
+        {
+            string baseColor = _kpi?.ActualColor;
+            if (string.IsNullOrWhiteSpace(baseColor))
+            {
+                baseColor = "#00FFE7";
+            }
+
+            return $"background-color:{GetTransparentColor(baseColor, 0.15)}; " +
+                   $"border:2px solid {baseColor}; " +
+                   "border-radius: 2px; flex-grow: 1;";
+        }
+    }
+
+    private string GetTransparentColor(string colorInput, double opacity)
+    {
+        if (string.IsNullOrWhiteSpace(colorInput)) return colorInput;
+
+        if (colorInput.StartsWith("#") && (colorInput.Length == 7 || colorInput.Length == 4))
+        {
+            try
+            {
+                string hex = colorInput.Substring(1);
+                if (hex.Length == 3) hex = string.Concat(hex.Select(c => new string(c, 2)));
+
+                int r = int.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
+                int g = int.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
+                int b = int.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+                return $"rgba({r},{g},{b},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+            }
+            catch { return colorInput; }
+        }
+
+        var parts = colorInput.Replace("rgb(", string.Empty).Replace(")", string.Empty).Split(',');
+        if (parts.Length == 3)
+        {
+            return $"rgba({parts[0].Trim()},{parts[1].Trim()},{parts[2].Trim()},{opacity.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
+        }
+
+        return colorInput;
+    }
+}

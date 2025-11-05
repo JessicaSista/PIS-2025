@@ -1,209 +1,463 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OmniMonitor.Server.Context;
+using Microsoft.Extensions.Logging;
+
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Shared.Dtos.AM;
 
-[ApiController]
-[Route("api/[controller]")]
-public class KPIController : ControllerBase
+namespace OmniMonitor.Server.Controllers
 {
-    private readonly ApplicationDbContext _context;
-    private readonly ISondaAuthService _sondaAuthService;
-    private readonly IKpiService _kpiService;
-    private readonly ISondaIMService _sondaIMService;
-    public KPIController(ApplicationDbContext context, ISondaAuthService sondaAuthService, IKpiService kpiService, ISondaIMService sondaIMService)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class KPIController : ControllerBase
     {
-        _sondaAuthService = sondaAuthService;
-        _context = context;
-        _kpiService = kpiService;
-        _sondaIMService = sondaIMService;
-    }
+        private readonly ISondaAuthService _sondaAuthService;
+        private readonly IKpiService _kpiService;
+        private readonly ISondaIMService _sondaIMService;
+        private readonly ILogger<KPIController> _logger;
 
-    [HttpPost("")]
-    [ProducesResponseType(typeof(Kpi), 200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<Kpi>> CreateKpi([FromBody] KpiRequest request, [FromQuery] string token)
-    {
-        try
+        public KPIController(
+            ISondaAuthService sondaAuthService,
+            IKpiService kpiService,
+            ISondaIMService sondaIMService,
+            ILogger<KPIController> logger)
+        {
+            _sondaAuthService = sondaAuthService ?? throw new ArgumentNullException(nameof(sondaAuthService));
+            _kpiService = kpiService ?? throw new ArgumentNullException(nameof(kpiService));
+            _sondaIMService = sondaIMService ?? throw new ArgumentNullException(nameof(sondaIMService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        [HttpPost("")]
+        [ProducesResponseType(typeof(Kpi), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<Kpi>> CreateKpi([FromBody] KpiRequest request, [FromQuery] string token)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest("El objeto KPI es nulo.");
+                }
+
+                // Validar token y obtener usuario
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                // Crear KPI usando el servicio, pasándole el username
+                Kpi newKpi = await _kpiService.CreateKpiAsync(request, username);
+
+                return Ok(newKpi);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "CreateKpi: DB error");
+                return StatusCode(500, $"DB Error: {ex.InnerException?.Message ?? ex.Message}");
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "CreateKpi: argument error");
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CreateKpi: unexpected error");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Obtener KPI por id.
+        /// </summary>
+        /// <param name="id">id del KPI.</param>
+        /// <param name="token">Token del Usuario.</param>
+        /// <returns>Devuelve el KPI.</returns>
+        [HttpGet("{id}")]
+        [ProducesResponseType(typeof(KpiResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<KpiResponse>> GetKpiById(int id, [FromQuery] string token)
+        {
+            try
+            {
+                // Validar token y obtener usuario
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                // Buscar KPI en la base de datos
+                KpiResponse kpi = await _kpiService.CalculateKpiValueAsync(id, username);
+                if (kpi == null)
+                {
+                    return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                }
+
+                return Ok(kpi);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetKpiById: unexpected error for id={Id}", id);
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+
+        [HttpGet("getKpiSinToken")]
+        [ProducesResponseType(typeof(KpiResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<KpiResponse>> GetKpiByIdSinToken(int id)
+        {
+            try
+            {
+                KpiResponse kpi = await _kpiService.CalculateKpiValueAsyncSinToken(id);
+                if (kpi == null)
+                {
+                    return NotFound($"No se encontró el KPI con ID {id}");
+                }
+
+                return Ok(kpi);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        // Eliminar KPI por ID
+        [HttpDelete("{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult> DeleteKpi(int id, [FromQuery] string? token)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token!);
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                await _kpiService.DeleteKpiAsync(id, username);
+
+                return Ok(new { Message = $"KPI con ID {id} eliminado correctamente." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "DeleteKpi: not found id={Id}", id);
+                return NotFound(new { ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "DeleteKpi: unauthorized id={Id}", id);
+                return StatusCode(403, new { ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "DeleteKpi: unexpected error for id={Id}", id);
+                return StatusCode(500, new { Message = $"Error interno: {ex.Message}" });
+            }
+        }
+
+        [HttpPatch("{id}")]
+        [ProducesResponseType(typeof(Kpi), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<Kpi>> UpdateKpiPartial(int id, [FromBody] KpiRequest request, [FromQuery] string? token)
         {
             if (request == null)
+            {
                 return BadRequest("El objeto KPI es nulo.");
+            }
 
-            // Validar token y obtener usuario
-            var (username, _) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (string.IsNullOrEmpty(username))
-                return BadRequest("Token inválido.");
+            try
+            {
+                string? username = null;
 
-            // Crear KPI usando el servicio, pasándole el username
-            var newKpi = await _kpiService.CreateKpiAsync(request, username);
+                if (!string.IsNullOrEmpty(token))
+                {
+                    // Obtener usuario del token
+                    string user = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                    if (string.IsNullOrEmpty(user))
+                    {
+                        return BadRequest("Token inválido.");
+                    }
 
-            return Ok(newKpi);
+                    username = user;
+                }
+
+                Kpi updatedKpi = await _kpiService.UpdateKpiAsync(id, request, username);
+                return Ok(updatedKpi);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex, "UpdateKpiPartial: not found id={Id}", id);
+                return NotFound(ex.Message);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "UpdateKpiPartial: unauthorized id={Id}", id);
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "UpdateKpiPartial: argument error for id={Id}", id);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UpdateKpiPartial: unexpected error for id={Id}", id);
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
         }
-        catch (ArgumentException ex)
+
+        // Obtener todos los KPIs del usuario
+        [HttpGet("kpis")]
+        [ProducesResponseType(typeof(List<KpiResponse>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<KpiResponse>>> GetAllKpis([FromQuery] string token)
         {
-            return BadRequest(ex.Message);
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                List<KpiResponse> kpis = await _kpiService.CalculateAllKpisForUserAsync(username);
+                return Ok(kpis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetAllKpis: unexpected error");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
         }
-        catch (Exception ex)
+
+        [HttpGet("metrics/{module}")]
+        [ProducesResponseType(typeof(List<MetricInfo>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<MetricInfo>>> GetMetricInfoByModule(string module)
         {
-            return StatusCode(500, $"Error interno: {ex.Message}");
+            try
+            {
+                if (string.IsNullOrWhiteSpace(module))
+                {
+                    return BadRequest("Debe especificarse el módulo.");
+                }
+
+                List<MetricInfo> metrics = await _kpiService.GetMetricInfoListAsync(module.ToUpperInvariant());
+                if (metrics == null || metrics.Count == 0)
+                {
+                    return NotFound($"No se encontraron métricas para el módulo {module}.");
+                }
+
+                return Ok(metrics);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetMetricInfoByModule: unexpected error for module={Module}", module);
+                return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
+            }
         }
-    }
 
-
-
-
-    //Obtener kpi por id
-    [HttpGet("{id}")]
-    [ProducesResponseType(typeof(KpiResponse), 200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(404)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<KpiResponse>> GetKpiById(int id, [FromQuery] string token)
-    {
-        try
+        [HttpGet("testDates")]
+        [ProducesResponseType(typeof(List<DeviceData>), 200)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<DeviceData>>> TestGetDeviceDataByDate()
         {
-            // Validar token y obtener usuario
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (string.IsNullOrEmpty(username))
-                return BadRequest("Token inválido.");
+            try
+            {
+                // 🔧 Datos de prueba (ajustá según tus datos reales)
+                string username = "admin";
+                string password = "admin";
+                int deviceId = 52726;
 
-            // Buscar KPI en la base de datos
-            var kpi = await _kpiService.CalculateKpiValueAsync(id, username, password);
-            if (kpi == null)
-                return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
+                DateTime dateTo = DateTime.UtcNow;               // ahora
+
+                var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
+
+                if (data == null || data.Count == 0)
+                    return Ok("No se encontraron datos para el rango de fechas.");
+
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "TestGetDeviceDataByDate: unexpected error");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
+        [HttpGet("test")]
+        public ActionResult<Kpi> GetTestKpi()
+        {
+            var kpi = new Kpi
+            {
+                Id = 1,
+                Name = "Temperature Sensor",
+                Description = "Average temperature of last hour",
+                SourceModule = "UM",
+                DatasetId = 101,
+                Unit = "°C",
+                Metric = "Average",
+                Multiplier = 1.0,
+                DefaultColor = "#00FF00"
+            };
 
             return Ok(kpi);
         }
-        catch (Exception ex)
+
+        [HttpGet("test-response")]
+        public ActionResult<KpiResponse> GetTestKpiResponse()
         {
-            return StatusCode(500, $"Error interno: {ex.Message}");
+            var response = new KpiResponse
+            {
+                Name = "Temperature Sensor",
+                Description = "Average temperature of last hour",
+                Type = "float",
+                Value = 23.7,
+                ActualColor = "#00FF00"
+            };
+
+            return Ok(response);
         }
-    }
 
-
-    // Obtener todos los KPIs del usuario
-    [HttpGet("kpis")]
-    [ProducesResponseType(typeof(List<KpiResponse>), 200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<KpiResponse>>> GetAllKpis([FromQuery] string token)
-    {
-        try
+        // Devuelve los tipos de campos posibles para un KPI según el módulo
+        [HttpGet("field-types")]
+        [ProducesResponseType(typeof(List<string>), 200)]
+        [ProducesResponseType(400)]
+        public ActionResult<List<string>> GetKpiFieldTypes([FromQuery] string modulo, [FromQuery] int choice)
         {
-            var (username, password) = await _sondaAuthService.GetUserByTokenOMAsync(token);
-            if (string.IsNullOrEmpty(username))
-                return BadRequest("Token inválido.");
+            if (string.IsNullOrWhiteSpace(modulo))
+                return BadRequest("Debe especificar el módulo.");
 
-            var kpis = await _kpiService.CalculateAllKpisForUserAsync(username, password);
-            return Ok(kpis);
+            List<string> fieldTypes = new List<string>();
+            switch (modulo.ToLower())
+            {
+                case "am":
+                    if (choice == 1)
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMDTO).GetProperties().Select(p => p.Name).ToList();
+                    else if (choice == 2)
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMEventsDTO).GetProperties().Select(p => p.Name).ToList();
+                    else  
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.ReducedStockDatasetAM).GetProperties().Select(p => p.Name).ToList();
+                    break;
+                case "em":
+                    // Puedes elegir el DTO según el tipo de dato que quieras mostrar
+                    if (choice == 1)
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO).GetProperties().Select(p => p.Name).ToList();
+                    else if (choice == 2)
+                        fieldTypes.AddRange(typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO).GetProperties().Select(p => p.Name));
+                    else
+                        fieldTypes.AddRange(typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO).GetProperties().Select(p => p.Name));
+
+                    fieldTypes = fieldTypes.Distinct().ToList();
+                    break;
+                case "um":
+                    if (choice == 1)
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventsUMDTO).GetProperties().Select(p => p.Name).ToList();
+
+                    else
+                        fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventUMDTO).GetProperties().Select(p => p.Name).ToList();
+                    break;
+                default:
+                    fieldTypes.Add("Tipo de módulo no soportado");
+                    break;
+            }
+            return Ok(fieldTypes);
         }
-        catch (Exception ex)
+
+        [HttpGet("field-values")]
+        [ProducesResponseType(typeof(List<string>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<string>>> GetFieldValues(
+            [FromQuery] int datasetId,
+            [FromQuery] string modulo,
+            [FromQuery] string campo,
+            [FromQuery] int choice,
+            [FromQuery] string token)
         {
-            return StatusCode(500, $"Error interno: {ex.Message}");
+            // Log: llegada de la petición
+            _logger.LogInformation("GET field-values called. datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
+
+            try
+            {
+                if (datasetId <= 0)
+                {
+                    _logger.LogWarning("GetFieldValues: invalid datasetId {DatasetId}", datasetId);
+                    return BadRequest("Debe especificar un ID de dataset válido.");
+                }
+
+                if (string.IsNullOrWhiteSpace(modulo))
+                {
+                    _logger.LogWarning("GetFieldValues: missing modulo");
+                    return BadRequest("Debe especificar el módulo.");
+                }
+
+                if (string.IsNullOrWhiteSpace(campo))
+                {
+                    _logger.LogWarning("GetFieldValues: missing campo");
+                    return BadRequest("Debe especificar el campo.");
+                }
+
+                // Validar token y obtener usuario
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrEmpty(username))
+                {
+                    _logger.LogWarning("GetFieldValues: invalid token");
+                    return BadRequest("Token inválido.");
+                }
+
+                List<string> fieldValues = await _kpiService.GetFieldValuesAsync(datasetId, modulo, campo, choice, username);
+
+                if (fieldValues == null || !fieldValues.Any())
+                {
+                    _logger.LogInformation("GetFieldValues: no values found for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
+                    return Ok(new List<string>()); // Retornar lista vacía en lugar de NotFound
+                }
+
+                // Log: mostrar resumen de la respuesta
+                if (fieldValues.Count <= 20)
+                {
+                    // para respuestas pequeñas loguea el contenido
+                    _logger.LogInformation("GetFieldValues: returning {Count} values: {Values}", fieldValues.Count, string.Join(", ", fieldValues));
+                }
+                else
+                {
+                    // para respuestas grandes solo loguea el count
+                    _logger.LogInformation("GetFieldValues: returning {Count} values (content omitted in logs)", fieldValues.Count);
+                }
+
+                return Ok(fieldValues);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "GetFieldValues: argument error for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetFieldValues: unexpected error for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
         }
-    }
-
-
-    [HttpGet("metrics/{module}")]
-    [ProducesResponseType(typeof(List<MetricInfo>), 200)]
-    [ProducesResponseType(400)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<MetricInfo>>> GetMetricInfoByModule(string module)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(module))
-                return BadRequest("Debe especificarse el módulo.");
-
-            var metrics = await _kpiService.GetMetricInfoListAsync(module.ToUpperInvariant());
-            if (metrics == null || !metrics.Any())
-                return NotFound($"No se encontraron métricas para el módulo {module}.");
-
-            return Ok(metrics);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
-        }
-    }
-
-
-
-
-
-
-
-
-    // ⚙️ Endpoint temporal para probar GetDeviceDataByDate
-    [HttpGet("testDates")]
-    [ProducesResponseType(typeof(List<DeviceData>), 200)]
-    [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DeviceData>>> TestGetDeviceDataByDate()
-    {
-        try
-        {
-            // 🔧 Datos de prueba (ajustá según tus datos reales)
-            string username = "admin";
-            string password = "admin";
-            int deviceId = 52726;
-
-            DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
-            DateTime dateTo = DateTime.UtcNow;               // ahora
-
-            var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username, password);
-
-            if (data == null || data.Count == 0)
-                return Ok("No se encontraron datos para el rango de fechas.");
-
-            return Ok(data);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Error interno: {ex.Message}");
-        }
-    }
-
-
-
-    [HttpGet("test")]
-    public ActionResult<Kpi> GetTestKpi()
-    {
-        var kpi = new Kpi
-        {
-            Id = 1,
-            Name = "Temperature Sensor",
-            Description = "Average temperature of last hour",
-            SourceModule = "UM",
-            DatasetId = 101,
-            Unit = "°C",
-            Metric = "Average",
-            Multiplier = 1.0,
-            DefaultColor = "#00FF00"
-        };
-
-        return Ok(kpi);
-    }
-
-    [HttpGet("test-response")]
-    public ActionResult<KpiResponse> GetTestKpiResponse()
-    {
-        var response = new KpiResponse
-        {
-            Name = "Temperature Sensor",
-            Description = "Average temperature of last hour",
-            Type = "float",
-            Value = 23.7,
-            ActualColor = "#00FF00"
-        };
-
-        return Ok(response);
     }
 }
-
-
-
-
-
-

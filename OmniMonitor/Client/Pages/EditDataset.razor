@@ -1,0 +1,2025 @@
+@page "/editarDataset/{id:int}"
+@using OmniMonitor.Shared.Dtos
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.LocalStorage
+@using OmniMonitor.Shared.Dtos.AM
+@using OmniMonitor.Shared.Dtos.EM
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject HttpClient Http
+@using MudBlazor
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<Datasets> Localizer
+@inject ILocalStorageService LocalStorage
+
+
+<PageTitle>Editar Dataset</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">
+    @Localizer["EditarDataset"]
+</MudText>
+
+<!-- Selector de tipo de dataset -->
+<MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Modulo"]</MudText>
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+    <MudSelect T="string"
+               Value="@selectedTipo"
+               ValueChanged="OnModuleChanged"
+               Variant="Variant.Outlined"
+               Class="flex-grow-1 dark-field"
+               InputClass="dark-field-input"
+               PopoverClass="dark-field-popover"
+               Disabled="true">
+        @foreach (var tipo in tiposDataset)
+        {
+            <MudSelectItem Value="@tipo">@tipo</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>
+
+@if (cargando)
+{
+    <MudProgressCircular Class="mx-4" Indeterminate="true" Color="MudBlazor.Color.Primary" />
+}
+else if (noEncontrado)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mx-4 my-4">
+        No se encontró el dataset solicitado.
+    </MudAlert>
+}
+else if (selectedTipo == "Insight Monitor")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
+    <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <!-- Fuente -->
+        <div style="width: 25%;">
+            <MudSelect T="int?"
+                       Value="@selectedSourceId"
+                       ValueChanged="@OnSourceChanged"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarFuente"]"
+                       Class="@($"dark-field")"
+                       Required="true">
+                @foreach (var source in sources)
+                {
+                    <MudSelectItem Value="@((int?)source.Id)">@source.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Grupo -->
+        <div style="width: 25%;">
+            <MudSelect T="int?"
+                       Value="@selectedGroupId"
+                       ValueChanged="@OnGroupChanged"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarGrupo"]"
+                       Class="dark-field">
+                @foreach (var group in deviceGroups)
+                {
+                    <MudSelectItem Value="@((int?)group.Id)">@group.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Dispositivo -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedDeviceIds"
+                       SelectedValuesChanged="OnSelectedDevicesChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarDispositivo"]"
+                       Class="dark-field"
+                       Disabled="@(!selectedSourceId.HasValue)"
+                       ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
+                @foreach (var device in devices)
+                {
+                    <MudSelectItem T="int" Value="@device.Id">@device.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Sensor -->
+        <div style="width: 25%;">
+            <MudSelect T="string"
+                       @bind-Value="selectedSensor"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarSensor"]"
+                       Class="@($"dark-field")"
+                       Disabled="@(!selectedSourceId.HasValue)"
+                       Required="true">
+                @foreach (var sensor in sensores)
+                {
+                    <MudSelectItem Value="@sensor">@sensor</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            @Localizer["Cancelar"]
+        </MudButton>
+        <MudButton OnClick="GuardarCambios"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Asset Manager")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Toggle de modo: Asset vs Event Task -->
+    <MudStack Row Spacing="2" Class="mb-1 mx-4">
+        <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(2)">Asset</MudButton>
+        <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(1)">Event Task</MudButton>
+    </MudStack>
+
+    @if (amMode == 2)
+    {
+        <!-- Asset Manager: AssetType (req) -> Assets (multi, opcional) -->
+        <MudStack Row Spacing="2" Class="mb-4 mx-4">
+            <div style="width: 50%;">
+                <MudSelect T="int?"
+                           Value="@selectedAssetTypeId"
+                           ValueChanged="OnAssetTypeChanged"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Clearable
+                           Label="@Localizer["SeleccionarTipoAsset"]"
+                           Class="dark-field"
+                           Required="true">
+                    @foreach (var t in assetTypes)
+                    {
+                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div style="width: 50%;">
+                <MudSelect T="string"
+                           SelectedValues="selectedAssetIds"
+                           SelectedValuesChanged="OnSelectedAssetsChanged"
+                           Variant="Variant.Outlined"
+                           MultiSelection="true"
+                           SelectAll="true"
+                           SelectAllText="@Localizer["SeleccionarTodos"]"
+                           Clearable
+                           FullWidth="true"
+                           Disabled="@(!selectedAssetTypeId.HasValue)"
+                           Label="@Localizer["SeleccionarAsset"]"
+                           Class="dark-field"
+                           ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
+                    @foreach (var a in assets)
+                    {
+                        <MudSelectItem T="string" Value="@a.Id">@a.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </MudStack>
+    }
+    else if (amMode == 1)
+    {
+        <!-- Asset Manager: Event Task flow -->
+        <MudStack Row Spacing="2" Class="mb-4 mx-4">
+            <div style="width: 33.33%;">
+                <MudSelect T="int?"
+                           Value="@selectedTaskTypeId"
+                           ValueChanged="OnTaskTypeChanged"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Label="@Localizer["SeleccionarTaskType"]"
+                           Clearable
+                           Class="dark-field"
+                           Required="true">
+                    @foreach (var t in taskTypes)
+                    {
+                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div style="width: 33.33%;">
+                <MudSelect T="int"
+                           SelectedValues="selectedEventTaskInstanceIds"
+                           SelectedValuesChanged="OnSelectedEventTaskInstancesChanged"
+                           Variant="Variant.Outlined"
+                           MultiSelection="true"
+                           SelectAll="true"
+                           SelectAllText="@Localizer["SeleccionarTodos"]"
+                           Clearable
+                           FullWidth="true"
+                           Disabled="@(!selectedTaskTypeId.HasValue)"
+                           Label="@Localizer["SeleccionarEventTaskInstance(s)"]"
+                           Class="dark-field"
+                           ToStringFunc="@(id => GetEventTaskInstanceDisplayName(id))">
+                    @foreach (var e in eventTaskInstances)
+                    {
+                        <MudSelectItem T="int" Value="@e.Id">@GetEventTaskInstanceDisplayName(e.Id)</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+            <div style="width: 33.33%;">
+                <MudSelect T="int"
+                           SelectedValues="selectedStockIds"
+                           SelectedValuesChanged="OnSelectedStocksChanged"
+                           Variant="Variant.Outlined"
+                           MultiSelection="true"
+                           Clearable
+                           FullWidth="true"
+                           Disabled="@(!EnableStocksSelect)"
+                           Label="@Localizer["SeleccionarStock"]"
+                           Class="dark-field"
+                           ToStringFunc="@(id => stocks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString())">
+                    @foreach (var s in stocks)
+                    {
+                        <MudSelectItem T="int" Value="@s.Id">@s.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </div>
+        </MudStack>
+    }
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            @Localizer["Cancelar"]
+        </MudButton>
+        <MudButton OnClick="GuardarCambiosAM"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!CanSaveAM)">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Urban Monitor")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Tres selects: Zona, Eventos y Noticias -->
+    <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <!-- Zona -->
+        <div style="width: 33.33%;">
+            <MudSelect T="int?"
+                       Value="@selectedZoneId"
+                       ValueChanged="OnZoneChanged"
+                       Variant="Variant.Outlined"
+                       FullWidth="true"
+                       Clearable
+                       Label="@Localizer["SeleccionarZona"]"
+                       Class="dark-field"
+                       Required="true">
+                @foreach (var zone in zones)
+                {
+                    <MudSelectItem Value="@((int?)zone.Id)">@zone.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Eventos -->
+        <div style="width: 33.33%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedEventIds"
+                       SelectedValuesChanged="OnSelectedEventsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedZoneId.HasValue)"
+                       Label="@Localizer["SeleccionarEvento"]"
+                       Class="dark-field"
+                       ToStringFunc="@(id => events.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
+                @foreach (var evt in events)
+                {
+                    <MudSelectItem T="int" Value="@evt.Id">@evt.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Noticias -->
+        <div style="width: 33.33%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedNewsIds"
+                       SelectedValuesChanged="OnSelectedNewsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedZoneId.HasValue)"
+                       Label="@Localizer["SeleccionarNoticia"]"
+                       Class="dark-field"
+                       ToStringFunc="@(id => newsList.FirstOrDefault(n => n.Id == id)?.Title ?? id.ToString())">
+                @foreach (var news in newsList)
+                {
+                    <MudSelectItem T="int" Value="@news.Id">@news.Title</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            @Localizer["Cancelar"]
+        </MudButton>
+        <MudButton OnClick="GuardarCambiosUM"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!CanSaveUM)">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Event Manager")
+{
+    <!-- Campo Nombre -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Nombre"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField @bind-Value="addName" Placeholder="@Localizer["AgregarNombre"]"
+                      Variant="Variant.Outlined"
+                      Class="flex-grow-1 dark-field"
+                      MaxLength="50"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Campo Descripción -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["Descripcion"]</MudText>
+    <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 mx-4">
+        <MudTextField T="string"
+                      @bind-Value="addDesc"
+                      Placeholder="@Localizer["AgregarDescripcion"]"
+                      Variant="Variant.Outlined"
+                      TextFieldType="MudBlazor.TextFieldType.Multiline"
+                      Lines="3"
+                      Class="@($"flex-grow-1 dark-field mt-0 {(string.IsNullOrWhiteSpace(addDesc) ? "required-empty" : "")}")"
+                      MaxLength="200"
+                      Required="true" />
+    </MudStack>
+
+    <!-- Cuatro selects: Categoria, Eventos, Alertas y Extensiones -->
+    <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <!-- Categoria -->
+        <div style="width: 25%;">
+            <MudSelect T="int?"
+                       Value="@selectedCategoryId"
+                       ValueChanged="OnCategoryChanged"
+                       Variant="Variant.Outlined"
+                       FullWidth="true"
+                       Clearable
+                       Label="@Localizer["SeleccionarCategoria"]"
+                       Class="dark-field"
+                       Required="true">
+                @foreach (var category in categories)
+                {
+                    <MudSelectItem Value="@((int?)category.Id)">@category.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Eventos -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedEventEMIds"
+                       SelectedValuesChanged="OnSelectedEventEMsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="@Localizer["SeleccionarTodos"]"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedCategoryId.HasValue)"
+                       Label="@Localizer["SeleccionarEvento"]"
+                       Class="dark-field"
+                       ToStringFunc="@(id => eventsEM.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
+                @foreach (var evt in eventsEM)
+                {
+                    <MudSelectItem T="int" Value="@evt.Id">@evt.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Alertas -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedAlertIds"
+                       SelectedValuesChanged="OnSelectedAlertsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="@Localizer["SeleccionarTodas"]"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!selectedCategoryId.HasValue)"
+                       Label="@Localizer["SeleccionarAlerta"]"
+                       Class="dark-field"
+                       ToStringFunc="@(id => GetAlertDisplayName(id))">
+                @foreach (var alert in alertsEM)
+                {
+                    <MudSelectItem T="int" Value="@alert.AlertId">@GetAlertDisplayName(alert.AlertId)</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Extensiones -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedExtensionIds"
+                       SelectedValuesChanged="OnSelectedExtensionsChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       SelectAll="true"
+                       SelectAllText="@Localizer["SeleccionarTodas"]"
+                       Clearable
+                       FullWidth="true"
+                       Disabled="@(!EnableExtensionsSelect)"
+                       Label="@Localizer["SeleccionarExtension"]"
+                       Class="dark-field"
+                       ToStringFunc="@(id => GetExtensionDisplayName(id))">
+                @foreach (var ext in extensions)
+                {
+                    <MudSelectItem T="int" Value="@ext.Id">@GetExtensionDisplayName(ext.Id)</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            @Localizer["Cancelar"]
+        </MudButton>
+        <MudButton OnClick="GuardarCambiosEM"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!CanSaveEM)">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </div>
+}
+
+@code {
+    [Parameter] public int id { get; set; }
+    
+    [SupplyParameterFromQuery(Name = "module")]
+    public string? ModuleHint { get; set; }
+
+    private string selectedTipo = "Insight Monitor";
+    private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager" };
+
+    // Listas dinámicas desde la API
+    private List<Source> sources = new();
+    private List<DeviceGroup> deviceGroups = new();
+    private List<Device> devices = new();
+
+    // Valores seleccionados (ahora son IDs)
+    private int? selectedSourceId = null;
+    private int? selectedGroupId = null;
+    private HashSet<int> selectedDeviceIds = new();
+
+    private string selectedSensor = string.Empty;
+    private List<string> sensores = new();
+
+    private string addName = string.Empty;
+    private string addDesc = string.Empty;
+
+    private bool cargando = true;
+    private bool noEncontrado = false;
+
+    // Credenciales del usuario / token logic from develop
+    private string currentUsername = string.Empty;
+    private string authToken = string.Empty;
+    private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
+
+    // amMode: 1 = Event Task, 2 = Asset
+    private int amMode = 2;
+
+    // Asset flow
+    private List<AssetTypeDto> assetTypes = new();
+    private int? selectedAssetTypeId = null;
+    private List<AssetDto> assets = new();
+    private HashSet<string> selectedAssetIds = new();
+
+    // Event Task flow
+    private List<TaskTypeDto> taskTypes = new();
+    private int? selectedTaskTypeId = null;
+    private List<EventTaskInstanceDto> eventTaskInstances = new();
+    private HashSet<int> selectedEventTaskInstanceIds = new();
+    private List<EventTaskInstanceStockDto> stocks = new();
+    private HashSet<int> selectedStockIds = new();
+
+    // UM UI State
+    private List<Zone> zones = new();
+    private int? selectedZoneId = null;
+    private List<Event> events = new();
+    private HashSet<int> selectedEventIds = new();
+    private List<News> newsList = new();
+    private HashSet<int> selectedNewsIds = new();
+
+    // EM UI State
+    private List<CategoryDto> categories = new();
+    private int? selectedCategoryId = null;
+    private List<EventDto> eventsEM = new();
+    private HashSet<int> selectedEventEMIds = new();
+    private List<AlertDto> alertsEM = new();
+    private HashSet<int> selectedAlertIds = new();
+    private List<ExtensionDtoDup> extensions = new();
+    private HashSet<int> selectedExtensionIds = new();
+
+    private bool EnableStocksSelect => selectedEventTaskInstanceIds.Count == 1;
+
+    private bool CanSaveUM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            return selectedZoneId.HasValue && (selectedEventIds.Count > 0 || selectedNewsIds.Count > 0);
+        }
+    }
+    
+
+    private bool CanSaveAM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            if (amMode == 2)
+            {
+                return selectedAssetTypeId.HasValue;
+            }
+            // Event Task
+            return selectedTaskTypeId.HasValue;
+        }
+    }
+
+    private bool EnableExtensionsSelect => selectedEventEMIds.Count == 1;
+
+    private string GetExtensionDisplayName(int extensionId)
+    {
+        var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
+        if (ext == null) return extensionId.ToString();
+        
+        if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
+            return $"#{ext.Id} {ext.WorkZoneName}";
+        
+        if (!string.IsNullOrWhiteSpace(ext.EventName))
+            return $"#{ext.Id} {ext.EventName}";
+        
+        return $"#{ext.Id}";
+    }
+
+    private string GetAlertDisplayName(int alertId)
+    {
+        var alert = alertsEM.FirstOrDefault(a => a.AlertId == alertId);
+        if (alert == null) return alertId.ToString();
+        
+        if (!string.IsNullOrWhiteSpace(alert.AlertName))
+            return $"#{alert.AlertId} {alert.AlertName}";
+        
+        return $"#{alert.AlertId}";
+    }
+
+    private string GetEventTaskInstanceDisplayName(int instanceId)
+    {
+        var instance = eventTaskInstances.FirstOrDefault(e => e.Id == instanceId);
+        if (instance == null) return instanceId.ToString();
+        
+        if (!string.IsNullOrWhiteSpace(instance.Subject))
+            return $"#{instance.Id} {instance.Subject}";
+        
+        if (instance.EventTaskDto != null && !string.IsNullOrWhiteSpace(instance.EventTaskDto.Subject))
+            return $"#{instance.Id} {instance.EventTaskDto.Subject}";
+        
+        return $"#{instance.Id}";
+    }
+
+    private bool CanSaveEM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            return selectedCategoryId.HasValue && (selectedEventEMIds.Count > 0 || selectedAlertIds.Count > 0);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            currentUsername = authState.User.Identity?.Name ?? "";
+
+            authToken = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
+
+            if (string.IsNullOrEmpty(currentUsername) || string.IsNullOrEmpty(authToken))
+            {
+                noEncontrado = true;
+                return;
+            }
+
+            // NO cargar nada aquí - solo cargaremos lo necesario después de saber el módulo
+        }
+        catch (Exception ex)
+        {
+            noEncontrado = true;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadDataset();
+    }
+
+    private async Task OnModuleChanged(string newModule)
+    {
+        selectedTipo = newModule;
+        
+        // Limpiar todos los datos y selecciones previas
+        ClearAllSelections();
+        
+        // Cargar las listas del nuevo módulo
+        switch (newModule)
+        {
+            case "Insight Monitor":
+                await LoadSourcesAndGroups();
+                break;
+            case "Asset Manager":
+                await InitializeAMLists();
+                break;
+            case "Urban Monitor":
+                await InitializeUMLists();
+                break;
+            case "Event Manager":
+                await InitializeEMLists();
+                break;
+        }
+        
+        StateHasChanged();
+    }
+
+    private void ClearAllSelections()
+    {
+        // Clear Insight Monitor
+        selectedSourceId = null;
+        selectedGroupId = null;
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        sources.Clear();
+        deviceGroups.Clear();
+        devices.Clear();
+        sensores.Clear();
+        
+        // Clear Asset Manager
+        selectedAssetTypeId = null;
+        selectedAssetIds.Clear();
+        selectedTaskTypeId = null;
+        selectedEventTaskInstanceIds.Clear();
+        selectedStockIds.Clear();
+        assetTypes.Clear();
+        assets.Clear();
+        taskTypes.Clear();
+        eventTaskInstances.Clear();
+        stocks.Clear();
+        
+        // Clear Urban Monitor
+        selectedZoneId = null;
+        selectedEventIds.Clear();
+        selectedNewsIds.Clear();
+        zones.Clear();
+        events.Clear();
+        newsList.Clear();
+        
+        // Clear Event Manager
+        selectedCategoryId = null;
+        selectedEventEMIds.Clear();
+        selectedAlertIds.Clear();
+        selectedExtensionIds.Clear();
+        categories.Clear();
+        eventsEM.Clear();
+        alertsEM.Clear();
+        extensions.Clear();
+    }
+
+    private async Task LoadDataset()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            var token = await LocalStorage.GetItemAsync<string>("authToken") ?? "";
+
+            if (string.IsNullOrEmpty(username))
+            {
+                noEncontrado = true;
+                return;
+            }
+
+            bool datasetFound = false;
+
+            if (string.IsNullOrEmpty(ModuleHint))
+            {
+                try
+                {
+                    var moduleResponse = await Http.GetAsync($"api/Dataset/GetDatasetModule?datasetId={id}&token={Uri.EscapeDataString(token)}");
+                    if (moduleResponse.IsSuccessStatusCode)
+                    {
+                        var module = await moduleResponse.Content.ReadFromJsonAsync<string>();
+                        if (!string.IsNullOrEmpty(module))
+                        {
+                            ModuleHint = module;
+                            Console.WriteLine($"[PERF] Module identified in DB: {module}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[PERF] Error identifying module: {ex.Message}");
+                }
+            }
+
+            // Si tenemos un hint del módulo, intentar cargar directamente desde ese módulo primero
+            if (!string.IsNullOrEmpty(ModuleHint))
+            {
+                switch (ModuleHint)
+                {
+                    case "Insight Monitor":
+                        datasetFound = await TryLoadAsInsightMonitor(token);
+                        break;
+                    case "Asset Manager":
+                        datasetFound = await TryLoadAsAssetManager(token);
+                        break;
+                    case "Urban Monitor":
+                        datasetFound = await TryLoadAsUrbanMonitor(token);
+                        break;
+                    case "Event Manager":
+                        datasetFound = await TryLoadAsEventManager(token);
+                        break;
+                }
+
+                // Si se encontró con el hint, terminamos aquí
+                if (datasetFound)
+                {
+                    cargando = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+
+            // Si no hay hint o no se encontró, intentar con todos los módulos
+            if (!datasetFound)
+            {
+                datasetFound = await TryLoadAsInsightMonitor(token);
+            }
+
+            if (!datasetFound)
+            {
+                datasetFound = await TryLoadAsAssetManager(token);
+            }
+
+            if (!datasetFound)
+            {
+                datasetFound = await TryLoadAsUrbanMonitor(token);
+            }
+
+            if (!datasetFound)
+            {
+                datasetFound = await TryLoadAsEventManager(token);
+            }
+
+            if (!datasetFound)
+            {
+                noEncontrado = true;
+            }
+        }
+        catch
+        {
+            noEncontrado = true;
+        }
+        finally
+        {
+            cargando = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task<bool> TryLoadAsInsightMonitor(string token)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            if (response.IsSuccessStatusCode)
+            {
+                var existente = await response.Content.ReadFromJsonAsync<DatasetIM>();
+                if (existente != null)
+                {
+                    selectedTipo = "Insight Monitor";
+                    addName = existente.Name ?? string.Empty;
+                    addDesc = existente.Description ?? string.Empty;
+                    
+                    selectedSourceId = existente.Id_Source;
+                    selectedGroupId = existente.Id_Group;
+                    selectedSensor = existente.SensorName ?? string.Empty;
+
+                    selectedDeviceIds.Clear();
+                    if (existente.DatasetDevices != null && existente.DatasetDevices.Any())
+                    {
+                        selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
+                    }
+
+                    // Cargar las listas necesarias en paralelo para mayor velocidad
+                    await Task.WhenAll(
+                        LoadSourcesAndGroups(),
+                        LoadDevices(),
+                        LoadSensors()
+                    );
+                    
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading as IM: {ex.Message}");
+        }
+        return false;
+    }
+
+    private async Task<bool> TryLoadAsAssetManager(string token)
+    {
+        try
+        {
+            var responseAM = await Http.GetAsync($"api/DatasetAM/GetDatasetAMByIdForEdit?id={id}&token={Uri.EscapeDataString(token)}");
+            if (responseAM.IsSuccessStatusCode)
+            {
+                var existenteAM = await responseAM.Content.ReadFromJsonAsync<DatasetAM>();
+                if (existenteAM != null)
+                {
+                    selectedTipo = "Asset Manager";
+                    addName = existenteAM.Nombre ?? string.Empty;
+                    addDesc = existenteAM.Descripcion ?? string.Empty;
+                    
+                    amMode = existenteAM.Type_Dataset;
+
+                    // Cargar solo las listas necesarias para AM
+                    await InitializeAMLists();
+
+                    if (amMode == 2)
+                    {
+                        selectedAssetTypeId = existenteAM.Id_Asset_Type;
+                        if (selectedAssetTypeId.HasValue)
+                        {
+                            await LoadAssetsByType(selectedAssetTypeId.Value);
+                        }
+                        
+                        if (existenteAM.Grupo_Asset != null && existenteAM.Grupo_Asset.Any())
+                        {
+                            selectedAssetIds = new HashSet<string>(existenteAM.Grupo_Asset.Select(da => da.Id_Asset));
+                        }
+                    }
+                    else if (amMode == 1)
+                    {
+                        selectedTaskTypeId = existenteAM.Id_Event_Task;
+                        if (selectedTaskTypeId.HasValue)
+                        {
+                            await LoadEventTaskInstancesByType(selectedTaskTypeId.Value);
+                        }
+                        
+                        if (existenteAM.Grupo_Event_Task_Instance != null && existenteAM.Grupo_Event_Task_Instance.Any())
+                        {
+                            selectedEventTaskInstanceIds = new HashSet<int>(existenteAM.Grupo_Event_Task_Instance.Select(det => det.Id_Event_Task_Instance));
+                            
+                            if (EnableStocksSelect)
+                            {
+                                await LoadStocksForEventTaskInstance(selectedEventTaskInstanceIds.First());
+                                
+                                var firstInstance = existenteAM.Grupo_Event_Task_Instance.First();
+                                if (firstInstance.Grupo_Stock != null && firstInstance.Grupo_Stock.Any())
+                                {
+                                    selectedStockIds = new HashSet<int>(firstInstance.Grupo_Stock.Select(ds => ds.Id_Stock));
+                                }
+                            }
+                        }
+                    }
+                    
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading as AM: {ex.Message}");
+        }
+        return false;
+    }
+
+    private async Task<bool> TryLoadAsUrbanMonitor(string token)
+    {
+        try
+        {
+            var responseUM = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            if (responseUM.IsSuccessStatusCode)
+            {
+                var existenteUM = await responseUM.Content.ReadFromJsonAsync<DatasetUM>();
+                if (existenteUM != null)
+                {
+                    selectedTipo = "Urban Monitor";
+                    addName = existenteUM.Name ?? string.Empty;
+                    addDesc = existenteUM.Description ?? string.Empty;
+                    
+                    selectedZoneId = existenteUM.Id_Zone;
+                    
+                    // Cargar las listas necesarias en paralelo para mayor velocidad
+                    var tasksToRun = new List<Task>();
+                    tasksToRun.Add(InitializeUMLists());
+                    
+                    if (selectedZoneId.HasValue)
+                    {
+                        tasksToRun.Add(LoadEventsByZone(selectedZoneId.Value));
+                        tasksToRun.Add(LoadNewsByZone(selectedZoneId.Value));
+                    }
+                    
+                    await Task.WhenAll(tasksToRun);
+                    
+                    if (existenteUM.DatasetEvents != null && existenteUM.DatasetEvents.Any())
+                    {
+                        selectedEventIds = new HashSet<int>(existenteUM.DatasetEvents.Select(de => de.Id_event));
+                    }
+                    
+                    if (existenteUM.DatasetNews != null && existenteUM.DatasetNews.Any())
+                    {
+                        selectedNewsIds = new HashSet<int>(existenteUM.DatasetNews.Select(dn => dn.Id_news));
+                    }
+                    
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading as UM: {ex.Message}");
+        }
+        return false;
+    }
+
+    private async Task LoadSourcesAndGroups()
+    {
+        try
+        {
+            Console.WriteLine($"[DEBUG EditarDataset] Token length: {authToken?.Length ?? 0}");
+            Console.WriteLine($"[DEBUG EditarDataset] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
+            
+            var encodedToken = GetEncodedToken();
+            
+            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={encodedToken}");
+            Console.WriteLine($"[DEBUG EditarDataset] Sources response status: {sourcesResponse.StatusCode}");
+            
+            if (sourcesResponse.IsSuccessStatusCode)
+            {
+                sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
+                Console.WriteLine($"[DEBUG EditarDataset] Loaded {sources.Count} sources");
+            }
+            else
+            {
+                var error = await sourcesResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EditarDataset] Sources error: {error}");
+                Snackbar.Add($"Error al cargar fuentes: {error}", Severity.Error);
+            }
+
+            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={encodedToken}");
+            Console.WriteLine($"[DEBUG EditarDataset] Groups response status: {groupsResponse.StatusCode}");
+            
+            if (groupsResponse.IsSuccessStatusCode)
+            {
+                deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
+                Console.WriteLine($"[DEBUG EditarDataset] Loaded {deviceGroups.Count} groups");
+            }
+            else
+            {
+                var error = await groupsResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EditarDataset] Groups error: {error}");
+                Snackbar.Add($"Error al cargar grupos: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DEBUG EditarDataset] Exception in LoadSourcesAndGroups: {ex.Message}");
+            Console.WriteLine($"[DEBUG EditarDataset] Stack trace: {ex.StackTrace}");
+            Snackbar.Add($"{Localizer["ErrorCargaFuentes"]} {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Cuando cambia la fuente seleccionada: limpiar grupo, dispositivos y sensor
+    private async Task OnSourceChanged(int? sourceId)
+    {
+        // asigno nuevo source
+        selectedSourceId = sourceId;
+
+        // limpio todas las dependencias
+        selectedGroupId = null;
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        devices.Clear();
+        sensores.Clear();
+
+        // solo recargo si hay una fuente seleccionada
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+            await LoadSensors();
+        }
+
+        StateHasChanged();
+    }
+
+    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
+    private async Task OnGroupChanged(int? groupId)
+    {
+        selectedGroupId = groupId;
+        
+        // Resetear dispositivos y sensores seleccionados
+        selectedDeviceIds.Clear();
+        selectedSensor = string.Empty;
+        
+        // Recargar dispositivos según los filtros actuales
+        if (selectedSourceId.HasValue)
+        {
+            await LoadDevices();
+        }
+
+        StateHasChanged();
+    }
+
+    // Cuando cambian los dispositivos seleccionados (multi-select)
+    private Task OnSelectedDevicesChanged(IEnumerable<int> values)
+    {
+        selectedDeviceIds = values != null ? new HashSet<int>(values) : new HashSet<int>();
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadDevices()
+    {
+        try
+        {
+            List<Device>? devicesFromSource = null;
+            List<Device>? devicesFromGroup = null;
+
+            if (selectedSourceId.HasValue)
+            {
+                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
+                if (sourceResponse.IsSuccessStatusCode)
+                {
+                    devicesFromSource = await sourceResponse.Content.ReadFromJsonAsync<List<Device>>();
+                }
+            }
+
+            if (selectedGroupId.HasValue)
+            {
+                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}?token={GetEncodedToken()}");
+                if (groupResponse.IsSuccessStatusCode)
+                {
+                    devicesFromGroup = await groupResponse.Content.ReadFromJsonAsync<List<Device>>();
+                }
+            }
+
+            // INTERSECCIÓN
+            if (devicesFromSource != null && devicesFromGroup != null)
+            {
+                var deviceIdsFromGroup = new HashSet<int>(devicesFromGroup.Select(d => d.Id));
+                devices = devicesFromSource.Where(d => deviceIdsFromGroup.Contains(d.Id)).ToList();
+            }
+            else if (devicesFromSource != null)
+            {
+                devices = devicesFromSource;
+            }
+            else if (devicesFromGroup != null)
+            {
+                devices = devicesFromGroup;
+            }
+            else
+            {
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?token={GetEncodedToken()}");
+                if (allDevicesResponse.IsSuccessStatusCode)
+                {
+                    devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ShowError($"{Localizer["ErrorCargaDispositivos"]} {ex.Message}");
+            devices = new List<Device>();
+        }
+    }
+
+    // Cargar sensores de la fuente seleccionada
+    private async Task LoadSensors()
+    {
+        try
+        {
+            // Guardar el sensor actualmente seleccionado
+            var currentSelectedSensor = selectedSensor;
+            
+            sensores.Clear();
+
+            if (selectedSourceId.HasValue)
+            {
+                var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
+                if (sensorsResponse.IsSuccessStatusCode)
+                {
+                    sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
+                    
+                    // Si el sensor previamente seleccionado existe en la nueva lista, mantenerlo seleccionado
+                    if (!string.IsNullOrEmpty(currentSelectedSensor) && sensores.Contains(currentSelectedSensor))
+                    {
+                        selectedSensor = currentSelectedSensor;
+                    }
+                    else
+                    {
+                        selectedSensor = string.Empty;
+                    }
+                }
+            }
+            else
+            {
+                selectedSensor = string.Empty;
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ShowError($"{Localizer["ErrorCargaSensores"]} {ex.Message}");
+            sensores = new List<string>();
+            selectedSensor = string.Empty;
+        }
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            if (string.IsNullOrEmpty(username))
+            {
+                Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
+                return;
+            }
+
+            if (!selectedSourceId.HasValue)
+            {
+                Snackbar.Add("Debe seleccionar una fuente", Severity.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(selectedSensor))
+            {
+                Snackbar.Add("Debe seleccionar un sensor", Severity.Warning);
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                Snackbar.Add("La descripción es obligatoria", Severity.Warning);
+                return;
+            }
+            
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                Snackbar.Add("Error al actualizar el dataset: El nombre del dataset es obligatorio.", Severity.Warning);
+                return;
+            }
+
+            var request = new CreateDatasetIMRequest
+            {
+                Name = addName,
+                Username = username,
+                Description = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                SourceId = selectedSourceId,
+                GroupId = selectedGroupId,
+                SensorName = selectedSensor,
+                DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
+            };
+
+            var response = await Http.PutAsJsonAsync($"api/Dataset/{id}?token={GetEncodedToken()}", request);
+
+
+            if (response.IsSuccessStatusCode)
+            {
+                var updatedDataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
+                Snackbar.Add($"Dataset '{updatedDataset.Name}' {Localizer["Actualizado"]}", Severity.Success, cfg =>
+                {
+                    cfg.SnackbarVariant = Variant.Filled;
+                });
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add(error, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"{Localizer["NoSePudoActualizar"]} {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancelar()
+    {
+        Nav.NavigateTo("/datasets");
+    }
+
+    // ====== Asset Manager Methods (kept from HEAD, token usage updated to develop logic) ======
+
+    private void SetAmMode(int mode)
+    {
+        if (amMode == mode) return;
+        amMode = mode;
+        // Reset selections when switching modes
+        if (amMode == 2)
+        {
+            selectedTaskTypeId = null;
+            selectedEventTaskInstanceIds.Clear();
+            selectedStockIds.Clear();
+            stocks.Clear();
+        }
+        else
+        {
+            selectedAssetTypeId = null;
+            selectedAssetIds.Clear();
+            assets.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private async Task InitializeAMLists()
+    {
+        try
+        {
+            var encoded = GetEncodedToken();
+
+            // Load Asset Types
+            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?token={encoded}");
+            if (respTypes.IsSuccessStatusCode)
+            {
+                assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
+            }
+
+            // Load Task Types
+            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?token={encoded}");
+            if (respTaskTypes.IsSuccessStatusCode)
+            {
+                taskTypes = await respTaskTypes.Content.ReadFromJsonAsync<List<TaskTypeDto>>() ?? new List<TaskTypeDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando Asset Manager: {ex.Message}");
+        }
+    }
+
+    private async Task OnAssetTypeChanged(int? typeId)
+    {
+        selectedAssetTypeId = typeId;
+        selectedAssetIds.Clear();
+        assets.Clear();
+        if (selectedAssetTypeId.HasValue)
+        {
+            await LoadAssetsByType(selectedAssetTypeId.Value);
+        }
+        StateHasChanged();
+    }
+
+    private Task OnSelectedAssetsChanged(IEnumerable<string> ids)
+    {
+        selectedAssetIds = ids != null ? new HashSet<string>(ids) : new HashSet<string>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAssetsByType(int assetTypeId)
+    {
+        try
+        {
+            var url = $"api/SondaAM/asset/assets?assetTypeId={assetTypeId}&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                assets = await resp.Content.ReadFromJsonAsync<List<AssetDto>>() ?? new List<AssetDto>();
+            }
+            else
+            {
+                assets = new List<AssetDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando assets: {ex.Message}");
+        }
+    }
+
+    private async Task OnTaskTypeChanged(int? typeId)
+    {
+        selectedTaskTypeId = typeId;
+        selectedEventTaskInstanceIds.Clear();
+        selectedStockIds.Clear();
+        eventTaskInstances.Clear();
+        stocks.Clear();
+        if (selectedTaskTypeId.HasValue)
+        {
+            await LoadEventTaskInstancesByType(selectedTaskTypeId.Value);
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedEventTaskInstancesChanged(IEnumerable<int> ids)
+    {
+        selectedEventTaskInstanceIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        selectedStockIds.Clear();
+        stocks.Clear();
+        if (EnableStocksSelect)
+        {
+            var onlyId = selectedEventTaskInstanceIds.First();
+            await LoadStocksForEventTaskInstance(onlyId);
+        }
+        StateHasChanged();
+    }
+
+    private Task OnSelectedStocksChanged(IEnumerable<int> ids)
+    {
+        selectedStockIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadEventTaskInstancesByType(int taskTypeId)
+    {
+        try
+        {
+            var dates = Uri.EscapeDataString("1980-01-01T03:00:00,2050-10-31T03:00:00");
+            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                eventTaskInstances = await resp.Content.ReadFromJsonAsync<List<EventTaskInstanceDto>>() ?? new List<EventTaskInstanceDto>();
+            }
+            else
+            {
+                eventTaskInstances = new List<EventTaskInstanceDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando event task instances: {ex.Message}");
+        }
+    }
+
+    private async Task LoadStocksForEventTaskInstance(int eventTaskInstanceId)
+    {
+        try
+        {
+            var url = $"api/SondaAM/eventTaskInstance/stock/{eventTaskInstanceId}?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                var stocksDto = await resp.Content.ReadFromJsonAsync<List<EventTaskInstanceStockDto>>() ?? new List<EventTaskInstanceStockDto>();
+                stocks = stocksDto;
+            }
+            else
+            {
+                stocks = new List<EventTaskInstanceStockDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando stocks: {ex.Message}");
+        }
+    }
+
+    private async Task GuardarCambiosAM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+
+            var request = new CreateDatasetAMRequest
+            {
+                Username = username,
+                Nombre = addName,
+                Descripcion = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                Type_Dataset = amMode,
+                Id_Event_Task = amMode == 1 ? selectedTaskTypeId : null,
+                Id_Asset_Type = amMode == 2 ? selectedAssetTypeId : null,
+                Grupo_Event_Task_Instance_Ids = amMode == 1 && selectedEventTaskInstanceIds.Any() ? selectedEventTaskInstanceIds.ToList() : null,
+                Grupo_Asset_Ids = amMode == 2 && selectedAssetIds.Any() ? selectedAssetIds.ToList() : null,
+                StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}?token={GetEncodedToken()}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var updated = await resp.Content.ReadFromJsonAsync<DatasetAM>();
+                ShowSuccess($"Dataset '{updated?.Nombre}' {Localizer["Actualizado"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo actualizar el dataset AM: {ex.Message}");
+        }
+    }
+
+    private void ShowSuccess(string mensaje)
+    {
+        Snackbar.Add(mensaje, Severity.Success, config =>
+        {
+            config.SnackbarVariant = Variant.Filled;
+            config.ShowCloseIcon = true;
+            config.RequireInteraction = false;
+            config.VisibleStateDuration = 2500;
+            config.CloseAfterNavigation = false;
+        });
+    }
+
+    private void ShowError(string mensaje)
+    {
+        Snackbar.Add(mensaje, Severity.Error, config =>
+        {
+            config.SnackbarVariant = Variant.Filled;
+            config.ShowCloseIcon = true;
+            config.RequireInteraction = false;
+            config.VisibleStateDuration = 4000;
+            config.CloseAfterNavigation = false;
+        });
+    }
+
+    // ====== Urban Monitor Methods ======
+
+    private async Task InitializeUMLists()
+    {
+        try
+        {
+            var encodedToken = GetEncodedToken();
+
+            // Load Zones
+            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={encodedToken}");
+            if (respZones.IsSuccessStatusCode)
+            {
+                zones = await respZones.Content.ReadFromJsonAsync<List<Zone>>() ?? new List<Zone>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando Urban Monitor: {ex.Message}");
+        }
+    }
+
+    private async Task OnZoneChanged(int? zoneId)
+    {
+        selectedZoneId = zoneId;
+        selectedEventIds.Clear();
+        selectedNewsIds.Clear();
+        events.Clear();
+        newsList.Clear();
+
+        if (selectedZoneId.HasValue)
+        {
+            await LoadEventsByZone(selectedZoneId.Value);
+            await LoadNewsByZone(selectedZoneId.Value);
+        }
+
+        StateHasChanged();
+    }
+
+    private Task OnSelectedEventsChanged(IEnumerable<int> ids)
+    {
+        selectedEventIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedNewsChanged(IEnumerable<int> ids)
+    {
+        selectedNewsIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadEventsByZone(int zoneId)
+    {
+        try
+        {
+            var url = $"api/SondaMain/zones/{zoneId}/events?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                events = await resp.Content.ReadFromJsonAsync<List<Event>>() ?? new List<Event>();
+            }
+            else
+            {
+                events = new List<Event>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando eventos: {ex.Message}");
+        }
+    }
+
+    private async Task LoadNewsByZone(int zoneId)
+    {
+        try
+        {
+            var url = $"api/SondaMain/zones/{zoneId}/news?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                newsList = await resp.Content.ReadFromJsonAsync<List<News>>() ?? new List<News>();
+            }
+            else
+            {
+                newsList = new List<News>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando noticias: {ex.Message}");
+        }
+    }
+
+    private async Task GuardarCambiosUM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+            if (!selectedZoneId.HasValue)
+            {
+                ShowError("Debe seleccionar una zona");
+                return;
+            }
+
+            var request = new CreateDatasetUMRequest
+            {
+                Username = username,
+                Name = addName,
+                Description = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                ZoneId = selectedZoneId,
+                EventIds = selectedEventIds.Any() ? selectedEventIds.ToList() : null,
+                NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/{id}?token={GetEncodedToken()}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var updated = await resp.Content.ReadFromJsonAsync<DatasetUM>();
+                ShowSuccess($"Dataset '{updated?.Name}' {Localizer["Actualizado"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo actualizar el dataset UM: {ex.Message}");
+        }
+    }
+
+    // ====== Event Manager Methods ======
+
+    private async Task<bool> TryLoadAsEventManager(string token)
+    {
+        try
+        {
+            var responseEM = await Http.GetAsync($"api/DatasetEM/{id}?datasetId={id}&token={Uri.EscapeDataString(token)}");
+            if (responseEM.IsSuccessStatusCode)
+            {
+                var existenteEM = await responseEM.Content.ReadFromJsonAsync<DatasetEM>();
+                if (existenteEM != null)
+                {
+                    selectedTipo = "Event Manager";
+                    addName = existenteEM.Name ?? string.Empty;
+                    addDesc = existenteEM.Description ?? string.Empty;
+
+                    // Load categories first
+                    await InitializeEMLists();
+
+                    // If there are existing selections, load them
+                    if (existenteEM.DatasetEvents != null && existenteEM.DatasetEvents.Any())
+                    {
+                        selectedEventEMIds = new HashSet<int>(existenteEM.DatasetEvents.Select(de => de.Id_event));
+                        
+                        // Try to identify category from first event
+                        var firstEventId = existenteEM.DatasetEvents.First().Id_event;
+                        await TryIdentifyCategoryFromEvent(firstEventId);
+                    }
+
+                    if (existenteEM.DatasetAlerts != null && existenteEM.DatasetAlerts.Any())
+                    {
+                        selectedAlertIds = new HashSet<int>(existenteEM.DatasetAlerts.Select(da => da.Id_alert));
+                        
+                        // If category not identified from event, try from alert
+                        if (!selectedCategoryId.HasValue)
+                        {
+                            var firstAlertId = existenteEM.DatasetAlerts.First().Id_alert;
+                            await TryIdentifyCategoryFromAlert(firstAlertId);
+                        }
+                    }
+
+                    if (existenteEM.DatasetExtensions != null && existenteEM.DatasetExtensions.Any())
+                    {
+                        selectedExtensionIds = new HashSet<int>(existenteEM.DatasetExtensions.Select(de => de.Id_extension));
+                    }
+
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading as EM: {ex.Message}");
+        }
+        return false;
+    }
+
+    private async Task TryIdentifyCategoryFromEvent(int eventId)
+    {
+        try
+        {
+            // Load all events for each category to find which one contains this event
+            foreach (var category in categories)
+            {
+                await LoadEventsByCategory(category.Id);
+                if (eventsEM.Any(e => e.Id == eventId))
+                {
+                    selectedCategoryId = category.Id;
+                    await LoadAlertsByCategory(category.Id);
+                    
+                    // If only one event selected, load extensions
+                    if (selectedEventEMIds.Count == 1)
+                    {
+                        await LoadExtensionsByEvent(selectedEventEMIds.First());
+                    }
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error identifying category from event: {ex.Message}");
+        }
+    }
+
+    private async Task TryIdentifyCategoryFromAlert(int alertId)
+    {
+        try
+        {
+            // Load all alerts for each category to find which one contains this alert
+            foreach (var category in categories)
+            {
+                await LoadAlertsByCategory(category.Id);
+                if (alertsEM.Any(a => a.AlertId == alertId))
+                {
+                    selectedCategoryId = category.Id;
+                    await LoadEventsByCategory(category.Id);
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error identifying category from alert: {ex.Message}");
+        }
+    }
+
+    private async Task InitializeEMLists()
+    {
+        try
+        {
+            var encodedToken = GetEncodedToken();
+            Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
+
+            // Load Categories (backend handles Sonda API pagination limitations)
+            var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
+            Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
+            
+            var respCategories = await Http.GetAsync(url);
+            Console.WriteLine($"[DEBUG EM] Categories response status: {respCategories.StatusCode}");
+            
+            if (respCategories.IsSuccessStatusCode)
+            {
+                categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
+                Console.WriteLine($"[DEBUG EM] Loaded {categories.Count} categories");
+            }
+            else
+            {
+                var error = await respCategories.Content.ReadAsStringAsync();
+                Console.WriteLine($"[DEBUG EM] Categories error: {error}");
+                ShowError($"Error al cargar categorías: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DEBUG EM] Exception: {ex.Message}");
+            Console.WriteLine($"[DEBUG EM] Stack trace: {ex.StackTrace}");
+            ShowError($"Error cargando Event Manager: {ex.Message}");
+        }
+    }
+
+    private async Task OnCategoryChanged(int? categoryId)
+    {
+        selectedCategoryId = categoryId;
+        selectedEventEMIds.Clear();
+        selectedAlertIds.Clear();
+        selectedExtensionIds.Clear();
+        eventsEM.Clear();
+        alertsEM.Clear();
+        extensions.Clear();
+
+        if (selectedCategoryId.HasValue)
+        {
+            await LoadEventsByCategory(selectedCategoryId.Value);
+            await LoadAlertsByCategory(selectedCategoryId.Value);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnSelectedEventEMsChanged(IEnumerable<int> ids)
+    {
+        selectedEventEMIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        selectedExtensionIds.Clear();
+        extensions.Clear();
+        
+        if (EnableExtensionsSelect)
+        {            
+            var onlyId = selectedEventEMIds.First();
+            await LoadExtensionsByEvent(onlyId);
+        }
+        
+        StateHasChanged();
+    }
+
+    private Task OnSelectedAlertsChanged(IEnumerable<int> ids)
+    {
+        selectedAlertIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private Task OnSelectedExtensionsChanged(IEnumerable<int> ids)
+    {
+        selectedExtensionIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadEventsByCategory(int categoryId)
+    {
+        try
+        {
+            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                eventsEM = await resp.Content.ReadFromJsonAsync<List<EventDto>>() ?? new List<EventDto>();
+            }
+            else
+            {
+                eventsEM = new List<EventDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando eventos: {ex.Message}");
+        }
+    }
+
+    private async Task LoadAlertsByCategory(int categoryId)
+    {
+        try
+        {
+            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                alertsEM = await resp.Content.ReadFromJsonAsync<List<AlertDto>>() ?? new List<AlertDto>();
+            }
+            else
+            {
+                alertsEM = new List<AlertDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando alertas: {ex.Message}");
+        }
+    }
+
+    private async Task LoadExtensionsByEvent(int eventId)
+    {
+        try
+        {
+            var url = $"api/SondaEM/Event/{eventId}/extensions?token={GetEncodedToken()}";
+            var resp = await Http.GetAsync(url);
+            if (resp.IsSuccessStatusCode)
+            {
+                extensions = await resp.Content.ReadFromJsonAsync<List<ExtensionDtoDup>>() ?? new List<ExtensionDtoDup>();
+            }
+            else
+            {
+                extensions = new List<ExtensionDtoDup>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando extensiones: {ex.Message}");
+        }
+    }
+
+    private async Task GuardarCambiosEM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+            if (!selectedCategoryId.HasValue)
+            {
+                ShowError("Debe seleccionar una categoria");
+                return;
+            }
+
+            var request = new CreateDatasetEMRequest
+            {
+                Username = username,
+                Name = addName,
+                Description = addDesc,
+                IsDataset = "S",
+                ContentType = "0",
+                CategoryIds = selectedCategoryId.HasValue ? new List<int> { selectedCategoryId.Value } : null,
+                EventIds = selectedEventEMIds.Any() ? selectedEventEMIds.ToList() : null,
+                AlertIds = selectedAlertIds.Any() ? selectedAlertIds.ToList() : null,
+                ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
+            };
+            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/{id}?token={GetEncodedToken()}", request);
+            if (resp.IsSuccessStatusCode)
+            {
+                var updated = await resp.Content.ReadFromJsonAsync<DatasetEM>();
+                ShowSuccess($"Dataset '{updated?.Name}' {Localizer["Actualizado"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo actualizar el dataset EM: {ex.Message}");
+        }
+    }
+}

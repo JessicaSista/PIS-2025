@@ -82,4 +82,19 @@
   <data name="DefaultReport3Desc" xml:space="preserve">
     <value>Errors registered in the system</value>
   </data>
+  <data name="NoReports" xml:space="preserve">
+    <value>No reports available</value>
+  </data>
+  <data name="DeleteDialogTitle" xml:space="preserve">
+    <value>Confirm deletion</value>
+  </data>
+  <data name="DeleteDialogQuestion" xml:space="preserve">
+    <value>Do you want to delete the report {0}?</value>
+  </data>
+  <data name="DeleteDialogConfirm" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="DeleteDialogCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

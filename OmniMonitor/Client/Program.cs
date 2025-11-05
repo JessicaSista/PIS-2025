@@ -40,6 +40,10 @@ builder.Services.AddScoped<AuthenticationStateProvider, ApiAuthenticationStatePr
 
 builder.Services.AddScoped<ThemeService>();
 
+builder.Services.AddScoped<VisualizationDraftService>();
+
+builder.Services.AddScoped<ShareLinkService>();
+
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 

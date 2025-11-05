@@ -1,0 +1,160 @@
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using MudBlazor
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<AddDatasetModal> Localizer
+@using System.Text.Json
+@using Blazored.LocalStorage
+@inject ILocalStorageService LocalStorage
+
+<MudDialog Style="background-color: var(--fondo-dialog)">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
+            @Localizer["AddDataset"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudButton FullWidth="true"
+                   OnClick="NewDataset"
+                   Variant="MudBlazor.Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.AddCircleOutline"
+                   Color="MudBlazor.Color.Inherit"
+                   Size="MudBlazor.Size.Large"
+                   Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)">
+            @Localizer["NewDataset"]
+        </MudButton>
+
+        <MudDivider DividerType="MudBlazor.DividerType.Middle" Class="mt-5 mb-6" />
+
+        <MudText Typo="MudBlazor.Typo.h6" Class="mb-2" Style="color: var(--text-primary);">@Localizer["ExistingDatasets"]</MudText>
+
+        <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
+            @if (_isLoading)
+            {
+                <MudText Typo="Typo.body2">@Localizer["Loading"]</MudText>
+            }
+            else if (_datasets.Count == 0)
+            {
+                <MudText Typo="Typo.body2">@Localizer["NoDatasetsFound"]</MudText>
+            }
+            else
+            {
+                @foreach (DatasetDtoGenerico ds in _datasets)
+                {
+                    <MudButton FullWidth="true"
+                               Variant="MudBlazor.Variant.Outlined"
+                               OnClick="@(() => SelectDataset(ds))"
+                               Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
+                               Class="pa-0">
+                        <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/>
+                            <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@(!string.IsNullOrWhiteSpace(ds.Nombre) ? ds.Nombre : (!string.IsNullOrWhiteSpace(ds.Descripcion) ? ds.Descripcion : $"Dataset {ds.Id}"))</MudText>
+                        </MudStack>
+                    </MudButton>
+                }
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    public required IMudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public EventCallback<DatasetDtoGenerico> OnDatasetSelected { get; set; }
+
+    [Parameter]
+    public EventCallback OnNewDataset { get; set; }
+
+    private List<DatasetDtoGenerico> _datasets = new();
+    private bool _isLoading = true;
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Get token to satisfy server endpoint: GET /api/Dataset/user?token=...
+            var token = await LocalStorage.GetItemAsync<string>("authToken");
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                Snackbar.Add(Localizer["CouldNotGetCurrentUser"], Severity.Warning);
+                _datasets = new();
+                return;
+            }
+
+            var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var req = new HttpRequestMessage(HttpMethod.Get, $"api/DatasetUM/GetAllGenericDatasetDtos?token={Uri.EscapeDataString(token)}");
+            req.Headers.Accept.Clear();
+            req.Headers.Accept.ParseAdd("application/json");
+            var response = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+            if (response.IsSuccessStatusCode)
+            {
+                var text = await response.Content.ReadAsStringAsync();
+                var looksHtml = text.TrimStart().StartsWith("<!DOCTYPE html", StringComparison.OrdinalIgnoreCase)
+                                   || text.Contains("<html", StringComparison.OrdinalIgnoreCase);
+                if (looksHtml)
+                {
+                    Snackbar.Add(Localizer["ErrorLoadingDatasets"], Severity.Error);
+                    _datasets = new();
+                }
+                else
+                {
+                    List<DatasetDtoGenerico>? _datasetsFromApi = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+                    if (_datasetsFromApi is not null)
+                    {
+                        _datasets = _datasetsFromApi;
+                    }
+                    else
+                    {
+                        _datasets = new List<DatasetDtoGenerico>();
+                    }
+                }
+            }
+            else
+            {
+                Snackbar.Add(string.Format(Localizer["ErrorLoadingDatasets"], response.StatusCode), Severity.Error);
+                _datasets = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(string.Format(Localizer["ErrorGeneric"], ex.Message), Severity.Error);
+            _datasets = new();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectDataset(DatasetDtoGenerico dataset)
+    {
+        if (OnDatasetSelected.HasDelegate)
+        {
+            await OnDatasetSelected.InvokeAsync(dataset);
+        }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task NewDataset()
+    {
+        if (OnNewDataset.HasDelegate)
+        {
+            await OnNewDataset.InvokeAsync();
+        }
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

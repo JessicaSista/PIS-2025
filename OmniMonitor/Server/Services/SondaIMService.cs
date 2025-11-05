@@ -12,44 +12,45 @@ public interface ISondaIMService
 
     //****************DEVICES***************
     // GET all devices
-    Task<List<Device>?> GetAllDevices(string username, string password);
+    Task<List<Device>?> GetAllDevices(string username);
 
     // GET device by ID
-    Task<Device?> GetDeviceById(int id, string username, string password);
+    Task<Device?> GetDeviceById(int id, string username);
 
     // Obtener todos los devices pertenecientes a una source
-    Task<List<Device>?> GetDeviceOfSource(int id, string username, string password);
+    Task<List<Device>?> GetDeviceOfSource(int id, string username);
 
     // Obtener todos los devices pertenecientes a un grupo
-    Task<List<Device>?> GetDeviceOfGroup(int id, string username, string password);
+    Task<List<Device>?> GetDeviceOfGroup(int id, string username);
 
-    Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username, string password);
+    Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username);
     //***************************************
 
     //***************DEVICE GROUPS*************
     // GET all device groups
-    Task<List<DeviceGroup>> GetAllDeviceGroups(string username, string password);
+    Task<List<DeviceGroup>> GetAllDeviceGroups(string username);
     
     // GET device group by ID
-    Task<DeviceGroup?> GetDeviceGroupById(int id, string username, string password);
+    Task<DeviceGroup?> GetDeviceGroupById(int id, string username);
     //*****************************************
 
     //****************SOURCES*****************
     // GET all sources
-    Task<List<Source>> GetAllSources(string username, string password);
+    Task<List<Source>> GetAllSources(string username);
 
     // GET source by ID
-    Task<Source?> GetSourceById(int id, string username, string password);
+    Task<Source?> GetSourceById(int id, string username);
     //*****************************************
 
     //****************SENSORS*****************
-    Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username, string password);
+    Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username);
+    Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo);
     //*****************************************
 
 
     //****************SYSTEM STATUS*****************
-    Task<int> GetSSDeviceCount(string username, string password);
-    Task<DeviceDataStatusResponse?> GetSSDataStatus(string username, string password);
+    Task<int> GetSSDeviceCount(string username);
+    Task<DeviceDataStatusResponse?> GetSSDataStatus(string username);
 
 }
 
@@ -67,11 +68,11 @@ public class SondaIMService : ISondaIMService
         _apiConfig = apiConfigOptions.Value;
     }
 
-    public async Task<List<Device>?> GetAllDevices(string username, string password)
+    public async Task<List<Device>?> GetAllDevices(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["GetAll"];
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         // Se actualizó la URL para usar page=-1 y obtener todos los dispositivos
         string getDataUrl = $"{baseUrl}{endpoint}?page=-1";
@@ -92,14 +93,14 @@ public class SondaIMService : ISondaIMService
         return devices;
     }
 
-    public async Task<Device?> GetDeviceById(int id, string username, string password)
+    public async Task<Device?> GetDeviceById(int id, string username)
     {
 
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["GetById"];
         string getDataUrl = baseUrl + endpoint + "/" + id;
 
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -127,12 +128,12 @@ public class SondaIMService : ISondaIMService
     }
 
 
-    public async Task<List<DeviceGroup>> GetAllDeviceGroups(string username, string password)
+    public async Task<List<DeviceGroup>> GetAllDeviceGroups(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Group"]["Groups"];
 
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -158,9 +159,9 @@ public class SondaIMService : ISondaIMService
         return parsed ?? new List<DeviceGroup>();
     }
 
-    public async Task<DeviceGroup?> GetDeviceGroupById(int id, string username, string password)
+    public async Task<DeviceGroup?> GetDeviceGroupById(int id, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Group"]["GetById"];
@@ -190,9 +191,9 @@ public class SondaIMService : ISondaIMService
     }
 
 
-    public async Task<List<Device>> GetDeviceOfSource(int id, string username, string password)
+    public async Task<List<Device>> GetDeviceOfSource(int id, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["DevicesOfSource"];
@@ -216,9 +217,9 @@ public class SondaIMService : ISondaIMService
     }
 
     // Obtener todos los devices pertenecientes a un grupo
-    public async Task<List<Device>> GetDeviceOfGroup(int id, string username, string password)
+    public async Task<List<Device>> GetDeviceOfGroup(int id, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["DevicesOfGroup"];
@@ -241,9 +242,9 @@ public class SondaIMService : ISondaIMService
         return devices;
     }
 
-    public async Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username, string password)
+    public async Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["DeviceData"];
 
@@ -271,9 +272,9 @@ public class SondaIMService : ISondaIMService
         return JsonSerializer.Deserialize<List<DeviceData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<List<Source>> GetAllSources(string username, string password)
+    public async Task<List<Source>> GetAllSources(string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Source"]["Sources"];
@@ -301,9 +302,9 @@ public class SondaIMService : ISondaIMService
         return parsed ?? new List<Source>();
     }
 
-    public async Task<Source?> GetSourceById(int id, string username, string password)
+    public async Task<Source?> GetSourceById(int id, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Source"]["GetById"];
@@ -326,9 +327,9 @@ public class SondaIMService : ISondaIMService
         return parsed;
     }
 
-    public async Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username, string password)
+    public async Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["TimeSerie"];
 
@@ -353,12 +354,41 @@ public class SondaIMService : ISondaIMService
 
         return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
-    public async Task<int> GetSSDeviceCount(string username, string password)
+
+    public async Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
+    {
+        string token = await _sondaAuthService.GetUserTokenIMAsync("visitante");
+        string baseUrl = _apiConfig.BaseUrl.UrlIM;
+        string endpoint = _apiConfig.EndpointsIM["Analytic"]["TimeSerie"];
+
+        string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
+        string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
+
+        string datesParameter = $"{formattedDateFrom},{formattedDateTo}";
+
+        string encodedDates = Uri.EscapeDataString(datesParameter);
+
+        string url = $"{baseUrl}{endpoint}?deviceId={deviceId}&sensorName={sensorName}&dates={encodedDates}";
+
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        Console.WriteLine($"URL GetSensorDataByDate: {url}");
+
+        var response = await client.GetAsync(url);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+
+        return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+    }
+
+    public async Task<int> GetSSDeviceCount(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["SystemStatus"]["DeviceCount"];
 
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();
@@ -382,12 +412,12 @@ public class SondaIMService : ISondaIMService
         return parsed;
     }
 
-    public async Task<DeviceDataStatusResponse?> GetSSDataStatus(string username, string password)
+    public async Task<DeviceDataStatusResponse?> GetSSDataStatus(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["SystemStatus"]["DataStatus"];
 
-        string token = await _sondaAuthService.GetUserTokenIMAsync(username, password);
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
         var client = _httpClientFactory.CreateClient();

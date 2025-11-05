@@ -1,123 +1,114 @@
 ﻿@using MudBlazor
 @using Blazored.LocalStorage
-@using Microsoft.Extensions.Localization
 @using OmniMonitor.Shared.Dtos
-@using System.Text.Json
+@using Microsoft.Extensions.Localization
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject IStringLocalizer<VisualizationCard> Localizer
 
 <MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
+    <MudCard Elevation="0"
+             Style="background-color: transparent; display:flex; flex-direction:column; height:100%;">
+        <MudCardContent Style="flex:1; display:flex; flex-direction:column;">
 
-<MudCard Elevation="0" Style="background-color: transparent; display:flex; flex-direction:column;">
-    <MudCardContent Style="flex-grow:1; display:flex; flex-direction:column;">
-        <MudText Class="mb-4" Typo="Typo.h6">@_kpiName</MudText>
+            <!-- Name -->
+            <MudTooltip Text="@Kpi.Name">
+                <MudText Class="mb-4"
+                         Typo="Typo.h6"
+                         Style="color: var(--card-text-primary);
+                                font-weight:600;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;">
+                    @Kpi.Name
+                </MudText>
+            </MudTooltip>
 
-        @if (_kpiValue == "—" || string.IsNullOrEmpty(_kpiValue))
-        {
-            <MudText Typo="Typo.body2" Style="color: var(--card-text-secondary); font-weight: bold;">
-                @Localizer["NoData"]
-            </MudText>
-        }
-        else
-        {
-            <MudText Typo="Typo.h4">
-                @_kpiValue
-            </MudText>
-        }
-
-        @if (!string.IsNullOrEmpty(_kpiDescription))
-        {
-            <MudText Typo="Typo.body2" Style="color: var(--card-text-secondary); margin-top:4px;">
-                @_kpiDescription
-            </MudText>
-        }
-    </MudCardContent>
-
-    <!-- Footer fijo al fondo -->
-    <MudStack Row Justify="Justify.FlexEnd" Style="margin-top:auto;">
-        <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">
-                @Localizer["Actualizado"]: @(DateTime.Now.ToString("g"))
-        </MudText>
-    </MudStack>
-</MudCard>
-
-</MudPaper>
-
-
-
-@code {
-
-    [Parameter] public int KpiId { get; set; }
-
-    // KPI Variables
-    private string _kpiName { get; set; } = string.Empty;
-    private string _kpiDescription { get; set; } = string.Empty;
-    private string _kpiValue { get; set; } = string.Empty;
-    private string _kpiColor { get; set; } = "#00FFE7"; 
-    private string _lastUpdated { get; set; } = "N/A";
-
-    private string CardStyle => $"background-color:{GetTransparentColor(_kpiColor, 0.15)}; border:2px solid {_kpiColor}; border-radius: 2px; flex-grow: 1;";
-
-    protected override async Task OnInitializedAsync()
-    {
-        string token = await LocalStorage.GetItemAsync<string>("authToken");
-        
-        string requestUri = $"api/KPI/{KpiId}?token={token}";
-
-        try
-        {
-            var response = await Http.GetAsync(requestUri);
-
-            if (response.IsSuccessStatusCode)
+            <!-- Value -->
+            @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "—")
             {
-                KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
-                if (kpiData != null)
-                {
-                    _kpiName = kpiData.Name;
-                    _kpiDescription = kpiData.Description;
-                    _kpiValue = RenderKpiValue(kpiData.Value);
-                    _kpiColor = kpiData.ActualColor;
-                }
+                <MudText Typo="Typo.body2"
+                         Style="color: var(--card-text-secondary); font-weight: bold;">
+                    @Localizer["NoData"]
+                </MudText>
             }
             else
             {
-                // Manejar errores (400, 404, etc.)
-                string errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error al obtener KPI {KpiId}. Código: {response.StatusCode}. Mensaje: {errorContent}");
-                // Snackbar.Add($"Error: {errorContent}", Severity.Error);
+                <MudText Typo="Typo.h4"
+                         Style="color: var(--card-text-primary)">
+                    @Kpi.Value?.ToString()
+                </MudText>
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error interno al llamar al endpoint de KPI: {ex.Message}");
-            // Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
-        }
-    }
 
-
-    //Fuinciones para renderizar el valor del KPI con formato adecuado
-    private string RenderKpiValue(object? val)
-    {
-        if (val == null) return "—"; // valor nulo
-        if (val is JsonElement je)
-        {
-            switch (je.ValueKind)
+            <!-- Description -->
+            @if (!string.IsNullOrEmpty(Kpi.Description))
             {
-                case JsonValueKind.Number:
-                    return je.GetRawText(); // devuelve el número como string
-                case JsonValueKind.String:
-                    return je.GetString() ?? "—";
-                case JsonValueKind.True:
-                    return "1";
-                case JsonValueKind.False:
-                    return "0";
-                default:
-                    return je.ToString() ?? "—";
+                <MudText Typo="Typo.body2"
+                         Style="color: var(--card-text-secondary);
+                                    margin-top:4px;
+                                    white-space: normal;
+                                    word-wrap: break-word;
+                                    overflow-wrap: break-word;">
+                    @Kpi.Description
+                </MudText>
+            }
+
+            <!-- Footer -->
+            <div style="margin-top:auto; display:flex; justify-content:flex-end;">
+                <MudText Style="color:var(--card-text-secondary); font-size:0.7rem;">
+                    @Localizer["Actualizado"]: @(DateTime.Now.ToString("yyyy-MM-dd HH:mm"))
+                    <!-- @(Kpi.LastUpdated?.ToString("g") ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm")) -->
+                </MudText>
+            </div>
+        </MudCardContent>
+    </MudCard>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public int KpiId { get; set; } = 0;
+    [Parameter]
+    public KpiResponse Kpi { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (KpiId != 0)
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            string requestUri = $"api/KPI/{KpiId}?token={token}";
+
+            try
+            {
+                var response = await Http.GetAsync(requestUri);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                    if (kpiData != null)
+                    {
+                        Kpi = kpiData;
+                    }
+                }
+                else
+                {
+                    // Manejar errores (400, 404, etc.)
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error al obtener KPI {KpiId}. Código: {response.StatusCode}. Mensaje: {errorContent}");
+                    // Snackbar.Add($"Error: {errorContent}", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error interno al llamar al endpoint de KPI: {ex.Message}");
+                // Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
             }
         }
-        return val.ToString() ?? "—";
     }
+
+    private string CardStyle =>
+        $"background-color:{GetTransparentColor(Kpi.ActualColor ?? "#00FFE7", 0.15)}; " +
+        $"border:2px solid {Kpi.ActualColor ?? "#00FFE7"}; " +
+        $"border-radius: 2px; flex-grow: 1;";
 
     private string GetTransparentColor(string colorInput, double opacity)
     {
@@ -147,4 +138,3 @@
         return colorInput;
     }
 }
-
