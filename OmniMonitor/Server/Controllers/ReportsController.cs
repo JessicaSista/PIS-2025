@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Shared.Dtos;
+
 namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
@@ -150,7 +152,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> UpdateReport(int id, string name, string description, string jsonConfig, [FromQuery] string token)
+        public async Task<IActionResult> UpdateReport(int id, [FromBody] UpdateReportRequestDto updateRequest, [FromQuery] string token)
         {
             try
             {
@@ -160,7 +162,7 @@ namespace OmniMonitor.Server.Controllers
                     return Unauthorized(new { message = "Token inválido." });
                 }
 
-                Report? updatedReport = await _reportService.UpdateReportAsync(id, name, description, username, jsonConfig);
+                Report? updatedReport = await _reportService.UpdateReportAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config);
 
                 if (updatedReport == null)
                 {

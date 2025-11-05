@@ -265,7 +265,7 @@
             _ => ModuleInsightMonitor
         };
     }
-    
+
     private async Task ToggleDatasetSelection(DatasetDto dataset)
     {
         try
@@ -276,19 +276,19 @@
                 var joinsToRemove = joins
                     .Where(j => j.LeftDataset == dataset.Nombre || j.RightDataset == dataset.Nombre)
                     .ToList();
-                
+
                 foreach (var join in joinsToRemove)
                 {
                     joins.Remove(join);
                 }
-                
+
                 selectedDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
                 if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
                 {
                     selectedDatasetsIM.Remove(dataset.Id);
                 }
                 selectedEntities.Remove(BuildDatasetKey(dataset));
-                
+
                 if (!selectedDatasets.Any())
                 {
                     availableColumns.Clear();
@@ -712,72 +712,72 @@
         }
     }
     private async Task AplicarJoins()
+    {
+        var token = await LocalStorage.GetItemAsync<string>("authToken");
+        if (string.IsNullOrEmpty(token))
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrEmpty(token))
-            {
-                Snackbar.Add("Token de autenticación no encontrado.", Severity.Error);
-                return;
-            }
+            Snackbar.Add("Token de autenticación no encontrado.", Severity.Error);
+            return;
+        }
 
-            var appliedJoins = 0;
-            var encounteredErrors = false;
+        var appliedJoins = 0;
+        var encounteredErrors = false;
 
-            foreach (var join in joins)
+        foreach (var join in joins)
+        {
+            try
             {
-                try
+                if (join.ServerJoinId.HasValue)
                 {
-                    if (join.ServerJoinId.HasValue)
-                    {
-                        // Ya asociado en backend, continuar
-                        continue;
-                    }
+                    // Ya asociado en backend, continuar
+                    continue;
+                }
 
-                    if (string.IsNullOrWhiteSpace(join.LeftDataset) || string.IsNullOrWhiteSpace(join.RightDataset))
-                    {
-                        Snackbar.Add($"Seleccione los datasets izquierdo y derecho para el join #{join.Id}", Severity.Warning);
-                        encounteredErrors = true;
-                        continue;
-                    }
+                if (string.IsNullOrWhiteSpace(join.LeftDataset) || string.IsNullOrWhiteSpace(join.RightDataset))
+                {
+                    Snackbar.Add($"Seleccione los datasets izquierdo y derecho para el join #{join.Id}", Severity.Warning);
+                    encounteredErrors = true;
+                    continue;
+                }
 
-                    if (string.IsNullOrWhiteSpace(join.LeftField) || string.IsNullOrWhiteSpace(join.RightField))
-                    {
-                        Snackbar.Add($"Seleccione los campos del join #{join.Id}", Severity.Warning);
-                        encounteredErrors = true;
-                        continue;
-                    }
+                if (string.IsNullOrWhiteSpace(join.LeftField) || string.IsNullOrWhiteSpace(join.RightField))
+                {
+                    Snackbar.Add($"Seleccione los campos del join #{join.Id}", Severity.Warning);
+                    encounteredErrors = true;
+                    continue;
+                }
 
-                    if (string.IsNullOrWhiteSpace(join.JoinType))
-                    {
-                        Snackbar.Add($"Seleccione el tipo de join para #{join.Id}", Severity.Warning);
-                        encounteredErrors = true;
-                        continue;
-                    }
+                if (string.IsNullOrWhiteSpace(join.JoinType))
+                {
+                    Snackbar.Add($"Seleccione el tipo de join para #{join.Id}", Severity.Warning);
+                    encounteredErrors = true;
+                    continue;
+                }
 
-                    var leftDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.LeftDataset);
-                    var rightDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.RightDataset);
+                var leftDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.LeftDataset);
+                var rightDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.RightDataset);
 
-                    if (leftDataset == null || rightDataset == null)
-                    {
-                        Snackbar.Add($"Datasets no encontrados para el join: {join.LeftDataset} - {join.RightDataset}", Severity.Error);
-                        encounteredErrors = true;
-                        continue;
-                    }
+                if (leftDataset == null || rightDataset == null)
+                {
+                    Snackbar.Add($"Datasets no encontrados para el join: {join.LeftDataset} - {join.RightDataset}", Severity.Error);
+                    encounteredErrors = true;
+                    continue;
+                }
 
-                    var leftEntity = GetSelectedEntity(leftDataset);
-                    var rightEntity = GetSelectedEntity(rightDataset);
+                var leftEntity = GetSelectedEntity(leftDataset);
+                var rightEntity = GetSelectedEntity(rightDataset);
 
-                    if (!Enum.TryParse<JoinType>(join.JoinType, true, out var joinType))
-                    {
-                        Snackbar.Add($"Tipo de join desconocido para #{join.Id}: {join.JoinType}", Severity.Error);
-                        encounteredErrors = true;
-                        continue;
-                    }
+                if (!Enum.TryParse<JoinType>(join.JoinType, true, out var joinType))
+                {
+                    Snackbar.Add($"Tipo de join desconocido para #{join.Id}: {join.JoinType}", Severity.Error);
+                    encounteredErrors = true;
+                    continue;
+                }
 
-                    var leftModuleType = GetModuleTypeForDataset(leftDataset.Module);
-                    var rightModuleType = GetModuleTypeForDataset(rightDataset.Module);
+                var leftModuleType = GetModuleTypeForDataset(leftDataset.Module);
+                var rightModuleType = GetModuleTypeForDataset(rightDataset.Module);
 
-                    var createJoinRequest = new CreateJoinRequestDto
+                var createJoinRequest = new CreateJoinRequestDto
                     {
                         Name = $"Join: {join.LeftDataset} y {join.RightDataset}",
                         Description = string.Empty,
@@ -798,76 +798,76 @@
                         }
                     };
 
-                    var endpoint = $"api/reports/{ReportId}/joins/create-and-add?token={Uri.EscapeDataString(token)}";
-                    var createJoinResponse = await Http.PostAsJsonAsync(endpoint, createJoinRequest);
+                var endpoint = $"api/reports/{ReportId}/joins/create-and-add?token={Uri.EscapeDataString(token)}";
+                var createJoinResponse = await Http.PostAsJsonAsync(endpoint, createJoinRequest);
 
-                    if (!createJoinResponse.IsSuccessStatusCode)
+                if (!createJoinResponse.IsSuccessStatusCode)
+                {
+                    var error = await createJoinResponse.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Error al crear la configuración del join #{join.Id}: {error}", Severity.Error);
+                    encounteredErrors = true;
+                    continue;
+                }
+
+                try
+                {
+                    var rawResponse = await createJoinResponse.Content.ReadAsStringAsync();
+                    Logger?.LogInformation("[EditarReporte] create-and-add join {JoinId} response: {Response}", join.Id, rawResponse);
+
+                    if (!string.IsNullOrWhiteSpace(rawResponse))
                     {
-                        var error = await createJoinResponse.Content.ReadAsStringAsync();
-                        Snackbar.Add($"Error al crear la configuración del join #{join.Id}: {error}", Severity.Error);
-                        encounteredErrors = true;
-                        continue;
-                    }
-
-                    try
-                    {
-                        var rawResponse = await createJoinResponse.Content.ReadAsStringAsync();
-                        Logger?.LogInformation("[EditarReporte] create-and-add join {JoinId} response: {Response}", join.Id, rawResponse);
-
-                        if (!string.IsNullOrWhiteSpace(rawResponse))
-                        {
-                            var createdLink = JsonSerializer.Deserialize<ReportJoin>(rawResponse, new JsonSerializerOptions
+                        var createdLink = JsonSerializer.Deserialize<ReportJoin>(rawResponse, new JsonSerializerOptions
                             {
                                 PropertyNameCaseInsensitive = true
                             });
-                            if (createdLink?.CrossModuleJoinId > 0)
-                            {
-                                join.ServerJoinId = createdLink.CrossModuleJoinId;
-                                appliedJoins++;
-                                await LogJoinExecutionAsync(createdLink.CrossModuleJoinId);
-                            }
-                            else
-                            {
-                                encounteredErrors = true;
-                            }
+                        if (createdLink?.CrossModuleJoinId > 0)
+                        {
+                            join.ServerJoinId = createdLink.CrossModuleJoinId;
+                            appliedJoins++;
+                            await LogJoinExecutionAsync(createdLink.CrossModuleJoinId);
                         }
                         else
                         {
-                            Logger?.LogWarning("[EditarReporte] create-and-add join #{JoinId} devolvió un cuerpo vacío", join.Id);
                             encounteredErrors = true;
                         }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Logger?.LogWarning(ex, "[EditarReporte] No fue posible procesar la respuesta de create-and-add del join #{JoinId}", join.Id);
+                        Logger?.LogWarning("[EditarReporte] create-and-add join #{JoinId} devolvió un cuerpo vacío", join.Id);
                         encounteredErrors = true;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Snackbar.Add($"Error al aplicar join: {ex.Message}", Severity.Error);
+                    Logger?.LogWarning(ex, "[EditarReporte] No fue posible procesar la respuesta de create-and-add del join #{JoinId}", join.Id);
                     encounteredErrors = true;
                 }
             }
-
-            await LoadAvailableJoinsAsync(token);
-
-            if (!encounteredErrors)
+            catch (Exception ex)
             {
-                var message = appliedJoins > 0 ? "Joins guardados correctamente." : "Joins actualizados correctamente.";
-                Snackbar.Add(message, Severity.Success);
+                Snackbar.Add($"Error al aplicar join: {ex.Message}", Severity.Error);
+                encounteredErrors = true;
             }
-
-            activeTab = "columnas";
-            UpdateAvailableColumns();
-            StateHasChanged();
         }
+
+        await LoadAvailableJoinsAsync(token);
+
+        if (!encounteredErrors)
+        {
+            var message = appliedJoins > 0 ? "Joins guardados correctamente." : "Joins actualizados correctamente.";
+            Snackbar.Add(message, Severity.Success);
+        }
+
+        activeTab = "columnas";
+        UpdateAvailableColumns();
+        StateHasChanged();
+    }
 
     // --- Métodos de Filtros ---
     private void AgregarFiltro()
     {
         var newFilter = new FilterDto(_nextFilterId++);
-        
+
         var defaultColumn = availableColumns.FirstOrDefault(c => c.IsVisible)?.Name;
         if (defaultColumn != null)
         {
@@ -892,7 +892,7 @@
             Snackbar.Add("Seleccione al menos dos datasets para configurar joins", Severity.Warning);
             return;
         }
-        
+
         // Only allow moving to columns if we have at least one dataset
         if (tab == "columnas" && !selectedDatasets.Any())
         {
@@ -920,9 +920,9 @@
             Snackbar.Add("Configure las columnas antes de agregar filtros", Severity.Warning);
             return;
         }
-        
+
         activeTab = tab;
-        
+
         // If switching to columns tab, update available columns based on selected datasets
         if (tab == "columnas")
         {
@@ -931,7 +931,7 @@
 
         StateHasChanged(); // Forzar actualización de la UI
     }
-    
+
     private Task HandleDatasetEntityChanged(DatasetSelector.EntitySelectionChangedArgs args)
     {
         OnEntityChanged(args.Dataset, args.Entity);
@@ -1146,8 +1146,8 @@
         if (leftDataset == null || rightDataset == null)
             return false;
 
-    var leftEntity = GetSelectedEntity(leftDataset);
-    var rightEntity = GetSelectedEntity(rightDataset);
+        var leftEntity = GetSelectedEntity(leftDataset);
+        var rightEntity = GetSelectedEntity(rightDataset);
 
         if (!Enum.TryParse<JoinType>(join.JoinType, true, out var joinType))
             return false;
@@ -1253,8 +1253,8 @@
         availableColumns.Clear();
         JoinDto.ResetIdCounter();
 
-    var datasetSelections = new List<(int DatasetId, string ModuleName)>();
-    var entityOverrides = new Dictionary<string, EntityName>(StringComparer.OrdinalIgnoreCase);
+        var datasetSelections = new List<(int DatasetId, string ModuleName)>();
+        var entityOverrides = new Dictionary<string, EntityName>(StringComparer.OrdinalIgnoreCase);
         var joinDetails = new List<JoinConfigDetails>();
         var columnSelections = new List<ColumnSelectionSpec>();
 
@@ -1679,6 +1679,7 @@
     // --- Generar JSON de configuración ---
     private async Task GenerarJsonConfig()
     {
+        Console.WriteLine("dsa");
         try
         {
             // Tomar columnas visibles
@@ -1839,8 +1840,15 @@
 
             Console.WriteLine($"UpdateReport JSON_config payload: {json}");
 
-            var url = $"api/reports/UpdateReport?id={ReportId}&name={Uri.EscapeDataString(reportName ?? string.Empty)}&description={Uri.EscapeDataString(reportDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(json)}&token={Uri.EscapeDataString(token)}";
-            var putResp = await Http.PutAsync(url, null);
+            UpdateReportRequestDto updateRequest = new UpdateReportRequestDto
+                {
+                    Name = reportName,
+                    Description = reportDescription,
+                    JSON_config = json
+                };
+
+            var url = $"api/reports/UpdateReport?id={ReportId}&token={Uri.EscapeDataString(token)}";
+            var putResp = await Http.PutAsJsonAsync(url, updateRequest);
             isSaving = false;
 
             if (!putResp.IsSuccessStatusCode)
