@@ -10,6 +10,7 @@ namespace OmniMonitor.Server.Services
         Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request,int dataset);
         Task<List<DatasetEM>> GetAllDatasetsEMAsync(string username);
         Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username);
+        Task<DatasetEM?> GetDatasetEMByIdAsyncSinToken(int datasetId);
         Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username);
         Task DeleteDatasetEMAsync(int datasetId, string username);
         Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request);
@@ -140,6 +141,16 @@ namespace OmniMonitor.Server.Services
             return dataset;
         }
 
+        public async Task<DatasetEM?> GetDatasetEMByIdAsyncSinToken(int datasetId)
+        {
+            return await _context.DatasetsEM
+                .Include(d => d.DatasetAlerts)
+                .Include(d => d.DatasetEvents)
+                .Include(d => d.DatasetExtensions)
+                .Include(d => d.DatasetCategory)
+                .FirstOrDefaultAsync(d => d.Id == datasetId);
+        }
+
         /// <summary>
         /// Obtiene un dataset por su ID y nombre de usuario para edición (sin carga dinámica).
         /// </summary>
@@ -201,6 +212,7 @@ namespace OmniMonitor.Server.Services
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();
             existingDataset.DatasetCategory.Clear();
+
             // Agregar nuevas relaciones
             UpdateRelationsFromRequest(existingDataset, request);
 
