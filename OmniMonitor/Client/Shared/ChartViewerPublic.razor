@@ -5,11 +5,12 @@
 @using Blazored.LocalStorage
 @using System.Globalization
 @using Microsoft.Extensions.Localization
-@* 
-@using System.Reflection.Metadata
-@inject ISnackbar SnackbarService*@
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @* @inject IStringLocalizer<Visualizations> Localizer *@
 
 
@@ -30,34 +31,63 @@
                 </CardHeaderAvatar>
                 <CardHeaderContent>
                     @if (ShowTitle) {   
-                        <MudText Typo="Typo.h6" Style="color: var(--card-text-primary)" >@_title</MudText>
+                        <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)" >@_title</MudText>
                     }
                 </CardHeaderContent>
+
+                <CardHeaderActions>
+                    @if (showCustomizationIcon)
+                    {
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert">
+                            <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
+                                <MudText Typo="Typo.body2">Editar</MudText>
+                            </MudMenuItem>
+                            <MudMenuItem OnClick="@(() => DeleteVisualization())">
+                                <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>Eliminar</MudText>
+                            </MudMenuItem>
+                        </MudMenu>
+                    }
+                </CardHeaderActions>
+                
             </MudCardHeader>
-    
-            @* <MudText Class="px-7 py-5" Typo="Typo.h6"
-                     Style="color: var(--card-text-primary)">@_title</MudText> *@
 
             <MudCardContent Class="pl-7 pr-8"
                             Style="color: var(--card-text-secondary); height: 100%">
-                @if (_seriesData.Any())
-                {
-                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="320" Options="_chartOptions">
-                        @foreach (var serie in _seriesData)
-                        {
-                            <ApexPointSeries TItem="ChartPoint"
-                                             Items="serie.Points"
-                                             Name="@serie.DatasetName"
-                                             SeriesType="@_seriesType"
-                                             XValue="@(p => p.X)"
-                                             YValue="@(p => (decimal)p.Y)"
-                                             Color="@serie.Color" />
-                        }
-                    </ApexChart>
+                @if(_dataRetrieved){
+                    @if (_seriesData.Any())
+                    {
+                        <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
+                            @foreach (DatasetSeries serie in _seriesData)
+                            {
+                                <ApexPointSeries TItem="ChartPoint"
+                                                Items="serie.Points"
+                                                Name="@serie.DatasetName"
+                                                SeriesType="@_seriesType"
+                                                XValue="@(p => p.X)"
+                                                YValue="@(p => (decimal)p.Y)"
+                                                Color="@serie.Color" />
+                            }
+                        </ApexChart>
+                    }
+                    else
+                    {
+                        <MudText>No se encontraron datos</MudText>
+                    }
                 }
-                else
-                {
-                    <MudSkeleton />
+                else{
+                    <MudContainer Class="d-flex justify-center align-center" Style="min-height: 270px">
+                        <MudButton Disabled="@_retrievingData" OnClick="RetrieveData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
+                            @if (_retrievingData)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
+                                <MudText Class="ms-2">Cargando...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Cargar Datos</MudText>
+                            }
+                        </MudButton>
+                    </MudContainer>
                 }
             </MudCardContent>
 
@@ -69,7 +99,7 @@
                 }
                 @if (ShowLastUpdatedInfo)
                 {
-                    <MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>
+                    @*<MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>*@
                 }
             </MudCardActions>
         
@@ -99,8 +129,14 @@
     [Parameter] public bool ShowIcon { get; set; } = false;
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
     [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
+    [Parameter] public bool retrieveOnInitialized {get; set;} = true;
+    [Parameter] public bool showCustomizationIcon {get; set;} = false;
+    [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
 
     // Local Variables
+    private Visualizacion _visualization {get; set;}
+    private bool _dataRetrieved = false;
+    private bool _retrievingData = false;
     private string _authenticatedUser = string.Empty;
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
 
@@ -129,19 +165,21 @@
         }
     };
 
-
-
     protected override async Task OnInitializedAsync()
+    {
+        await DownloadVisualization();
+    }
+
+    private async Task DownloadVisualization()
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-
             HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionByIdSinToken?idVisualizacion={VisualizationId}");
 
             if (response.IsSuccessStatusCode)
             {
                 Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                _visualization = cardVisualization;
                 if (cardVisualization != null)
                 {
                     _title = cardVisualization.Nombre;
@@ -151,119 +189,172 @@
                     _seriesType = MapSeriesType(_chartType);
 
                     _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
-
-                    var allData = new List<object>();
-                    try
-                    {
-                        var dateFrom = cardVisualization.FechaDesde;
-                        var dateTo = cardVisualization.FechaHasta;
-
-                        foreach (var grupoDataset in cardVisualization.GrupoDatasets)
-                        {
-                            try
-                            {
-                                decimal multiplier = 1.0M;
-                                string color = "#00FFE7";
-
-                                if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
-                                {
-                                    try
-                                    {
-                                        var designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
-                                        if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
-                                        {
-                                            multiplier = multProp.GetDecimal();
-                                            Console.WriteLine($"Multiplier for dataset {grupoDataset.Dataset.NameDataset}: {multiplier}");
-                                        }
-                                        if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
-                                        {
-                                            color = colorProp.GetString() ?? "#00FFE7";
-                                            Console.WriteLine($"Color for dataset {grupoDataset.Dataset.NameDataset}: {color}");
-                                        }
-                                    }
-                                    catch { Console.WriteLine("fallo"); }
-                                }
-
-                                var datasetResponse = await Http.GetAsync($"api/Dataset/GetDatasetSinToken?datasetId={grupoDataset.Dataset.Id}");
-
-                                if (datasetResponse.IsSuccessStatusCode)
-                                {
-                                    var dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
-
-                                    if (dataset != null)
-                                    {
-                                        if (dataset.DatasetDevices.Any())
-                                        {
-                                            foreach (var datasetDevice in dataset.DatasetDevices)
-                                            {
-                                                try
-                                                {
-                                                    var sensorDataResponse = await Http.GetAsync(
-                                                        $"api/SondaMain/sensors/dataSinToken?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
-                                                    );
-
-                                                    if (sensorDataResponse.IsSuccessStatusCode)
-                                                    {
-                                                        var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
-
-                                                        if (sensorData != null && sensorData.Any())
-                                                        {
-                                                            foreach (var data in sensorData)
-                                                            {
-                                                                decimal numericValue;
-
-                                                                if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
-                                                                {
-                                                                    numericValue = parsedDecimal;
-                                                                }
-                                                                else
-                                                                {
-                                                                    numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
-                                                                }
-
-                                                                allData.Add(new
-                                                                {
-                                                                    Timestamp = data.Time,
-                                                                    Value = numericValue * multiplier,
-                                                                    Color = color,
-                                                                    DatasetName = dataset.Name,
-                                                                    SensorName = dataset.SensorName,
-                                                                    DeviceId = datasetDevice.Id_device
-                                                                });
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                catch (Exception ex)
-                                                {
-                                                    Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
-                                                }
-                                            }
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
-                                        }
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
-                            }
-                        }
-                        _seriesData = BuildSeriesFromData(allData);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error procesando visualización {cardVisualization.IdVisualizacion}: {ex.Message}");
-                    }
                 }
+            }
+            if(retrieveOnInitialized)
+            {
+                await RetrieveData();
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
+        }
+    }
+
+    private async Task RetrieveData(){
+        _dataRetrieved = false;
+        _retrievingData = true;
+        StateHasChanged();
+        var allData = new List<object>();
+        try
+        {
+            DateTime dateFrom = _visualization.FechaDesde;
+            DateTime dateTo = _visualization.FechaHasta;
+
+            foreach (var grupoDataset in _visualization.GrupoDatasets)
+            {
+                try
+                {
+                    decimal multiplier = 1;
+                    System.String color = "#00FFE7";
+                    System.String attribute = String.Empty;
+                    System.String module = String.Empty;
+                    System.String entity = String.Empty;
+                    System.String displayName = String.Empty;
+
+                    if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
+                    {
+                        JsonDocument? designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
+                        if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
+                        {
+                            multiplier = multProp.GetDecimal();
+                        }
+                        if (designDoc.RootElement.TryGetProperty("Color", out var colorProp))
+                        {
+                            color = colorProp.GetString() ?? "#00FFE7";
+                        }
+                        if (designDoc.RootElement.TryGetProperty("EntityAttribute", out var attributeProp))
+                        {
+                            attribute = attributeProp.GetString();
+                        }
+                        if (designDoc.RootElement.TryGetProperty("Module", out var moduleProp))
+                        {
+                            module = moduleProp.GetString();
+                        }
+                        if (designDoc.RootElement.TryGetProperty("Entity", out var entityProp))
+                        {
+                            entity = entityProp.GetString();
+                        }
+                        if(designDoc.RootElement.TryGetProperty("DisplayName", out var displayNameProp))
+                        {
+                            displayName = displayNameProp.GetString();
+                        }
+                    }
+                    if(module.Equals("Insight Monitor"))
+                    {
+                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDatasetSinToken?datasetId={grupoDataset.Dataset.Id}");
+
+                        if (datasetResponse.IsSuccessStatusCode)
+                        {
+                            DatasetIM? dataset = await datasetResponse.Content.ReadFromJsonAsync<DatasetIM>();
+
+                            if (dataset != null)
+                            {
+                                if (dataset.DatasetDevices.Any())
+                                {
+                                    foreach (var datasetDevice in dataset.DatasetDevices)
+                                    {
+                                        try
+                                        {
+                                            var sensorDataResponse = await Http.GetAsync(
+                                                $"api/SondaMain/sensors/dataSinToken?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
+                                            );
+
+                                            if (sensorDataResponse.IsSuccessStatusCode)
+                                            {
+                                                var sensorData = await sensorDataResponse.Content.ReadFromJsonAsync<List<SensorData>>();
+
+                                                if (sensorData != null && sensorData.Any())
+                                                {
+                                                    foreach (var data in sensorData)
+                                                    {
+                                                        decimal numericValue;
+
+                                                        if (Decimal.TryParse(data.Data, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedDecimal))
+                                                        {
+                                                            numericValue = parsedDecimal;
+                                                        }
+                                                        else
+                                                        {
+                                                            numericValue = data.Data.Equals("True", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+                                                        }
+
+                                                        allData.Add(new
+                                                        {
+                                                            Timestamp = data.Time,
+                                                            Value = numericValue * multiplier,
+                                                            Color = color,
+                                                            DatasetName = dataset.Name,
+                                                            SensorName = dataset.SensorName,
+                                                            DeviceId = datasetDevice.Id_device
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
+                                }
+                            }
+                        }
+                        _seriesData = BuildSeriesFromData(allData);
+                    }
+                    else
+                    {
+                        VisualizationRequest? req = new VisualizationRequest
+                        {
+                            moduleType = (ModuleType)Enum.Parse(typeof(ModuleType), module.Replace(" ", "")),
+                            entity = (EntityName)Enum.Parse(typeof(EntityName), entity),
+                            column = attribute,
+                            datasetId = grupoDataset.DatasetId,
+                            dateFrom = dateFrom,
+                            dateTo = dateTo
+                        };
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-dataSinToken", req);
+                        VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
+                        _seriesData.Add(new DatasetSeries
+                        {
+                            DatasetName = displayName,
+                            Color = color,
+                            Points = visualizationResponse.Values
+                                .Select(v => new ChartPoint
+                                {
+                                    X = v.Name,
+                                    Y = v.Value * multiplier
+                                })
+                                .ToList()
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
+                }
+            }
+            _retrievingData = false;
+            _dataRetrieved = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error procesando visualización {_visualization.IdVisualizacion}: {ex.Message}");
         }
     }
 
@@ -317,7 +408,7 @@
                 grouped[datasetName].Points.Add(new ChartPoint
                 {
                     X = timestamp ?? DateTime.Now.ToString("HH:mm"),
-                    Y = value
+                    Y = (decimal)value
                 });
             }
             catch (Exception ex)
@@ -350,6 +441,47 @@
         };
     }
 
+    private async Task OpenEditVisualizationDialog()
+    {
+        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+        DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
+        DialogResult? result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            _seriesData.Clear();
+            _seriesData = new List<DatasetSeries>();
+            await DownloadVisualization();
+            await RetrieveData();
+            StateHasChanged();
+            _chartKey++;
+            Snackbar.Add("Visualización actualizada", Severity.Success);
+        }
+    }
+
+    private async Task DeleteVisualization()
+    {
+        try
+        {
+            string token = await LocalStorage.GetItemAsync<string>("authToken");
+            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}?token={token}");
+            if(response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Visualizacion eliminada", Severity.Success);
+                await OnDeleted.InvokeAsync(_visualization == null ? VisualizationId : _visualization.IdVisualizacion);
+            }
+            else
+            {
+                Snackbar.Add("No se pudo eliminar la visualizacion", Severity.Warning);
+            }
+        }
+        catch(Exception ex)
+        {
+            Snackbar.Add("Error inesperado", Severity.Error);
+        }
+    }
+
     public class DatasetSeries
     {
         public System.String DatasetName { get; set; } = String.Empty;
@@ -360,7 +492,7 @@
     public class ChartPoint
     {
         public System.String X { get; set; } = string.Empty;
-        public double Y { get; set; }
+        public decimal Y { get; set; }
     }
 
 }

@@ -276,7 +276,7 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                
+
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
 
                 var response = await _visualizacionService.GetVisualizationDataAsync(request, username);
@@ -289,6 +289,23 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpPost("visualization-dataSinToken")]
+        [ProducesResponseType(typeof(VisualizationResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GetVisualizationDataSinToken([FromBody] VisualizationRequest request)
+        {
+            try
+            {
+                var response = await _visualizacionService.GetVisualizationDataSinTokenAsync(request);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al generar los datos de visualización: {ex.Message}");
+            }
+        }
 
     }
 }

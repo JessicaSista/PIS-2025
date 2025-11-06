@@ -16,6 +16,7 @@ namespace OmniMonitor.Server.Services
         Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset);
         Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username);
         Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username);
+        Task<DatasetAM?> GetDatasetAMByIdAsyncSinToken(int id);
         Task<DatasetAM?> GetDatasetAMByIdForEditAsync(int id, string username);
         Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request);
         Task DeleteDatasetAMAsync(int id, string username);
@@ -209,6 +210,19 @@ namespace OmniMonitor.Server.Services
             }
 
             return datasetAM;
+        }
+
+        public async Task<DatasetAM?> GetDatasetAMByIdAsyncSinToken(int id)
+        {
+            string? ownerUsername = await _context.DatasetAM
+                .Where(d => d.Id_Dataset == id)
+                .Select(d => d.Username)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrEmpty(ownerUsername))
+                return null;
+
+            return await GetDatasetAMByIdAsync(id, ownerUsername);
         }
 
                 /// <summary>

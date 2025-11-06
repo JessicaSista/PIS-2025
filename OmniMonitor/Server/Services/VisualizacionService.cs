@@ -21,6 +21,7 @@ namespace OmniMonitor.Server.Services
         Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
         Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
         Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
+        Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req);
     }
 
     // --- Implementación del servicio ---
@@ -112,12 +113,12 @@ namespace OmniMonitor.Server.Services
                 ModuleType = req.moduleType,
                 DatasetId = req.datasetId,
                 EntityName = req.entity,
-                JoinPropertyName = null
+                JoinPropertyName = string.Empty
             };
 
             var data = await _apiDataService.GetDataForOperand(operand, username);
             if (data == null || !data.Any())
-                return new VisualizationResponse { Type = "unknown", Values = new() };
+                return new VisualizationResponse { Type = "unknown", Values = new () };
 
             var counts = new Dictionary<string, int>();
             string typeName = "unknown";
@@ -135,7 +136,7 @@ namespace OmniMonitor.Server.Services
                 var value = prop.GetValue(item);
 
                 // Detectar tipo la primera vez
-                if (typeName == "unknown" && value != null)
+                if (typeName == "unknown" && value is not null)
                     typeName = value.GetType().Name;
 
                 string key = value?.ToString() ?? "null";
@@ -157,10 +158,56 @@ namespace OmniMonitor.Server.Services
             };
         }
 
+        public async Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req)
+        {
+            var operand = new JoinOperand
+            {
+                ModuleType = req.moduleType,
+                DatasetId = req.datasetId,
+                EntityName = req.entity,
+                JoinPropertyName = string.Empty
+            };
 
+            var data = await _apiDataService.GetDataForOperandSinToken(operand);
+            if (data == null || !data.Any())
+                return new VisualizationResponse { Type = "unknown", Values = new () };
 
+            var counts = new Dictionary<string, int>();
+            string typeName = "unknown";
 
+            foreach (var item in data)
+            {
+                if (item == null)
+                    continue;
 
+                // Usar reflection para obtener la propiedad
+                var prop = item.GetType().GetProperty(req.column);
+                if (prop == null)
+                    continue;
 
+                var value = prop.GetValue(item);
+
+                // Detectar tipo la primera vez
+                if (typeName == "unknown" && value is not null)
+                    typeName = value.GetType().Name;
+
+                string key = value?.ToString() ?? "null";
+
+                if (counts.ContainsKey(key))
+                    counts[key]++;
+                else
+                    counts[key] = 1;
+            }
+
+            return new VisualizationResponse
+            {
+                Type = typeName,
+                Values = counts.Select(kv => new VisualizationValue
+                {
+                    Name = kv.Key,
+                    Value = kv.Value
+                }).ToList()
+            };
+        }
     }
 }
