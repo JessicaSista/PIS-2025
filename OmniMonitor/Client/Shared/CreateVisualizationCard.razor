@@ -10,6 +10,7 @@
 @using Microsoft.Extensions.Localization;
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
+@using System.Globalization
 @inject IStringLocalizer<CreateVisualizationCard> Localizer
 @inject ILocalStorageService LocalStorage
 
@@ -53,7 +54,8 @@
                         <MudNumericField HideSpinButtons="true" 
                                         Immediate = "true"
                                         @bind-Value="dsItem.Multiplier" 
-                                        Variant="Variant.Outlined" 
+                                        Variant="Variant.Outlined"
+                                        Culture="@(new CultureInfo("en-US"))"
                                         Step=".2M"
                                         Validation="@((decimal m) => m == 0 ? "No puede ser 0" : null)" />
                     </MudItem>
@@ -149,6 +151,9 @@
 
     [Parameter]
     public int? NewDatasetId { get; set; }
+
+    [Parameter]
+    public bool returnToVisualizations {get; set; } = true;
     
     [Parameter]
     public string? NewDatasetModule { get; set; }
@@ -215,30 +220,19 @@
         return;
     }
 
-    private Task HandleNewDataset()
+    private async Task HandleNewDataset()
     {
-        var draft = new CreateVisualizationDraft
-        {
-            VisualizationName = _visualizationName,
-            SelectedChartType = _selectedChartType,
-            BeginDate = _beginDate,
-            BeginHour = _beginHour,
-            EndDate = _endDate,
-            EndHour = _endHour,
-            SelectedDatasets = _selectedDatasets.Select(s => new DatasetSelectionDraft
-            {
-                Dataset = s.Dataset,
-                Entity = s.Entity,
-                EntityAttribute = s.EntityAttribute,
-                DisplayName = System.String.IsNullOrEmpty(s.DisplayName) ? "" : s.DisplayName,
-                Multiplier = s.Multiplier,
-                Color = s.Color,
-            }).ToList()
-        };
+        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        IDialogReference? dialog = DialogService.Show<CreateDatasetDialog>("Crear nuevo dataset", options);
+        DialogResult? result = await dialog.Result;
 
-        DraftService.Save(draft);
-        Nav.NavigateTo("/crearDataset?returnTo=VisualizationCreate");
-        return Task.CompletedTask;
+        if (!result.Canceled && result.Data != null)
+        {
+            if (result.Data is DatasetDtoGenerico newDataset)
+            {
+                await HandleDatasetSelected(newDataset);
+            }
+        }
     }
 
     private bool ValidateSubmission()
@@ -334,7 +328,10 @@
                 _mudDialog.Close(DialogResult.Ok(1));
                 Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
                 // Clear return parameters from URL after success
-                Nav.NavigateTo("/visualizaciones", forceLoad: false);
+                if(returnToVisualizations) 
+                {
+                    Nav.NavigateTo("/visualizaciones", forceLoad: false);
+                }
             }
         }
         catch (Exception ex)
@@ -358,7 +355,6 @@
         _endDate = today;
         _endHour = new TimeSpan(23, 59, 0);
 
-        await RestoreDraftAndHandleReturnAsync();
     }
     
     private void RemoveDataset(DatasetSelection ds)
@@ -369,70 +365,7 @@
             _selectedDatasets.Remove(found);
             StateHasChanged();
         }
-    }
-    
-    private async Task RestoreDraftAndHandleReturnAsync()
-    {
-        try
-        {
-            var returnTo = ReturnTo;
-            int? newDatasetId = NewDatasetId;
-            string? newDatasetModule = NewDatasetModule;
-
-            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
-            {
-                if (DraftService.TryGet(out var draft))
-                {
-                    _visualizationName = draft.VisualizationName ?? string.Empty;
-                    _selectedChartType = draft.SelectedChartType ?? _selectedChartType;
-                    _beginDate = draft.BeginDate;
-                    _beginHour = draft.BeginHour;
-                    _endDate = draft.EndDate;
-                    _endHour = draft.EndHour;
-
-                    _selectedDatasets = draft.SelectedDatasets?.Select(d => new DatasetSelection
-                    {
-                        Dataset = d.Dataset,
-                        DisplayName = d.DisplayName,
-                        Entity = d.Entity,
-                        EntityAttribute = d.EntityAttribute,
-                        Multiplier = d.Multiplier,
-                        Color = string.IsNullOrWhiteSpace(d.Color) ? "rgb(0, 255, 231)" : d.Color
-                    }).ToList() ?? new();
-                    StateHasChanged();
-                }
-                if (newDatasetId.HasValue)
-                {   
-                    if(System.String.IsNullOrEmpty(newDatasetModule))
-                    {
-                        newDatasetModule = "Insight Monitor";
-                    }
-
-                    AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                    string? username = authState.User.Identity?.Name;
-                    string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-                    if (string.IsNullOrEmpty(username))
-                    {
-                        Snackbar.Add(Localizer["UserNotFound"], Severity.Error);
-                        return;
-                    }
-
-                    HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
-                    List<DatasetDtoGenerico> datasets = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
-
-                    DatasetDtoGenerico newDataset = datasets.Single(dataset => dataset.Id == NewDatasetId.Value && dataset.Module == newDatasetModule);
-
-                    HandleDatasetSelected(newDataset);
-                }
-                DraftService.Clear();
-            }
-        }
-        catch
-        {
-            Snackbar.Add("Error", Severity.Error);
-        }
-    }    
+    }   
 
     private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
     {
