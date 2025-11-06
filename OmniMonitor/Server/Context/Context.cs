@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -318,19 +318,8 @@ namespace OmniMonitor.Server.Context
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
                 .IsUnique();
         }
-
-        /// <summary>
-        /// Configura las relaciones entre las entidades de dashboards.
-        /// </summary>
         private static void ConfigureDashboardRelationships(ModelBuilder builder)
         {
-            // Configurar Dashboard
-            builder.Entity<DashboardDto>()
-                .HasKey(d => d.IdDashboard);
-
-            builder.Entity<DashboardDto>()
-                .HasIndex(d => new { d.Username, d.Nombre })
-                .IsUnique();
 
             // Configurar GrupoVisualizacion
             builder.Entity<GrupoVisualizacion>()
@@ -343,12 +332,21 @@ namespace OmniMonitor.Server.Context
                 .HasForeignKey(gv => gv.GrupoVisualizacionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Relación GrupoVisualizacion -> Visualizacion (muchos a uno)
+            // Relación GrupoVisualizacion -> Visualizacion (muchos a uno, opcional)
             builder.Entity<GrupoVisualizacion>()
                 .HasOne(gv => gv.Visualizacion)
                 .WithMany()
                 .HasForeignKey(gv => gv.IdVisualizacion)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            // Relación GrupoVisualizacion -> Kpi (muchos a uno, opcional)
+            builder.Entity<GrupoVisualizacion>()
+                .HasOne(gv => gv.Kpi)
+                .WithMany()
+                .HasForeignKey(gv => gv.KpiId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
 
             // Índices para optimizar consultas
             builder.Entity<DashboardDto>()
@@ -359,6 +357,9 @@ namespace OmniMonitor.Server.Context
 
             builder.Entity<GrupoVisualizacion>()
                 .HasIndex(gv => gv.IdVisualizacion);
+
+            builder.Entity<GrupoVisualizacion>()
+                .HasIndex(gv => gv.KpiId);
         }
     }
 }

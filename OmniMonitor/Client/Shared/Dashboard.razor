@@ -59,21 +59,21 @@
     [Parameter] public EventCallback<(int,int,int,int,int,int)> UpdateCardSize { get; set; }
     [Parameter] public EventCallback<(int,int)> RemoveCard { get; set; }
 
-    private int? _draggingId;
+    private int? _draggingIndex;
 
-    private void OnCardDragStart(int visualizationId)
+    private void OnCardDragStart(int startedIndex)
     {
-        _draggingId = visualizationId;
+        _draggingIndex = startedIndex;
     }
 
-    private async Task OnCardDroppedOn(int targetVisualizationId)
+    private async Task OnCardDroppedOn(int targetIndex)
     {
-        if (_draggingId == null || _draggingId == targetVisualizationId)
+        if (_draggingIndex == null || _draggingIndex == targetIndex)
             return;
 
-        int fromIndex = CardsData.FindIndex(t => t.Item1 == _draggingId.Value);
-        int toIndex = CardsData.FindIndex(t => t.Item1 == targetVisualizationId);
-        if (fromIndex < 0 || toIndex < 0)
+        int fromIndex = _draggingIndex.Value;
+        int toIndex = targetIndex;
+        if (fromIndex < 0 || toIndex < 0 || fromIndex >= CardsData.Count || toIndex >= CardsData.Count)
             return;
 
         // Swap items
@@ -81,7 +81,7 @@
         CardsData[fromIndex] = CardsData[toIndex];
         CardsData[toIndex] = temp;
 
-        _draggingId = null;
+        _draggingIndex = null;
         try { await JS.InvokeVoidAsync("console.log", $"Dashboard swap: swapped indices {fromIndex} and {toIndex}"); } catch {}
         StateHasChanged();
     }
