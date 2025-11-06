@@ -242,7 +242,7 @@
         }
         catch {}
         _isDraggingSelf = true;
-        return DragStarted.InvokeAsync(VisualizationId);
+        return DragStarted.InvokeAsync(Index);
     }
 
     private void HandleDragEnd(DragEventArgs e)
@@ -258,7 +258,7 @@
         _dragOverDepth = 0;
         _isDragOver = false;
         _isDraggingSelf = false;
-        return DroppedOn.InvokeAsync(VisualizationId);
+        return DroppedOn.InvokeAsync(Index);
     }
 
     private void HandleDragEnter(DragEventArgs e)
