@@ -418,7 +418,7 @@ namespace OmniMonitor.Server.Services
                 .Where(gv => gv.GrupoVisualizacionId == idDashboard)
                 .Select(gv => (int?)gv.Orden)
                 .Max() ?? 0;
-            orden++;
+            orden++; 
 
             var grupoVisualizacion = new GrupoVisualizacion
             {
