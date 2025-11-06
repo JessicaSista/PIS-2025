@@ -981,7 +981,7 @@
                 HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
                 List<DatasetDtoGenerico> datasets = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
 
-                DatasetDtoGenerico DtoGenericoCreated = datasets.Single(dataset => dataset.Id == created.DatasetId && dataset.Module == "Asset Manager");
+                DatasetDtoGenerico DtoGenericoCreated = datasets.Single(dataset => dataset.Id == created.Id_Dataset && dataset.Module == "Asset Manager");
 
                 _mudDialog.Close(DialogResult.Ok(DtoGenericoCreated));
             }
