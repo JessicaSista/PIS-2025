@@ -205,6 +205,7 @@
     }
 
     private async Task RetrieveData(){
+        _seriesData = new List<DatasetSeries>();
         _dataRetrieved = false;
         _retrievingData = true;
         StateHasChanged();
@@ -214,6 +215,8 @@
             string token = await LocalStorage.GetItemAsync<string>("authToken");
             DateTime dateFrom = _visualization.FechaDesde;
             DateTime dateTo = _visualization.FechaHasta;
+
+            List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
 
             foreach (var grupoDataset in _visualization.GrupoDatasets)
             {
@@ -225,10 +228,15 @@
                     System.String module = String.Empty;
                     System.String entity = String.Empty;
                     System.String displayName = String.Empty;
+                    System.Int32 idInModule = 0;
 
                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
                     {
                         JsonDocument? designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
+                        if (designDoc.RootElement.TryGetProperty("IdInModule", out var idProp))
+                        {
+                            idInModule = idProp.GetInt32();
+                        }
                         if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
                         {
                             multiplier = multProp.GetDecimal();
@@ -256,7 +264,7 @@
                     }
                     if(module.Equals("Insight Monitor"))
                     {
-                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}");
+                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={idInModule}&token={token}");
 
                         if (datasetResponse.IsSuccessStatusCode)
                         {
@@ -327,24 +335,14 @@
                             moduleType = (ModuleType)Enum.Parse(typeof(ModuleType), module.Replace(" ", "")),
                             entity = (EntityName)Enum.Parse(typeof(EntityName), entity),
                             column = attribute,
-                            datasetId = grupoDataset.DatasetId,
+                            datasetId = idInModule,
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
                         HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data?token={token}", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                        _seriesData.Add(new DatasetSeries
-                        {
-                            DatasetName = displayName,
-                            Color = color,
-                            Points = visualizationResponse.Values
-                                .Select(v => new ChartPoint
-                                {
-                                    X = v.Name,
-                                    Y = v.Value * multiplier
-                                })
-                                .ToList()
-                        });
+                        
+                        tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
                     }
                 }
                 catch (Exception ex)
@@ -352,8 +350,45 @@
                     Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
+            if(tmpDataDatasets.Any())
+            {
+                // dominio de la funcion a graficar
+                List<System.String> domain = new List<System.String>();
+                foreach (var (_, _, _, dataList) in tmpDataDatasets)
+                {
+                    foreach (var data in dataList)
+                    {
+                        if (!domain.Contains(data.Name))
+                        {
+                            domain.Add(data.Name);
+                        }
+                    }
+                }
+
+                // diccionario para manejo mas eficiente
+                List<Dictionary<System.String, System.Int32>> countValuesDatasets = tmpDataDatasets
+                .Select(tuple => tuple.Item4.ToDictionary(v => v.Name, v => v.Value))
+                .ToList();
+
+                // creacion de la funcion final a graficar
+                for(System.Int32 index = 0; index < tmpDataDatasets.Count; index++)
+                {
+                    _seriesData.Add(new DatasetSeries
+                    {
+                        DatasetName = tmpDataDatasets[index].Item1,
+                        Color = tmpDataDatasets[index].Item2,
+                        Points = domain.Select( point => new ChartPoint
+                        {
+                            X = point,
+                            Y = countValuesDatasets[index].ContainsKey(point) ? countValuesDatasets[index][point] * tmpDataDatasets[index].Item3 : 0
+                        })
+                        .ToList()
+                    });
+                }
+            }
             _retrievingData = false;
             _dataRetrieved = true;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -364,9 +399,17 @@
 
     private SeriesType MapSeriesType(string type)
     {
-        if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
-            return SeriesType.Line;
-        return parsed;
+        return type switch
+        {
+            "line" => SeriesType.Line,
+            "bar" => SeriesType.Bar,
+            "area" => SeriesType.Area,
+            "pie" => SeriesType.Pie,
+            "donut" => SeriesType.Donut,
+            "radar" => SeriesType.Radar,
+            "heatMap" => SeriesType.Heatmap,
+            "radialBar" => SeriesType.RadialBar,
+        };
     }
 
     private List<DatasetSeries> BuildSeriesFromData(List<object> data)
@@ -434,7 +477,7 @@
             "donut" => Icons.Material.Filled.DonutLarge,
             "radialBar" => Icons.Material.Filled.DonutSmall,
             "scatter" => Icons.Material.Filled.BubbleChart,
-            "heatmap" => Icons.Material.Filled.GridOn,
+            "heatMap" => Icons.Material.Filled.GridOn,
             "radar" => Icons.Material.Filled.Radar,
             "bubble" => Icons.Material.Filled.BubbleChart,
             "candlestick" => Icons.Material.Filled.CandlestickChart,
@@ -453,8 +496,6 @@
 
         if (result != null && !result.Canceled)
         {
-            _seriesData.Clear();
-            _seriesData = new List<DatasetSeries>();
             await DownloadVisualization();
             await RetrieveData();
             StateHasChanged();

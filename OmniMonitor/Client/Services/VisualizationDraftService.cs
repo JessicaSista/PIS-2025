@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+using OmniMonitor.Shared.Dtos;
+
 namespace OmniMonitor.Client.Services
 {
     public class VisualizationDraftService
@@ -42,9 +44,11 @@ namespace OmniMonitor.Client.Services
 
     public class DatasetSelectionDraft
     {
-        public int DatasetId { get; set; }
+        public DatasetDtoGenerico Dataset { get; set; }
+        public System.String DisplayName { get; set; }
+        public System.String Entity { get; set; }
+        public System.String EntityAttribute { get; set; }
         public decimal Multiplier { get; set; } = 1.0M;
         public string Color { get; set; } = "#00FFE7";
-        public string? Module { get; set; }
     }
 }

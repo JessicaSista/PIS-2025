@@ -17,7 +17,7 @@
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
             <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
-            @Localizer["AddVisualisationTitle"]
+            Editar Visualización
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -27,7 +27,7 @@
                 <MudGrid Class="ml-0 mt-0 pa-5" Style="width: 100%; background-color: var(--card); border-radius: 3px; " Spacing="3">
                     <MudItem Lg="2" Sm="2" Xs="12" Class="pl-0 pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Dataset"]</MudText>
-                        <MudText Typo="Typo.body1">@dsItem.DatasetName</MudText>
+                        <MudText Typo="Typo.body1">@dsItem.Dataset.Nombre</MudText>
                     </MudItem>
                     
                     <MudItem Lg="3" Sm="3" Xs="12" Class="pt-0">
@@ -162,7 +162,7 @@
     [Parameter]
     public System.Int32 dashboardId {get; set;} = -1; //caso en el que se edita desde visualizaciones
 
-    private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "radialBar", "scatter", "heatmap", "radar", "bubble", "candlestick", "boxPlot", "treemap"};
+    private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar"};
     private string _selectedChartType = "line";
 
     private DateTime? _beginDate { get; set; }
@@ -204,8 +204,7 @@
 
     private Task HandleNewDataset()
     {
-        // Persist current draft and navigate to dataset creation with return flag
-        var draft = new CreateVisualizationDraft
+        CreateVisualizationDraft draft = new CreateVisualizationDraft
         {
             VisualizationName = _visualizationName,
             SelectedChartType = _selectedChartType,
@@ -215,21 +214,23 @@
             EndHour = _endHour,
             SelectedDatasets = _selectedDatasets.Select(s => new DatasetSelectionDraft
             {
-                DatasetId = s.DatasetId,
+                Dataset = s.Dataset,
+                Entity = s.Entity,
+                EntityAttribute = s.EntityAttribute,
+                DisplayName = System.String.IsNullOrEmpty(s.DisplayName) ? "" : s.DisplayName,
                 Multiplier = s.Multiplier,
                 Color = s.Color,
-                Module = s.DatasetType
             }).ToList()
         };
 
         DraftService.Save(draft);
-        Nav.NavigateTo("/crearDataset?returnTo=VisualizationCreate");
+        Nav.NavigateTo("/crearDataset?returnTo=VisualizationEdit");
         return Task.CompletedTask;
     }
 
     private async Task HandleDatasetSelected(DatasetDtoGenerico dataset)
     {
-        if (_selectedDatasets.Any(sd => sd.DatasetId == dataset.Id && sd.DatasetType == dataset.Module))
+        if (_selectedDatasets.Any(sd => sd.Dataset.IdGenerico == dataset.IdGenerico))
         {
             Snackbar.Add(Localizer["DatasetAlreadyAdded"], Severity.Info);
             return;
@@ -237,12 +238,10 @@
         System.String entity = await GetEntityFromDatasetAsync(dataset.Id, dataset.Module);
         _selectedDatasets.Add(new DatasetSelection
         {
-            DatasetId = dataset.Id,
-            DatasetName = dataset.Nombre,
-            DatasetType = dataset.Module,
+            Dataset = dataset,
             Entity = entity,
             EntityAttribute = _entityAttributes[entity][0],
-            Multiplier = 1.0M,
+            Multiplier = 1,
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Success);
@@ -314,15 +313,16 @@
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
-                    DatasetId = ds.DatasetId,
+                    DatasetId = ds.Dataset.IdGenerico,
                     JsonDiseño = JsonSerializer.Serialize( new Dictionary<string, object>
                     {
+                        {"IdInModule", ds.Dataset.Id},
                         { "Multiplier", (double)ds.Multiplier },
                         { "Color", ds.Color },
-                        { "Module", ds.DatasetType},
+                        { "Module", ds.Dataset.Module},
                         { "Entity", ds.Entity},
                         { "EntityAttribute", ds.EntityAttribute },
-                        { "DisplayName", ds.DisplayName}
+                        { "DisplayName", System.String.IsNullOrEmpty(ds.DisplayName) ? ds.Dataset.Nombre : ds.DisplayName }
                     })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
@@ -365,7 +365,7 @@
     
     private void Cancel() => _mudDialog.Cancel();
 
-    protected override async Task OnInitializedAsync() 
+    protected override async Task OnInitializedAsync()
     {
         try 
         {
@@ -379,7 +379,6 @@
                     return;
                 }
 
-                // Obtener la visualización actual
                 HttpResponseMessage? responseVisualization = await Http.GetAsync(
                     $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}&token={token}"
                 );
@@ -407,62 +406,21 @@
                     System.String selectedAttribute = root.GetProperty("EntityAttribute").GetString();
                     System.String displayName = root.GetProperty("DisplayName").GetString();
                     System.String module = root.GetProperty("Module").GetString();
-
-                    System.Int32 idDatasetModulo;
-                    AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                    string? username = authState.User.Identity?.Name;
-                    string token = await LocalStorage.GetItemAsync<string>("authToken");
-                    
-                    if(module.Equals("Insight Monitor"))
-                    {
-                        HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={grupoDataset.DatasetId}&token={token}");
-                        DatasetIM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetIM>();
-
-                        if (datasetFromApi == null)
-                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
-                        idDatasetModulo = datasetFromApi.DatasetId;
-                    }
-                    else if(module.Equals("Asset Manager"))
-                    {
-                        HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={grupoDataset.DatasetId}&token={token}");
-                        DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
-
-                        if (datasetFromApi == null)
-                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
-
-                        idDatasetModulo = datasetFromApi.DatasetId;
-                    }
-                    else if(module.Equals("Urban Monitor"))
-                    {
-                        HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={grupoDataset.DatasetId}&token={token}");
-                        DatasetUM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetUM>();
-
-                        if (datasetFromApi == null)
-                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
-
-                        idDatasetModulo = datasetFromApi.DatasetId;
-                    }
-                    else
-                    {
-                        HttpResponseMessage? response = await Http.GetAsync($"api/DatasetEM/{grupoDataset.DatasetId}?token={token}");
-                        DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
-
-                        if (datasetFromApi == null)
-                            throw new NullReferenceException("La respuesta del servidor fue vacía.");
-                        
-                        idDatasetModulo = datasetFromApi.DatasetId;
-                    }
+                    System.Int32 IdInModule = root.GetProperty("IdInModule").GetInt32();
 
                     _selectedDatasets.Add(new DatasetSelection
                     {
-                        DatasetId = idDatasetModulo,
-                        DatasetName = grupoDataset.Dataset.NameDataset,
-                        DatasetType = module,
-                        Multiplier = multiplier,
-                        Color = color,
+                        Dataset = new DatasetDtoGenerico {
+                            Id = IdInModule,
+                            IdGenerico = grupoDataset.DatasetId,
+                            Nombre = grupoDataset.Dataset.NameDataset,
+                            Module = module
+                        },
+                        DisplayName = displayName,
                         Entity = datasetEntity,
                         EntityAttribute = selectedAttribute,
-                        DisplayName = displayName
+                        Multiplier = multiplier,
+                        Color = color
                     });
                 }
             }
@@ -479,18 +437,6 @@
     private void RemoveDataset(DatasetSelection item)
     {
         _selectedDatasets.Remove(item);
-    }
-    
-    public class DatasetSelection
-    {
-        public int DatasetId { get; set; }
-        public System.String DisplayName {get; set;}
-        public System.String DatasetName {get; set;}
-        public System.String DatasetType {get; set;}
-        public System.String Entity {get; set;}
-        public System.String EntityAttribute {get; set;}
-        public decimal Multiplier { get; set; }
-        public string Color { get; set; } = "rgb(0, 255, 231)";
     }
 
     private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
@@ -563,201 +509,6 @@
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             return string.Empty;
-        }
-    }
-
-        private async Task RestoreDraftAndHandleReturnAsync()
-    {
-        try
-        {
-            var returnTo = ReturnTo;
-            int? newDatasetId = NewDatasetId;
-            string? newDatasetModule = NewDatasetModule;
-
-            if (string.Equals(returnTo, "VisualizationCreate", StringComparison.OrdinalIgnoreCase))
-            {
-                // Try restore draft
-                if (DraftService.TryGet(out var draft))
-                {
-                    _visualizationName = draft.VisualizationName ?? string.Empty;
-                    _selectedChartType = draft.SelectedChartType ?? _selectedChartType;
-                    _beginDate = draft.BeginDate;
-                    _beginHour = draft.BeginHour;
-                    _endDate = draft.EndDate;
-                    _endHour = draft.EndHour;
-
-                    _selectedDatasets = draft.SelectedDatasets?.Select(d => new DatasetSelection
-                    {
-                        DatasetId = d.DatasetId,
-                        DatasetType = d.Module,
-                        Multiplier = d.Multiplier,
-                        Color = string.IsNullOrWhiteSpace(d.Color) ? "rgb(0, 255, 231)" : d.Color
-                    }).ToList() ?? new();
-
-                    // Hydrate missing fields (Name, Type, Entity, Attribute) for restored draft
-                    await HydrateSelectionsAsync(_selectedDatasets);
-                    StateHasChanged();
-                }
-
-                if (newDatasetId.HasValue)
-                {
-                    if (!_selectedDatasets.Any(sd => sd.DatasetId == newDatasetId.Value))
-                    {
-                        // Hydrate info for the new dataset id and then add
-                        var hydrated = await HydrateSingleDatasetAsync(newDatasetId.Value, newDatasetModule);
-                        if (hydrated != null)
-                        {
-                            _selectedDatasets.Add(hydrated);
-                        }
-                        else
-                        {
-                            // Fallback minimal add if hydration failed
-                            _selectedDatasets.Add(new DatasetSelection
-                            {
-                                DatasetId = newDatasetId.Value,
-                                Multiplier = 1.0M,
-                                Color = "rgb(0, 255, 231)"
-                            });
-                        }
-                        Snackbar.Add(Localizer["NewDatasetAdded"], Severity.Success);
-                    }
-                }
-
-                // Do NOT auto-open AddDatasetModal when returning from dataset creation flow
-                // The user just created a dataset and we already attached it above (if provided)
-                // Avoid stacking the Add Dataset modal on top of this dialog
-
-                // Clear draft so it doesn't persist unexpectedly
-                DraftService.Clear();
-            }
-        }
-        catch
-        {
-            // swallow restore errors to not block UI
-        }
-    }
-
-    private async Task HydrateSelectionsAsync(List<DatasetSelection> selections)
-    {
-        if (selections == null || selections.Count == 0) return;
-        string? token = await LocalStorage.GetItemAsync<string>("authToken");
-        foreach (var sel in selections)
-        {
-            if (!string.IsNullOrWhiteSpace(sel.DatasetName) && !string.IsNullOrWhiteSpace(sel.DatasetType) && !string.IsNullOrWhiteSpace(sel.Entity))
-            {
-                continue;
-            }
-            var info = await TryFetchDatasetInfoAsync(sel.DatasetId, token, sel.DatasetType);
-            if (info != null)
-            {
-                sel.DatasetName = info.Value.Name;
-                sel.DatasetType = info.Value.Module;
-                var entity = await GetEntityFromDatasetAsync(sel.DatasetId, info.Value.Module);
-                sel.Entity = entity;
-                if (!string.IsNullOrWhiteSpace(entity) && _entityAttributes.TryGetValue(entity, out var attrs) && attrs.Count > 0)
-                {
-                    sel.EntityAttribute = attrs[0];
-                }
-            }
-        }
-    }
-
-    private async Task<DatasetSelection?> HydrateSingleDatasetAsync(int datasetId, string? hintedModule = null)
-    {
-        string? token = await LocalStorage.GetItemAsync<string>("authToken");
-        var info = await TryFetchDatasetInfoAsync(datasetId, token, hintedModule);
-        if (info == null)
-        {
-            return null;
-        }
-        var module = info.Value.Module;
-        var entity = await GetEntityFromDatasetAsync(datasetId, module);
-        string? entityAttr = null;
-        if (!string.IsNullOrWhiteSpace(entity) && _entityAttributes.TryGetValue(entity, out var attrs) && attrs.Count > 0)
-        {
-            entityAttr = attrs[0];
-        }
-        return new DatasetSelection
-        {
-            DatasetId = datasetId,
-            DatasetName = info.Value.Name,
-            DatasetType = module,
-            Entity = entity,
-            EntityAttribute = entityAttr ?? selDefault(entity),
-            Multiplier = 1.0M,
-            Color = "rgb(0, 255, 231)"
-        };
-
-        static string? selDefault(string e)
-        {
-            return null;
-        }
-    }
-
-    private async Task<(string Name, string Module)?> TryFetchDatasetInfoAsync(int datasetId, string? token, string? hintedModule = null)
-    {
-        try
-        {
-            // 1) Resolve module: use hinted module if provided, else detect
-            string? module = hintedModule;
-            if (string.IsNullOrWhiteSpace(module))
-            {
-                var moduleResp = await Http.GetAsync($"api/Dataset/GetDatasetModule?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
-                if (!moduleResp.IsSuccessStatusCode)
-                {
-                    return null;
-                }
-                module = (await moduleResp.Content.ReadAsStringAsync())?.Trim('"');
-                if (string.IsNullOrWhiteSpace(module)) return null;
-            }
-
-            // 2) Fetch dataset by module to get its display name (minimal, aligned to backend DTOs)
-            if (string.Equals(module, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
-            {
-                var resp = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
-                if (resp.IsSuccessStatusCode)
-                {
-                    var dto = await resp.Content.ReadFromJsonAsync<DatasetIM>();
-                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Name))
-                        return (Name: dto.Name, Module: module);
-                }
-            }
-            else if (string.Equals(module, "Asset Manager", StringComparison.OrdinalIgnoreCase))
-            {
-                var resp = await Http.GetAsync($"api/DatasetAM/GetDatasetAMById?id={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
-                if (resp.IsSuccessStatusCode)
-                {
-                    var dto = await resp.Content.ReadFromJsonAsync<DatasetAM>();
-                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Nombre))
-                        return (Name: dto.Nombre, Module: module);
-                }
-            }
-            else if (string.Equals(module, "Urban Monitor", StringComparison.OrdinalIgnoreCase))
-            {
-                var resp = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}&token={Uri.EscapeDataString(token ?? string.Empty)}");
-                if (resp.IsSuccessStatusCode)
-                {
-                    var dto = await resp.Content.ReadFromJsonAsync<DatasetUM>();
-                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Name))
-                        return (Name: dto.Name, Module: module);
-                }
-            }
-            else if (string.Equals(module, "Event Manager", StringComparison.OrdinalIgnoreCase))
-            {
-                var resp = await Http.GetAsync($"api/DatasetEM/{datasetId}?token={Uri.EscapeDataString(token ?? string.Empty)}");
-                if (resp.IsSuccessStatusCode)
-                {
-                    var dto = await resp.Content.ReadFromJsonAsync<DatasetEM>();
-                    if (dto != null && !string.IsNullOrWhiteSpace(dto.Name))
-                        return (Name: dto.Name, Module: module);
-                }
-            }
-
-            return (Name: $"Dataset {datasetId}", Module: module);
-        }
-        catch
-        {
-            return null;
         }
     }
 
