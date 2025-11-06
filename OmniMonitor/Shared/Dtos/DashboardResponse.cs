@@ -31,7 +31,7 @@ namespace OmniMonitor.Shared.Dtos
     public class DashboardCardResponse
     {
     public int IdGrupoVisualizacion { get; set; }
-    public int CardId { get; set; } // IdVisualizacion
+    public int CardId { get; set; }
     public int TipoCard { get; set; }
     public string? PropsConfiguracion { get; set; }
     public DateTime FechaAgregado { get; set; }
@@ -39,6 +39,7 @@ namespace OmniMonitor.Shared.Dtos
     /// Información básica de la visualización asociada
     /// </summary>
     public VisualizacionInfo? Visualizacion { get; set; }
+    public KpiInfo? Kpi { get; set; }
     }
 
     /// <summary>
@@ -51,6 +52,13 @@ namespace OmniMonitor.Shared.Dtos
         public DateTime FechaDesde { get; set; }
         public DateTime FechaHasta { get; set; }
         public string? JsonDesign { get; set; }
+    }
+
+    public class KpiInfo
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Unit { get; set; }
     }
 
     /// <summary>
