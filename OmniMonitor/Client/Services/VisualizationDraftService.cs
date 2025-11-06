@@ -33,6 +33,7 @@ namespace OmniMonitor.Client.Services
 
     public class CreateVisualizationDraft
     {
+        public System.Int32 VisualizationId { get; set; }
         public string VisualizationName { get; set; } = string.Empty;
         public string SelectedChartType { get; set; } = "line";
         public DateTime? BeginDate { get; set; }

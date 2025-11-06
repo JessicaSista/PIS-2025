@@ -980,6 +980,10 @@
                     // AM uses Id_Dataset for module-specific id in GET by id
                     Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={created.Id_Dataset}&newDatasetModule=Asset%20Manager", forceLoad: false);
                 }
+                else if (System.String.Equals(returnTo, "VisualizationEdit") && created is not null)
+                {
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationEdit&newDatasetId={created.Id_Dataset}&newDatasetModule=Asset%20Manager", forceLoad: false);
+                }
                 else
                 {
                     Nav.NavigateTo("/datasets");
@@ -1207,6 +1211,9 @@
                 {
                     Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={newDataset.Id}", forceLoad: false);
                 }
+                else if (System.String.Equals(returnTo, "VisualizationEdit") && newDataset is not null){
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationEdit&newDatasetId={newDataset.Id}", forceLoad: false);
+                }
                 else
                 {
                     Nav.NavigateTo("/datasets");
@@ -1389,6 +1396,10 @@
                 {
                     // UM uses Id as module-specific id
                     Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={created.Id}&newDatasetModule=Urban%20Monitor", forceLoad: false);
+                }
+                else if (System.String.Equals(returnTo, "VisualizationEdit") && created is not null)
+                {
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationEdit&newDatasetId={created.Id}&newDatasetModule=Urban%20Monitor", forceLoad: false);
                 }
                 else
                 {
@@ -1622,6 +1633,10 @@
                 {
                     // EM uses Id as module-specific id
                     Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationCreate&newDatasetId={created.Id}&newDatasetModule=Event%20Manager", forceLoad: false);
+                }
+                else if (System.String.Equals(returnTo, "VisualizationEdit") && created is not null)
+                {
+                    Nav.NavigateTo($"/visualizaciones?returnTo=VisualizationEdit&newDatasetId={created.Id}&newDatasetModule=Event%20Manager", forceLoad: false);
                 }
                 else
                 {

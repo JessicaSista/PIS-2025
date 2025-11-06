@@ -10,6 +10,7 @@
 @using Microsoft.Extensions.Localization;
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
+@using System.Globalization
 @inject IStringLocalizer<CreateVisualizationCard> Localizer
 @inject ILocalStorageService LocalStorage
 
@@ -53,7 +54,8 @@
                         <MudNumericField HideSpinButtons="true" 
                                         Immediate = "true"
                                         @bind-Value="dsItem.Multiplier" 
-                                        Variant="Variant.Outlined" 
+                                        Variant="Variant.Outlined"
+                                        Culture="@(new CultureInfo("en-US"))" 
                                         Step=".2M"
                                         Validation="@((decimal m) => m == 0 ? "No puede ser 0" : null)" />
                     </MudItem>
@@ -148,6 +150,9 @@
     public string? ReturnTo { get; set; }
 
     [Parameter]
+    public bool restore {get; set; } = false;
+
+    [Parameter]
     public int? NewDatasetId { get; set; }
     
     [Parameter]
@@ -206,6 +211,7 @@
     {
         CreateVisualizationDraft draft = new CreateVisualizationDraft
         {
+            VisualizationId = visualizationId,
             VisualizationName = _visualizationName,
             SelectedChartType = _selectedChartType,
             BeginDate = _beginDate,
@@ -224,7 +230,7 @@
         };
 
         DraftService.Save(draft);
-        Nav.NavigateTo("/crearDataset?returnTo=VisualizationEdit");
+        Nav.NavigateTo($"/crearDataset?returnTo=VisualizationEdit");
         return Task.CompletedTask;
     }
 
@@ -330,7 +336,7 @@
             };
             if(dashboardId == -1)
             {
-                HttpResponseMessage? response = await Http.PutAsJsonAsync($"api/Visualizacion/{currVisualization.IdVisualizacion}?token={token}", request);
+                HttpResponseMessage? response = await Http.PutAsJsonAsync($"api/Visualizacion/{visualizationId}?token={token}", request);
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
@@ -369,64 +375,71 @@
     {
         try 
         {
-            if(currVisualization == null){
-                AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                string? username = authState.User.Identity?.Name;
-                string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-                if (string.IsNullOrEmpty(username)) {
-                    Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
-                    return;
-                }
-
-                HttpResponseMessage? responseVisualization = await Http.GetAsync(
-                    $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}&token={token}"
-                );
-                
-                currVisualization = await responseVisualization.Content.ReadFromJsonAsync<Visualizacion>();
-            }
-
-            _visualizationName = currVisualization.Nombre;
-            _beginDate = currVisualization.FechaDesde.Date;
-            _beginHour = currVisualization.FechaDesde.TimeOfDay;
-            _endDate = currVisualization.FechaHasta.Date;
-            _endHour = currVisualization.FechaHasta.TimeOfDay;
-            
-            JsonDocument design = JsonDocument.Parse(currVisualization.JsonDesign);
-            _selectedChartType = design.RootElement.GetProperty("ChartType").ToString();
-
-            try{
-                foreach (var grupoDataset in currVisualization.GrupoDatasets)
-                {
-                    JsonElement root = JsonDocument.Parse(grupoDataset.JsonDesign).RootElement;
-
-                    decimal multiplier = root.GetProperty("Multiplier").GetDecimal();
-                    System.String color = root.GetProperty("Color").GetString();
-                    System.String datasetEntity = root.GetProperty("Entity").GetString();
-                    System.String selectedAttribute = root.GetProperty("EntityAttribute").GetString();
-                    System.String displayName = root.GetProperty("DisplayName").GetString();
-                    System.String module = root.GetProperty("Module").GetString();
-                    System.Int32 IdInModule = root.GetProperty("IdInModule").GetInt32();
-
-                    _selectedDatasets.Add(new DatasetSelection
-                    {
-                        Dataset = new DatasetDtoGenerico {
-                            Id = IdInModule,
-                            IdGenerico = grupoDataset.DatasetId,
-                            Nombre = grupoDataset.Dataset.NameDataset,
-                            Module = module
-                        },
-                        DisplayName = displayName,
-                        Entity = datasetEntity,
-                        EntityAttribute = selectedAttribute,
-                        Multiplier = multiplier,
-                        Color = color
-                    });
-                }
-            }
-            catch(Exception ex)
+            if (restore)
             {
-                Snackbar.Add($"Error fetching properties of datasets: {ex.Message}", Severity.Error);
+                await RestoreDraftAndHandleReturnAsync();
+            }
+            else 
+            {
+                if(currVisualization == null){
+                    AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                    string? username = authState.User.Identity?.Name;
+                    string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                    if (string.IsNullOrEmpty(username)) {
+                        Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
+                        return;
+                    }
+
+                    HttpResponseMessage? responseVisualization = await Http.GetAsync(
+                        $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}&token={token}"
+                    );
+                    
+                    currVisualization = await responseVisualization.Content.ReadFromJsonAsync<Visualizacion>();
+                }
+                visualizationId = currVisualization.IdVisualizacion;
+                _visualizationName = currVisualization.Nombre;
+                _beginDate = currVisualization.FechaDesde.Date;
+                _beginHour = currVisualization.FechaDesde.TimeOfDay;
+                _endDate = currVisualization.FechaHasta.Date;
+                _endHour = currVisualization.FechaHasta.TimeOfDay;
+                
+                JsonDocument design = JsonDocument.Parse(currVisualization.JsonDesign);
+                _selectedChartType = design.RootElement.GetProperty("ChartType").ToString();
+
+                try{
+                    foreach (var grupoDataset in currVisualization.GrupoDatasets)
+                    {
+                        JsonElement root = JsonDocument.Parse(grupoDataset.JsonDesign).RootElement;
+
+                        decimal multiplier = root.GetProperty("Multiplier").GetDecimal();
+                        System.String color = root.GetProperty("Color").GetString();
+                        System.String datasetEntity = root.GetProperty("Entity").GetString();
+                        System.String selectedAttribute = root.GetProperty("EntityAttribute").GetString();
+                        System.String displayName = root.GetProperty("DisplayName").GetString();
+                        System.String module = root.GetProperty("Module").GetString();
+                        System.Int32 IdInModule = root.GetProperty("IdInModule").GetInt32();
+
+                        _selectedDatasets.Add(new DatasetSelection
+                        {
+                            Dataset = new DatasetDtoGenerico {
+                                Id = IdInModule,
+                                IdGenerico = grupoDataset.DatasetId,
+                                Nombre = grupoDataset.Dataset.NameDataset,
+                                Module = module
+                            },
+                            DisplayName = displayName,
+                            Entity = datasetEntity,
+                            EntityAttribute = selectedAttribute,
+                            Multiplier = multiplier,
+                            Color = color
+                        });
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Snackbar.Add($"Error fetching properties of datasets: {ex.Message}", Severity.Error);
+                }
             }
         }
         catch (Exception ex) {
@@ -512,4 +525,62 @@
         }
     }
 
+    private async Task RestoreDraftAndHandleReturnAsync()
+    {
+        try
+        {
+            int? newDatasetId = NewDatasetId;
+            string? newDatasetModule = NewDatasetModule;
+            if (DraftService.TryGet(out var draft))
+                {
+                    visualizationId = draft.VisualizationId;
+                    _visualizationName = draft.VisualizationName ?? string.Empty;
+                    _selectedChartType = draft.SelectedChartType ?? _selectedChartType;
+                    _beginDate = draft.BeginDate;
+                    _beginHour = draft.BeginHour;
+                    _endDate = draft.EndDate;
+                    _endHour = draft.EndHour;
+
+                    _selectedDatasets = draft.SelectedDatasets?.Select(d => new DatasetSelection
+                    {
+                        Dataset = d.Dataset,
+                        DisplayName = d.DisplayName,
+                        Entity = d.Entity,
+                        EntityAttribute = d.EntityAttribute,
+                        Multiplier = d.Multiplier,
+                        Color = string.IsNullOrWhiteSpace(d.Color) ? "rgb(0, 255, 231)" : d.Color
+                    }).ToList() ?? new();
+                    StateHasChanged();
+                }
+                if (newDatasetId.HasValue)
+                {   
+                    if(System.String.IsNullOrEmpty(newDatasetModule))
+                    {
+                        newDatasetModule = "Insight Monitor";
+                    }
+
+                    AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                    string? username = authState.User.Identity?.Name;
+                    string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                    if (string.IsNullOrEmpty(username))
+                    {
+                        Snackbar.Add(Localizer["UserNotFound"], Severity.Error);
+                        return;
+                    }
+
+                    HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
+                    List<DatasetDtoGenerico> datasets = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+
+                    DatasetDtoGenerico newDataset = datasets.Single(dataset => dataset.Id == NewDatasetId.Value && dataset.Module == newDatasetModule);
+
+                    HandleDatasetSelected(newDataset);
+                }
+                DraftService.Clear();
+            }
+        catch
+        {
+            Snackbar.Add("Error", Severity.Error);
+        }
+    } 
 }
