@@ -151,9 +151,6 @@
 
     [Parameter]
     public int? NewDatasetId { get; set; }
-
-    [Parameter]
-    public bool returnToVisualizations {get; set; } = true;
     
     [Parameter]
     public string? NewDatasetModule { get; set; }
@@ -203,7 +200,7 @@
     {
         if (_selectedDatasets.Any(sd => sd.Dataset.IdGenerico == dataset.IdGenerico))
         {
-            Snackbar.Add(Localizer["DatasetAlreadyAdded"], Severity.Info);
+            Snackbar.Add(Localizer["DatasetAlreadyAdded"], Severity.Warning);
             return;
         }
         System.String entity = await GetEntityFromDatasetAsync(dataset.Id, dataset.Module);
@@ -215,7 +212,7 @@
             Multiplier = 1,
             Color = "rgb(0, 255, 231)"
         });
-        Snackbar.Add(Localizer["DatasetAdded"], Severity.Success);
+        Snackbar.Add(Localizer["DatasetAdded"], Severity.Info);
         StateHasChanged();
         return;
     }
@@ -327,11 +324,6 @@
             {
                 _mudDialog.Close(DialogResult.Ok(1));
                 Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
-                // Clear return parameters from URL after success
-                if(returnToVisualizations) 
-                {
-                    Nav.NavigateTo("/visualizaciones", forceLoad: false);
-                }
             }
         }
         catch (Exception ex)
@@ -344,7 +336,6 @@
     private void Cancel()
     {
         _mudDialog.Cancel();
-        Nav.NavigateTo("/visualizaciones", forceLoad: false);
     }
     
     protected override async Task OnInitializedAsync()

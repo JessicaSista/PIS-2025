@@ -129,7 +129,6 @@
     private async Task OpenCreateVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters{["returnToVisualizations"] = false};
         IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
         DialogResult? result = await dialog.Result;
         
