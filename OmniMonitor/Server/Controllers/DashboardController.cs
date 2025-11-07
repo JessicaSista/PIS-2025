@@ -184,18 +184,24 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var username = User.Identity?.Name;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
 
-                // Obtener todos los dashboards (con filtro de búsqueda si existe)
-                List<DashboardSummaryResponse> allDashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
-                int totalCount = allDashboards.Count;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Token inválido o usuario no encontrado.");
+
+                if (page <= 0 || pageSize <= 0)
+                    return BadRequest("La página y el tamaño deben ser mayores a 0.");
+
+                // Obtener solo los dashboards necesarios para la página
+                List<DashboardSummaryResponse> paginatedItems = await _dashboardService.GetAllDashboardsPaginatedAsync(username, query, page, pageSize);
+
+                // Calcular totales
+                int totalCount = await _dashboardService.GetDashboardsCount(username, query);
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
                 if (page < 1) page = 1;
                 if (page > totalPages && totalPages > 0) page = totalPages;
-                var paginatedItems = allDashboards
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList();
+
+                // Crear respuesta paginada
                 var result = new PaginatedDashboardDto
                 {
                     Items = paginatedItems,

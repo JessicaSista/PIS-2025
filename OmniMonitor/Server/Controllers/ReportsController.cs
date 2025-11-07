@@ -80,6 +80,31 @@ namespace OmniMonitor.Server.Controllers
             return Ok(reports);
         }
 
+        [HttpGet("GetAllReportsPaginated")]
+        public async Task<ActionResult<object>> GetAllReportsPaginated(string token, int page = 1, int pageSize = 10, string? query = null)
+        {
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            if (string.IsNullOrWhiteSpace(username))
+                return BadRequest("Token inválido o usuario no encontrado.");
+
+            if (page <= 0 || pageSize <= 0)
+                return BadRequest("La página y el tamaño deben ser mayores a 0.");
+
+            var reports = await _reportService.GetAllReportsPaginatedAsync(username, page, pageSize, query);
+            var totalCount = await _reportService.GetReportsCountAsync(username, query);
+            int totalPages = (int)System.Math.Ceiling(totalCount / (double)pageSize);
+
+            return Ok(new {
+                Items = reports,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            });
+        }
+
         /// <summary>
         /// Gets a single, detailed report by its ID.
         /// </summary>

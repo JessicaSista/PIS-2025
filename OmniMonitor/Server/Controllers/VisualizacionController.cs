@@ -77,6 +77,53 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+                /// <summary>
+        /// Obtiene todas las visualizaciones de un usuario específico con paginación.
+        /// </summary>
+        [HttpGet("GetAllVisualizacionesPaginated")]
+        [ProducesResponseType(typeof(PaginatedVisualizacionDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<object>> GetAllVisualizacionesPaginated(
+            string token,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? query = null)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                return BadRequest("Token requerido.");
+            if (page <= 0 || pageSize <= 0)
+                return BadRequest("La página y el tamaño deben ser mayores a 0.");
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Token inválido o usuario no encontrado.");
+
+                var items = await _visualizacionService.GetAllVisualizacionesPaginatedAsync(username, page, pageSize, query);
+                var totalCount = await _visualizacionService.GetVisualizacionesCountAsync(username, query);
+                int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+                if (page < 1) page = 1;
+                if (page > totalPages && totalPages > 0) page = totalPages;
+
+                var result = new {
+                    Items = items,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = totalPages,
+                    HasPreviousPage = page > 1,
+                    HasNextPage = page < totalPages
+                };
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener las visualizaciones: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Obtiene una visualizaci�n espec�fica por su ID y nombre de usuario.
         /// </summary>
