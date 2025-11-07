@@ -6,7 +6,7 @@
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
                     @{
-                        NavManager.NavigateTo("/login", forceLoad: true);
+                        NavManager.NavigateTo("/login");
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>

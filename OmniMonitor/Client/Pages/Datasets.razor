@@ -69,31 +69,58 @@
 </style>
 
 <MudContainer Fixed="true" Class="pl-4 pr-6">
-    <MudGrid GutterSize="3">
-        @foreach (var dataset in filteredDatasets)
+    <MudGrid Spacing="3">
+        @if (_isLoading == true)
         {
-            <MudItem xs="12" sm="6" md="4">
-                <div style="position: relative;">
-                    <DatasetCardComponent Dataset="dataset"
-                                          Description="@dataset.Descripcion"
-                                          OnClick="@(() => EditarDataset(dataset))" />
-
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                             AnchorOrigin="Origin.TopRight"
-                             TransformOrigin="Origin.TopRight"
-                             Class="position-absolute"
-                             Style="position:absolute; top:8px; right:8px;">
-
-                        <MudMenuItem OnClick="@(() => EditarDataset(dataset))">
-                            @Localizer["Editar"]
-                        </MudMenuItem>
-
-                        <MudMenuItem OnClick="@(() => ConfirmEliminar(dataset))">
-                            @Localizer["Eliminar"]
-                        </MudMenuItem>
-                    </MudMenu>
-                </div>
+            @for (int i = 0; i < 8; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3"> 
+                    <MudCard>
+                        <MudCardContent>
+                            <MudSkeleton Height="150px" Width="100%" />
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        }
+        else if (filteredDatasets.Count == 0)
+        {
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1"
+                         Align="MudBlazor.Align.Center"
+                         Class="mt-6 mb-6"
+                         Style="color:#a5a8b5;">
+                    @Localizer["NoResultados"]
+                </MudText>
             </MudItem>
+        }
+        else
+        {
+            @foreach (var dataset in filteredDatasets)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <div style="position: relative;">
+                        <DatasetCardComponent Dataset="dataset"
+                                              Description="@dataset.Descripcion"
+                                              OnClick="@(() => EditarDataset(dataset))" />
+
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                 AnchorOrigin="Origin.TopRight"
+                                 TransformOrigin="Origin.TopRight"
+                                 Class="position-absolute"
+                                 Style="position:absolute; top:8px; right:8px;">
+
+                            <MudMenuItem OnClick="@(() => EditarDataset(dataset))">
+                                @Localizer["Editar"]
+                            </MudMenuItem>
+
+                            <MudMenuItem OnClick="@(() => ConfirmEliminar(dataset))">
+                                @Localizer["Eliminar"]
+                            </MudMenuItem>
+                        </MudMenu>
+                    </div>
+                </MudItem>
+            }
         }
     </MudGrid>
 
@@ -144,6 +171,7 @@
     private List<DatasetDto> datasets = new();
     private List<DatasetDto> filteredDatasets = new();
     private System.Threading.Timer? _debounceTimer;
+    private bool _isLoading = true;
     
     // Variables de paginación
     private int currentPage = 1;
@@ -351,7 +379,7 @@
                 totalCount = 0;
                 totalPages = 0;
             }
-
+            _isLoading = false;
             StateHasChanged();
         }
         catch (Exception ex)
