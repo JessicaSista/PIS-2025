@@ -44,7 +44,7 @@ public interface ISondaIMService
 
     //****************SENSORS*****************
     Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username);
-    Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo);
+    Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username);
     //*****************************************
 
 
@@ -355,9 +355,9 @@ public class SondaIMService : ISondaIMService
         return JsonSerializer.Deserialize<List<SensorData>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
 
-    public async Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
+    public async Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username)
     {
-        string token = await _sondaAuthService.GetUserTokenIMAsync("visitante");
+        string token = await _sondaAuthService.GetUserTokenIMAsync(username);
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["TimeSerie"];
 

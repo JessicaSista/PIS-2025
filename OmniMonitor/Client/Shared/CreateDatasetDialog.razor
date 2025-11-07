@@ -1,4 +1,3 @@
-@page "/crearDataset"
 @using OmniMonitor.Shared.Dtos
 @using Microsoft.AspNetCore.Components.Authorization
 @using Blazored.LocalStorage
@@ -9,16 +8,14 @@
 @inject HttpClient Http
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
 @inject ILocalStorageService LocalStorage
 
-<PageTitle>Crear Dataset</PageTitle>
-
-<MudText Typo="Typo.h4" Class="mb-1 mt-2 mx-4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">
-    @Localizer["CrearDataset"]
-</MudText>
+<MudDialog Style="background-color: var(--fondo-dialog)">
+<DialogContent>
 
 
 <!-- Selector de tipo de dataset -->
@@ -523,8 +520,12 @@
         </MudButton>
     </div>
 }
+</DialogContent>
+</MudDialog>
 
 @code {
+    [CascadingParameter]
+    public required IMudDialogInstance _mudDialog { get; set; }
     private string selectedTipo = "Insight Monitor";
     private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager" };
 
@@ -974,6 +975,15 @@
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
                 ShowSuccess($"'{created?.Nombre}' {Localizer["DatasetCreadoExito"]}");
+                
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
+                List<DatasetDtoGenerico> datasets = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+
+                DatasetDtoGenerico DtoGenericoCreated = datasets.Single(dataset => dataset.Id == created.Id_Dataset && dataset.Module == "Asset Manager");
+
+                _mudDialog.Close(DialogResult.Ok(DtoGenericoCreated));
             }
             else
             {
@@ -1191,6 +1201,15 @@
             {
                 var newDataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
                 ShowSuccess($"'{newDataset.Name}' {Localizer["DatasetCreadoExito"]}");
+                
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                HttpResponseMessage? allDatasetsGen = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
+                List<DatasetDtoGenerico> datasets = await allDatasetsGen.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+
+                DatasetDtoGenerico DtoGenericoCreated = datasets.Single(dataset => dataset.Id == newDataset.Id && dataset.Module == "Insight Monitor");
+
+                _mudDialog.Close(DialogResult.Ok(DtoGenericoCreated));
             }
             else
             {
@@ -1364,6 +1383,15 @@
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetUM>();
                 ShowSuccess($"'{created?.Name}' {Localizer["DatasetCreadoExito"]}");
+
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
+                List<DatasetDtoGenerico> datasets = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+
+                DatasetDtoGenerico DtoGenericoCreated = datasets.Single(dataset => dataset.Id == created.Id && dataset.Module == "Urban Monitor");
+
+                _mudDialog.Close(DialogResult.Ok(DtoGenericoCreated));
             }
             else
             {
@@ -1587,6 +1615,15 @@
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();
                 ShowSuccess($"'{created?.Name}' {Localizer["DatasetCreadoExito"]}");
+                
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetAllGenericDatasetDtos?token={token}");
+                List<DatasetDtoGenerico> datasets = await response.Content.ReadFromJsonAsync<List<DatasetDtoGenerico>>();
+
+                DatasetDtoGenerico DtoGenericoCreated = datasets.Single(dataset => dataset.Id == created.Id && dataset.Module == "Event Manager");
+
+                _mudDialog.Close(DialogResult.Ok(DtoGenericoCreated));
             }
             else
             {

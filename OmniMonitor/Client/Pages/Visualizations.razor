@@ -87,7 +87,6 @@
                            OnClick="@(() => SetActiveTab(0))">
                     @Localizer["KPIs"]
                 </MudButton>
-
                 <MudButton Variant="Variant.Text"
                            Size="MudBlazor.Size.Small"
                            Class="@($"tab-toggle-btn right {(_activeTabIndex == 1 ? "active" : "")}")"
@@ -203,7 +202,7 @@
     private List<KpiResponse> _kpis = new();
     private bool _isLoadingKpis = false;
     private bool _isLoadingCharts = false;
-    private int _activeTabIndex = 0;
+    private int _activeTabIndex = 1;
 
     protected override async Task OnInitializedAsync()
     {
@@ -340,6 +339,24 @@
                 await Task.Yield();
                 await OpenDialogCreateVisualizationCard();
             }
+            else if (System.String.Equals(returnTo, "VisualizationEdit"))
+            {
+                await Task.Yield();
+                System.Int32 newDatasetId = System.Int32.Parse(GetQueryParam("newDatasetId"));
+                System.String newDatasetModule = GetQueryParam("newDatasetModule");
+
+                Nav.NavigateTo($"/visualizaciones");
+
+                DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+                DialogParameters parameters = new DialogParameters{["restore"] = true, ["NewDatasetId"] = newDatasetId, ["NewDatasetModule"] = newDatasetModule};
+                IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
+                DialogResult? result = await dialog.Result;
+
+                if (result != null && !result.Canceled)
+                {
+                    Snackbar.Add("Visualización actualizada", Severity.Success);
+                }
+            }
         }
     }
 
@@ -363,8 +380,6 @@
         StateHasChanged();
     }
 
-
-    
 
     private static Dictionary<string, string> ParseQueryString(string? query)
     {

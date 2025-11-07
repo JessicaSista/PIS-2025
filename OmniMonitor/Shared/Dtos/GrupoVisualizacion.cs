@@ -17,9 +17,11 @@ namespace OmniMonitor.Shared.Dtos
         [Column("grupo_visualizacion")]
         public int GrupoVisualizacionId { get; set; }
 
-        [Required]
         [Column("id_visualizacion")]
-        public int IdVisualizacion { get; set; }
+        public int? IdVisualizacion { get; set; }
+
+        [Column("id_kpi")]
+        public int? KpiId { get; set; }
 
         [Required]
         [Column("tipo_card")]
@@ -38,6 +40,7 @@ namespace OmniMonitor.Shared.Dtos
         // Propiedades de navegación
         public virtual DashboardDto? Dashboard { get; set; }
         public virtual Visualizacion? Visualizacion { get; set; }
+        public virtual Kpi? Kpi { get; set; }
         //public virtual KPI? KPI { get; set; }
     }
 }

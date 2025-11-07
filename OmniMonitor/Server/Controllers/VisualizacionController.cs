@@ -211,6 +211,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest("La fecha de inicio debe ser anterior o igual a la fecha de fin.");
                 }
+
                 if (request.FechaDesde == default || request.FechaHasta == default)
                 {
                     return BadRequest("Las fechas de inicio y fin deben ser válidas.");
@@ -265,7 +266,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-
         [HttpPost("visualization-data")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]
@@ -276,10 +276,9 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                
                 string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
 
-                var response = await _visualizacionService.GetVisualizationDataAsync(request, username);
+                VisualizationResponse response = await _visualizacionService.GetVisualizationDataAsync(request, username);
 
                 return Ok(response);
             }
@@ -289,6 +288,25 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpPost("visualization-dataSinToken")]
+        [ProducesResponseType(typeof(VisualizationResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> GetVisualizationDataSinToken([FromBody] VisualizationRequest request)
+        {
+            string token = await _sondaAuthService.GetUserTokenIMAsync("visitante");
+            ArgumentNullException.ThrowIfNull(token);
 
+            try
+            {
+                VisualizationResponse response = await _visualizacionService.GetVisualizationDataSinTokenAsync(request);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al generar los datos de visualización: {ex.Message}");
+            }
+        }
     }
 }
