@@ -295,6 +295,11 @@
                 _charts = chartsFromApi?.Select(v => (v.IdVisualizacion, v.Nombre)).ToList() ?? new();
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            _charts = new();
+        }
         finally
         {
             _isLoadingCharts = false;
