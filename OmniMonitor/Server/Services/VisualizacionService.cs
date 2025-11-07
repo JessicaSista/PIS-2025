@@ -18,8 +18,8 @@ namespace OmniMonitor.Server.Services
     {
         Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
         Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
-        Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
-        Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
+    Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
+    Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
         Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
         Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req);
     }
@@ -100,9 +100,9 @@ namespace OmniMonitor.Server.Services
 
         public async Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion)
         {
-            return await _context.Visualizaciones
+             return await _context.Visualizaciones
                 .Include(v => v.GrupoDatasets)
-                .ThenInclude(gd => gd.Dataset)
+                    .ThenInclude(gd => gd.Dataset)
                 .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion);
         }
 
