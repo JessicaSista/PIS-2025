@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251026153152_new_cm")]
-    partial class new_cm
+    [Migration("20251107235849_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -265,6 +265,49 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("OmniMonitor.Server.Models.SharedLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DashboardId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Visibility")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DashboardId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("SharedLinks");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
                 {
                     b.Property<int>("IdDashboard")
@@ -311,9 +354,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasKey("IdDashboard");
 
                     b.HasIndex("Username");
-
-                    b.HasIndex("Username", "Nombre")
-                        .IsUnique();
 
                     b.ToTable("Dashboards");
                 });
@@ -786,9 +826,13 @@ namespace OmniMonitor.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("grupo_visualizacion");
 
-                    b.Property<int>("IdVisualizacion")
+                    b.Property<int?>("IdVisualizacion")
                         .HasColumnType("int")
                         .HasColumnName("id_visualizacion");
+
+                    b.Property<int?>("KpiId")
+                        .HasColumnType("int")
+                        .HasColumnName("id_kpi");
 
                     b.Property<int>("Orden")
                         .HasColumnType("int")
@@ -809,6 +853,8 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("IdVisualizacion");
 
+                    b.HasIndex("KpiId");
+
                     b.ToTable("GrupoVisualizaciones");
                 });
 
@@ -820,6 +866,11 @@ namespace OmniMonitor.Server.Migrations
                         .HasAnnotation("Relational:JsonPropertyName", "id");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Atributo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasAnnotation("Relational:JsonPropertyName", "atributo");
 
                     b.Property<string>("ColorRanges")
                         .HasColumnType("nvarchar(max)")
@@ -858,6 +909,10 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("Relational:JsonPropertyName", "sourceModule");
+
+                    b.Property<int?>("Type")
+                        .HasColumnType("int")
+                        .HasAnnotation("Relational:JsonPropertyName", "type");
 
                     b.Property<string>("Unit")
                         .HasColumnType("nvarchar(max)")
@@ -1538,6 +1593,17 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("OmniMonitor.Server.Models.SharedLink", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.DashboardDto", "Dashboard")
+                        .WithMany()
+                        .HasForeignKey("DashboardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dashboard");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Datasets")
@@ -1694,7 +1760,7 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetIM", "Dataset")
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Dataset")
                         .WithMany()
                         .HasForeignKey("DatasetId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1722,10 +1788,16 @@ namespace OmniMonitor.Server.Migrations
                     b.HasOne("OmniMonitor.Shared.Dtos.Visualizacion", "Visualizacion")
                         .WithMany()
                         .HasForeignKey("IdVisualizacion")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("OmniMonitor.Shared.Dtos.Kpi", "Kpi")
+                        .WithMany()
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Dashboard");
+
+                    b.Navigation("Kpi");
 
                     b.Navigation("Visualizacion");
                 });
