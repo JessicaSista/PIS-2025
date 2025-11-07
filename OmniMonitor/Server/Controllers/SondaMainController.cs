@@ -338,7 +338,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDateSinToken(deviceId, sensorName, dateFrom, dateTo);
+                List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDateSinToken(deviceId, sensorName, dateFrom, dateTo, "visitante");
                 if (sensorData == null || sensorData.Count == 0)
                 {
                     return NotFound($"No se encontraron datos para el sensor '{sensorName}' del dispositivo {deviceId} en el rango de fechas especificado.");

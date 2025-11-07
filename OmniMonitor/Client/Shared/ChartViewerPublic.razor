@@ -34,20 +34,6 @@
                         <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)" >@_title</MudText>
                     }
                 </CardHeaderContent>
-
-                <CardHeaderActions>
-                    @if (showCustomizationIcon)
-                    {
-                        <MudMenu Icon="@Icons.Material.Filled.MoreVert">
-                            <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
-                                <MudText Typo="Typo.body2">Editar</MudText>
-                            </MudMenuItem>
-                            <MudMenuItem OnClick="@(() => DeleteVisualization())">
-                                <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>Eliminar</MudText>
-                            </MudMenuItem>
-                        </MudMenu>
-                    }
-                </CardHeaderActions>
                 
             </MudCardHeader>
 
@@ -130,14 +116,11 @@
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
     [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
-    [Parameter] public bool showCustomizationIcon {get; set;} = false;
-    [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
 
     // Local Variables
-    private Visualizacion _visualization {get; set;}
+    private Visualizacion? _visualization;
     private bool _dataRetrieved = false;
     private bool _retrievingData = false;
-    private string _authenticatedUser = string.Empty;
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
 
     private System.String _title { get; set; } = string.Empty;
@@ -147,8 +130,6 @@
     private SeriesType _seriesType = SeriesType.Line;
     private List<DatasetSeries> _seriesData = new();
     private string _chartType { get; set; } = "line";
-    private List<object> _dataCharts { get; set; } = new();
-    private ApexChart<ChartPoint>? _apexChart;
     private readonly ApexChartOptions<ChartPoint> _chartOptions = new()
     {
         Xaxis = new XAxis
@@ -174,6 +155,7 @@
     {
         try
         {
+
             HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionByIdSinToken?idVisualizacion={VisualizationId}");
 
             if (response.IsSuccessStatusCode)
@@ -191,7 +173,7 @@
                     _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
                 }
             }
-            if(retrieveOnInitialized)
+            if(_visualization != null && retrieveOnInitialized)
             {
                 await RetrieveData();
             }
@@ -203,16 +185,25 @@
     }
 
     private async Task RetrieveData(){
+        if (_visualization == null)
+        {
+            return;
+        }
+
+        Visualizacion visualization = _visualization;
+        _seriesData = new List<DatasetSeries>();
         _dataRetrieved = false;
         _retrievingData = true;
         StateHasChanged();
         var allData = new List<object>();
         try
         {
-            DateTime dateFrom = _visualization.FechaDesde;
-            DateTime dateTo = _visualization.FechaHasta;
+            DateTime dateFrom = visualization.FechaDesde;
+            DateTime dateTo = visualization.FechaHasta;
 
-            foreach (var grupoDataset in _visualization.GrupoDatasets)
+            List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
+
+            foreach (var grupoDataset in visualization.GrupoDatasets)
             {
                 try
                 {
@@ -222,10 +213,15 @@
                     System.String module = String.Empty;
                     System.String entity = String.Empty;
                     System.String displayName = String.Empty;
+                    System.Int32 idInModule = 0;
 
                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
                     {
                         JsonDocument? designDoc = JsonDocument.Parse(grupoDataset.JsonDesign);
+                        if (designDoc.RootElement.TryGetProperty("IdInModule", out var idProp))
+                        {
+                            idInModule = idProp.GetInt32();
+                        }
                         if (designDoc.RootElement.TryGetProperty("Multiplier", out var multProp))
                         {
                             multiplier = multProp.GetDecimal();
@@ -253,7 +249,7 @@
                     }
                     if(module.Equals("Insight Monitor"))
                     {
-                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDatasetSinToken?datasetId={grupoDataset.Dataset.Id}");
+                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDatasetSinToken?datasetId={idInModule}");
 
                         if (datasetResponse.IsSuccessStatusCode)
                         {
@@ -324,24 +320,14 @@
                             moduleType = (ModuleType)Enum.Parse(typeof(ModuleType), module.Replace(" ", "")),
                             entity = (EntityName)Enum.Parse(typeof(EntityName), entity),
                             column = attribute,
-                            datasetId = grupoDataset.DatasetId,
+                            datasetId = idInModule,
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
                         HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-dataSinToken", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                        _seriesData.Add(new DatasetSeries
-                        {
-                            DatasetName = displayName,
-                            Color = color,
-                            Points = visualizationResponse.Values
-                                .Select(v => new ChartPoint
-                                {
-                                    X = v.Name,
-                                    Y = v.Value * multiplier
-                                })
-                                .ToList()
-                        });
+                        
+                        tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
                     }
                 }
                 catch (Exception ex)
@@ -349,21 +335,66 @@
                     Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
+            if(tmpDataDatasets.Any())
+            {
+                // dominio de la funcion a graficar
+                List<System.String> domain = new List<System.String>();
+                foreach (var (_, _, _, dataList) in tmpDataDatasets)
+                {
+                    foreach (var data in dataList)
+                    {
+                        if (!domain.Contains(data.Name))
+                        {
+                            domain.Add(data.Name);
+                        }
+                    }
+                }
+
+                // diccionario para manejo mas eficiente
+                List<Dictionary<System.String, System.Int32>> countValuesDatasets = tmpDataDatasets
+                .Select(tuple => tuple.Item4.ToDictionary(v => v.Name, v => v.Value))
+                .ToList();
+
+                // creacion de la funcion final a graficar
+                for(System.Int32 index = 0; index < tmpDataDatasets.Count; index++)
+                {
+                    _seriesData.Add(new DatasetSeries
+                    {
+                        DatasetName = tmpDataDatasets[index].Item1,
+                        Color = tmpDataDatasets[index].Item2,
+                        Points = domain.Select( point => new ChartPoint
+                        {
+                            X = point,
+                            Y = countValuesDatasets[index].ContainsKey(point) ? countValuesDatasets[index][point] * tmpDataDatasets[index].Item3 : 0
+                        })
+                        .ToList()
+                    });
+                }
+            }
             _retrievingData = false;
             _dataRetrieved = true;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error procesando visualización {_visualization.IdVisualizacion}: {ex.Message}");
+            Console.WriteLine($"Error procesando visualización {visualization.IdVisualizacion}: {ex.Message}");
         }
     }
 
 
     private SeriesType MapSeriesType(string type)
     {
-        if (!Enum.TryParse<SeriesType>(type, true, out var parsed))
-            return SeriesType.Line;
-        return parsed;
+        return type switch
+        {
+            "line" => SeriesType.Line,
+            "bar" => SeriesType.Bar,
+            "area" => SeriesType.Area,
+            "pie" => SeriesType.Pie,
+            "donut" => SeriesType.Donut,
+            "radar" => SeriesType.Radar,
+            "heatMap" => SeriesType.Heatmap,
+            "radialBar" => SeriesType.RadialBar,
+        };
     }
 
     private List<DatasetSeries> BuildSeriesFromData(List<object> data)
@@ -431,7 +462,7 @@
             "donut" => Icons.Material.Filled.DonutLarge,
             "radialBar" => Icons.Material.Filled.DonutSmall,
             "scatter" => Icons.Material.Filled.BubbleChart,
-            "heatmap" => Icons.Material.Filled.GridOn,
+            "heatMap" => Icons.Material.Filled.GridOn,
             "radar" => Icons.Material.Filled.Radar,
             "bubble" => Icons.Material.Filled.BubbleChart,
             "candlestick" => Icons.Material.Filled.CandlestickChart,
@@ -439,47 +470,6 @@
             "treemap" => Icons.Material.Filled.AccountTree,
             _ => Icons.Material.Filled.InsertChart
         };
-    }
-
-    private async Task OpenEditVisualizationDialog()
-    {
-        DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
-        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
-        DialogResult? result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            _seriesData.Clear();
-            _seriesData = new List<DatasetSeries>();
-            await DownloadVisualization();
-            await RetrieveData();
-            StateHasChanged();
-            _chartKey++;
-            Snackbar.Add("Visualización actualizada", Severity.Success);
-        }
-    }
-
-    private async Task DeleteVisualization()
-    {
-        try
-        {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}?token={token}");
-            if(response.IsSuccessStatusCode)
-            {
-                Snackbar.Add("Visualizacion eliminada", Severity.Success);
-                await OnDeleted.InvokeAsync(_visualization == null ? VisualizationId : _visualization.IdVisualizacion);
-            }
-            else
-            {
-                Snackbar.Add("No se pudo eliminar la visualizacion", Severity.Warning);
-            }
-        }
-        catch(Exception ex)
-        {
-            Snackbar.Add("Error inesperado", Severity.Error);
-        }
     }
 
     public class DatasetSeries
