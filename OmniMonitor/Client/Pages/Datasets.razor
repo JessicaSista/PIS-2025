@@ -257,16 +257,16 @@
                 switch (dataset.Module)
                 {
                     case "Insight Monitor":
-                        response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
+                        response = await Http.DeleteAsync($"api/Dataset/DeleteDataset?datasetId={dataset.Id}");
                         break;
                     case "Asset Manager":
-                        response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
+                        response = await Http.DeleteAsync($"api/DatasetAM/{dataset.Id}");
                         break;
                     case "Urban Monitor":
-                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
+                        response = await Http.DeleteAsync($"api/DatasetUM/{dataset.Id}");
                         break;
                     case "Event Manager":
-                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}?token={Uri.EscapeDataString(token)}");
+                        response = await Http.DeleteAsync($"api/DatasetEM/{dataset.Id}");
                         break;
                     default:
                         Snackbar.Add("Módulo desconocido", Severity.Error);
@@ -342,7 +342,7 @@
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             // Usar el endpoint paginado
-            var url = $"api/DatasetUM/GetAllDatasetsDtoPaginated?token={Uri.EscapeDataString(token)}&page={currentPage}&pageSize={pageSize}";
+            var url = $"api/DatasetUM/GetAllDatasetsDtoPaginated?page={currentPage}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(searchText))
             {
                 url += $"&search={Uri.EscapeDataString(searchText)}";

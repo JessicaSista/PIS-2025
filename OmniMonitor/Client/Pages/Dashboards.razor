@@ -257,7 +257,7 @@
             }
 
             // Construir URL con paginación
-            var url = $"api/Dashboard/GetAllDashboardsPaginated?token={token}&page={currentPage}&pageSize={pageSize}";
+            var url = $"api/Dashboard/GetAllDashboardsPaginated?page={currentPage}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(_searchText))
             {
                 url += $"&query={Uri.EscapeDataString(_searchText)}";
