@@ -87,10 +87,7 @@ namespace OmniMonitor.Server.Services
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
 
-                user.SondaTokenOM = tokenString;
-                user.TokenExpirationOM = tokenDescriptor.Expires;
 
-                await _userManager.UpdateAsync(user);
                 // 5. Return the successful response with the token included
                 return new LoginResponse
                 {

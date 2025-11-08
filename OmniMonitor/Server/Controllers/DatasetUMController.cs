@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,12 +27,13 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo dataset.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(DatasetUM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request, string token)
+        public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request)
         {
             try
             {
@@ -66,6 +68,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasets")]
         [ProducesResponseType(typeof(List<DatasetUM>), 200)]
         [ProducesResponseType(403)]
@@ -87,6 +90,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetById")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(403)]
@@ -114,6 +118,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(400)]
@@ -162,6 +167,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{datasetId}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(403)]
@@ -191,6 +197,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDataset")]
         [ProducesResponseType(typeof(List<Datasets>), 200)]
         [ProducesResponseType(403)]
@@ -213,6 +220,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets de todos los módulos en formato unificado desde la tabla general.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDto")]
         [ProducesResponseType(typeof(List<DatasetDto>), 200)]
         [ProducesResponseType(403)]
@@ -324,9 +332,10 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-                /// <summary>
+        /// <summary>
         /// Devuelve todos los datasets en formato DatasetDtoGenerico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllGenericDatasetDtos")]
         [ProducesResponseType(typeof(List<DatasetDtoGenerico>), 200)]
         [ProducesResponseType(500)]
@@ -446,6 +455,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets de todos los módulos con paginación.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDtoPaginated")]
         [ProducesResponseType(typeof(PaginatedDatasetDto), 200)]
         [ProducesResponseType(403)]
@@ -590,6 +600,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         private static string NormalizeText(string text)
         {
             if (string.IsNullOrEmpty(text))
