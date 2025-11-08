@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -21,6 +24,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea una nueva visualización.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(Visualizacion), 201)] // 201 Created
         [ProducesResponseType(400)] // Bad Request
@@ -52,14 +56,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todas las visualizaciones para un usuario específico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllVisualizaciones")]
         [ProducesResponseType(typeof(List<Visualizacion>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Visualizacion>>> GetAllVisualizaciones(string token)
+        public async Task<ActionResult<List<Visualizacion>>> GetAllVisualizaciones()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Visualizacion> visualizaciones = await _visualizacionService.GetAllVisualizacionesAsync(username);
                 return Ok(visualizaciones);
             }
@@ -72,15 +77,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene una visualización específica por su ID y nombre de usuario.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetVisualizacionById")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Visualizacion>> GetVisualizacionById(int idVisualizacion, string token)
+        public async Task<ActionResult<Visualizacion>> GetVisualizacionById(int idVisualizacion)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 Visualizacion? visualizacion = await _visualizacionService.GetVisualizacionByIdAsync(idVisualizacion, username);
                 if (visualizacion == null)
                 {
@@ -94,6 +100,7 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al obtener la visualización: {ex.Message}");
             }
         }
+
 
         [HttpGet("GetVisualizacionByIdSinToken")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
@@ -120,16 +127,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina una visualización por su ID.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{idVisualizacion}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> DeleteVisualizacion(int idVisualizacion, [FromQuery] string token)
+        public async Task<IActionResult> DeleteVisualizacion(int idVisualizacion)
         {
-            ArgumentNullException.ThrowIfNull(token);
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
                     return Unauthorized("Token inválido o usuario no encontrado.");
@@ -167,17 +174,17 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Edita una visualización existente por su ID.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{idVisualizacion}")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> EditVisualizacion(int idVisualizacion, [FromQuery] string token, [FromBody] CreateVisualizacionRequest request)
+        public async Task<IActionResult> EditVisualizacion(int idVisualizacion, [FromBody] CreateVisualizacionRequest request)
         {
-            ArgumentNullException.ThrowIfNull(token);
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
                     return Unauthorized("Token inválido o usuario no encontrado.");
@@ -266,17 +273,17 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("visualization-data")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> GetVisualizationData([FromQuery] string token, [FromBody] VisualizationRequest request)
-        {
-            ArgumentNullException.ThrowIfNull(token);
+        public async Task<IActionResult> GetVisualizationData([FromBody] VisualizationRequest request)
+        {;
 
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 VisualizationResponse response = await _visualizacionService.GetVisualizationDataAsync(request, username);
 

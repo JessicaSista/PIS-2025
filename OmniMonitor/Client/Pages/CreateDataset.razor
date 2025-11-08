@@ -647,7 +647,7 @@
             // Codificar el token para URL por si tiene caracteres especiales
             var encodedToken = GetEncodedToken();
 
-            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources?token={encodedToken}");
+            var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources");
             Console.WriteLine($"[DEBUG] Sources response status: {sourcesResponse.StatusCode}");
             if (sourcesResponse.IsSuccessStatusCode)
             {
@@ -661,7 +661,7 @@
                 ShowError($"Error al cargar fuentes: {error}");
             }
 
-            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups?token={encodedToken}");
+            var groupsResponse = await Http.GetAsync($"api/SondaMain/groups");
             Console.WriteLine($"[DEBUG] Groups response status: {groupsResponse.StatusCode}");
 
             if (groupsResponse.IsSuccessStatusCode)
@@ -794,14 +794,14 @@
             var encodedToken = GetEncodedToken();
 
             // Load Asset Types
-            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types?token={encodedToken}");
+            var respTypes = await Http.GetAsync($"api/SondaAM/asset/types");
             if (respTypes.IsSuccessStatusCode)
             {
                 assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
             }
 
             // Load Task Types
-            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos?token={encodedToken}");
+            var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos");
             if (respTaskTypes.IsSuccessStatusCode)
             {
                 taskTypes = await respTaskTypes.Content.ReadFromJsonAsync<List<TaskTypeDto>>() ?? new List<TaskTypeDto>();
@@ -835,7 +835,7 @@
     {
         try
         {
-            var url = $"api/SondaAM/asset/assets?assetTypeId={assetTypeId}&token={GetEncodedToken()}";
+            var url = $"api/SondaAM/asset/assets?assetTypeId={assetTypeId}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -890,7 +890,7 @@
         try
         {
             var dates = Uri.EscapeDataString("1980-01-01T03:00:00,2050-10-31T03:00:00");
-            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}&token={GetEncodedToken()}";
+            var url = $"api/SondaAM/eventTaskInstances?dates={dates}&taskTypeId={taskTypeId}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -911,7 +911,7 @@
     {
         try
         {
-            var url = $"api/SondaAM/eventTaskInstance/stock/{eventTaskInstanceId}?token={GetEncodedToken()}";
+            var url = $"api/SondaAM/eventTaskInstance/stock/{eventTaskInstanceId}";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -969,7 +969,7 @@
                 StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync($"api/DatasetAM?token={GetEncodedToken()}", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetAM", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1032,7 +1032,7 @@
             // Si hay source seleccionado, obtener sus devices
             if (selectedSourceId.HasValue)
             {
-                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
+                var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}");
                 if (sourceResponse.IsSuccessStatusCode)
                 {
                     devicesFromSource = await sourceResponse.Content.ReadFromJsonAsync<List<Device>>();
@@ -1042,7 +1042,7 @@
             // Si hay group seleccionado, obtener sus devices
             if (selectedGroupId.HasValue)
             {
-                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}?token={GetEncodedToken()}");
+                var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}");
                 if (groupResponse.IsSuccessStatusCode)
                 {
                     devicesFromGroup = await groupResponse.Content.ReadFromJsonAsync<List<Device>>();
@@ -1066,7 +1066,7 @@
             else
             {
                 // Si no hay filtros, mostrar todos los devices
-                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices?token={GetEncodedToken()}");
+                var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
                     devices = await allDevicesResponse.Content.ReadFromJsonAsync<List<Device>>() ?? new List<Device>();
@@ -1097,7 +1097,7 @@
                 // Si hay dispositivos seleccionados, obtener sensores solo de esos dispositivos
                 if (selectedDeviceIds.Any())
                 {
-                    var sensorsResponse = await Http.PostAsJsonAsync($"api/SondaMain/sensors/devices?token={GetEncodedToken()}", selectedDeviceIds.ToList());
+                    var sensorsResponse = await Http.PostAsJsonAsync($"api/SondaMain/sensors/devices", selectedDeviceIds.ToList());
                     if (sensorsResponse.IsSuccessStatusCode)
                     {
                         sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
@@ -1106,7 +1106,7 @@
                 else
                 {
                     // Si no hay dispositivos seleccionados, obtener todos los sensores de la fuente
-                    var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}?token={GetEncodedToken()}");
+                    var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}");
                     if (sensorsResponse.IsSuccessStatusCode)
                     {
                         sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
@@ -1186,7 +1186,7 @@
                 DeviceIds = selectedDeviceIds.Any() ? selectedDeviceIds.ToList() : null
             };
 
-            var response = await Http.PostAsJsonAsync($"api/Dataset?token={GetEncodedToken()}", request);
+            var response = await Http.PostAsJsonAsync($"api/Dataset", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1239,7 +1239,7 @@
             var encodedToken = GetEncodedToken();
 
             // Load Zones
-            var respZones = await Http.GetAsync($"api/SondaMain/zones?token={GetEncodedToken()}");
+            var respZones = await Http.GetAsync($"api/SondaMain/zones");
             if (respZones.IsSuccessStatusCode)
             {
                 zones = await respZones.Content.ReadFromJsonAsync<List<Zone>>() ?? new List<Zone>();
@@ -1284,7 +1284,7 @@
     {
         try
         {
-            var url = $"api/SondaMain/zones/{zoneId}/events?token={GetEncodedToken()}";
+            var url = $"api/SondaMain/zones/{zoneId}/events";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -1305,7 +1305,7 @@
     {
         try
         {
-            var url = $"api/SondaMain/zones/{zoneId}/news?token={GetEncodedToken()}";
+            var url = $"api/SondaMain/zones/{zoneId}/news";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -1361,7 +1361,7 @@
                 NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync($"api/DatasetUM?token={GetEncodedToken()}", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetUM", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetUM>();
@@ -1390,7 +1390,7 @@
             Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
 
             // Load Categories (backend handles Sonda API pagination limitations)
-            var url = $"api/SondaEM/category?page=1&pageSize=1000&token={encodedToken}";
+            var url = $"api/SondaEM/category?page=1&pageSize=1000";
             Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             
             var respCategories = await Http.GetAsync(url);
@@ -1466,7 +1466,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/event?categoryid={categoryId}";
             Console.WriteLine($"[DEBUG EM Events] Calling: {url}");
             var resp = await Http.GetAsync(url);
             Console.WriteLine($"[DEBUG EM Events] Response status: {resp.StatusCode}");
@@ -1495,7 +1495,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000&token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000";
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
@@ -1516,7 +1516,7 @@
     {
         try
         {
-            var url = $"api/SondaEM/Event/{eventId}/extensions?token={GetEncodedToken()}";
+            var url = $"api/SondaEM/Event/{eventId}/extensions";
             Console.WriteLine($"[DEBUG EM Extensions] Calling: {url}");
             var resp = await Http.GetAsync(url);
             Console.WriteLine($"[DEBUG EM Extensions] Response status: {resp.StatusCode}");
@@ -1585,7 +1585,7 @@
                 ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
             };
 
-            var resp = await Http.PostAsJsonAsync($"api/DatasetEM?token={GetEncodedToken()}", request);
+            var resp = await Http.PostAsJsonAsync($"api/DatasetEM", request);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetEM>();

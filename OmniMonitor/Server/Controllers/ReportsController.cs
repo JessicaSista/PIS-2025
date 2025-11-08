@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Shared.Dtos;
 
@@ -26,6 +28,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Creates a new report with a specified list of joins.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(Report), 201)]
         [ProducesResponseType(400)]
@@ -40,10 +43,11 @@ namespace OmniMonitor.Server.Controllers
             return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("{reportId}/joins/create-and-add")]
         [ProducesResponseType(typeof(ReportJoin), 200)]
         [ProducesResponseType(404)] // Not Found
-        public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest, [FromQuery] string token)
+        public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest)
         {
             if (!ModelState.IsValid)
             {
@@ -52,7 +56,7 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 ReportJoin createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
 
                 return Ok(createdLink);
@@ -66,11 +70,12 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a list of all reports for a specific user.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("by-user")]
         [ProducesResponseType(typeof(List<Report>), 200)]
-        public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
+        public async Task<IActionResult> GetAllReportsByUsername()
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var username = User.Identity?.Name;
             List<Report> reports = await _reportService.GetAllReportsByUsernameAsync(username);
             return Ok(reports);
         }
@@ -78,12 +83,13 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a single, detailed report by its ID.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetReportById(int id, [FromQuery] string token)
+        public async Task<IActionResult> GetReportById(int id)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var username = User.Identity?.Name;
             Report? report = await _reportService.GetReportByIdAsync(id, username);
             if (report == null)
             {
@@ -100,17 +106,18 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Creates a new join configuration.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("joins")]
         [ProducesResponseType(typeof(CrossModuleJoin), 201)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> CreateJoin([FromBody] CreateJoinRequestDto request, [FromQuery] string token)
+        public async Task<IActionResult> CreateJoin([FromBody] CreateJoinRequestDto request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var username = User.Identity?.Name;
             CrossModuleJoin createdJoin = await _joinConfigService.CreateJoinAsync(request, username);
             return Ok(createdJoin);
         }
@@ -118,15 +125,17 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a list of all join configurations for a specific user.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("joins/by-user")]
         [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
-        public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
+        public async Task<IActionResult> GetJoinsByUsername()
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var username = User.Identity?.Name;
             List<CrossModuleJoinDto> joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
             return Ok(joins);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("joins/{joinId}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]
@@ -148,15 +157,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("UpdateReport")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> UpdateReport(int id, [FromBody] UpdateReportRequestDto updateRequest, [FromQuery] string token)
+        public async Task<IActionResult> UpdateReport(int id, [FromBody] UpdateReportRequestDto updateRequest)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -178,15 +188,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("DeleteReport")]
         [ProducesResponseType(204)] // No Content (éxito)
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> DeleteReport(int id, [FromQuery] string token)
+        public async Task<IActionResult> DeleteReport(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -209,15 +220,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("RemoveJoinFromReport")]
         [ProducesResponseType(204)] // No Content (éxito)
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId, [FromQuery] string token)
+        public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -238,15 +250,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{id}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> ExecuteReport(int id, [FromQuery] string token)
+        public async Task<IActionResult> ExecuteReport(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });

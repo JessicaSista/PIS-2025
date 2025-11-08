@@ -3,6 +3,7 @@
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
 @using OmniMonitor.Shared.Dtos
+@using System.Net.Http.Headers
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 
@@ -239,7 +240,16 @@
         ClearState(() => zones = null, () => umError = null);
         try { 
             string token = await LocalStorage.GetItemAsync<string>("authToken");
-            zones = await Http.GetFromJsonAsync<List<Zone>>("api/SondaMain/zones?token="+token); }
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                Http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            }
+
+
+
+            zones = await Http.GetFromJsonAsync<List<Zone>>("api/SondaMain/zones"); }
         catch (Exception ex) { umError = $"Error al obtener la lista de Zones: {ex.Message}"; }
         finally { isLoadingZones = false; }
     }

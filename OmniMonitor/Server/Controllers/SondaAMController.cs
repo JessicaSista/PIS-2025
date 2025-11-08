@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Shared.Dtos;
@@ -18,6 +20,7 @@ namespace OmniMonitor.Server.Controllers
             _sondaAuthService = sondaAuthService;
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/assetsBasicData")]
         [ProducesResponseType(typeof(List<AssetDto>), 200)]
         [ProducesResponseType(404)]
@@ -26,12 +29,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? page,
             [FromQuery] string? queryString,
             [FromQuery] int? pageSize,
-            [FromQuery] int? bundleId,
-            [FromQuery] string token)
+            [FromQuery] int? bundleId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AssetDto> assets = await _sondaAMService.GetAssetsBasicData(page, queryString, pageSize, bundleId, username);
                 if (assets == null || assets.Count == 0)
                 {
@@ -46,6 +48,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/assets")]
         [ProducesResponseType(typeof(List<AssetDto>), 200)]
         [ProducesResponseType(404)]
@@ -56,12 +59,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] string? bundles,
             [FromQuery] int? assetTypeId,
             [FromQuery] string? sort,
-            [FromQuery] int? pageSize,
-            [FromQuery] string token)
+            [FromQuery] int? pageSize)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AssetDto> assets = await _sondaAMService.GetAssets(page, queryString, bundles, assetTypeId, sort, pageSize, username);
                 if (assets == null || assets.Count == 0)
                 {
@@ -76,15 +78,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("stock/{stockId}")]
         [ProducesResponseType(typeof(StockDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<StockDto>> GetStockById(int stockId, [FromQuery] string token)
+        public async Task<ActionResult<StockDto>> GetStockById(int stockId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 StockDto? stock = await _sondaAMService.GetStockById(stockId, username);
                 if (stock == null)
                 {
@@ -99,6 +102,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("bundle")]
         [ProducesResponseType(typeof(List<BundleDto>), 200)]
         [ProducesResponseType(404)]
@@ -107,7 +111,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 BundleDto bundle = await _sondaAMService.GetStockParametersByBundleId(bundleId, username);
                 if (bundle == null)
                 {
@@ -123,15 +127,16 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Ejemplo: Obtener un asset por ID
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/{id}")]
         [ProducesResponseType(typeof(AssetDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<AssetDto>> GetAssetById(int id, [FromQuery] string token)
+        public async Task<ActionResult<AssetDto>> GetAssetById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 AssetDto? asset = await _sondaAMService.GetAssetById(id, username);
                 if (asset == null)
                 {
@@ -146,6 +151,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("stock")]
         [ProducesResponseType(typeof(List<StockDto>), 200)]
         [ProducesResponseType(404)]
@@ -155,12 +161,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] string? queryString,
             [FromQuery] string? sort,
             [FromQuery] int? pageSize,
-            [FromQuery] string? bundlesId,
-            [FromQuery] string token)
+            [FromQuery] string? bundlesId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<StockDto> stocks = await _sondaAMService.GetAllStock(page, queryString, sort, pageSize, bundlesId, username);
                 if (stocks == null || stocks.Count == 0)
                 {
@@ -175,6 +180,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("relation/asset/{assetId}")]
         [ProducesResponseType(typeof(List<RelatedAssetDto>), 200)]
         [ProducesResponseType(404)]
@@ -182,12 +188,11 @@ namespace OmniMonitor.Server.Controllers
         public async Task<ActionResult<List<RelatedAssetDto>>> GetAssetRelations(
             int assetId,
             [FromQuery] int? page,
-            [FromQuery] int? pageSize,
-            [FromQuery] string token)
+            [FromQuery] int? pageSize)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<RelatedAssetDto> assets = await _sondaAMService.GetAssetRelations(assetId, page, pageSize, username);
                 if (assets == null || assets.Count == 0)
                 {
@@ -202,6 +207,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("bundle/bundles")]
         [ProducesResponseType(typeof(List<BundleDto>), 200)]
         [ProducesResponseType(404)]
@@ -210,12 +216,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? page,
             [FromQuery] string? queryString,
             [FromQuery] string? sort,
-            [FromQuery] int? pageSize,
-            [FromQuery] string token)
+            [FromQuery] int? pageSize)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<BundleDto> bundles = await _sondaAMService.GetBundles(page, queryString, sort, pageSize, username);
                 if (bundles == null || bundles.Count == 0)
                 {
@@ -255,15 +260,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }*/
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstance/{eventTaskInstanceId}")]
         [ProducesResponseType(typeof(EventTaskInstanceDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<EventTaskInstanceDto>> GetEventTaskInstanceById(int eventTaskInstanceId, [FromQuery] string token)
+        public async Task<ActionResult<EventTaskInstanceDto>> GetEventTaskInstanceById(int eventTaskInstanceId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 EventTaskInstanceDto? result = await _sondaAMService.GetEventTaskInstanceById(eventTaskInstanceId, username);
                 if (result == null)
                 {
@@ -278,6 +284,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstances")]
         [ProducesResponseType(typeof(List<EventTaskInstanceDto>), 200)]
         [ProducesResponseType(404)]
@@ -292,13 +299,12 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? taskTypeId,
             [FromQuery] int? groupId,
             [FromQuery] int? pageSize,
-            [FromQuery] string token,
             [FromQuery] bool tasksAssignedToMe = false,
             [FromQuery] bool tasksPendingApproval = false)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<EventTaskInstanceDto> result = await _sondaAMService.GetEventTaskInstances(dates, page, queryString!, bundleId, state!, sort!, taskTypeId, groupId, pageSize, tasksAssignedToMe, tasksPendingApproval, username);
                 if (result == null || result.Count == 0)
                 {
@@ -313,15 +319,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstance/actions/{taskInstanceId}")]
         [ProducesResponseType(typeof(List<EventTaskActionDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<EventTaskActionDto>>> GetEventTaskInstanceActions(int taskInstanceId, [FromQuery] string token)
+        public async Task<ActionResult<List<EventTaskActionDto>>> GetEventTaskInstanceActions(int taskInstanceId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<EventTaskActionDto> actions = await _sondaAMService.GetEventTaskInstanceActions(taskInstanceId, username);
                 if (actions == null || actions.Count == 0)
                 {
@@ -336,15 +343,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstance/stock/{taskInstanceId}")]
         [ProducesResponseType(typeof(List<EventTaskInstanceStockDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<EventTaskInstanceStockDto>>> GetEventTaskInstanceStock(int taskInstanceId, [FromQuery] string token)
+        public async Task<ActionResult<List<EventTaskInstanceStockDto>>> GetEventTaskInstanceStock(int taskInstanceId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<EventTaskInstanceStockDto> stocks = await _sondaAMService.GetEventTaskInstanceStock(taskInstanceId, username);
                 if (stocks == null || stocks.Count == 0)
                 {
@@ -363,22 +371,23 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
         /// </summary>
         [HttpGet("typeDtos")]
-        public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos([FromQuery] string token)
+        public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos()
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var username = User.Identity?.Name;
             List<TaskTypeDto> typeDtos = await _sondaAMService.GetTaskTypeDtosFromEventTaskInstances(username);
             return Ok(typeDtos);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/types")]
         [ProducesResponseType(typeof(List<AssetTypeDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes([FromQuery] string token)
+        public async Task<ActionResult<List<AssetTypeDto>>> GetAllAssetTypes()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AssetTypeDto> types = await _sondaAMService.GetAllAssetTypes(username);
                 if (types == null || types.Count == 0)
                 {

@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -28,6 +31,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo dataset.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
         [ProducesResponseType(400)] // Bad Request
@@ -66,14 +70,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("user")]
         [ProducesResponseType(typeof(List<DatasetIM>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets(string token, [FromQuery] string? search = null)
+        public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets([FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 // Por ahora usamos el método sin búsqueda y filtramos en memoria
                 // TODO: Implementar búsqueda en el servicio cuando sea necesario
@@ -98,15 +103,16 @@ namespace OmniMonitor.Server.Controllers
         /// Identifica rápidamente a qué módulo pertenece un dataset.
         /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetModule")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<string>> GetDatasetModule(int datasetId, string token)
+        public async Task<ActionResult<string>> GetDatasetModule(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 string? module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
 
                 if (module == null)
@@ -125,15 +131,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDataset")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId, string token)
+        public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -173,6 +180,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(400)]
@@ -221,15 +229,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("DeleteDataset")]
         [ProducesResponseType(204)] // No Content
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult> DeleteDataset(int datasetId, string token)
+        public async Task<ActionResult> DeleteDataset(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -248,15 +257,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetSensorType")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<string>> GetSensorType(int datasetId, [FromQuery] string token)
+        public async Task<ActionResult<string>> GetSensorType(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
                 if (dataset == null)

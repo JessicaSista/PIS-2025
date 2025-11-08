@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -29,11 +31,12 @@ namespace OmniMonitor.Server.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("")]
         [ProducesResponseType(typeof(Kpi), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Kpi>> CreateKpi([FromBody] KpiRequest request, [FromQuery] string token)
+        public async Task<ActionResult<Kpi>> CreateKpi([FromBody] KpiRequest request)
         {
             try
             {
@@ -43,7 +46,7 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Validar token y obtener usuario
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -77,17 +80,18 @@ namespace OmniMonitor.Server.Controllers
         /// <param name="id">id del KPI.</param>
         /// <param name="token">Token del Usuario.</param>
         /// <returns>Devuelve el KPI.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(KpiResponse), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<KpiResponse>> GetKpiById(int id, [FromQuery] string token)
+        public async Task<ActionResult<KpiResponse>> GetKpiById(int id)
         {
             try
             {
                 // Validar token y obtener usuario
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -108,7 +112,6 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno: {ex.Message}");
             }
         }
-
 
         [HttpGet("getKpiSinToken")]
         [ProducesResponseType(typeof(KpiResponse), 200)]
@@ -134,16 +137,17 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Eliminar KPI por ID
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult> DeleteKpi(int id, [FromQuery] string? token)
+        public async Task<ActionResult> DeleteKpi(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token!);
+                var username = User.Identity?.Name;                  
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -170,12 +174,13 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPatch("{id}")]
         [ProducesResponseType(typeof(Kpi), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Kpi>> UpdateKpiPartial(int id, [FromBody] KpiRequest request, [FromQuery] string? token)
+        public async Task<ActionResult<Kpi>> UpdateKpiPartial(int id, [FromBody] KpiRequest request)
         {
             if (request == null)
             {
@@ -184,21 +189,11 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                string? username = null;
 
-                if (!string.IsNullOrEmpty(token))
-                {
-                    // Obtener usuario del token
-                    string user = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                    if (string.IsNullOrEmpty(user))
-                    {
-                        return BadRequest("Token inválido.");
-                    }
+                 var user = User.Identity?.Name;
 
-                    username = user;
-                }
 
-                Kpi updatedKpi = await _kpiService.UpdateKpiAsync(id, request, username);
+                Kpi updatedKpi = await _kpiService.UpdateKpiAsync(id, request, user);
                 return Ok(updatedKpi);
             }
             catch (KeyNotFoundException ex)
@@ -224,15 +219,16 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Obtener todos los KPIs del usuario
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("kpis")]
         [ProducesResponseType(typeof(List<KpiResponse>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<KpiResponse>>> GetAllKpis([FromQuery] string token)
+        public async Task<ActionResult<List<KpiResponse>>> GetAllKpis()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
                     return BadRequest("Token inválido.");
@@ -248,6 +244,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("metrics/{module}")]
         [ProducesResponseType(typeof(List<MetricInfo>), 200)]
         [ProducesResponseType(400)]
@@ -276,6 +273,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("testDates")]
         [ProducesResponseType(typeof(List<DeviceData>), 200)]
         [ProducesResponseType(500)]
@@ -305,6 +303,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("test")]
         public ActionResult<Kpi> GetTestKpi()
         {
@@ -324,6 +323,7 @@ namespace OmniMonitor.Server.Controllers
             return Ok(kpi);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("test-response")]
         public ActionResult<KpiResponse> GetTestKpiResponse()
         {
@@ -340,6 +340,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Devuelve los tipos de campos posibles para un KPI según el módulo
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("field-types")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(400)]
@@ -384,6 +385,7 @@ namespace OmniMonitor.Server.Controllers
             return Ok(fieldTypes);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("field-values")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(400)]
@@ -392,8 +394,7 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int datasetId,
             [FromQuery] string modulo,
             [FromQuery] string campo,
-            [FromQuery] int choice,
-            [FromQuery] string token)
+            [FromQuery] int choice)
         {
             // Log: llegada de la petición
             _logger.LogInformation("GET field-values called. datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
@@ -419,7 +420,7 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Validar token y obtener usuario
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
                     _logger.LogWarning("GetFieldValues: invalid token");
