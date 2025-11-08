@@ -37,7 +37,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 if (!ModelState.IsValid)
                 {
@@ -73,11 +73,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<DatasetUM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetUM>>> GetAllDatasets(string token)
+        public async Task<ActionResult<List<DatasetUM>>> GetAllDatasets()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DatasetUM> datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
                 return Ok(datasets);
             }
@@ -96,11 +96,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId, string token)
+        public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -173,11 +173,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult> DeleteDataset(int datasetId, string token)
+        public async Task<ActionResult> DeleteDataset(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
@@ -202,11 +202,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<Datasets>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetUM>>> GetAllDataset(string token)
+        public async Task<ActionResult<List<DatasetUM>>> GetAllDataset()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 List<Datasets> datasets = await _datasetUMService.GetAllDatasetsAsync(username);
                 return Ok(datasets);
@@ -225,11 +225,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<DatasetDto>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetDto>>> GetAllDatasetsDto(string token, [FromQuery] string? search = null)
+        public async Task<ActionResult<List<DatasetDto>>> GetAllDatasetsDto([FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDto>();
 
@@ -339,11 +339,11 @@ namespace OmniMonitor.Server.Controllers
         [HttpGet("GetAllGenericDatasetDtos")]
         [ProducesResponseType(typeof(List<DatasetDtoGenerico>), 200)]
         [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DatasetDtoGenerico>>> GetAllGenericDatasetDtos(string token, [FromQuery] string? search = null)
+    public async Task<ActionResult<List<DatasetDtoGenerico>>> GetAllGenericDatasetDtos([FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDtoGenerico>();
 
@@ -461,14 +461,13 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<PaginatedDatasetDto>> GetAllDatasetsDtoPaginated(
-            string token, 
             [FromQuery] int page = 1, 
             [FromQuery] int pageSize = 10,
             [FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDto>();
 
