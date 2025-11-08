@@ -12,7 +12,7 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251107001121_InitialCreate")]
+    [Migration("20251108212135_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
