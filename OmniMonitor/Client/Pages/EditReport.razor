@@ -313,7 +313,7 @@
                     // Cargar detalles del dataset IM (opcional) para soporte de columnas/joins
                     var token = await LocalStorage.GetItemAsync<string>("authToken");
                     var responseDataset = !string.IsNullOrEmpty(token)
-                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={token}")
+                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}")
                         : null;
 
                     if (responseDataset != null && responseDataset.IsSuccessStatusCode)
@@ -493,7 +493,7 @@
             await LoadAvailableJoinsAsync(token);
 
             // Cargar detalles del reporte (nombre/descripcion)
-            var reportResp = await Http.GetAsync($"api/reports/{ReportId}?token={token}");
+            var reportResp = await Http.GetAsync($"api/reports/{ReportId}");
             if (reportResp.IsSuccessStatusCode)
             {
                 currentReport = await reportResp.Content.ReadFromJsonAsync<Report>();
@@ -509,7 +509,7 @@
             // Cargar datasets de Insight Monitor
             try
             {
-                var responseIM = await Http.GetAsync($"api/Dataset/user?token={Uri.EscapeDataString(token)}");
+                var responseIM = await Http.GetAsync($"api/Dataset/user");
                 if (responseIM.IsSuccessStatusCode)
                 {
                     var datasetsIM = await responseIM.Content.ReadFromJsonAsync<List<DatasetIM>>();
@@ -535,7 +535,7 @@
             // Cargar datasets de Asset Manager
             try
             {
-                var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs?token={Uri.EscapeDataString(token)}");
+                var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs");
                 if (responseAM.IsSuccessStatusCode)
                 {
                     var datasetsAM = await responseAM.Content.ReadFromJsonAsync<List<DatasetAM>>();
@@ -561,7 +561,7 @@
             // Cargar datasets de Urban Monitor
             try
             {
-                var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets?token={Uri.EscapeDataString(token)}");
+                var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets");
                 if (responseUM.IsSuccessStatusCode)
                 {
                     var datasetsUM = await responseUM.Content.ReadFromJsonAsync<List<DatasetUM>>();
@@ -587,7 +587,7 @@
             // Cargar datasets de Event Manager
             try
             {
-                var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets?token={Uri.EscapeDataString(token)}");
+                var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets");
                 if (responseEM.IsSuccessStatusCode)
                 {
                     var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<DatasetEM>>();
@@ -689,7 +689,7 @@
                 }
                 else
                 {
-                    var response = await Http.DeleteAsync($"api/reports/RemoveJoinFromReport?reportId={ReportId}&joinId={join.ServerJoinId.Value}&token={Uri.EscapeDataString(token)}");
+                    var response = await Http.DeleteAsync($"api/reports/RemoveJoinFromReport?reportId={ReportId}&joinId={join.ServerJoinId.Value}");
                     if (!response.IsSuccessStatusCode)
                     {
                         var error = await response.Content.ReadAsStringAsync();
@@ -798,7 +798,7 @@
                         }
                     };
 
-                var endpoint = $"api/reports/{ReportId}/joins/create-and-add?token={Uri.EscapeDataString(token)}";
+                var endpoint = $"api/reports/{ReportId}/joins/create-and-add";
                 var createJoinResponse = await Http.PostAsJsonAsync(endpoint, createJoinRequest);
 
                 if (!createJoinResponse.IsSuccessStatusCode)
@@ -1201,7 +1201,7 @@
     {
         try
         {
-            var response = await Http.GetAsync($"api/reports/joins/by-user?token={Uri.EscapeDataString(token)}");
+            var response = await Http.GetAsync($"api/reports/joins/by-user");
             if (response.IsSuccessStatusCode)
             {
                 var joinsFromApi = await response.Content.ReadFromJsonAsync<List<CrossModuleJoinDto>>();
@@ -1546,7 +1546,7 @@
         }
         try
         {
-            var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
+            var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}");
             if (!responseDataset.IsSuccessStatusCode)
             {
                 var error = await responseDataset.Content.ReadAsStringAsync();
@@ -1847,7 +1847,7 @@
                     JSON_config = json
                 };
 
-            var url = $"api/reports/UpdateReport?id={ReportId}&token={Uri.EscapeDataString(token)}";
+            var url = $"api/reports/UpdateReport?id={ReportId}";
             var putResp = await Http.PutAsJsonAsync(url, updateRequest);
             isSaving = false;
 
@@ -1880,7 +1880,7 @@
             previewExecuted = false;
             StateHasChanged();
 
-            var execUrl = $"api/reports/{ReportId}/execute?id={ReportId}&token={Uri.EscapeDataString(token)}";
+            var execUrl = $"api/reports/{ReportId}/execute?id={ReportId}";
             var execResp = await Http.GetAsync(execUrl);
             isExecuting = false;
 

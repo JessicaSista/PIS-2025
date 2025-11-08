@@ -238,7 +238,7 @@
         {
             _isLoadingKpis = true;
             string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var url = $"api/KPI/kpis?token={Uri.EscapeDataString(token ?? "")}";
+            var url = $"api/KPI/kpis";
 
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
@@ -288,7 +288,7 @@
         {
             _isLoadingCharts = true;
             string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token={token}");
+            var response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones");
             if (response.IsSuccessStatusCode)
             {
                 var chartsFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
@@ -481,7 +481,7 @@
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            var url = $"api/KPI/{kpiId}?token={Uri.EscapeDataString(token ?? "")}";
+            var url = $"api/KPI/{kpiId}";
             var response = await Http.DeleteAsync(url);
 
             if (response.IsSuccessStatusCode)

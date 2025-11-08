@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Shared.Dtos.EM;
@@ -17,15 +19,16 @@ namespace OmniMonitor.Server.Controllers
             _sondaAuthService = sondaAuthService;
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("event/{eventId}")]
         [ProducesResponseType(typeof(EventDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<EventDto>> GetEventById(int eventId, [FromQuery] string token)
+        public async Task<ActionResult<EventDto>> GetEventById(int eventId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 EventDto? eventDto = await _sondaEMService.GetEventById(eventId, username);
                 if (eventDto == null)
                 {
@@ -40,15 +43,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("alert/{alertId}")]
         [ProducesResponseType(typeof(AlertDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<AlertDto>> GetAlertById(int alertId, [FromQuery] string token)
+        public async Task<ActionResult<AlertDto>> GetAlertById(int alertId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 AlertDto? alertDto = await _sondaEMService.GetAlertById(alertId, username);
                 if (alertDto == null)
                 {
@@ -63,6 +67,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("alert")]
         [ProducesResponseType(typeof(List<AlertDto>), 200)]
         [ProducesResponseType(500)]
@@ -75,12 +80,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] double? y,
             [FromQuery] double? r,
             [FromQuery] bool? forceGps,
-            [FromQuery] string? sort,
-            [FromQuery] string token)
+            [FromQuery] string? sort)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AlertDto> alerts = await _sondaEMService.GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
                 if (alerts == null || alerts.Count == 0)
                 {
@@ -95,6 +99,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("alert/stored")]
         [ProducesResponseType(typeof(List<AlertDto>), 200)]
         [ProducesResponseType(500)]
@@ -106,12 +111,11 @@ namespace OmniMonitor.Server.Controllers
         [FromQuery] double? x,
         [FromQuery] double? y,
         [FromQuery] double? r,
-        [FromQuery] string? sort,
-        [FromQuery] string token)
+        [FromQuery] string? sort)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AlertDto> alerts = await _sondaEMService.GetStoredAlerts(page, pageSize, query, stateList, x, y, r, sort, username);
                 if (alerts == null || alerts.Count == 0)
                 {
@@ -126,6 +130,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("event/events")]
         [ProducesResponseType(typeof(List<EventDto>), 200)]
         [ProducesResponseType(500)]
@@ -133,12 +138,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? page,
             [FromQuery] int? pageSize,
             [FromQuery] string? sort,
-            [FromQuery] string? query,
-            [FromQuery] string token)
+            [FromQuery] string? query)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<EventDto> events = await _sondaEMService.GetEvents(page, pageSize, sort, query, username);
                 if (events == null || events.Count == 0)
                 {
@@ -153,15 +157,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventtype/eventtypes")]
         [ProducesResponseType(typeof(List<EventTypeDto>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<EventTypeDto>>> GetEventTypes(
-        [FromQuery] string token)
+        public async Task<ActionResult<List<EventTypeDto>>> GetEventTypes()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<EventTypeDto> eventTypes = await _sondaEMService.GetEventTypes(username);
                 if (eventTypes == null || eventTypes.Count == 0)
                 {
@@ -176,6 +180,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("extensions/{extensionId}")]
         [ProducesResponseType(typeof(ExtensionDtoDup), 200)]
         [ProducesResponseType(404)]
@@ -184,7 +189,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 ExtensionDtoDup? extension = await _sondaEMService.GetExtensionById(extensionId, username);
                 if (extension == null)
                 {
@@ -199,6 +204,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("extensions")]
         [ProducesResponseType(typeof(List<ExtensionDto>), 200)]
         [ProducesResponseType(500)]
@@ -211,12 +217,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] string? dates,
             [FromQuery] string? priorities,
             [FromQuery] string? categories,
-            [FromQuery] string? zones,
-            [FromQuery] string token)
+            [FromQuery] string? zones)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<ExtensionDto> extensions = await _sondaEMService.GetExtensions(page, pageSize, sort, query, states, dates, priorities, categories, zones, username);
                 if (extensions == null || extensions.Count == 0)
                 {
@@ -231,15 +236,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("extensions/{extensionId}/attachedItems")]
         [ProducesResponseType(typeof(List<AttachmentDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<AttachmentDto>>> GetAttachedItems(int extensionId, [FromQuery] string token)
+        public async Task<ActionResult<List<AttachmentDto>>> GetAttachedItems(int extensionId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AttachmentDto> items = await _sondaEMService.GetAttachedItems(extensionId, username);
                 if (items == null || items.Count == 0)
                 {
@@ -254,16 +260,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Event/{eventId}/extensions")]
         [ProducesResponseType(typeof(List<ExtensionDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<ExtensionDto>>> GetextensionsByEventId(
-            int eventId,
-            [FromQuery] string token)
+            int eventId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<ExtensionDtoDup> items = await _sondaEMService.GetExtensionByEventId(eventId, username);
                 if (items == null || items.Count == 0)
                 {
@@ -278,6 +284,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("category")]
         [ProducesResponseType(typeof(List<CategoryDto>), 200)]
         [ProducesResponseType(500)]
@@ -285,12 +292,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? page,
             [FromQuery] int? pageSize,
             [FromQuery] string? sort,
-            [FromQuery] string? query,
-            [FromQuery] string token)
+            [FromQuery] string? query)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<CategoryDto> items = await _sondaEMService.GetCategory(page, pageSize, sort, query, username);
                 return Ok(items ?? new List<CategoryDto>());
             }
@@ -300,6 +306,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Category/alert")]
         [ProducesResponseType(typeof(List<AlertDto>), 200)]
         [ProducesResponseType(500)]
@@ -313,12 +320,11 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] double? y,
             [FromQuery] double? r,
             [FromQuery] bool? forceGps,
-            [FromQuery] string? sort,
-            [FromQuery] string token)
+            [FromQuery] string? sort)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<AlertDto> alerts = await _sondaEMService.GetAlertsCategory(categoryid, page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
                 return Ok(alerts ?? new List<AlertDto>());
             }
@@ -328,6 +334,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Category/event")]
         [ProducesResponseType(typeof(List<EventDto>), 200)]
         [ProducesResponseType(500)]
@@ -341,7 +348,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<EventDto> events = await _sondaEMService.GetEventsByCategory(categoryid, page, pageSize, query, sort, username);
                 return Ok(events ?? new List<EventDto>());
             }
@@ -351,15 +358,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Category/{categoryId}")]
         [ProducesResponseType(typeof(CategoryDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<EventDto>> GetCategoryById(int categoryId, [FromQuery] string token)
+        public async Task<ActionResult<EventDto>> GetCategoryById(int categoryId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 CategoryDto? categoriaDto = await _sondaEMService.GetCategoryById(categoryId, username);
                 if (categoriaDto == null)
                 {

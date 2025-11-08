@@ -141,7 +141,7 @@
                 return;
             }
 
-            var response = await Http.GetAsync($"api/reports/{id}?token={Uri.EscapeDataString(token)}");
+            var response = await Http.GetAsync($"api/reports/{id}");
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
@@ -192,7 +192,7 @@
             {
                 var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
                 var updateUrl =
-                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}&token={Uri.EscapeDataString(token)}";
+                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
 
                 var updateResponse = await Http.PutAsync(updateUrl, null);
                 if (updateResponse.IsSuccessStatusCode)
@@ -258,7 +258,7 @@
                 return;
             }
 
-            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={reporte.Id}&token={token}");
+            var response = await Http.DeleteAsync($"api/Reports/DeleteReport?id={reporte.Id}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -320,7 +320,7 @@
                 return;
             }
 
-            var response = await Http.GetAsync($"api/reports/by-user?token={token}");
+            var response = await Http.GetAsync($"api/reports/by-user");
 
             if (response.IsSuccessStatusCode)
             {
