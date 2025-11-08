@@ -88,8 +88,8 @@
 
 <!-- Dashboard grid -->
 <MudContainer Fixed="false">
-    <MudGrid GutterSize="3" Justify="Justify.FlexStart">
-        @if (filteredDashboards == null)
+    <MudGrid Spacing="3" Justify="Justify.FlexStart">
+        @if (_isLoading == true)
         {
             @for (int i = 0; i < 8; i++)
             {
@@ -187,6 +187,7 @@
     // Eliminada variable 'dashboards', solo se usa 'filteredDashboards'
     private List<DashboardSummaryResponse> filteredDashboards = new();
     private string _searchText = string.Empty;
+    private bool _isLoading = true;
     
     // Variables de paginación
     private int currentPage = 1;
@@ -281,7 +282,7 @@
                 totalCount = 0;
                 totalPages = 0;
             }
-
+            _isLoading = false;
             StateHasChanged();
         }
         catch (Exception ex)

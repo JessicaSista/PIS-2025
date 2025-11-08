@@ -6,10 +6,12 @@ using OmniMonitor.Shared.Dtos;
 public interface IApiDataService
 {
     Task<IEnumerable<dynamic>> GetDataForOperand(JoinOperand operand, string username);
+    Task<IEnumerable<dynamic>> GetDataForOperandSinToken(JoinOperand operand);
 }
 
 public class ApiDataService : IApiDataService
 {
+    private const string PublicUsername = "visitante";
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ApplicationDbContext _context;
     private readonly ISondaEMService _sondaEMService;
@@ -268,6 +270,255 @@ public class ApiDataService : IApiDataService
                             }
                         }
                         return resultingCategorias;
+                    default:
+                        throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");
+                }
+
+            default:
+                throw new NotSupportedException($"Module type '{operand.ModuleType}' is not supported.");
+        }
+    }
+
+    public async Task<IEnumerable<dynamic>> GetDataForOperandSinToken(JoinOperand operand)
+    {
+        switch (operand.ModuleType)
+        {
+            case ModuleType.InsightMonitor:
+                var datasetIM = await _datasetService.GetDatasetIMByIdForEditAsyncSinToken(operand.DatasetId);
+                if (datasetIM == null)
+                    return Enumerable.Empty<dynamic>();
+
+                switch (operand.EntityName)
+                {
+                    case EntityName.Device:
+                        if (datasetIM.DatasetDevices == null || !datasetIM.DatasetDevices.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicDevices = new List<dynamic>();
+                        foreach (var datasetDevice in datasetIM.DatasetDevices)
+                        {
+                            var device = await _sondaIMService.GetDeviceById(datasetDevice.Id_device, PublicUsername);
+                            if (device != null)
+                                publicDevices.Add(device);
+                        }
+
+                        return publicDevices;
+
+                    case EntityName.Sensor:
+                        if (datasetIM.DatasetDevices == null || !datasetIM.DatasetDevices.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicSensors = new List<dynamic>();
+                        foreach (var datasetDevice in datasetIM.DatasetDevices)
+                        {
+                            var device = await _sondaIMService.GetDeviceById(datasetDevice.Id_device, PublicUsername);
+                            if (device?.Sensors == null)
+                                continue;
+
+                            foreach (var sensor in device.Sensors)
+                            {
+                                if (sensor != null && sensor.Name == datasetIM.SensorName)
+                                    publicSensors.Add(sensor);
+                            }
+                        }
+
+                        return publicSensors;
+
+                    case EntityName.Source:
+                        if (!datasetIM.Id_Source.HasValue)
+                            return Enumerable.Empty<dynamic>();
+
+                        var source = await _sondaIMService.GetSourceById(datasetIM.Id_Source.Value, PublicUsername);
+                        return source != null
+                            ? new List<dynamic> { source }
+                            : Enumerable.Empty<dynamic>();
+
+                    case EntityName.Group:
+                        if (!datasetIM.Id_Group.HasValue)
+                            return Enumerable.Empty<dynamic>();
+
+                        var group = await _sondaIMService.GetDeviceGroupById(datasetIM.Id_Group.Value, PublicUsername);
+                        return group != null
+                            ? new List<dynamic> { group }
+                            : Enumerable.Empty<dynamic>();
+
+                    default:
+                        throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for Insight Monitor.");
+                }
+
+            case ModuleType.UrbanMonitor:
+                var datasetUM = await _datasetUMService.GetDatasetUMByIdAsyncSinToken(operand.DatasetId);
+                if (datasetUM == null)
+                    return Enumerable.Empty<dynamic>();
+
+                switch (operand.EntityName)
+                {
+                    case EntityName.New:
+                        if (datasetUM.DatasetNews == null || !datasetUM.DatasetNews.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicNews = new List<dynamic>();
+                        foreach (var datasetNew in datasetUM.DatasetNews)
+                        {
+                            var news = await _sondaUMService.GetNewsById(datasetNew.Id_news, PublicUsername);
+                            if (news != null)
+                                publicNews.Add(news);
+                        }
+
+                        return publicNews;
+
+                    case EntityName.EventUM:
+                        if (datasetUM.DatasetEvents == null || !datasetUM.DatasetEvents.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicEvents = new List<dynamic>();
+                        foreach (var datasetEvent in datasetUM.DatasetEvents)
+                        {
+                            var eventDto = await _sondaUMService.GetEventById(datasetEvent.Id_event, PublicUsername);
+                            if (eventDto != null)
+                                publicEvents.Add(eventDto);
+                        }
+
+                        return publicEvents;
+
+                    case EntityName.Zone:
+                        if (!datasetUM.Id_Zone.HasValue)
+                            return Enumerable.Empty<dynamic>();
+
+                        var zone = await _sondaUMService.GetZoneById(datasetUM.Id_Zone.Value, PublicUsername);
+                        return zone != null
+                            ? new List<dynamic> { zone }
+                            : Enumerable.Empty<dynamic>();
+
+                    default:
+                        throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for UrbanMonitor.");
+                }
+
+            case ModuleType.AssetManager:
+                var datasetAM = await _datasetAMService.GetDatasetAMByIdAsyncSinToken(operand.DatasetId);
+                if (datasetAM == null)
+                    return Enumerable.Empty<dynamic>();
+
+                switch (operand.EntityName)
+                {
+                    case EntityName.Asset:
+                        if (datasetAM.Grupo_Asset == null || !datasetAM.Grupo_Asset.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicAssets = new List<dynamic>();
+                        foreach (var assetDataset in datasetAM.Grupo_Asset)
+                        {
+                            if (!int.TryParse(assetDataset.Id_Asset, out var assetId))
+                                continue;
+
+                            var asset = await _sondaAMService.GetAssetById(assetId, PublicUsername);
+                            if (asset != null)
+                                publicAssets.Add(asset);
+                        }
+
+                        return publicAssets;
+
+                    case EntityName.EventAM:
+                        if (datasetAM.Grupo_Event_Task_Instance == null || !datasetAM.Grupo_Event_Task_Instance.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicEventTasks = new List<dynamic>();
+                        foreach (var eventDataset in datasetAM.Grupo_Event_Task_Instance)
+                        {
+                            var eventTask = await _sondaAMService.GetEventTaskInstanceById(eventDataset.Id_Event_Task_Instance, PublicUsername);
+                            if (eventTask != null)
+                                publicEventTasks.Add(eventTask);
+                        }
+
+                        return publicEventTasks;
+
+                    case EntityName.Stock:
+                        if (datasetAM.Grupo_Event_Task_Instance == null || !datasetAM.Grupo_Event_Task_Instance.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicStocks = new List<dynamic>();
+                        foreach (var eventDataset in datasetAM.Grupo_Event_Task_Instance)
+                        {
+                            if (eventDataset?.Grupo_Stock == null)
+                                continue;
+
+                            foreach (var stockDataset in eventDataset.Grupo_Stock)
+                            {
+                                var stock = await _sondaAMService.GetStockById(stockDataset.Id_Stock, PublicUsername);
+                                if (stock != null)
+                                    publicStocks.Add(stock);
+                            }
+                        }
+
+                        return publicStocks;
+
+                    default:
+                        throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for AssetManager.");
+                }
+
+            case ModuleType.EventManager:
+                var datasetEM = await _datasetEMService.GetDatasetEMByIdAsyncSinToken(operand.DatasetId);
+                if (datasetEM == null)
+                    return Enumerable.Empty<dynamic>();
+
+                switch (operand.EntityName)
+                {
+                    case EntityName.EventEM:
+                        if (datasetEM.DatasetEvents == null || !datasetEM.DatasetEvents.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicEmEvents = new List<dynamic>();
+                        foreach (var datasetEvent in datasetEM.DatasetEvents)
+                        {
+                            var eventDto = await _sondaEMService.GetEventById(datasetEvent.Id_event, PublicUsername);
+                            if (eventDto != null)
+                                publicEmEvents.Add(eventDto);
+                        }
+
+                        return publicEmEvents;
+
+                    case EntityName.Alert:
+                        if (datasetEM.DatasetAlerts == null || !datasetEM.DatasetAlerts.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicAlerts = new List<dynamic>();
+                        foreach (var datasetAlert in datasetEM.DatasetAlerts)
+                        {
+                            var alertDto = await _sondaEMService.GetAlertById(datasetAlert.Id_alert, PublicUsername);
+                            if (alertDto != null)
+                                publicAlerts.Add(alertDto);
+                        }
+
+                        return publicAlerts;
+
+                    case EntityName.Extension:
+                        if (datasetEM.DatasetExtensions == null || !datasetEM.DatasetExtensions.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicExtensions = new List<dynamic>();
+                        foreach (var datasetExtension in datasetEM.DatasetExtensions)
+                        {
+                            var extensionDto = await _sondaEMService.GetExtensionById(datasetExtension.Id_extension, PublicUsername);
+                            if (extensionDto != null)
+                                publicExtensions.Add(extensionDto);
+                        }
+
+                        return publicExtensions;
+
+                    case EntityName.Categoria:
+                        if (datasetEM.DatasetCategory == null || !datasetEM.DatasetCategory.Any())
+                            return Enumerable.Empty<dynamic>();
+
+                        var publicCategories = new List<dynamic>();
+                        foreach (var datasetCategory in datasetEM.DatasetCategory)
+                        {
+                            var category = await _sondaEMService.GetCategoryById(datasetCategory.Id_Category, PublicUsername);
+                            if (category != null)
+                                publicCategories.Add(category);
+                        }
+
+                        return publicCategories;
+
                     default:
                         throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");
                 }

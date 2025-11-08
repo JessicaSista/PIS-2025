@@ -72,15 +72,30 @@ namespace OmniMonitor.Server.Services
                 throw new ArgumentException($"Ya existe un dashboard con el nombre '{request.Nombre}' para el usuario '{username}'.");
             }
 
-            // Validar cardIds (IdVisualizacion) si se proporcionan
+            // Validar cardIds por tipo si se proporcionan
             if (request.Layout?.Tarjetas != null && request.Layout.Tarjetas.Any())
             {
-                var cardIds = request.Layout.Tarjetas.Select(t => t.CardId).ToList();
-                if (!await ValidateCardIdsAsync(cardIds))
+                var visualIds = request.Layout.Tarjetas.Where(t => t.TipoCard == 1).Select(t => t.CardId).ToList();
+                if (visualIds.Any())
                 {
-                    throw new ArgumentException("Uno o más IdVisualizacion no existen en el sistema.");
+                    if (!await ValidateCardIdsAsync(visualIds))
+                    {
+                        throw new ArgumentException("Uno o más IdVisualizacion no existen en el sistema.");
+                    }
                 }
 
+                var kpiIds = request.Layout.Tarjetas.Where(t => t.TipoCard == 2).Select(t => t.CardId).ToList();
+                if (kpiIds.Any())
+                {
+                    var existingKpiIds = await _context.Kpi
+                        .Where(k => kpiIds.Contains(k.Id))
+                        .Select(k => k.Id)
+                        .ToListAsync();
+                    if (existingKpiIds.Count != kpiIds.Count)
+                    {
+                        throw new ArgumentException("Uno o más KPI no existen en el sistema.");
+                    }
+                }
             }
 
             // Crear el dashboard
@@ -105,7 +120,8 @@ namespace OmniMonitor.Server.Services
                     var grupoVisualizacion = new GrupoVisualizacion
                     {
                         GrupoVisualizacionId = nuevoDashboard.IdDashboard,
-                        IdVisualizacion = tarjeta.t.CardId,
+                        IdVisualizacion = tarjeta.t.TipoCard == 1 ? tarjeta.t.CardId : (int?)null,
+                        KpiId = tarjeta.t.TipoCard == 2 ? tarjeta.t.CardId : (int?)null,
                         PropsConfiguracion = tarjeta.t.Props.HasValue ? JsonSerializer.Serialize(tarjeta.t.Props.Value) : null,
                         FechaAgregado = DateTime.UtcNow,
                         TipoCard = tarjeta.t.TipoCard,
@@ -131,6 +147,8 @@ namespace OmniMonitor.Server.Services
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
                     .ThenInclude(gv => gv.Visualizacion)
+                .Include(d => d.GrupoVisualizaciones)
+                    .ThenInclude(gv => gv.Kpi)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard && d.Username == username);
 
             if (dashboard == null)
@@ -156,17 +174,23 @@ namespace OmniMonitor.Server.Services
                 .Select(gv => new DashboardCardResponse
                 {
                     IdGrupoVisualizacion = gv.IdGrupoVisualizacion,
-                    CardId = gv.IdVisualizacion,
+                    CardId = gv.TipoCard == 1 ? gv.IdVisualizacion.GetValueOrDefault() : gv.KpiId.GetValueOrDefault(),
                     TipoCard = gv.TipoCard,
                     PropsConfiguracion = gv.PropsConfiguracion,
                     FechaAgregado = gv.FechaAgregado,
-                    Visualizacion = gv.Visualizacion != null ? new VisualizacionInfo
+                    Visualizacion = (gv.TipoCard == 1 && gv.Visualizacion != null) ? new VisualizacionInfo
                     {
                         IdVisualizacion = gv.Visualizacion.IdVisualizacion,
                         Nombre = gv.Visualizacion.Nombre,
                         FechaDesde = gv.Visualizacion.FechaDesde,
                         FechaHasta = gv.Visualizacion.FechaHasta,
                         JsonDesign = gv.Visualizacion.JsonDesign
+                    } : null,
+                    Kpi = (gv.TipoCard == 2 && gv.Kpi != null) ? new KpiInfo
+                    {
+                        Id = gv.Kpi.Id,
+                        Name = gv.Kpi.Name,
+                        Unit = gv.Kpi.Unit
                     } : null
                 }).ToList();
 
@@ -178,6 +202,8 @@ namespace OmniMonitor.Server.Services
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
                     .ThenInclude(gv => gv.Visualizacion)
+                .Include(d => d.GrupoVisualizaciones)
+                    .ThenInclude(gv => gv.Kpi)
                 .FirstOrDefaultAsync(d => d.IdDashboard == idDashboard);
 
             if (dashboard == null)
@@ -201,17 +227,23 @@ namespace OmniMonitor.Server.Services
                 .Select(gv => new DashboardCardResponse
                 {
                     IdGrupoVisualizacion = gv.IdGrupoVisualizacion,
-                    CardId = gv.IdVisualizacion,
+                    CardId = gv.TipoCard == 1 ? gv.IdVisualizacion.GetValueOrDefault() : gv.KpiId.GetValueOrDefault(),
                     TipoCard = gv.TipoCard,
                     PropsConfiguracion = gv.PropsConfiguracion,
                     FechaAgregado = gv.FechaAgregado,
-                    Visualizacion = gv.Visualizacion != null ? new VisualizacionInfo
+                    Visualizacion = (gv.TipoCard == 1 && gv.Visualizacion != null) ? new VisualizacionInfo
                     {
                         IdVisualizacion = gv.Visualizacion.IdVisualizacion,
                         Nombre = gv.Visualizacion.Nombre,
                         FechaDesde = gv.Visualizacion.FechaDesde,
                         FechaHasta = gv.Visualizacion.FechaHasta,
                         JsonDesign = gv.Visualizacion.JsonDesign
+                    } : null,
+                    Kpi = (gv.TipoCard == 2 && gv.Kpi != null) ? new KpiInfo
+                    {
+                        Id = gv.Kpi.Id,
+                        Name = gv.Kpi.Name,
+                        Unit = gv.Kpi.Unit
                     } : null
                 }).ToList();
 
@@ -411,19 +443,20 @@ namespace OmniMonitor.Server.Services
             }
             else if (nuevaCard.TipoCard == 2)
             {
-                // TODO: Validar que el KPI exista cuando se implemente la entidad correspondiente
-                // bool kpiExiste = await _context.KPIs.AnyAsync(k => k.IdKPI == nuevaCard.CardId);
-                // if (!kpiExiste) return false;
+                bool kpiExiste = await _context.Kpi.AnyAsync(k => k.Id == nuevaCard.CardId);
+                if (!kpiExiste)
+                    throw new ArgumentException($"No existe un KPI con Id {nuevaCard.CardId}");
             }
 
             //if (JsonDiseno == null){
             //    throw new ArgumentException("El JSON de configuración no puede estar vacío.");
             //}
 
-            // Chequear si la tarjeta ya existe en el dashboard (por IdVisualizacion y TipoCard)
+            // Chequear si la tarjeta ya existe en el dashboard (por TipoCard + CardId)
             bool cardExists = dashboard.GrupoVisualizaciones.Any(gv =>
-                gv.IdVisualizacion == nuevaCard.CardId &&
-                gv.TipoCard == nuevaCard.TipoCard);
+                gv.TipoCard == nuevaCard.TipoCard &&
+                ((nuevaCard.TipoCard == 1 && gv.IdVisualizacion == nuevaCard.CardId) ||
+                 (nuevaCard.TipoCard == 2 && gv.KpiId == nuevaCard.CardId)));
             if (cardExists)
                 throw new ArgumentException("Tarjeta duplicada: ya existe una tarjeta con ese IdVisualizacion y TipoCard en el dashboard.");
 
@@ -432,12 +465,13 @@ namespace OmniMonitor.Server.Services
                 .Where(gv => gv.GrupoVisualizacionId == idDashboard)
                 .Select(gv => (int?)gv.Orden)
                 .Max() ?? 0;
-            orden++;
+            orden++; 
 
             var grupoVisualizacion = new GrupoVisualizacion
             {
                 GrupoVisualizacionId = idDashboard,
-                IdVisualizacion = nuevaCard.CardId,
+                IdVisualizacion = nuevaCard.TipoCard == 1 ? nuevaCard.CardId : (int?)null,
+                KpiId = nuevaCard.TipoCard == 2 ? nuevaCard.CardId : (int?)null,
                 TipoCard = nuevaCard.TipoCard,
                 PropsConfiguracion = nuevaCard.Props.HasValue ? JsonSerializer.Serialize(nuevaCard.Props.Value) : null,
                 FechaAgregado = DateTime.UtcNow,
@@ -472,8 +506,9 @@ namespace OmniMonitor.Server.Services
                 var card = orderedCards[i];
                 var grupo = dashboard.GrupoVisualizaciones.FirstOrDefault(gv =>
                     gv.GrupoVisualizacionId == idDashboard &&
-                    gv.IdVisualizacion == card.CardId &&
-                    gv.TipoCard == card.TipoCard);
+                    gv.TipoCard == card.TipoCard &&
+                    ((card.TipoCard == 1 && gv.IdVisualizacion == card.CardId) ||
+                     (card.TipoCard == 2 && gv.KpiId == card.CardId)));
                 if (grupo != null)
                 {
                     grupo.Orden = i + 1;
@@ -495,7 +530,9 @@ namespace OmniMonitor.Server.Services
             if (dashboard == null)
                 return false;
 
-            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv => gv.IdVisualizacion == idCard && gv.TipoCard == tipoCard );
+            var cardToRemove = dashboard.GrupoVisualizaciones.FirstOrDefault(gv =>
+                gv.TipoCard == tipoCard &&
+                ((tipoCard == 1 && gv.IdVisualizacion == idCard) || (tipoCard == 2 && gv.KpiId == idCard)));
             if (cardToRemove == null)
                 return false;
 

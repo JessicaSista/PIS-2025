@@ -10,6 +10,7 @@ namespace OmniMonitor.Server.Services
         Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request, int dataset);
         Task<List<DatasetUM>> GetAllDatasetsUMAsync(string username);
         Task<DatasetUM?> GetDatasetUMByIdAsync(int datasetId, string username);
+    Task<DatasetUM?> GetDatasetUMByIdAsyncSinToken(int datasetId);
         Task<DatasetUM?> GetDatasetUMByIdForEditAsync(int datasetId, string username);
         Task<DatasetUM> UpdateDatasetUMAsync(int datasetId, CreateDatasetUMRequest request);
         Task DeleteDatasetUMAsync(int datasetId, string username);
@@ -182,6 +183,19 @@ namespace OmniMonitor.Server.Services
             }
 
             return dataset;
+        }
+
+        public async Task<DatasetUM?> GetDatasetUMByIdAsyncSinToken(int datasetId)
+        {
+            var ownerUsername = await _context.DatasetsUM
+                .Where(d => d.Id == datasetId)
+                .Select(d => d.Username)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrEmpty(ownerUsername))
+                return null;
+
+            return await GetDatasetUMByIdAsync(datasetId, ownerUsername);
         }
 
         public async Task<DatasetUM?> GetDatasetUMByIdForEditAsync(int datasetId, string username)

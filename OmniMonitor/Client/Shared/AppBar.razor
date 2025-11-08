@@ -35,7 +35,7 @@
                         </MudButton>
                     </ActivatorContent>
                     <ChildContent>
-                        <MudMenuItem OnClick="Logout">
+                        <MudMenuItem OnClick="Logout" Class="d-flex align-center">
                             <MudIcon Icon="@Icons.Material.Filled.Login" Class="mr-2" />
                             <span>@SharedLocalizer["Logout"]</span>
                         </MudMenuItem>
@@ -54,6 +54,16 @@
     {   
         var apiAuthStateProvider = (Auth.ApiAuthenticationStateProvider)AuthStateProvider;
         await apiAuthStateProvider.NotifyUserLogout();
+        // Navigation.NavigateTo("/login");
+
+
+        // Forzar un re-renderizado de este componente (y del Router)
+        // para que aplique el estado 'NotAuthorized' antes de saltar.
+        StateHasChanged();
+
+        // Pequeño delay opcional si la UI es muy pesada (aunque no ideal):
+        // await Task.Delay(1);
+
         Navigation.NavigateTo("/login");
     }
 }

@@ -352,9 +352,6 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("Username");
 
-                    b.HasIndex("Username", "Nombre")
-                        .IsUnique();
-
                     b.ToTable("Dashboards");
                 });
 
@@ -826,9 +823,13 @@ namespace OmniMonitor.Server.Migrations
                         .HasColumnType("int")
                         .HasColumnName("grupo_visualizacion");
 
-                    b.Property<int>("IdVisualizacion")
+                    b.Property<int?>("IdVisualizacion")
                         .HasColumnType("int")
                         .HasColumnName("id_visualizacion");
+
+                    b.Property<int?>("KpiId")
+                        .HasColumnType("int")
+                        .HasColumnName("id_kpi");
 
                     b.Property<int>("Orden")
                         .HasColumnType("int")
@@ -848,6 +849,8 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("GrupoVisualizacionId");
 
                     b.HasIndex("IdVisualizacion");
+
+                    b.HasIndex("KpiId");
 
                     b.ToTable("GrupoVisualizaciones");
                 });
@@ -1782,10 +1785,16 @@ namespace OmniMonitor.Server.Migrations
                     b.HasOne("OmniMonitor.Shared.Dtos.Visualizacion", "Visualizacion")
                         .WithMany()
                         .HasForeignKey("IdVisualizacion")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("OmniMonitor.Shared.Dtos.Kpi", "Kpi")
+                        .WithMany()
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Dashboard");
+
+                    b.Navigation("Kpi");
 
                     b.Navigation("Visualizacion");
                 });

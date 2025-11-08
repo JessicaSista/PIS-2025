@@ -20,4 +20,15 @@ namespace OmniMonitor.Shared.Dtos
         public int RecordCount { get; set; } = 0;
         public string Module { get; set; } = "Insight Monitor";
     }
+
+    public class DatasetSelection
+    {
+        public DatasetDtoGenerico Dataset { get; set; }
+        public System.String DisplayName { get; set; }
+        public System.String Entity { get; set; }
+        public System.String EntityAttribute { get; set; }
+        public decimal Multiplier { get; set; }
+        public string Color { get; set; } = "rgb(0, 255, 231)";
+    }
+       
 }

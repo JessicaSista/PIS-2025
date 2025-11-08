@@ -44,25 +44,30 @@
 </MudStack>
 
 <MudContainer Fixed="true" Class="pl-4 pr-6">
-    @if (_isLoading)
-    {
-        <MudGrid Class="justify-center">
-            <MudProgressCircular Color="MudBlazor.Color.Primary" Class="my-4" />
-        </MudGrid>
-    }
-    else if (!_reportesFiltrados.Any())
-    {
-        <MudGrid Class="justify-center my-6">
+    <MudGrid Spacing="3">
+        @if (_isLoading == true)
+        {
+            @for (int i = 0; i < 8; i++)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard>
+                        <MudCardContent>
+                            <MudSkeleton Height="150px" Width="100%" />
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        }
+        else if (!_reportesFiltrados.Any())
+        {
             <MudItem xs="12">
                 <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
                     @Localizer["NoReports"]
                 </MudText>
             </MudItem>
-        </MudGrid>
-    }
-    else
-    {
-        <MudGrid GutterSize="3">
+        }
+        else
+        {
             @foreach (var reporte in _reportesFiltrados)
             {
                 <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
@@ -73,8 +78,8 @@
                                        Class="flex-grow-1" />
                 </MudItem>
             }
-        </MudGrid>
-    }
+        }
+    </MudGrid>
 </MudContainer>
 
 @code {
