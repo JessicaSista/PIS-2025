@@ -40,6 +40,10 @@
     <ProjectReference Include="..\Shared\OmniMonitor.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 
 
 </Project>
