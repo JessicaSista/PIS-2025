@@ -1,4 +1,4 @@
-﻿namespace OmniMonitor.Server.Configuration
+namespace OmniMonitor.Server.Configuration
 {
     /// <summary>
     /// This is the main configuration class that maps to your entire JSON file.

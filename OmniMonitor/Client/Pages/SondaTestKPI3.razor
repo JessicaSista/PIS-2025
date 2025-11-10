@@ -1,4 +1,4 @@
-Ôªø@page "/sonda-test-kpi3"
+@page "/sonda-test-kpi3"
 @inject HttpClient Http
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
@@ -21,7 +21,7 @@ else if (kpiResponse != null)
 {
     <div class="card p-3">
         <h5>@kpiResponse.Name</h5>
-        <p><b>Descripci√≥n:</b> @kpiResponse.Description</p>
+        <p><b>DescripciÛn:</b> @kpiResponse.Description</p>
         <p><b>Tipo:</b> @kpiResponse.Type</p>
         <p><b>Unidad:</b> @kpiResponse.Unit</p>
         <p><b>Color:</b> @kpiResponse.ActualColor</p>
@@ -43,7 +43,7 @@ else if (!string.IsNullOrEmpty(errorMessage))
     {
         if (kpiId <= 0)
         {
-            errorMessage = "Ingres√° un ID v√°lido.";
+            errorMessage = "Ingres· un ID v·lido.";
             return;
         }
 
@@ -53,16 +53,7 @@ else if (!string.IsNullOrEmpty(errorMessage))
 
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            if (string.IsNullOrEmpty(token))
-            {
-                errorMessage = "No se encontr√≥ el token en el almacenamiento local.";
-                isLoading = false;
-                return;
-            }
-
-            var response = await Http.GetAsync($"/api/kpi/{kpiId}?token={token}");
+            var response = await Http.GetAsync($"/api/kpi/{kpiId}");
 
             if (response.IsSuccessStatusCode)
             {

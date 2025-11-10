@@ -1,4 +1,4 @@
-ï»¿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -59,7 +59,7 @@ namespace OmniMonitor.Server.Migrations
                     nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     descripcion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     grupo_visualizacion = table.Column<int>(type: "int", nullable: true),
-                    JSON_diseÃ±o = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
+                    JSON_diseño = table.Column<string>(type: "nvarchar(4000)", maxLength: 4000, nullable: true),
                     fecha_creacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     fecha_modificacion = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -863,8 +863,8 @@ namespace OmniMonitor.Server.Migrations
                     { 43, "ViewPermissions", "Ver permisos", "System", "System.ViewPermissions" },
                     { 44, "ManagePermissions", "Gestionar permisos", "System", "System.ManagePermissions" },
                     { 45, "ViewLogs", "Ver logs del sistema", "System", "System.ViewLogs" },
-                    { 46, "ViewSettings", "Ver configuraciÃ³n del sistema", "System", "System.ViewSettings" },
-                    { 47, "ManageSettings", "Gestionar configuraciÃ³n del sistema", "System", "System.ManageSettings" }
+                    { 46, "ViewSettings", "Ver configuración del sistema", "System", "System.ViewSettings" },
+                    { 47, "ManageSettings", "Gestionar configuración del sistema", "System", "System.ManageSettings" }
                 });
 
             migrationBuilder.InsertData(

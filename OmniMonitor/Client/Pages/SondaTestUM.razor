@@ -1,4 +1,4 @@
-ï»¿@page "/sonda-test-um"
+@page "/sonda-test-um"
 @using OmniMonitor.Shared
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
@@ -9,7 +9,7 @@
 
 <h3>Sonda de Endpoints</h3>
 
-<!-- SecciÃ³n de UM y Zones -->
+<!-- Sección de UM y Zones -->
 <div class="card mb-4">
     <div class="card-header">
         <h4>Endpoints de UM</h4>
@@ -85,7 +85,7 @@
     </div>
 </div>
 
-<!-- SecciÃ³n de News -->
+<!-- Sección de News -->
 <div class="card mb-4">
     <div class="card-header">
         <h4>Endpoints de News</h4>
@@ -135,7 +135,7 @@
     </div>
 </div>
 
-<!-- SecciÃ³n de Events -->
+<!-- Sección de Events -->
 <div class="card">
     <div class="card-header">
         <h4>Endpoints de Events</h4>
@@ -239,16 +239,6 @@
         isLoadingZones = true;
         ClearState(() => zones = null, () => umError = null);
         try { 
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            if (!string.IsNullOrEmpty(token))
-            {
-                Http.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", token);
-            }
-
-
-
             zones = await Http.GetFromJsonAsync<List<Zone>>("api/SondaMain/zones"); }
         catch (Exception ex) { umError = $"Error al obtener la lista de Zones: {ex.Message}"; }
         finally { isLoadingZones = false; }
@@ -259,8 +249,7 @@
         isLoadingZoneById = true;
         ClearState(() => zoneById = null, () => umError = null);
         try { 
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            zoneById = await Http.GetFromJsonAsync<Zone>($"api/SondaMain/zones/{zoneId}?token="+token); }
+            zoneById = await Http.GetFromJsonAsync<Zone>($"api/SondaMain/zones/{zoneId}"); }
         catch (Exception ex) { umError = $"Error al obtener la Zone con ID {zoneId}: {ex.Message}"; }
         finally { isLoadingZoneById = false; }
     }
@@ -280,7 +269,7 @@
 
             newsList = await Http.GetFromJsonAsync<List<News>>(url);
 
-            if (newsList == null) newsError = "No se recibiÃ³ respuesta del servidor.";
+            if (newsList == null) newsError = "No se recibió respuesta del servidor.";
         }
         catch (Exception ex) { newsError = $"Error al obtener la lista de News: {ex.Message}"; }
         finally { isLoadingNews = false; }
@@ -310,7 +299,7 @@
 
             eventsList = await Http.GetFromJsonAsync<List<Event>>(url);
 
-            if (eventsList == null) eventError = "No se recibiÃ³ respuesta del servidor.";
+            if (eventsList == null) eventError = "No se recibió respuesta del servidor.";
         }
         catch (Exception ex) { eventError = $"Error al obtener la lista de Events: {ex.Message}"; }
         finally { isLoadingEvents = false; }

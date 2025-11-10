@@ -138,8 +138,6 @@ namespace OmniMonitor.Server.Services
                 // --- LÓGICA MODIFICADA: Búsqueda dinámica optimizada ---
                 List<Device>? devicesFromSource = null;
                 List<Device>? devicesFromGroup = null;
-
-                // 1. Obtener las listas de dispositivos de la API según los filtros proporcionados.
                 if (dataset.Id_Source.HasValue)
                 {
                     devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.UserName);

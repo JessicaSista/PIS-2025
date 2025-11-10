@@ -202,14 +202,10 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
                 await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.InsightMonitor, existingDataset.DatasetId);
 
                 // Actualizar la tabla específica del módulo
                 DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request);
-                
-                // Luego actualizar la tabla general
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
@@ -278,12 +274,10 @@ namespace OmniMonitor.Server.Controllers
 
                 if (dataset.Id_Source == null || string.IsNullOrEmpty(dataset.SensorName))
                 {
-                    Console.WriteLine($"[TRACE] Dataset sin Source o SensorName");
                     return BadRequest("El dataset no contiene información suficiente (Source o SensorName).");
                 }
 
                 Source? source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
-                Console.WriteLine($"[TRACE] Source encontrado: {source?.Id}");
                 if (source == null)
                 {
                     return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
@@ -293,11 +287,9 @@ namespace OmniMonitor.Server.Controllers
                 {
                     foreach (Device dev in source.Devices)
                     {
-                        Console.WriteLine($"[TRACE] Device: {dev.Id}, Name: {dev.Name}");
                         Device? fullDevice = await _sondaIMService.GetDeviceById(dev.Id, username);
                         if (fullDevice == null)
                         {
-                            Console.WriteLine($"[TRACE] No se pudo obtener el device completo para ID {dev.Id}");
                             continue;
                         }
 
@@ -316,7 +308,6 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] {ex.Message}");
                 return StatusCode(500, $"Error interno al obtener el tipo del sensor: {ex.Message}");
             }
         }

@@ -1,4 +1,4 @@
-Ôªøusing Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System.Dynamic;
@@ -110,17 +110,15 @@ public class ReportService : IReportService
 
     public async Task<bool> DeleteReportAsync(int reportId, string username)
     {
-        // 1. Busca el reporte asegur√°ndote de que pertenezca al usuario correcto.
+        // 1. Busca el reporte asegur·ndote de que pertenezca al usuario correcto.
         var reportToDelete = await _context.Reports
             .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
-
-        // 2. Si no se encuentra, retorna false.
         if (reportToDelete == null)
         {
             return false;
         }
 
-        // 3. Elimina el reporte. La base de datos se encargar√° de eliminar en cascada
+        // 3. Elimina el reporte. La base de datos se encargar· de eliminar en cascada
         //    las entradas correspondientes en la tabla 'ReportJoins'.
         _context.Reports.Remove(reportToDelete);
         await _context.SaveChangesAsync();
@@ -130,11 +128,9 @@ public class ReportService : IReportService
 
     public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config)
     {
-        // 1. Busca el reporte asegur√°ndote de que pertenezca al usuario correcto.
+        // 1. Busca el reporte asegur·ndote de que pertenezca al usuario correcto.
         var reportToUpdate = await _context.Reports
             .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
-
-        // 2. Si no se encuentra, retorna null.
         if (reportToUpdate == null)
         {
             return null;
@@ -175,11 +171,10 @@ public class ReportService : IReportService
 
     public async Task<List<dynamic>> ExecuteReportAsync(int reportId, string username)
     {
-        // 1. Obtener el reporte y su configuraci√≥n JSON
         var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
         if (report == null || string.IsNullOrWhiteSpace(report.JSON_config))
         {
-            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuraci√≥n JSON v√°lida.");
+            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuraciÛn JSON v·lida.");
         }
 
         var serializerOptions = new JsonSerializerOptions
@@ -292,13 +287,13 @@ public class ReportService : IReportService
         if (obj == null) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         // Si el objeto ya es un diccionario (como un ExpandoObject), lo usamos para crear
-        // un nuevo diccionario est√°ndar y normalizar el comportamiento.
+        // un nuevo diccionario est·ndar y normalizar el comportamiento.
         if (obj is IDictionary<string, object> dict)
         {
             return new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase);
         }
 
-        // Si es una clase est√°ndar (como Device), usamos reflexi√≥n para convertirlo en un diccionario.
+        // Si es una clase est·ndar (como Device), usamos reflexiÛn para convertirlo en un diccionario.
         var dictionary = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {

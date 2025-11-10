@@ -1,4 +1,4 @@
-﻿@page "/items"
+@page "/items"
 @using OmniMonitor.Shared
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
@@ -42,7 +42,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading items: {ex.Message}");
         }
     }
 }

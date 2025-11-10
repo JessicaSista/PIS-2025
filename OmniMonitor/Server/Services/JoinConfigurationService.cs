@@ -1,4 +1,4 @@
-Ôªøusing Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using System.Dynamic;
@@ -123,17 +123,16 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         if (leftJoinType != rightJoinType)
         {
-            // Lanzamos una excepci√≥n con un mensaje claro que le dir√° al usuario exactamente qu√© est√° mal.
+            // Lanzamos una excepciÛn con un mensaje claro que le dir· al usuario exactamente quÈ est· mal.
             throw new InvalidOperationException(
                 $"Incompatibilidad de tipos para el Join. La propiedad izquierda '{leftJoinKey}' es de tipo '{leftJoinType}', " +
                 $"pero la propiedad derecha '{rightJoinKey}' es de tipo '{rightJoinType}'. " +
-                "Por favor, aseg√∫rate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
+                "Por favor, aseg˙rate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
             );
         }
 
         var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
         var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
-        //
         List<dynamic> nestedResults;
 
         var leftList = processedLeftQuery.ToDynamicList();
@@ -165,7 +164,7 @@ public class JoinConfigurationService : IJoinConfigurationService
                 break;
 
             default:
-                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no est√° soportado.");
+                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no est· soportado.");
         }
 
         return FlattenJoinResults(nestedResults, joinConfig);
@@ -233,7 +232,7 @@ public class JoinConfigurationService : IJoinConfigurationService
             if (rightItem != null)
             {
                 string currentRightPrefix = rightPrefix;
-                // Si el prefijo es el mismo, a√±ade un sufijo para evitar colisiones de nombres de columna
+                // Si el prefijo es el mismo, aÒade un sufijo para evitar colisiones de nombres de columna
                 if (leftPrefix == rightPrefix)
                 {
                     currentRightPrefix = $"{rightPrefix}_Right";
@@ -256,15 +255,15 @@ public class JoinConfigurationService : IJoinConfigurationService
         // 1. Tomamos el primer elemento de la lista para inspeccionarlo.
         var firstItem = data.AsQueryable().FirstOrDefault();
 
-        // 2. CASO CR√çTICO: Si la lista de datos est√° vac√≠a, no podemos determinar el tipo.
+        // 2. CASO CRÕTICO: Si la lista de datos est· vacÌa, no podemos determinar el tipo.
         // En este caso, debemos retornar un valor por defecto o lanzar un error.
-        // Retornar "string" (sin casting) es la opci√≥n m√°s segura.
+        // Retornar "string" (sin casting) es la opciÛn m·s segura.
         if (firstItem == null)
         {
             return "string";
         }
 
-        // 3. Usamos reflexi√≥n para obtener la informaci√≥n de la propiedad.
+        // 3. Usamos reflexiÛn para obtener la informaciÛn de la propiedad.
         // Hacemos un cast a 'object' para poder usar GetType().
         PropertyInfo propertyInfo = (firstItem as object).GetType().GetProperty(propertyName);
 

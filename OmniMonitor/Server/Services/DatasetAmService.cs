@@ -414,7 +414,6 @@ namespace OmniMonitor.Server.Services
             var reducedList = new List<DatasetReducedAMEventsDTO>();
             foreach (var eventItem in events)
             {
-                // Obtener el DTO completo usando el servicio externo
                 var eventTaskInstanceDto = await _sondaAMService.GetEventTaskInstanceById(eventItem.Id_Event_Task_Instance, username);
                 if (eventTaskInstanceDto != null)
                 {

@@ -1,4 +1,4 @@
-Ôªøusing Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
 using System.Net.Http.Headers;
@@ -86,7 +86,6 @@ public class SondaAMService : ISondaAMService
         }
 
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         string getDataUrl = baseUrl + endpoint + "?assetId=" + id;
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -100,7 +99,7 @@ public class SondaAMService : ISondaAMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -109,7 +108,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         // Puedes revisar el log de consola para ver el JSON exacto que devuelve la API
         return JsonSerializer.Deserialize<AssetDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
@@ -117,7 +115,7 @@ public class SondaAMService : ISondaAMService
     public async Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username)
     {
         if (bundleId <= 0)
-            throw new ArgumentException("El par√°metro 'bundleId' debe ser mayor que cero.", nameof(bundleId));
+            throw new ArgumentException("El par·metro 'bundleId' debe ser mayor que cero.", nameof(bundleId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Bundle"]["GetByBundleId"];
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
@@ -134,7 +132,7 @@ public class SondaAMService : ISondaAMService
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -143,10 +141,9 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
         return JsonSerializer.Deserialize<BundleDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
@@ -177,17 +174,14 @@ public class SondaAMService : ISondaAMService
             return new List<StockDto>();
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
             return new List<StockDto>();
-
-        // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
@@ -201,14 +195,14 @@ public class SondaAMService : ISondaAMService
         }
         else
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
     }
 
     public async Task<StockDto?> GetStockById(int stockId, string username)
     {
         if (stockId <= 0)
-            throw new ArgumentException("El par√°metro 'stockId' debe ser mayor que cero.", nameof(stockId));
+            throw new ArgumentException("El par·metro 'stockId' debe ser mayor que cero.", nameof(stockId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Stock"]["GetById"].Replace("{stockId}", stockId.ToString());
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
@@ -225,24 +219,23 @@ public class SondaAMService : ISondaAMService
             return null;
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
 
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
 
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
-            throw new Exception("La respuesta de la API es nula, vac√≠a o no es un JSON v√°lido.");
+            throw new Exception("La respuesta de la API es nula, vacÌa o no es un JSON v·lido.");
         try
         {
             return JsonSerializer.Deserialize<StockDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
         catch (JsonException ex)
         {
-            throw new Exception("Error al deserializar la respuesta de la API: JSON inv√°lido.", ex);
+            throw new Exception("Error al deserializar la respuesta de la API: JSON inv·lido.", ex);
         }
     }
 
@@ -273,7 +266,7 @@ public class SondaAMService : ISondaAMService
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -282,13 +275,10 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
-            throw new Exception("La respuesta de la API est√° vac√≠a.");
+            throw new Exception("La respuesta de la API est· vacÌa.");
         }
-
-        // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
@@ -298,30 +288,29 @@ public class SondaAMService : ISondaAMService
         }
         else if (trimmed.StartsWith("["))
         {
-            // Si la API devuelve una lista directa
             var listResponse = JsonSerializer.Deserialize<List<AssetDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<AssetDto>();
         }
         else
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
     }
 
      public async Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username)
     {
-        // Validaciones de par√°metros requeridos
+        // Validaciones de par·metros requeridos
         if (!page.HasValue)
         {
-            throw new ArgumentException("El par√°metro 'page' es requerido.", nameof(page));
+            throw new ArgumentException("El par·metro 'page' es requerido.", nameof(page));
         }
         if (!pageSize.HasValue)
         {
-            throw new ArgumentException("El par√°metro 'pageSize' es requerido.", nameof(pageSize));
+            throw new ArgumentException("El par·metro 'pageSize' es requerido.", nameof(pageSize));
         }
         if (!bundleId.HasValue)
         {
-            throw new ArgumentException("El par√°metro 'bundleId' es requerido.", nameof(bundleId));
+            throw new ArgumentException("El par·metro 'bundleId' es requerido.", nameof(bundleId));
         }
 
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
@@ -347,7 +336,7 @@ public class SondaAMService : ISondaAMService
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -356,10 +345,9 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
         var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.AssetApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return apiResponse?.Results ?? new List<AssetDto>();
@@ -391,7 +379,7 @@ public class SondaAMService : ISondaAMService
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -400,10 +388,9 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
         var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.AssetApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return apiResponse?.Results ?? new List<AssetDto>();
@@ -438,7 +425,7 @@ public class SondaAMService : ISondaAMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -447,7 +434,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             // No hay relaciones, pero el asset existe
@@ -480,13 +466,12 @@ public class SondaAMService : ISondaAMService
         }
         else if (trimmed.StartsWith("["))
         {
-            // Si la API devuelve una lista directa
             var listResponse = JsonSerializer.Deserialize<List<RelatedAssetDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<RelatedAssetDto>();
         }
         else
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
     }
 
@@ -516,7 +501,7 @@ public class SondaAMService : ISondaAMService
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
@@ -525,13 +510,10 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
-            throw new Exception("La respuesta de la API est√° vac√≠a.");
+            throw new Exception("La respuesta de la API est· vacÌa.");
         }
-
-        // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
@@ -541,13 +523,12 @@ public class SondaAMService : ISondaAMService
         }
         else if (trimmed.StartsWith("["))
         {
-            // Si la API devuelve una lista directa
             var listResponse = JsonSerializer.Deserialize<List<BundleDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<BundleDto>();
         }
         else
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
     }
 
@@ -576,15 +557,14 @@ public class SondaAMService : ISondaAMService
                 throw new Exception("No se encontro historia para el asset (404 NotFound).");
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.AssetApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return apiResponse?.Results ?? new List<AssetDto>();
     }
@@ -607,13 +587,12 @@ public class SondaAMService : ISondaAMService
             return null;
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
             return null;
         return System.Text.Json.JsonSerializer.Deserialize<EventTaskInstanceDto>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -649,17 +628,14 @@ public class SondaAMService : ISondaAMService
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             throw new Exception("No se encontraron event task instances (404 NotFound).");
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         response.EnsureSuccessStatusCode();
         if (string.IsNullOrWhiteSpace(responseBody))
-            throw new Exception("La respuesta de la API est√° vac√≠a.");
-
-        // Detecta si la respuesta es un array o un objeto
+            throw new Exception("La respuesta de la API est· vacÌa.");
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("["))
         {
@@ -675,16 +651,16 @@ public class SondaAMService : ISondaAMService
         }
         else
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
     }
 
     public async Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username)
     {
         if (taskInstanceId <= 0)
-            throw new ArgumentException("El par√°metro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
+            throw new ArgumentException("El par·metro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
-        // Aseg√∫rate que la clave y endpoint existan en tu ApiConfig.json
+        // Aseg˙rate que la clave y endpoint existan en tu ApiConfig.json
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetActions"].Replace("{taskInstanceId}", taskInstanceId.ToString());
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
 
@@ -699,15 +675,14 @@ public class SondaAMService : ISondaAMService
                 throw new Exception("No se encontraron EventTaskActions (404 NotFound).");
             
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
-            throw new Exception("La respuesta de la API est√° vac√≠a.");
+            throw new Exception("La respuesta de la API est· vacÌa.");
 
         // Asume que la respuesta es una lista directa de acciones
         var actions = System.Text.Json.JsonSerializer.Deserialize<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -717,7 +692,7 @@ public class SondaAMService : ISondaAMService
         public async Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username)
         {
             if (taskInstanceId <= 0)
-                throw new ArgumentException("El par√°metro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
+                throw new ArgumentException("El par·metro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
             string baseUrl = _apiConfig.BaseUrl.UrlAM;
             string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetStock"].Replace("{taskInstanceId}", taskInstanceId.ToString());
             string token = await _sondaAuthService.GetUserTokenAMAsync(username);
@@ -732,15 +707,14 @@ public class SondaAMService : ISondaAMService
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 throw new Exception("No se encontraron stocks para el taskInstanceId proporcionado (404 NotFound).");
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+                throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
             if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                 throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
-            Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
             if (string.IsNullOrWhiteSpace(responseBody))
-                throw new Exception("La respuesta de la API est√° vac√≠a.");
+                throw new Exception("La respuesta de la API est· vacÌa.");
 
             var stocks = System.Text.Json.JsonSerializer.Deserialize<List<EventTaskInstanceStockDto>>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return stocks ?? new List<EventTaskInstanceStockDto>();
@@ -802,7 +776,7 @@ public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(strin
         if (typeDto != null)
             typeDtos.Add(typeDto);
     }
-    // Devuelve solo los typeDto √∫nicos por Id
+    // Devuelve solo los typeDto ˙nicos por Id
     return typeDtos.GroupBy(t => t.Id).Select(g => g.First()).ToList();
 }
 
@@ -822,13 +796,12 @@ public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return new List<AssetTypeDto>();
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inv√°lido o expirado (401 Unauthorized).");
+            throw new Exception("No tienes permisos: token inv·lido o expirado (401 Unauthorized).");
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
             return new List<AssetTypeDto>();
 
@@ -845,7 +818,7 @@ public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
         }
         else
         {
-            throw new Exception("La respuesta de la API no es JSON v√°lido. Respuesta: " + responseBody);
+            throw new Exception("La respuesta de la API no es JSON v·lido. Respuesta: " + responseBody);
         }
     }
 }

@@ -140,14 +140,11 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                // Obtener el dataset existente para obtener el DatasetId
                 DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, request.Username);
                 if (existingDataset == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
                 await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.EventManager, existingDataset.DatasetId);
 
                 DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, request);

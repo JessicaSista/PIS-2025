@@ -82,8 +82,6 @@ namespace OmniMonitor.Server.Services
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
                 if (user == null)
                     return null;
-
-                // 1. Buscar Events dinámicamente
                 List<Event>? eventsFromZone = null;
                 List<Event>? eventsFromNews = null;
 
@@ -117,8 +115,6 @@ namespace OmniMonitor.Server.Services
                 {
                     finalEventList = await _sondaUMService.GetAllEvents(user.UserName) ?? new List<Event>();
                 }
-
-                // 3. Buscar News dinámicamente
                 List<News>? newsFromZone = null;
                 List<News>? newsFromEvent = null;
 
@@ -252,9 +248,6 @@ namespace OmniMonitor.Server.Services
             _context.DatasetsUM.Remove(dataset);
             await _context.SaveChangesAsync();
         }
-
-        // --- Helpers ---
-
         private static void UpdateRelationsFromRequest(DatasetUM dataset, CreateDatasetUMRequest request)
         {
             dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEvent { Id_event = id }).ToList() ?? new();
@@ -441,9 +434,6 @@ namespace OmniMonitor.Server.Services
             if (await query.AnyAsync())
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
         }
-
-        // --- Helpers ---
-
         private async Task ValidateDuplicateNameDataset(string name, string username, ModuleType tipoDataset, int? excludeId = null)
         {
             // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario

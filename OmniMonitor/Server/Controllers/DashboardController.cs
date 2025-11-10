@@ -188,22 +188,14 @@ namespace OmniMonitor.Server.Controllers
 
                 // Obtener todos los dashboards (con filtro de búsqueda si existe)
                 List<DashboardSummaryResponse> allDashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
-
-                // Calcular totales
                 int totalCount = allDashboards.Count;
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-                // Validar página
                 if (page < 1) page = 1;
                 if (page > totalPages && totalPages > 0) page = totalPages;
-
-                // Aplicar paginación
                 var paginatedItems = allDashboards
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .ToList();
-
-                // Crear respuesta paginada
                 var result = new PaginatedDashboardDto
                 {
                     Items = paginatedItems,

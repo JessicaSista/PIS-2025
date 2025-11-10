@@ -1,4 +1,4 @@
-﻿@using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Shared.Dtos
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
 @using System.Text.Json
@@ -55,7 +55,7 @@
                         </MudSelect>
                     </div>
 
-                    <!-- Multiplier (visible si dataset numérico) -->
+                    <!-- Multiplier (visible si dataset num�rico) -->
                     @if (_isNumericDataset)
                     {
                         <div style="display: flex; flex-direction: column;">
@@ -113,7 +113,7 @@
                               Style="background: var(--card);" />
 
                 <!-- Module-specific UI -->
-                <!-- Si el módulo soporta métricas mostramos la select de métricas -->
+                <!-- Si el m�dulo soporta m�tricas mostramos la select de m�tricas -->
                 @if (ModuleHasMetric)
                 {
                     <MudSelect T="string" @bind-Value="_metric"
@@ -157,8 +157,8 @@
                     }
                 }
 
-                /* --- importante: mostramos atributos para TODOS los módulos que NO sean Insight Monitor,
-                incluyendo AM/EM/UM — esto reemplaza el antiguo 'else if' que ocultaba la UI cuando había métricas */
+                /* --- importante: mostramos atributos para TODOS los m�dulos que NO sean Insight Monitor,
+                incluyendo AM/EM/UM � esto reemplaza el antiguo 'else if' que ocultaba la UI cuando hab�a m�tricas */
                 @if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     <!-- Non-IM modules: Type buttons + Atributo + Valor -->
@@ -181,7 +181,7 @@
                         {
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensi�n</MudButton>
                         }
                     </div>
 
@@ -199,7 +199,7 @@
                         }
                         else
                         {
-                            <MudSelectItem T="string" Disabled="true">—</MudSelectItem>
+                            <MudSelectItem T="string" Disabled="true">�</MudSelectItem>
                         }
                     </MudSelect>
 
@@ -366,7 +366,7 @@
     private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<string> _countPercentTypes = new() { "count", "percentage" };
 
-    // helper: el módulo acepta las métricas count/percentage
+    // helper: el m�dulo acepta las m�tricas count/percentage
     private bool ModuleUsesCountPercentage =>
         !string.IsNullOrWhiteSpace(_selectedModuleName) &&
         (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase)
@@ -376,12 +376,12 @@
          || string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
          || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase));
 
-    // helper: el módulo tiene métrica (IM o los otros)
+    // helper: el m�dulo tiene m�trica (IM o los otros)
     private bool ModuleHasMetric =>
         string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase)
         || ModuleUsesCountPercentage;
 
-    // helper: obtener las opciones de métrica según módulo
+    // helper: obtener las opciones de m�trica seg�n m�dulo
     private IEnumerable<string> GetMetricOptions()
     {
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
@@ -405,15 +405,7 @@
 
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                _serverError = "Token no encontrado";
-                _datasetItems = new List<DatasetItem>();
-                return;
-            }
-
-            var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";
+            var url = "api/DatasetUM/GetAllDatasetsDto";
 
             var response = await Http.GetAsync(url);
 
@@ -524,7 +516,7 @@
 
         _selectedModuleName = _selectedDatasetModule;
 
-        // Si el módulo es AM/EM/UM asumimos dataset numérico (no hacemos la comprobación)
+        // Si el m�dulo es AM/EM/UM asumimos dataset num�rico (no hacemos la comprobaci�n)
         var moduleCode = GetModuleCode(_selectedModuleName);
         if (!string.IsNullOrWhiteSpace(moduleCode) &&
             (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase)
@@ -535,14 +527,14 @@
         }
         else
         {
-            // para IM y otros módulos hacemos la comprobación del sensor (si aplica)
+            // para IM y otros m�dulos hacemos la comprobaci�n del sensor (si aplica)
             if (_selectedDatasetId != 0)
                 await UpdateSensorType(_selectedDatasetId);
             else
                 _isNumericDataset = false;
         }
 
-        // setear métrica por defecto según módulo
+        // setear m�trica por defecto seg�n m�dulo
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
             _metric = "lastValue";
@@ -565,8 +557,7 @@
     {
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Dataset/GetSensorType?datasetId={datasetId}&token={Uri.EscapeDataString(token)}");
+            var response = await Http.GetAsync($"api/Dataset/GetSensorType?datasetId={datasetId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -582,7 +573,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error getting dataset type {datasetId}: {ex.Message}");
             _isNumericDataset = false;
         }
     }
@@ -633,7 +623,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading field types: {ex.Message}");
             _attributes = new();
         }
         StateHasChanged();
@@ -662,17 +651,15 @@
 
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            // si _selectedType es null, mandar 0 por seguridad (o podrías requerir que el usuario elija tipo)
+            // si _selectedType es null, mandar 0 por seguridad (o podr�as requerir que el usuario elija tipo)
             var choice = _selectedType ?? 0;
 
-            var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}&token={Uri.EscapeDataString(token ?? "")}";
+            var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}";
 
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
                 _attributeValues = await resp.Content.ReadFromJsonAsync<List<string>>() ?? new();
-                Console.WriteLine(_attributeValues);
             }
             else
             {
@@ -681,7 +668,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching field values: {ex.Message}");
             _attributeValues = new();
         }
 
@@ -694,7 +680,7 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
-    // 4) IsFormValid actualizado: exigir métrica para esos módulos
+    // 4) IsFormValid actualizado: exigir m�trica para esos m�dulos
     private bool IsFormValid
     {
         get
@@ -702,12 +688,12 @@
             if (_selectedDatasetId == 0) return false;
             if (string.IsNullOrWhiteSpace(_name)) return false;
 
-            // Si el módulo usa métricas (IM o AM/EM/UM con count/percentage) exigir métrica
+            // Si el m�dulo usa m�tricas (IM o AM/EM/UM con count/percentage) exigir m�trica
             if (ModuleHasMetric)
             {
                 if (string.IsNullOrWhiteSpace(_metric)) return false;
 
-                // Para IM, las métricas average/min/max requieren date range
+                // Para IM, las m�tricas average/min/max requieren date range
                 if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     if ((_metric == "average" || _metric == "min" || _metric == "max"))
@@ -717,7 +703,7 @@
                 }
             }
 
-            // Para todos los módulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
+            // Para todos los m�dulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
             if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
             {
                 if (!_selectedType.HasValue) return false;
@@ -780,7 +766,6 @@
             }
         }
 
-        // prepare extraInfo
         object? extraInfoObj = null;
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
@@ -791,7 +776,6 @@
         }
         else
         {
-            // for non-IM modules we store selected attribute value in extraInfo (optional)
             if (!string.IsNullOrWhiteSpace(_selectedAttributeValue))
                 extraInfoObj = _selectedAttributeValue;
             else
@@ -804,7 +788,7 @@
             Description = _description?.Trim(),
             DatasetId = _selectedDatasetId,
             Unit = "x",
-            // 4) Metric: enviarla si el módulo soporta métricas (IM o AM/EM/UM)
+            // 4) Metric: enviarla si el m�dulo soporta m�tricas (IM o AM/EM/UM)
             Metric = ModuleHasMetric ? _metric : null,
             // Multiplier only if numeric
             Multiplier = _isNumericDataset ? (double?)_multiplier : null,
@@ -820,8 +804,7 @@
         _isSubmitting = true;
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.PostAsJsonAsync($"api/Kpi?token={Uri.EscapeDataString(token ?? "")}", request);
+            var response = await Http.PostAsJsonAsync("api/Kpi", request);
 
             if (response.IsSuccessStatusCode)
             {

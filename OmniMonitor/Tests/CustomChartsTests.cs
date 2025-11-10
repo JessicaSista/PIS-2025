@@ -549,8 +549,6 @@ public class CustomChartsTests
             new Chart { Id = 2, Title = "Device Status", SourceType = "module", Module = "IM", UpdatedAt = DateTime.UtcNow.AddDays(-2) },
             new Chart { Id = 3, Title = "Sales Analysis", SourceType = "dataset", UpdatedAt = DateTime.UtcNow.AddDays(-3) }
         };
-
-        // Aplicar filtros
         var filteredCharts = allCharts.AsEnumerable();
 
         if (!string.IsNullOrEmpty(request.SearchTitle))

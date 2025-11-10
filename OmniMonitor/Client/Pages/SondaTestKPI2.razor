@@ -1,4 +1,4 @@
-﻿@page "/sonda-test-kpi2"
+@page "/sonda-test-kpi2"
 @using OmniMonitor.Shared.Dtos
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
@@ -93,14 +93,7 @@
 
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrEmpty(token))
-            {
-                errorMessage = "No se encontró token de autenticación.";
-                return;
-            }
-
-            string url = $"api/Kpi?token={token}";
+            string url = "api/Kpi";
             var httpResponse = await Http.PostAsJsonAsync(url, kpiRequest);
 
             if (httpResponse.IsSuccessStatusCode)

@@ -1,4 +1,4 @@
-Ôªøusing Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,11 +21,7 @@ namespace OmniMonitor.Server.Controllers
             _joinConfigService = joinConfigService;
             _sondaAuthService = sondaAuthService;
         }
-
-        // ===============================================
         // Report-related Endpoints
-        // ===============================================
-
         /// <summary>
         /// Creates a new report with a specified list of joins.
         /// </summary>
@@ -103,11 +99,7 @@ namespace OmniMonitor.Server.Controllers
 
             return Ok(report);
         }
-
-        // ===============================================
         // Join-related Endpoints
-        // ===============================================
-
         /// <summary>
         /// Creates a new join configuration.
         /// </summary>
@@ -178,7 +170,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv√°lido." });
+                    return Unauthorized(new { message = "Token inv·lido." });
                 }
 
                 Report? updatedReport = await _reportService.UpdateReportAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config);
@@ -192,15 +184,15 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception)
             {
-                // Opcional: Loggear la excepci√≥n 'ex'
-                return StatusCode(500, new { message = "Ocurri√≥ un error interno al actualizar el reporte." });
+                // Opcional: Loggear la excepciÛn 'ex'
+                return StatusCode(500, new { message = "OcurriÛ un error interno al actualizar el reporte." });
             }
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Reports.Delete")]
         [HttpDelete("DeleteReport")]
-        [ProducesResponseType(204)] // No Content (√©xito)
+        [ProducesResponseType(204)] // No Content (Èxito)
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
         public async Task<IActionResult> DeleteReport(int id)
@@ -210,7 +202,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv√°lido." });
+                    return Unauthorized(new { message = "Token inv·lido." });
                 }
 
                 bool success = await _reportService.DeleteReportAsync(id, username);
@@ -220,20 +212,20 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
                 }
 
-                // Retorna un 204 No Content, que es el est√°ndar para un DELETE exitoso.
+                // Retorna un 204 No Content, que es el est·ndar para un DELETE exitoso.
                 return NoContent();
             }
             catch (Exception)
             {
-                // Opcional: Loggear la excepci√≥n 'ex'
-                return StatusCode(500, new { message = "Ocurri√≥ un error interno al eliminar el reporte." });
+                // Opcional: Loggear la excepciÛn 'ex'
+                return StatusCode(500, new { message = "OcurriÛ un error interno al eliminar el reporte." });
             }
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Reports.Edit")]
         [HttpDelete("RemoveJoinFromReport")]
-        [ProducesResponseType(204)] // No Content (√©xito)
+        [ProducesResponseType(204)] // No Content (Èxito)
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
         public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId)
@@ -243,21 +235,21 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv√°lido." });
+                    return Unauthorized(new { message = "Token inv·lido." });
                 }
 
                 bool success = await _reportService.RemoveJoinFromReportAsync(reportId, joinId, username);
 
                 if (!success)
                 {
-                    return NotFound(new { message = $"No se encontr√≥ la asociaci√≥n del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
+                    return NotFound(new { message = $"No se encontrÛ la asociaciÛn del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
                 }
 
                 return NoContent();
             }
             catch (Exception)
             {
-                return StatusCode(500, new { message = "Ocurri√≥ un error interno al intentar quitar el join del reporte." });
+                return StatusCode(500, new { message = "OcurriÛ un error interno al intentar quitar el join del reporte." });
             }
         }
 
@@ -274,7 +266,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv√°lido." });
+                    return Unauthorized(new { message = "Token inv·lido." });
                 }
 
                 List<dynamic> results = await _reportService.ExecuteReportAsync(id, username);
@@ -286,7 +278,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Ocurri√≥ un error interno al ejecutar el reporte.", details = ex.Message });
+                return StatusCode(500, new { message = "OcurriÛ un error interno al ejecutar el reporte.", details = ex.Message });
             }
         }
     }

@@ -163,8 +163,6 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {request.Username}.");
                 }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
                 await _datasetUMService.ValidateDatasetNameAsync(request.Nombre, request.Username, ModuleType.AssetManager, existingDataset.DatasetId);
 
                 // Llamar al servicio que incluye la validación de nombres únicos
