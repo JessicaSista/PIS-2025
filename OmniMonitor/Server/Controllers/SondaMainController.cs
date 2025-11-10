@@ -222,7 +222,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets all unique sensors from the selected devices.
+        /// Obtiene todos los sensores únicos de los dispositivos seleccionados.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("sensors/devices")]
@@ -238,7 +238,7 @@ namespace OmniMonitor.Server.Controllers
                     return Ok(new List<string>());
                 }
 
-                // Get information from all selected devices
+                // Obtener información de todos los dispositivos seleccionados
                 var allSensors = new List<string>();
 
                 foreach (int deviceId in deviceIds)
@@ -255,7 +255,7 @@ namespace OmniMonitor.Server.Controllers
                     }
                 }
 
-                // Get unique ordered sensors
+                // Obtener sensores únicos ordenados
                 var uniqueSensors = allSensors
                     .Distinct()
                     .OrderBy(name => name)
@@ -275,7 +275,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets all unique sensors from devices belonging to a specific source.
+        /// Obtiene todos los sensores únicos de los dispositivos pertenecientes a una fuente específica.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sensors/source/{sourceId}")]
@@ -288,7 +288,7 @@ namespace OmniMonitor.Server.Controllers
             {
                 var username = User.Identity?.Name;
 
-                // Get all devices from the source
+                // Obtener todos los dispositivos de la fuente
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfSource(sourceId, username);
 
                 if (devices == null || devices.Count == 0)
@@ -296,7 +296,7 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontraron dispositivos para la fuente {sourceId}.");
                 }
 
-                // Extract all unique sensors from the devices
+                // Extraer todos los sensores únicos de los dispositivos
                 var uniqueSensors = devices
                     .Where(d => d.Sensors != null && d.Sensors.Count != 0)
                     .SelectMany(d => d.Sensors!)
@@ -423,7 +423,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                // Pass the parameters to the service
+                // Pasar los parámetros al servicio
                 var username = User.Identity?.Name;
                 List<News> news = await _sondaUMApiService.GetAllNews(username, startIndex, queryString, sort, count);
                 return Ok(news);

@@ -66,7 +66,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets all DatasetAM for a specific user.
+        /// Obtiene todos los DatasetAM para un usuario específico.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetAMs")]
@@ -87,7 +87,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets a specific DatasetAM by its ID and username (with dynamic logic).
+        /// Obtiene un DatasetAM específico por su ID y nombre de usuario (con lógica dinámica).
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetAMById")]
@@ -114,7 +114,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets a specific DatasetAM by its ID and username for editing (WITHOUT dynamic logic).
+        /// Obtiene un DatasetAM específico por su ID y nombre de usuario para edición (SIN lógica dinámica).
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetAMByIdForEdit")]

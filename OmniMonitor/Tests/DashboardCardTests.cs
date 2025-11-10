@@ -1,4 +1,4 @@
-using ApexCharts;
+ï»¿using ApexCharts;
 using Bunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Components;
@@ -46,7 +46,7 @@ public class DashboardCardTests : TestContext
 
         var markup = cut.Markup;
         Assert.Contains("2,405", markup);
-        Assert.Contains("último mes", markup);
+        Assert.Contains("Ãºltimo mes", markup);
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public class DashboardCardTests : TestContext
             ComponentParameter.CreateParameter(nameof(DashboardCard.GraphType), tipoIndex)
         );
 
-        // Verificamos que el índice es válido
+        // Verificamos que el Ã­ndice es vÃ¡lido
         Assert.InRange(cut.Instance.GraphType, 0, 2);
     }
 }

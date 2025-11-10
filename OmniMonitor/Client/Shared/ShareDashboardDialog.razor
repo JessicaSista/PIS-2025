@@ -123,7 +123,7 @@
 
     private string BuildPublicUrl(string slug)
     {
-        // Agreed public route: '/dashboards/view/{slug}' (read-only view handled by another team)
+        // Ruta pública acordada: '/dashboards/view/{slug}' (read-only view handled by another team)
         return Navigation.BaseUri.TrimEnd('/') + "/dashboards/view/" + slug;
     }
 

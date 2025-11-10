@@ -23,7 +23,7 @@ namespace OmniMonitor.Shared.Dtos
         public string? Tema { get; set; }
 
         /// <summary>
-        /// Initial dashboard layout (optional, can start empty)
+        /// Layout inicial del dashboard (opcional, puede empezar vacío)
         /// </summary>
         public DashboardLayout? Layout { get; set; }
     }
@@ -39,13 +39,13 @@ namespace OmniMonitor.Shared.Dtos
         public List<DashboardCard> Tarjetas { get; set; } = new List<DashboardCard>();
 
         /// <summary>
-        /// General layout configuration
+        /// Configuración general del layout
         /// </summary>
         public LayoutConfig? Configuracion { get; set; }
     }
 
     /// <summary>
-    /// Represents a card in the dashboard (reference to an existing visualization)
+    /// Representa una tarjeta en el dashboard (referencia a una visualización existente)
     /// </summary>
     public class DashboardCard
     {
@@ -53,24 +53,24 @@ namespace OmniMonitor.Shared.Dtos
         public int CardId { get; set; }
 
         /// <summary>
-        /// Card type: 1=chart, 2=KPI, etc.
+        /// Tipo de tarjeta: 1=gráfica, 2=KPI, etc.
         /// </summary>
         public int TipoCard { get; set; }
 
         /// <summary>
-        /// Configuration properties specific to the visualization in the dashboard
+        /// Propiedades de configuración específicas de la visualización en el dashboard
         /// </summary>
         public JsonElement? Props { get; set; }
     }
 
     /// <summary>
-    /// General layout configuration - accepts any JSON from the frontend
+    /// Configuración general del layout - acepta cualquier JSON desde el frontend
     /// </summary>
     public class LayoutConfig
     {
         /// <summary>
-        /// Flexible configuration as JSON - can contain any structure
-        /// sent by the frontend regardless of its content
+        /// Configuración flexible como JSON - puede contener cualquier estructura
+        /// que envíe el frontend sin importar su contenido
         /// </summary>
         public JsonElement? Configuracion { get; set; }
     }

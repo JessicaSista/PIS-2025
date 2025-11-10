@@ -131,7 +131,7 @@
     private async Task Cancel()
     {
         MudDialog?.Close(DialogResult.Cancel());
-        // Fallback in case the cascaded dialog is not available in this version
+        // Fallback por si el cascaded dialog no está disponible en esta versión
         if (MudDialog is null)
         {
             NavigationManager.NavigateTo(NavigationManager.Uri, false);

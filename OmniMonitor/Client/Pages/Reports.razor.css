@@ -13,7 +13,7 @@
     margin: 0.5rem 0 1.5rem 0;
 }
 
-/* Styles for the search field */
+/* Estilos para el campo de búsqueda */
 .search-field .mud-input-control {
     background-color: var(--mud-palette-background);
     border-radius: 4px;
@@ -39,7 +39,7 @@
     border-bottom: none !important;
 }
 
-/* Adjustments for the search button */
+/* Ajustes para el botón de búsqueda */
 .search-field .mud-icon-button {
     color: var(--mud-palette-text-secondary);
 }

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace OmniMonitor.Shared.Dtos
 {
     /// <summary>
-    /// Represents the relationship between a dashboard and the visualizations it contains
+    /// Representa la relación entre un dashboard y las visualizaciones que contiene
     /// </summary>
     public class GrupoVisualizacion
     {

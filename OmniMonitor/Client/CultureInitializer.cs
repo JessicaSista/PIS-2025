@@ -13,10 +13,10 @@ public class CultureInitializer
 
     public async Task InitializeCultureAsync()
     {
-        // Define the default language if nothing is saved.
+        // Define el idioma por defecto si no hay nada guardado.
         const string DefaultCultureCode = "es";
 
-        // 1. Read the saved culture from Local Storage
+        // 1. Lee la cultura guardada en el Local Storage
         var savedCulture = await _localStorage.GetItemAsStringAsync("culture");
         string cultureCodeToUse = DefaultCultureCode;
         if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
@@ -27,13 +27,13 @@ public class CultureInitializer
             cultureCodeToUse = savedCulture;
         }
 
-        // 3. If we use the default value, save it for the next session.
+        // 3. Si usamos el valor por defecto, lo guardamos para la próxima sesión.
         if (string.IsNullOrEmpty(savedCulture) || CultureInfo.GetCultureInfo(savedCulture) == null)
         {
             await _localStorage.SetItemAsStringAsync("culture", cultureCodeToUse);
         }
 
-        // 4. Set the culture globally (apply the language)
+        // 4. Establece la cultura globalmente (aplica el idioma)
         var cultureInfo = new CultureInfo(cultureCodeToUse);
         CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
         CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;

@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 100%; /* Ensures the card occupies all the space of the grid item */
+    height: 100%; /* Asegura que la tarjeta ocupe todo el espacio del item del grid */
 }
 
 ::deep .mud-card-content {

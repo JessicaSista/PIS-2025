@@ -58,10 +58,10 @@
 
 
         // Forzar un re-renderizado de este componente (y del Router)
-        // so that the 'NotAuthorized' state applies before jumping.
+        // para que aplique el estado 'NotAuthorized' antes de saltar.
         StateHasChanged();
 
-        // Pequeï¿½o delay opcional si la UI es muy pesada (aunque no ideal):
+        // Pequeño delay opcional si la UI es muy pesada (aunque no ideal):
         // await Task.Delay(1);
 
         Navigation.NavigateTo("/login");

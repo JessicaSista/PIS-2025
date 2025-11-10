@@ -1,4 +1,4 @@
-
+Ôªø
 using Azure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
@@ -84,7 +84,7 @@ public class SondaAMServiceTests
 
         var handler = new FakeHttpMessageHandler(req =>
         {
-            // Ejemplo de AbsolutePath: "/api/news" -> segments -> ["api","news"] -> tomamos el ˙ltimo -> "news"
+            // Ejemplo de AbsolutePath: "/api/news" -> segments -> ["api","news"] -> tomamos el √∫ltimo -> "news"
             var path = req.RequestUri!.AbsolutePath.Trim('/');
             var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             var endpointKey = segments.Length > 0 ? segments.Last().ToLowerInvariant() : string.Empty; // e.g. "news"
@@ -96,7 +96,7 @@ public class SondaAMServiceTests
                 switch (data)
                 {
                     case IEnumerable<News> newsList:
-                        // Parseo robusto de par·metros
+                        // Parseo robusto de par√°metros
                         int startIndex = 1, count = 10;
                         if (queryParams.TryGetValue("startIndex", out StringValues siVals) && int.TryParse(siVals.FirstOrDefault(), out var si)) startIndex = si;
                         if (queryParams.TryGetValue("count", out StringValues cVals) && int.TryParse(cVals.FirstOrDefault(), out var c)) count = c;
@@ -414,7 +414,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetAssets_ThrowsException_WhenAuthFails(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -516,7 +516,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetAllStock_ThrowsException_WhenAuthFails(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -561,11 +561,11 @@ public class SondaAMServiceTests
             Content = new StringContent(content)
         });
         var ex = await Assert.ThrowsAsync<Exception>(() => service.GetStockParametersByBundleId(1, "user", "pass"));
-        Assert.Equal("La respuesta de la API no es JSON v·lido. Respuesta: " + content, ex.Message);
+        Assert.Equal("La respuesta de la API no es JSON v√°lido. Respuesta: " + content, ex.Message);
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetStockParametersByBundleId_ThrowsException_WhenAuthFails(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -616,11 +616,11 @@ public class SondaAMServiceTests
             Content = new StringContent(content)
         });
         var ex = await Assert.ThrowsAsync<Exception>(() => service.GetStockById(1, "user", "pass"));
-        Assert.Equal("La respuesta de la API no es JSON v·lido. Respuesta: " + content, ex.Message);
+        Assert.Equal("La respuesta de la API no es JSON v√°lido. Respuesta: " + content, ex.Message);
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetStockById_ThrowsException_WhenAuthFails(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -798,7 +798,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetAssetRelations_Throws_OnUnauthorizedOrForbidden(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -871,7 +871,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetBundles_Throws_OnUnauthorizedOrForbidden(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -975,8 +975,8 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData("", "est· vacÌa")]             
-    [InlineData("not-a-json", "no es JSON v·lido")] 
+    [InlineData("", "est√° vac√≠a")]             
+    [InlineData("not-a-json", "no es JSON v√°lido")] 
     public async Task GetBundles_Throws_OnEmptyOrInvalidJson(string responseBody, string expectedMessageFragment)
     {
         // Arrange
@@ -1018,7 +1018,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetEventTaskInstanceStock_Throws_OnUnauthorizedOrForbidden(HttpStatusCode code, string expectedMessage)
     {
@@ -1032,7 +1032,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData("", "est· vacÌa")]       
+    [InlineData("", "est√° vac√≠a")]       
     [InlineData("not-a-json", null)]      
     public async Task GetEventTaskInstanceStock_Throws_OnEmptyOrInvalidJson(string responseBody, string? expectedMessageFragment)
     {
@@ -1188,7 +1188,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData("", typeof(Exception), "La respuesta de la API est· vacÌa.")]
+    [InlineData("", typeof(Exception), "La respuesta de la API est√° vac√≠a.")]
     [InlineData("[{invalid-json}]", typeof(JsonException), "")]
     public async Task GetEventTaskInstanceActions_Throws_OnEmptyOrInvalidJson(string responseBody, Type expectedException, string expectedMessage)
     {
@@ -1206,7 +1206,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetEventTaskInstanceActions_Throws_OnUnauthorizedOrForbidden(HttpStatusCode code, string expectedMessage)
     {
@@ -1305,8 +1305,8 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData("", typeof(Exception), "La respuesta de la API no es JSON v·lido. Respuesta: ")]
-    [InlineData("invalid-json", typeof(Exception), "La respuesta de la API no es JSON v·lido. Respuesta: invalid-json")]
+    [InlineData("", typeof(Exception), "La respuesta de la API no es JSON v√°lido. Respuesta: ")]
+    [InlineData("invalid-json", typeof(Exception), "La respuesta de la API no es JSON v√°lido. Respuesta: invalid-json")]
     public async Task GetEventTaskInstances_Throws_OnEmptyOrInvalidJson(string responseBody, Type expectedException, string expectedMessage)
     {
         // Arrange
@@ -1323,7 +1323,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetEventTaskInstances_Throws_OnUnauthorizedOrForbidden(HttpStatusCode code, string expectedMessage)
     {
@@ -1459,7 +1459,7 @@ public class SondaAMServiceTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv·lido o expirado (401 Unauthorized).")]
+    [InlineData(HttpStatusCode.Unauthorized, "No tienes permisos: token inv√°lido o expirado (401 Unauthorized).")]
     [InlineData(HttpStatusCode.Forbidden, "No tienes permisos para acceder a este recurso (403 Forbidden).")]
     public async Task GetAssetsBasicData_ThrowsException_WhenAuthFails(HttpStatusCode statusCode, string expectedMessage)
     {
@@ -1486,7 +1486,7 @@ public class SondaAMServiceTests
             Content = new StringContent(content)
         });
         var ex = await Assert.ThrowsAsync<Exception>(() => service.GetAssetsBasicData(1, null, 10, 5, "user", "pass"));
-        Assert.Equal("La respuesta de la API no es JSON v·lido. Respuesta: " + content, ex.Message);
+        Assert.Equal("La respuesta de la API no es JSON v√°lido. Respuesta: " + content, ex.Message);
     }
 
     [Fact]
@@ -1632,7 +1632,7 @@ public class SondaAMServiceTests
             Content = new StringContent(content)
         });
         var ex = await Assert.ThrowsAsync<Exception>(() => service.GetLinkedAssets(1, null, "sort", 5, "user", "pass"));
-        Assert.Equal("La respuesta de la API no es JSON v·lido. Respuesta: " + content, ex.Message);
+        Assert.Equal("La respuesta de la API no es JSON v√°lido. Respuesta: " + content, ex.Message);
     }
 
 

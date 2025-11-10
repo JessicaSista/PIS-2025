@@ -49,7 +49,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets the roles of a specific user.
+        /// Obtiene los roles de un usuario específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/roles")]
@@ -61,7 +61,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets the permissions of a specific user.
+        /// Obtiene los permisos de un usuario específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/permissions")]
@@ -73,7 +73,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Verifies if a user has a specific permission.
+        /// Verifica si un usuario tiene un permiso específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/has-permission")]
@@ -85,7 +85,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Verifies if a user has a specific role.
+        /// Verifica si un usuario tiene un rol específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/has-role")]
@@ -97,7 +97,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets the permissions of a specific role.
+        /// Obtiene los permisos de un rol específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("roles/{roleName}/permissions")]

@@ -43,7 +43,7 @@ namespace OmniMonitor.Server.Services
     }   
 
     /// <summary>
-    /// Dashboard service implementation
+    /// Implementación del servicio de Dashboards
     /// </summary>
     public class DashboardService : IDashboardService
     {
@@ -296,7 +296,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Validates that the layout has no invalid overlaps
+        /// Valida que el layout no tenga superposiciones inválidas
         /// </summary>
         public async Task<bool> ValidateLayoutAsync(DashboardLayout layout)
         {
@@ -360,7 +360,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Updates the configuration JSON (JsonDiseno) of a dashboard
+        /// Actualiza el JSON de configuración (JsonDiseno) de un dashboard
         /// </summary>
         public async Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno)
         {
@@ -386,7 +386,7 @@ namespace OmniMonitor.Server.Services
             if (dashboard == null)
                 return false;
 
-            // Validate according to card type
+            // Validar según el tipo de tarjeta
             if (nuevaCard.TipoCard == 1)
             {
                 // Validar que el CardId exista en Visualizaciones
@@ -440,7 +440,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Reorders the cards (GrupoVisualizaciones) of a dashboard according to the order of the received list
+        /// Reordena las tarjetas (GrupoVisualizaciones) de un dashboard según el orden de la lista recibida
         /// </summary>
         public async Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string JsonDiseno, List<DashboardCard> orderedCards)
         {
@@ -492,7 +492,7 @@ namespace OmniMonitor.Server.Services
             int ordenEliminado = cardToRemove.Orden;
             _context.GrupoVisualizaciones.Remove(cardToRemove);
 
-            // Update the order of the cards that were after
+            // Actualizar el orden de las tarjetas que estaban después
             var cardsToUpdate = dashboard.GrupoVisualizaciones.Where(gv => gv.Orden > ordenEliminado).ToList();
             foreach (var card in cardsToUpdate)
             {
@@ -503,11 +503,11 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Updates the name and/or description of a dashboard
+        /// Actualiza el nombre y/o la descripción de un dashboard
         /// </summary>
         public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 visualizacionId, CreateVisualizacionRequest updatedCard)
         {
-            // Implementation of another method if necessary
+            // Implementación de otro método si es necesario
 
             var visualizacion = await _context.Visualizaciones
                     .Include(v => v.GrupoDatasets)
@@ -518,7 +518,7 @@ namespace OmniMonitor.Server.Services
                 return false;
             }
 
-            // Update card configuration in the visualization group
+            // Actualizar configuración de la card en el grupo visualización
             var grupovisu = await _context.GrupoVisualizaciones
                 .FirstOrDefaultAsync(gv => gv.GrupoVisualizacionId == idDashboard && gv.IdVisualizacion == visualizacion.IdVisualizacion);
 
@@ -527,7 +527,7 @@ namespace OmniMonitor.Server.Services
                 return false;
             }
 
-            // Update the visualization data
+            // Actualizar los datos de la visualización
             visualizacion.Nombre = updatedCard.Nombre;
             visualizacion.FechaDesde = updatedCard.FechaDesde;
             visualizacion.FechaHasta = updatedCard.FechaHasta;
@@ -599,7 +599,7 @@ namespace OmniMonitor.Server.Services
 
             if (!string.IsNullOrWhiteSpace(nuevoNombre) && !string.Equals(dashboard.Nombre, nuevoNombre, StringComparison.Ordinal))
             {
-                // Validate unique name per user
+                // Validar nombre único por usuario
                 var exists = await _context.Dashboards
                     .AnyAsync(d => d.Username == username && d.Nombre == nuevoNombre && d.IdDashboard != idDashboard);
                 if (exists)
@@ -635,7 +635,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Searches for dashboards by a text fragment in the name or description
+        /// Busca dashboards por un fragmento de texto en el nombre o descripción
         /// </summary>
         public async Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query)
         {

@@ -174,7 +174,7 @@
     private System.Threading.Timer? _debounceTimer;
     private bool _isLoading = true;
     
-    // Pagination variables
+    // Variables de paginación
     private int currentPage = 1;
     private int pageSize = 9;
     private int totalPages = 0;
@@ -191,15 +191,15 @@
         {
             _searchText = value ?? string.Empty;
             
-            // Cancel previous timer if it exists
+            // Cancelar el timer anterior si existe
             _debounceTimer?.Dispose();
             
-            // Create a new timer that will execute the search after 500ms
+            // Crear un nuevo timer que ejecutará la búsqueda después de 500ms
             _debounceTimer = new System.Threading.Timer(_ =>
             {
                 InvokeAsync(async () => 
                 {
-                    currentPage = 1; // Reset to first page when searching
+                    currentPage = 1; // Reset a la primera página cuando se busca
                     await LoadDatasetsAsync();
                 });
             }, null, 500, Timeout.Infinite);
@@ -216,7 +216,7 @@
     private void EditarDataset(DatasetDto dataset)
     {
         if (dataset is null) return;
-        // Pass the module as a query parameter for faster loading
+        // Pasar el módulo como parámetro de query para carga más rápida
         NavigationManager.NavigateTo($"/editarDataset/{dataset.Id}?module={Uri.EscapeDataString(dataset.Module)}");
     }
 
@@ -253,7 +253,7 @@
 
                 HttpResponseMessage response;
                 
-                // Delete according to the module
+                // Eliminar según el módulo
                 switch (dataset.Module)
                 {
                     case "Insight Monitor":
@@ -275,7 +275,7 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Remove only the dataset that matches both ID and Module
+                    // Remover solo el dataset que coincide tanto en ID como en Módulo
                     datasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
                     filteredDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
                     Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
@@ -338,7 +338,7 @@
                 return;
             }
 
-            // Configure the authorization header
+            // Configurar el header de autorización
             Http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             // Usar el endpoint paginado
@@ -390,16 +390,16 @@
         }
     }
 
-    // Obsolete method - filtering is now done in the backend
-    // Kept for compatibility but no longer used
+    // Método obsoleto - ahora el filtrado se hace en el backend
+    // Se mantiene por compatibilidad pero ya no se usa
     private void FilterDatasets()
     {
-        // This method is no longer used because filtering is done in the backend
-        // Left empty to not break existing references
+        // Este método ya no se utiliza porque el filtrado se hace en el backend
+        // Se deja vacío para no romper referencias existentes
     }
 
-    // Normalization method - kept in case needed in the future
-    // but now normalization is done in the backend
+    // Método de normalización - se mantiene en caso de necesitarse en el futuro
+    // pero ahora la normalización se hace en el backend
     private string NormalizeText(string text)
     {
         if (string.IsNullOrEmpty(text))

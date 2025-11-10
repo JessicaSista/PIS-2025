@@ -49,7 +49,7 @@ public class CustomChartsTests
             Title = "Test Chart",
             ChartType = "line",
             SourceType = "dataset",
-            DatasetId = null, // ← This should fail
+            DatasetId = null, // ← Esto debería fallar
             Mappings = new ChartMappings { XField = "date", YField = "value" },
             Appearance = new ChartAppearance { Color = "#ff0000" }
         };
@@ -91,7 +91,7 @@ public class CustomChartsTests
             Title = "Test Chart",
             ChartType = "bar",
             SourceType = "module",
-            Module = "INVALID_MODULE", // ← Invalid module
+            Module = "INVALID_MODULE", // ← Módulo inválido
             EntityType = "device"
         };
 
@@ -137,7 +137,7 @@ public class CustomChartsTests
             ChartType = "pie",
             SourceType = "module",
             Module = "IM",
-            EntityType = "invalid_entity" // ← Invalid entity for IM
+            EntityType = "invalid_entity" // ← Entidad inválida para IM
         };
 
         // Act & Assert
@@ -225,7 +225,7 @@ public class CustomChartsTests
         // Act
         var persistedChart = CreatePersistedChart(chartRequest, "user123");
 
-        // Assert - Verify minimum persisted fields
+        // Assert - Verificar campos mínimos persistidos
         Assert.NotNull(persistedChart.OwnerId);
         Assert.Equal("user123", persistedChart.OwnerId);
         Assert.Equal("Test Chart", persistedChart.Title);
@@ -332,7 +332,7 @@ public class CustomChartsTests
         var result = GetChartsPaginated(request);
 
         // Assert
-        // Verify it is sorted by updatedAt descending
+        // Verificar que está ordenado por updatedAt descendente
         if (result.Charts.Count > 1)
         {
             for (int i = 0; i < result.Charts.Count - 1; i++)
@@ -461,7 +461,7 @@ public class CustomChartsTests
 
     private ValidationResult ValidateDatasetExists(int datasetId, string userId)
     {
-        // Simulate dataset validation
+        // Simular validación de dataset
         return new ValidationResult { IsValid = false, StatusCode = 404 };
     }
 

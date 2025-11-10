@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace OmniMonitor.Shared.Dtos
 {
     /// <summary>
-    /// Many-to-many relationship table between Role and Permission
+    /// Tabla de relación muchos a muchos entre Rol y Permiso
     /// </summary>
     public class RolePermission
     {

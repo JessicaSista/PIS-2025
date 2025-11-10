@@ -139,7 +139,7 @@ public class SondaEMService : ISondaEMService
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            // Translate 404 to null so the Controller returns NotFound
+            // Traducir 404 a null para que el Controller devuelva NotFound
             return null;
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -243,7 +243,7 @@ public class SondaEMService : ISondaEMService
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
-            // The API returns an object with the list in the "results" property
+            // La API devuelve un objeto con la lista en la propiedad "results"
             var apiResponse = JsonSerializer.Deserialize<AlertApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return apiResponse?.Results ?? new List<AlertDto>();
         }
@@ -311,7 +311,7 @@ public class SondaEMService : ISondaEMService
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
-            // The API returns an object with the list in the "results" property
+            // La API devuelve un objeto con la lista en la propiedad "results"
             var apiResponse = JsonSerializer.Deserialize<AlertApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return apiResponse?.Results ?? new List<AlertDto>();
         }
@@ -362,7 +362,7 @@ public class SondaEMService : ISondaEMService
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
-            // The API returns an object with the list in the "results" property
+            // La API devuelve un objeto con la lista en la propiedad "results"
             var apiResponse = JsonSerializer.Deserialize<EventApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return apiResponse?.Results ?? new List<EventDto>();
         }
@@ -567,14 +567,14 @@ public class SondaEMService : ISondaEMService
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
-            // If the response is an object with the "results" property
+            // Si la respuesta es un objeto con la propiedad "results"
             var apiResponse = JsonSerializer.Deserialize<CategoryApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return apiResponse?.Results ?? new List<CategoryDto>();
 
         }
         else if (trimmed.StartsWith("["))
         {
-            // If the response is a direct array (just in case)
+            // Si la respuesta es un array directo (por si acaso)
             var listResponse = JsonSerializer.Deserialize<List<CategoryDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<CategoryDto>();
         }
@@ -602,10 +602,10 @@ public class SondaEMService : ISondaEMService
             throw new ArgumentException("El categoryId debe tener valor y ser mayor que cero.", nameof(categoryId));
         }
 
-        // Get all alerts according to the parameters
+        // Obtén todas las alertas según los parámetros
         var allAlerts = await GetAlerts(page, pageSize, query, stateList, x, y, r, forceGps, sort, username);
 
-        // Filter alerts that have the category with the requested id
+        // Filtra las alertas que tengan la categoría con el id solicitado
         var filteredAlerts = allAlerts
             .Where(alert => alert.AlertCategory != null && alert.AlertCategory.Id == categoryId)
             .ToList();
@@ -625,10 +625,10 @@ public class SondaEMService : ISondaEMService
         {
             throw new ArgumentException("El categoryId debe tener valor y ser mayor que cero.", nameof(categoryId));
         }
-        // Get all events according to the parameters
+        // Obtén todos los eventos según los parámetros
         var allEvents = await GetEvents(page, pageSize, sort, query, username);
 
-        // Filter events that have the category with the requested id
+        // Filtra los eventos que tengan la categoría con el id solicitado
         var filteredEvents = allEvents
             .Where(ev => ev.Categories != null && ev.Categories.Any(cat => cat.Id == categoryId))
             .ToList();

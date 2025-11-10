@@ -190,7 +190,7 @@
     private string _searchText = string.Empty;
     private bool _isLoading = true;
     
-    // Pagination variables
+    // Variables de paginación
     private int currentPage = 1;
     private int pageSize = 12;
     private int totalPages = 0;
@@ -204,8 +204,8 @@
         set
         {
             _searchText = value ?? string.Empty;
-            currentPage = 1; // Reset to first page when searching
-            _ = LoadDashboardsAsync(); // Load with new filter
+            currentPage = 1; // Reset a la primera página cuando se busca
+            _ = LoadDashboardsAsync(); // Cargar con el nuevo filtro
         }
     }
 
@@ -245,7 +245,7 @@
     {
         try
         {
-            // Build URL with pagination
+            // Construir URL con paginación
             var url = $"api/Dashboard/GetAllDashboardsPaginated?page={currentPage}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(_searchText))
             {

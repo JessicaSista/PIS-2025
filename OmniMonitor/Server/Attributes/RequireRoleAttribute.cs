@@ -6,7 +6,7 @@ using OmniMonitor.Server.Services;
 namespace OmniMonitor.Server.Attributes
 {
     /// <summary>
-    /// Attribute to verify specific roles in controllers and actions.
+    /// Atributo para verificar roles específicos en controladores y acciones.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
     public class RequireRoleAttribute : Attribute, IAsyncAuthorizationFilter

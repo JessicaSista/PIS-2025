@@ -91,10 +91,10 @@ namespace OmniMonitor.Server.Context
         {
             base.OnModelCreating(builder);
 
-            // Configure role and permission system relationships
+            // Configurar relaciones del sistema de roles y permisos
             ConfigureRolePermissionRelationships(builder);
 
-            // Configure dashboard relationships
+            // Configurar relaciones de dashboards
             ConfigureDashboardRelationships(builder);
 
             ConfigureCrossModuleJoins(builder);
