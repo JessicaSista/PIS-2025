@@ -1,4 +1,4 @@
-using System.Text.Json;
+Ôªøusing System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -175,9 +175,9 @@ namespace OmniMonitor.Server.Services
             var kpi = await _context.Kpi.FirstOrDefaultAsync(k => k.Id == kpiId);
 
             if (kpi == null)
-                throw new KeyNotFoundException($"No se encontrÛ el KPI con ID {kpiId}.");
+                throw new KeyNotFoundException($"No se encontr√≥ el KPI con ID {kpiId}.");
 
-            //verificar que el usuario sea dueÒo del KPI
+            //verificar que el usuario sea due√±o del KPI
             if (!string.IsNullOrEmpty(username) && kpi.Username != username)
                 throw new UnauthorizedAccessException("No tiene permisos para eliminar este KPI.");
 
@@ -192,57 +192,57 @@ namespace OmniMonitor.Server.Services
 
             var existingKpi = await _context.Kpi.FindAsync(kpiId);
             if (existingKpi == null)
-                throw new KeyNotFoundException($"No se encontrÛ el KPI con ID {kpiId}.");
+                throw new KeyNotFoundException($"No se encontr√≥ el KPI con ID {kpiId}.");
 
             if (!string.IsNullOrEmpty(username) && existingKpi.Username != username)
                 throw new UnauthorizedAccessException("No tiene permisos para editar este KPI.");
 
             if (request.Name != null && string.IsNullOrWhiteSpace(request.Name))
-                throw new ArgumentException("Name provisto pero vacÌo.", nameof(request.Name));
+                throw new ArgumentException("Name provisto pero vac√≠o.", nameof(request.Name));
 
             if (request.SourceModule != null && string.IsNullOrWhiteSpace(request.SourceModule))
-                throw new ArgumentException("SourceModule provisto pero vacÌo.", nameof(request.SourceModule));
+                throw new ArgumentException("SourceModule provisto pero vac√≠o.", nameof(request.SourceModule));
 
             if (request.DatasetId.HasValue && request.DatasetId.Value <= 0)
                 throw new ArgumentOutOfRangeException(nameof(request.DatasetId), "DatasetId debe ser mayor que 0.");
 
             if (request.Unit != null && string.IsNullOrWhiteSpace(request.Unit))
-                throw new ArgumentException("Unit provisto pero vacÌo.", nameof(request.Unit));
+                throw new ArgumentException("Unit provisto pero vac√≠o.", nameof(request.Unit));
 
             if (request.Metric != null && string.IsNullOrWhiteSpace(request.Metric))
-                throw new ArgumentException("Metric provisto pero vacÌo.", nameof(request.Metric));
+                throw new ArgumentException("Metric provisto pero vac√≠o.", nameof(request.Metric));
 
             if (request.Multiplier.HasValue && request.Multiplier.Value <= 0)
                 throw new ArgumentOutOfRangeException(nameof(request.Multiplier), "Multiplier debe ser mayor que 0.");
 
             if (request.DefaultColor != null && !IsValidHexColor(request.DefaultColor))
-                throw new ArgumentException("DefaultColor no es un color hex v·lido (ej. #RRGGBB).", nameof(request.DefaultColor));
+                throw new ArgumentException("DefaultColor no es un color hex v√°lido (ej. #RRGGBB).", nameof(request.DefaultColor));
 
             if (request.ColorRanges != null)
             {
                 try
                 {
-                    // validamos que sea una lista de ColorRange v·lida
+                    // validamos que sea una lista de ColorRange v√°lida
                     var ranges = JsonSerializer.Deserialize<List<ColorRange>>(request.ColorRanges);
                     if (ranges == null)
-                        throw new ArgumentException("ColorRanges inv·lido o vacÌo.", nameof(request.ColorRanges));
+                        throw new ArgumentException("ColorRanges inv√°lido o vac√≠o.", nameof(request.ColorRanges));
                 }
                 catch (JsonException)
                 {
-                    throw new ArgumentException("ColorRanges no es JSON v·lido.", nameof(request.ColorRanges));
+                    throw new ArgumentException("ColorRanges no es JSON v√°lido.", nameof(request.ColorRanges));
                 }
             }
 
-            // Si la mÈtrica (efectiva) requiere extraInfo (rango de fechas), validamos que exista y sea correcto.
+            // Si la m√©trica (efectiva) requiere extraInfo (rango de fechas), validamos que exista y sea correcto.
             var effectiveMetric = (request.Metric ?? existingKpi.Metric)?.Trim().ToLower();
             if (!string.IsNullOrEmpty(effectiveMetric) &&
                 (effectiveMetric == "average" || effectiveMetric == "min" || effectiveMetric == "max" ||
                  effectiveMetric == "minvalue" || effectiveMetric == "maxvalue"))
             {
-                // extraInfo puede venir en el request (si se est· actualizando) o ya existir en el KPI
+                // extraInfo puede venir en el request (si se est√° actualizando) o ya existir en el KPI
                 var extraInfoToCheck = request.ExtraInfo ?? existingKpi.ExtraInfo;
                 if (string.IsNullOrWhiteSpace(extraInfoToCheck))
-                    throw new ArgumentException($"ExtraInfo requerida para la mÈtrica '{effectiveMetric}'.", nameof(request.ExtraInfo));
+                    throw new ArgumentException($"ExtraInfo requerida para la m√©trica '{effectiveMetric}'.", nameof(request.ExtraInfo));
 
                 try
                 {
@@ -256,15 +256,15 @@ namespace OmniMonitor.Server.Services
                 }
                 catch (JsonException)
                 {
-                    throw new ArgumentException("ExtraInfo no es JSON v·lido.", nameof(request.ExtraInfo));
+                    throw new ArgumentException("ExtraInfo no es JSON v√°lido.", nameof(request.ExtraInfo));
                 }
                 catch (FormatException)
                 {
-                    throw new ArgumentException("Las fechas en ExtraInfo no tienen un formato v·lido (ISO).", nameof(request.ExtraInfo));
+                    throw new ArgumentException("Las fechas en ExtraInfo no tienen un formato v√°lido (ISO).", nameof(request.ExtraInfo));
                 }
             }
 
-            // --- APLICAR CAMBIOS (sÛlo si vinieron valores v·lidos; strings se trimmed)
+            // --- APLICAR CAMBIOS (s√≥lo si vinieron valores v√°lidos; strings se trimmed)
             if (request.Name != null) existingKpi.Name = request.Name.Trim();
             if (request.Description != null) existingKpi.Description = request.Description.Trim();
             if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule.Trim();
@@ -322,7 +322,7 @@ namespace OmniMonitor.Server.Services
             var kpi = await _context.Kpi.FindAsync(kpiId);
 
             if (kpi == null)
-                throw new ArgumentException($"No se encontrÛ el KPI con ID {kpiId}");
+                throw new ArgumentException($"No se encontr√≥ el KPI con ID {kpiId}");
 
             return kpi;
         }
@@ -413,6 +413,7 @@ namespace OmniMonitor.Server.Services
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"Error calculando KPI {kpi.Id}: {ex.Message}");
                 }
             }
 
@@ -421,10 +422,11 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username)
         {
+            // Obtener dataset asociado al KPI
             var dataset = await _datasetService.GetDatasetIMByIdAsync(kpi.DatasetId, kpi.Username);
 
             if (dataset == null)
-                throw new Exception($"No se encontrÛ el dataset con ID {kpi.DatasetId} para el KPI {kpi.Name}");
+                throw new Exception($"No se encontr√≥ el dataset con ID {kpi.DatasetId} para el KPI {kpi.Name}");
 
             KpiResponse? response;
 
@@ -447,17 +449,17 @@ namespace OmniMonitor.Server.Services
                     break;
 
                 default:
-                    throw new ArgumentException($"MÈtrica no soportada para IM: {kpi.Metric}");
+                    throw new ArgumentException($"M√©trica no soportada para IM: {kpi.Metric}");
             }
 
             return response;
         }
 
 
-        // Funciones privadas por mÛdulo
+        // Funciones privadas por m√≥dulo
         private async Task<KpiResponse> CalculateAmKpiAsync(Kpi kpi, string username)
         {
-            // LÛgica para AM seg˙n Type
+            // L√≥gica para AM seg√∫n Type
             var dataset = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
             if (dataset == null)
             {
@@ -471,12 +473,14 @@ namespace OmniMonitor.Server.Services
             KpiResponse? response;
             if (kpi.Type == 1)
             {
+                // Buscar assets relacionados al dataset
                 var reducedAssets = await _datasetAmService.GetReducedAssetsByDatasetIdAsync(kpi.DatasetId, username);
                 response = await _kpiAMService.CalculateAmKpiAsync(kpi, username, reducedAssets);
                 return response;
             }
             else if (kpi.Type == 2)
             {
+                // Buscar event task instances relacionados al dataset
                 /*var eventTasks = new List<EventTaskInstanceDto>();
                 if (dataset.Grupo_Event_Task_Instance != null)
                 {
@@ -487,42 +491,46 @@ namespace OmniMonitor.Server.Services
                             eventTasks.Add(eventTask);
                     }
                 }
+                // Imprimir la lista enviada
+                Console.WriteLine("Lista de EventTaskInstanceDto enviada a CalculateAmKpiAsync:");
                 foreach (var et in eventTasks)
                 {
+                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(et));
                 }*/
                 var eventTasks = await _datasetAmService.GetReducedEventsByDatasetIdAsync(kpi.DatasetId, username);
                 var result = await _kpiAMService.CalculateAmKpiAsync(kpi, username, eventTasks);
+                // Imprimir el resultado devuelto
+                Console.WriteLine("Resultado devuelto por CalculateAmKpiAsync:");
+                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
                 return result;
             } else if (kpi.Type == 3) // Stock
             {
                         var datasetAM = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
                         var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
-                        if (datasetAM.Grupo_Event_Task_Instance != null)
+                        if (datasetAM.Grupo_Stock != null)
                         {
-                            foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
+                            Console.WriteLine($"Grupo_Stock count: {datasetAM.Grupo_Stock.Count}");
+                            foreach (var dsStock in datasetAM.Grupo_Stock)
                             {
-                                if (eventTaskInstance.Grupo_Stock != null)
+                                Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
+                                var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
+                                if (stockDto != null)
                                 {
-                                    foreach (var dsStock in eventTaskInstance.Grupo_Stock)
+                                    Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
+                                    stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
                                     {
-                                        var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
-                                        if (stockDto != null)
-                                        {
-                                            stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
-                                            {
-                                                Nombre = stockDto.Name,
-                                                Cantidad = stockDto.Quantity,
-                                                Proveedor = stockDto.Provider?.Name ?? string.Empty,
-                                                Sku = stockDto.Sku ?? string.Empty,
-                                                Minimo = stockDto.Minimum,
-                                                Bundle = stockDto.Bundle?.Name ?? stockDto.BundleId.ToString(),
-                                                Supervisor = stockDto.Supervisor?.UserName ?? string.Empty
-                                            });
-                                        }
-                                        else
-                                        {
-                                        }
-                                    }
+                                        Nombre = stockDto.Name,
+                                        Cantidad = stockDto.Quantity,
+                                        Proveedor = stockDto.Provider?.Name ?? string.Empty,
+                                        Sku = stockDto.Sku ?? string.Empty,
+                                        Minimo = stockDto.Minimum,
+                                        Bundle = stockDto.Bundle?.Name ?? stockDto.BundleId.ToString(),
+                                        Supervisor = stockDto.Supervisor?.UserName ?? string.Empty
+                                    });
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
                                 }
                             }
                         }
@@ -533,6 +541,7 @@ namespace OmniMonitor.Server.Services
                         } else {
                             
                             var aux = ExtractFieldValuesFromLists(stockData, kpi.Atributo);
+                            Console.WriteLine($"Valores extra√≠dos para atributo '{kpi.Atributo}': [{string.Join(", ", aux)}]");
                             switch (kpi.Metric.ToLower())
                             {
                                 case "count":
@@ -543,9 +552,11 @@ namespace OmniMonitor.Server.Services
                                         if (!string.IsNullOrEmpty(kpi.ColorRanges))
                                         {
                                             color = GetColorForValue(kpi.ColorRanges, suma, kpi.DefaultColor);
+                                            Console.WriteLine($"[DEBUG] Calculando color para KPI {kpi.Id}: valor={suma}, color={color}, rangos={kpi.ColorRanges}");
                                         }
                                         else
                                         {
+                                            Console.WriteLine($"[DEBUG] Usando color por defecto para KPI {kpi.Id}: valor={suma}, color={color}");
                                         }
                                         return new KpiResponse
                                         {
@@ -570,9 +581,11 @@ namespace OmniMonitor.Server.Services
                                         if (!string.IsNullOrEmpty(kpi.ColorRanges))
                                         {
                                             color = GetColorForValue(kpi.ColorRanges, promedio, kpi.DefaultColor);
+                                            Console.WriteLine($"[DEBUG] Calculando color para KPI {kpi.Id}: valor={promedio}, color={color}, rangos={kpi.ColorRanges}");
                                         }
                                         else
                                         {
+                                            Console.WriteLine($"[DEBUG] Usando color por defecto para KPI {kpi.Id}: valor={promedio}, color={color}");
                                         }
                                         return new KpiResponse
                                         {
@@ -607,11 +620,13 @@ namespace OmniMonitor.Server.Services
                     Value = null
                 };
             }
+            // Otros tipos o default
+            
         }
 
         private async Task<KpiResponse> CalculateEmKpiAsync(Kpi kpi, string username)
         {
-            // LÛgica para EM seg˙n Type
+            // L√≥gica para EM seg√∫n Type
             var dataset = await _datasetEmService.GetDatasetEMByIdAsync(kpi.DatasetId, username);
             if (dataset == null)
             {
@@ -648,6 +663,7 @@ namespace OmniMonitor.Server.Services
             }
             else if (kpi.Type == 2)
             {
+                // Buscar alertas relacionadas al dataset
                 var eventIds = dataset.DatasetEvents.Select(e => e.Id_event).ToHashSet();
                 var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
                 var eventDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedEventEMDTO>();
@@ -668,6 +684,7 @@ namespace OmniMonitor.Server.Services
             }
             else if (kpi.Type == 3)
             {
+                // Buscar extensiones relacionadas al dataset
                 var extIds = dataset.DatasetExtensions.Select(x => x.Id_extension).ToList();
                         var extDtos = new List<OmniMonitor.Shared.Dtos.EM.DatasetReducedExtensionEMDTO>();
                         foreach (var id in extIds)
@@ -689,6 +706,7 @@ namespace OmniMonitor.Server.Services
                         }
                 return await _kpiAMService.CalculateAmKpiAsync(kpi, username, extDtos);
             }
+            // Otros tipos o default
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -700,7 +718,7 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateUmKpiAsync(Kpi kpi, string username)
         {
-            // LÛgica para UM seg˙n Type
+            // L√≥gica para UM seg√∫n Type
             var datasetUM = await _datasetUMService.GetDatasetUMByIdAsync(kpi.DatasetId, username);
             if (datasetUM == null)
             {
@@ -770,6 +788,7 @@ namespace OmniMonitor.Server.Services
                         }
                 return await _kpiAMService.CalculateAmKpiAsync(kpi, username, newsDtos);
             }
+            // Otros tipos o default
             return new KpiResponse
             {
                 Name = kpi.Name,
@@ -786,7 +805,7 @@ namespace OmniMonitor.Server.Services
 
             var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null)
-                throw new Exception($"No se encontrÛ el source con ID {dataset.Id_Source}.");
+                throw new Exception($"No se encontr√≥ el source con ID {dataset.Id_Source}.");
 
             if (source.Devices == null || source.Devices.Count == 0)
                 throw new Exception($"No se encontraron devices en el source {source.Id}.");
@@ -834,6 +853,7 @@ namespace OmniMonitor.Server.Services
                         break;
 
                     default:
+                        Console.WriteLine($"Tipo de sensor desconocido: {type}");
                         break;
                 }
             }
@@ -895,10 +915,12 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (average) - fechas inv·lidas",
+                    Value = "Pendiente de implementar (average) - fechas inv√°lidas",
                     Type = null
                 };
             }
+
+            // 2. Obtener el source del dataset
             var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
@@ -913,6 +935,8 @@ namespace OmniMonitor.Server.Services
                     Type = null
                 };
             }
+
+            // 3. Buscar device que tenga el sensor
             int? deviceId = null;
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
@@ -942,6 +966,8 @@ namespace OmniMonitor.Server.Services
                     Type = null
                 };
             }
+
+            // 4. Obtener datos del sensor (solo Data y Time)
             var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
@@ -957,7 +983,7 @@ namespace OmniMonitor.Server.Services
                 };
             }
 
-            // 5. Filtrar solo valores numÈricos y calcular promedio
+            // 5. Filtrar solo valores num√©ricos y calcular promedio
             double sum = 0;
             int count = 0;
             foreach (var data in sensorData)
@@ -978,14 +1004,14 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (average) - sin valores numÈricos",
+                    Value = "Pendiente de implementar (average) - sin valores num√©ricos",
                     Type = sensorType
                 };
             }
 
             var average = sum / count;
 
-            // 6. Calcular color seg˙n ColorRanges
+            // 6. Calcular color seg√∫n ColorRanges
             string actualColor = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
             {
@@ -1053,10 +1079,12 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (min) - fechas inv·lidas",
+                    Value = "Pendiente de implementar (min) - fechas inv√°lidas",
                     Type = null
                 };
             }
+
+            // 2. Obtener el source del dataset
             var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
@@ -1071,6 +1099,8 @@ namespace OmniMonitor.Server.Services
                     Type = null
                 };
             }
+
+            // 3. Buscar device que tenga el sensor
             int? deviceId = null;
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
@@ -1100,6 +1130,8 @@ namespace OmniMonitor.Server.Services
                     Type = null
                 };
             }
+
+            // 4. Obtener datos del sensor
             var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
@@ -1115,7 +1147,7 @@ namespace OmniMonitor.Server.Services
                 };
             }
 
-            // 5. Filtrar solo valores numÈricos y encontrar el mÌnimo
+            // 5. Filtrar solo valores num√©ricos y encontrar el m√≠nimo
             double? minValue = null;
             foreach (var data in sensorData)
             {
@@ -1135,12 +1167,12 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (min) - sin valores numÈricos",
+                    Value = "Pendiente de implementar (min) - sin valores num√©ricos",
                     Type = sensorType
                 };
             }
 
-            // 6. Calcular color seg˙n ColorRanges
+            // 6. Calcular color seg√∫n ColorRanges
             string actualColor = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
             {
@@ -1237,10 +1269,12 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (max) - fechas inv·lidas",
+                    Value = "Pendiente de implementar (max) - fechas inv√°lidas",
                     Type = null
                 };
             }
+
+            // 2. Obtener el source del dataset
             var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null || source.Devices == null || source.Devices.Count == 0)
             {
@@ -1255,6 +1289,8 @@ namespace OmniMonitor.Server.Services
                     Type = null
                 };
             }
+
+            // 3. Buscar device que tenga el sensor
             int? deviceId = null;
             string? sensorType = null;
             foreach (var deviceSummary in source.Devices)
@@ -1284,6 +1320,8 @@ namespace OmniMonitor.Server.Services
                     Type = null
                 };
             }
+
+            // 4. Obtener datos del sensor
             var sensorData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, dateFrom, dateTo, username);
             if (sensorData == null || sensorData.Count == 0)
             {
@@ -1299,7 +1337,7 @@ namespace OmniMonitor.Server.Services
                 };
             }
 
-            // 5. Filtrar solo valores numÈricos y encontrar el m·ximo
+            // 5. Filtrar solo valores num√©ricos y encontrar el m√°ximo
             double? maxValue = null;
             foreach (var data in sensorData)
             {
@@ -1319,12 +1357,12 @@ namespace OmniMonitor.Server.Services
                     Description = kpi.Description,
                     Unit = kpi.Unit,
                     ActualColor = kpi.DefaultColor,
-                    Value = "Pendiente de implementar (max) - sin valores numÈricos",
+                    Value = "Pendiente de implementar (max) - sin valores num√©ricos",
                     Type = sensorType
                 };
             }
 
-            // 6. Calcular color seg˙n ColorRanges
+            // 6. Calcular color seg√∫n ColorRanges
             string actualColor = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
             {
@@ -1366,19 +1404,25 @@ namespace OmniMonitor.Server.Services
                 var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson, options);
                 if (ranges == null)
                 {
+                    Console.WriteLine($"[DEBUG] ColorRanges nulo. Usando color por defecto: {defaultColor}");
                     return defaultColor;
                 }
 
+                Console.WriteLine($"[DEBUG] Buscando color para valor: {value}. Rango JSON: {colorRangesJson}");
                 foreach (var range in ranges)
                 {
+                    Console.WriteLine($"[DEBUG] Rango: min={range.min}, max={range.max}, color={range.color}");
                     if (value >= range.min && value <= range.max)
                     {
+                        Console.WriteLine($"[DEBUG] Valor {value} est√° en el rango [{range.min}, {range.max}]. Color seleccionado: {range.color}");
                         return range.color;
                     }
                 }
+                Console.WriteLine($"[DEBUG] Ning√∫n rango coincide para valor {value}. Usando color por defecto: {defaultColor}");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[DEBUG] Error al deserializar ColorRanges o calcular color: {ex.Message}. Usando color por defecto: {defaultColor}");
                 return defaultColor;
             }
             return defaultColor;
@@ -1427,10 +1471,10 @@ namespace OmniMonitor.Server.Services
                 throw new ArgumentException("El ID del dataset debe ser mayor que 0.");
 
             if (string.IsNullOrWhiteSpace(modulo))
-                throw new ArgumentException("El mÛdulo no puede estar vacÌo.");
+                throw new ArgumentException("El m√≥dulo no puede estar vac√≠o.");
 
             if (string.IsNullOrWhiteSpace(campo))
-                throw new ArgumentException("El campo no puede estar vacÌo.");
+                throw new ArgumentException("El campo no puede estar vac√≠o.");
 
             List<string> fieldValues = new List<string>();
 
@@ -1439,7 +1483,7 @@ namespace OmniMonitor.Server.Services
                 case "AM":
                     var datasetAM = await _context.DatasetAM.FirstOrDefaultAsync(d => d.Id_Dataset == datasetId);
                     if (datasetAM == null)
-                        throw new ArgumentException($"No se encontrÛ un dataset AM con ID {datasetId}.");
+                        throw new ArgumentException($"No se encontr√≥ un dataset AM con ID {datasetId}.");
 
                     if (choice == 1) // Assets
                     {
@@ -1457,15 +1501,19 @@ namespace OmniMonitor.Server.Services
                         var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
                         if (datasetAM.Grupo_Event_Task_Instance != null)
                         {
+                            Console.WriteLine($"EventTaskInstances count: {datasetAM.Grupo_Event_Task_Instance.Count}");
                             foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
                             {
                                 if (eventTaskInstance.Grupo_Stock != null)
                                 {
+                                    Console.WriteLine($"  Grupo_Stock count: {eventTaskInstance.Grupo_Stock.Count}");
                                     foreach (var dsStock in eventTaskInstance.Grupo_Stock)
                                     {
+                                        Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
                                         var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
                                         if (stockDto != null)
                                         {
+                                            Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
                                             stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
                                             {
                                                 Nombre = stockDto.Name,
@@ -1479,6 +1527,7 @@ namespace OmniMonitor.Server.Services
                                         }
                                         else
                                         {
+                                            Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
                                         }
                                     }
                                 }
@@ -1486,8 +1535,10 @@ namespace OmniMonitor.Server.Services
                         }
                         
                         
+                        Console.WriteLine($"StockData count: {stockData.Count}");
                         foreach (var s in stockData)
                         {
+                            Console.WriteLine($"Stock Nombre: {s.Nombre}");
                         }
                         fieldValues = await _kpiAMService.GetFieldValuesAsync(stockData, campo);
                     }
@@ -1496,7 +1547,7 @@ namespace OmniMonitor.Server.Services
                 case "EM":
                     var datasetEM = await _datasetEmService.GetDatasetEMByIdAsync(datasetId, username);
                     if (datasetEM == null)
-                        throw new ArgumentException($"No se encontrÛ un dataset EM con ID {datasetId}.");
+                        throw new ArgumentException($"No se encontr√≥ un dataset EM con ID {datasetId}.");
 
                     // Alerts
                     if (choice == 1 && datasetEM.DatasetAlerts != null && datasetEM.DatasetAlerts.Any())
@@ -1573,7 +1624,7 @@ namespace OmniMonitor.Server.Services
                 case "UM":
                     var datasetUM = await _datasetUMService.GetDatasetUMByIdAsync(datasetId, username);
                     if (datasetUM == null)
-                        throw new ArgumentException($"No se encontrÛ un dataset UM con ID {datasetId}.");
+                        throw new ArgumentException($"No se encontr√≥ un dataset UM con ID {datasetId}.");
 
                     // Events
                     if (choice == 1 && datasetUM.DatasetEvents != null && datasetUM.DatasetEvents.Any())
@@ -1641,10 +1692,10 @@ namespace OmniMonitor.Server.Services
                     break;
                 
                 case "IM":
-                    throw new NotSupportedException("El mÛdulo IM no soporta este tipo de consulta.");
+                    throw new NotSupportedException("El m√≥dulo IM no soporta este tipo de consulta.");
 
                 default:
-                    throw new ArgumentException($"MÛdulo '{modulo}' no soportado.");
+                    throw new ArgumentException($"M√≥dulo '{modulo}' no soportado.");
             }
 
             return fieldValues.Distinct().OrderBy(v => v).ToList();

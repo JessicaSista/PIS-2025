@@ -3,22 +3,17 @@ using OmniMonitor.Server.Context;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OmniMonitor.Shared.Dtos;
+
 
 namespace OmniMonitor.Server.Controllers
 {
-    public enum TipoPropiedad
-    {
-        String,
-        Numero,
-        Fecha,
-        Enumerado,
-        Boolean
-    }
+    // Usar los tipos definidos en ApiDataService
 
     public class PropiedadEntidadDto
     {
         public string Nombre { get; set; } = string.Empty;
-        public TipoPropiedad Tipo { get; set; }
+    public FilterValueType Tipo { get; set; }
     }
 
     [ApiController]
@@ -52,27 +47,27 @@ namespace OmniMonitor.Server.Controllers
                     switch (entidadId)
                     {
                         case 2: // Noticias
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Title", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "DatePublished", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Summary", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Description", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "StartDate", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "EndDate", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Important", Tipo = TipoPropiedad.Boolean });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Zone", Tipo = TipoPropiedad.Enumerado });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Title", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "DatePublished", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Summary", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Description", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "StartDate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "EndDate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Important", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Zone", Tipo = FilterValueType.Enum });
                             break;
                         case 1: // Eventos
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Description", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Date", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Type.Name", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "TypeId", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Location", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "ApprovalState", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "ReviewedAt", Tipo = TipoPropiedad.Fecha });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Description", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Date", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Type.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TypeId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Location", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ApprovalState", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ReviewedAt", Tipo = FilterValueType.Date });
                             break;
                     }
                     break;
@@ -80,29 +75,29 @@ namespace OmniMonitor.Server.Controllers
                     switch (entidadId)
                     {
                         case 1: // Asset
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "ExternalId", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Code", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Address", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "LifeTimeToDate", Tipo = TipoPropiedad.Numero });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ExternalId", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Code", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Address", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LifeTimeToDate", Tipo = FilterValueType.Number });
                             break;
                         case 2: // EventTaskInstance
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "StartDate", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "State", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Subject", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "FinalizedDate", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Critical", Tipo = TipoPropiedad.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "StartDate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "State", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Subject", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "FinalizedDate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Critical", Tipo = FilterValueType.Boolean });
                             break;
                         case 3: // Stock
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Quantity", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Location", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sku", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Minimum", Tipo = TipoPropiedad.Numero });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Quantity", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Location", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sku", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Minimum", Tipo = FilterValueType.Number });
                             //faltarian categories y tambien los Dtos compuestos
                             break;
                     }
@@ -111,42 +106,42 @@ namespace OmniMonitor.Server.Controllers
                     switch (entidadId)
                     {
                         case 1: // Alertas
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertId", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertName", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceId", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceAddress", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertState", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertCategory.Name", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertData", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "ModifiedAt", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "DeviceType", Tipo = TipoPropiedad.Numero });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertName", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceAddress", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertState", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertCategory.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "AlertData", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ModifiedAt", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "DeviceType", Tipo = FilterValueType.Number });
                             break;
                         case 2: // Eventos
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Origin", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "DateTime", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreationDate", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastModification", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceType", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "State", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = TipoPropiedad.Enumerado });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Origin", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "DateTime", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreationDate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastModification", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceType", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "State", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
                             break;
                         case 3: // Extensiones
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "ExtensionId", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "ExtensionState", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "TakenByUsername", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventDateTime", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastModification", Tipo = TipoPropiedad.Fecha });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "WorkZoneId", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "WorkZoneName", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventId", Tipo = TipoPropiedad.Numero });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventName", Tipo = TipoPropiedad.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Dangerous", Tipo = TipoPropiedad.Boolean });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Address", Tipo = TipoPropiedad.Enumerado });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = TipoPropiedad.Enumerado });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ExtensionId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ExtensionState", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TakenByUsername", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventDateTime", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastModification", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "WorkZoneId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "WorkZoneName", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventName", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Dangerous", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Address", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
                             break;
                     }
                     break;
@@ -290,5 +285,92 @@ namespace OmniMonitor.Server.Controllers
 
             return Ok(valores.Distinct().ToList());
         }
+
+            // DTO para la petición de filtrado
+    // Usar FiltrarDatosRequest desde Shared.Dtos
+
+    [HttpPost("FiltrarDatos")]
+    public async Task<ActionResult<List<object>>> FiltrarDatos([FromBody] OmniMonitor.Shared.Dtos.FiltrarDatosRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token))
+            return BadRequest("El parámetro 'token' es obligatorio.");
+
+        string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+        if (string.IsNullOrWhiteSpace(username))
+            return BadRequest("No se pudo obtener el usuario a partir del token.");
+
+        IEnumerable<object> entidades = Enumerable.Empty<object>();
+        bool moduloValido = true, entidadValida = true;
+
+        switch (request.Modulo)
+        {
+            case "UM":
+                if (request.EntidadId == 1)
+                    entidades = await _sondaUMService.GetAllNews(username);
+                else if (request.EntidadId == 2)
+                    entidades = await _sondaUMService.GetAllEvents(username);
+                else
+                    entidadValida = false;
+                break;
+            case "AM":
+                if (request.EntidadId == 1)
+                    entidades = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
+                else if (request.EntidadId == 2)
+                    entidades = await _sondaAMService.GetEventTaskInstances(
+                        "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
+                else if (request.EntidadId == 3)
+                    entidades = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
+                else
+                    entidadValida = false;
+                break;
+            case "EM":
+                if (request.EntidadId == 1)
+                    entidades = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
+                else if (request.EntidadId == 2)
+                    entidades = await _sondaEMService.GetEvents(null, null, null, null, username);
+                else if (request.EntidadId == 3)
+                    entidades = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
+                else
+                    entidadValida = false;
+                break;
+            default:
+                moduloValido = false;
+                break;
+        }
+
+        if (!moduloValido)
+            return BadRequest("Módulo no definido");
+        if (!entidadValida)
+            return BadRequest("Entidad no definida para el módulo seleccionado");
+
+        // DEBUG: Mostrar filtros recibidos
+        Console.WriteLine($"[DEBUG] Filtros recibidos: {request.Filtros.Count}");
+        foreach (var filtro in request.Filtros)
+        {
+            Console.WriteLine($"[DEBUG] Filtro: AttributeName={filtro.AttributeName}, Type={filtro.Type}, ValueType={filtro.ValueType}, Condition={filtro.Condition}");
+        }
+
+        // DEBUG: Mostrar propiedades de los objetos antes de filtrar
+        int idx = 0;
+        foreach (var entidad in entidades)
+        {
+            Console.WriteLine($"[DEBUG] Entidad #{idx}: Tipo={entidad.GetType().Name}");
+            foreach (var prop in entidad.GetType().GetProperties())
+            {
+                var val = prop.GetValue(entidad);
+                Console.WriteLine($"    Propiedad: {prop.Name} = {val}");
+            }
+            idx++;
+        }
+
+        // Filtrar usando ApiDataService.FilterObjects
+        var filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filtros);
+        Console.WriteLine($"[DEBUG] Total objetos filtrados: {filtrados.Count}");
+        foreach (var obj in filtrados)
+        {
+            Console.WriteLine($"[DEBUG] Filtrado: Tipo={obj.GetType().Name}");
+        }
+        return Ok(filtrados);
     }
-}
+
+}}
