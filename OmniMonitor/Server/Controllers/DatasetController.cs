@@ -157,6 +157,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("GetDatasetSinToken")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]

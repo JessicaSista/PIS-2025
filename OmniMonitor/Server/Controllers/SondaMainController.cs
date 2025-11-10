@@ -347,6 +347,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("sensors/dataSinToken")]
         [ProducesResponseType(typeof(List<SensorData>), 200)]
         [ProducesResponseType(404)]

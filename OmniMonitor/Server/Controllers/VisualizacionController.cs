@@ -106,6 +106,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
 
+        [AllowAnonymous]
         [HttpGet("GetVisualizacionByIdSinToken")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(404)]
@@ -301,6 +302,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("visualization-dataSinToken")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]
