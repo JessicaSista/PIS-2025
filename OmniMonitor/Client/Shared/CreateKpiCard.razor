@@ -55,7 +55,7 @@
                         </MudSelect>
                     </div>
 
-                    <!-- Multiplier (visible si dataset num�rico) -->
+                    <!-- Multiplier (visible si dataset numérico) -->
                     @if (_isNumericDataset)
                     {
                         <div style="display: flex; flex-direction: column;">
@@ -113,7 +113,7 @@
                               Style="background: var(--card);" />
 
                 <!-- Module-specific UI -->
-                <!-- Si el m�dulo soporta m�tricas mostramos la select de m�tricas -->
+                <!-- Si el módulo soporta métricas mostramos la select de métricas -->
                 @if (ModuleHasMetric)
                 {
                     <MudSelect T="string" @bind-Value="_metric"
@@ -157,8 +157,7 @@
                     }
                 }
 
-                /* --- importante: mostramos atributos para TODOS los m�dulos que NO sean Insight Monitor,
-                incluyendo AM/EM/UM � esto reemplaza el antiguo 'else if' que ocultaba la UI cuando hab�a m�tricas */
+               
                 @if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     <!-- Non-IM modules: Type buttons + Atributo + Valor -->
@@ -181,7 +180,7 @@
                         {
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
                             <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensi�n</MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
                         }
                     </div>
 
@@ -199,7 +198,7 @@
                         }
                         else
                         {
-                            <MudSelectItem T="string" Disabled="true">�</MudSelectItem>
+                            <MudSelectItem T="string" Disabled="true">-</MudSelectItem>
                         }
                     </MudSelect>
 
@@ -366,7 +365,7 @@
     private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<string> _countPercentTypes = new() { "count", "percentage" };
 
-    // helper: el m�dulo acepta las m�tricas count/percentage
+    // helper: el modulo acepta las metricas count/percentage
     private bool ModuleUsesCountPercentage =>
         !string.IsNullOrWhiteSpace(_selectedModuleName) &&
         (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase)
@@ -376,12 +375,12 @@
          || string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
          || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase));
 
-    // helper: el m�dulo tiene m�trica (IM o los otros)
+    // helper: el módulo tiene métrica (IM o los otros)
     private bool ModuleHasMetric =>
         string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase)
         || ModuleUsesCountPercentage;
 
-    // helper: obtener las opciones de m�trica seg�n m�dulo
+    // helper: obtener las opciones de métrica según módulo
     private IEnumerable<string> GetMetricOptions()
     {
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
@@ -516,7 +515,7 @@
 
         _selectedModuleName = _selectedDatasetModule;
 
-        // Si el m�dulo es AM/EM/UM asumimos dataset num�rico (no hacemos la comprobaci�n)
+        // Si el módulo es AM/EM/UM asumimos dataset numérico (no hacemos la comprobación)
         var moduleCode = GetModuleCode(_selectedModuleName);
         if (!string.IsNullOrWhiteSpace(moduleCode) &&
             (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase)
@@ -527,14 +526,14 @@
         }
         else
         {
-            // para IM y otros m�dulos hacemos la comprobaci�n del sensor (si aplica)
+            // para IM y otros módulos hacemos la comprobación del sensor (si aplica)
             if (_selectedDatasetId != 0)
                 await UpdateSensorType(_selectedDatasetId);
             else
                 _isNumericDataset = false;
         }
 
-        // setear m�trica por defecto seg�n m�dulo
+        // setear métrica por defecto según módulo
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
             _metric = "lastValue";
@@ -651,7 +650,7 @@
 
         try
         {
-            // si _selectedType es null, mandar 0 por seguridad (o podr�as requerir que el usuario elija tipo)
+            // si _selectedType es null, mandar 0 por seguridad (o podrías requerir que el usuario elija tipo)
             var choice = _selectedType ?? 0;
 
             var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}";
@@ -680,7 +679,7 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
-    // 4) IsFormValid actualizado: exigir m�trica para esos m�dulos
+    // 4) IsFormValid actualizado: exigir metrica para esos modulos
     private bool IsFormValid
     {
         get
@@ -688,12 +687,12 @@
             if (_selectedDatasetId == 0) return false;
             if (string.IsNullOrWhiteSpace(_name)) return false;
 
-            // Si el m�dulo usa m�tricas (IM o AM/EM/UM con count/percentage) exigir m�trica
+            // Si el modulo usa metricas (IM o AM/EM/UM con count/percentage) exigir metrica
             if (ModuleHasMetric)
             {
                 if (string.IsNullOrWhiteSpace(_metric)) return false;
 
-                // Para IM, las m�tricas average/min/max requieren date range
+                // Para IM, las metricas average/min/max requieren date range
                 if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     if ((_metric == "average" || _metric == "min" || _metric == "max"))
@@ -703,7 +702,7 @@
                 }
             }
 
-            // Para todos los m�dulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
+            // Para todos los modulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
             if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
             {
                 if (!_selectedType.HasValue) return false;
@@ -788,7 +787,7 @@
             Description = _description?.Trim(),
             DatasetId = _selectedDatasetId,
             Unit = "x",
-            // 4) Metric: enviarla si el m�dulo soporta m�tricas (IM o AM/EM/UM)
+            // 4) Metric: enviarla si el modulo soporta metricas (IM o AM/EM/UM)
             Metric = ModuleHasMetric ? _metric : null,
             // Multiplier only if numeric
             Multiplier = _isNumericDataset ? (double?)_multiplier : null,
