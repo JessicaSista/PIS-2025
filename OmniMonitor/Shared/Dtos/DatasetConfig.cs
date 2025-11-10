@@ -9,6 +9,6 @@ namespace OmniMonitor.Shared.Dtos
     public class DatasetConfig
     {
         public int DatasetId { get; set; }
-        public string JsonDiseño { get; set; }
+        public string JsonDiseno { get; set; }
     }
 }
