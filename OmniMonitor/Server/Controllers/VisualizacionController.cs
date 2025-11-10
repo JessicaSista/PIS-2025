@@ -23,7 +23,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Creates a new visualization.
+        /// Crea una nueva visualización.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Visualizations.Create")]
@@ -42,7 +42,7 @@ namespace OmniMonitor.Server.Controllers
 
                 Visualizacion nuevaVisualizacion = await _visualizacionService.CreateVisualizacionAsync(request);
 
-                // Returns a 201 Created response with the location of the new resource
+                // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
                 return CreatedAtAction(nameof(GetVisualizacionById), new { idVisualizacion = nuevaVisualizacion.IdVisualizacion, username = nuevaVisualizacion.Username }, nuevaVisualizacion);
             }
             catch (ArgumentException ex)
@@ -51,12 +51,12 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error creating visualization: {ex.Message}");
+                return StatusCode(500, $"Error interno al crear la visualización: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Gets all visualizations for a specific user.
+        /// Obtiene todas las visualizaciones para un usuario específico.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Visualizations.View")]
@@ -78,7 +78,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Gets a specific visualization by its ID and username.
+        /// Obtiene una visualización específica por su ID y nombre de usuario.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Visualizations.View")]
@@ -94,14 +94,14 @@ namespace OmniMonitor.Server.Controllers
                 Visualizacion? visualizacion = await _visualizacionService.GetVisualizacionByIdAsync(idVisualizacion, username);
                 if (visualizacion == null)
                 {
-                    return NotFound($"Visualization with ID not found {idVisualizacion} para el usuario {username}.");
+                    return NotFound($"No se encontró la visualización con ID {idVisualizacion} para el usuario {username}.");
                 }
 
                 return Ok(visualizacion);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error getting visualization: {ex.Message}");
+                return StatusCode(500, $"Error interno al obtener la visualización: {ex.Message}");
             }
         }
 
@@ -117,19 +117,19 @@ namespace OmniMonitor.Server.Controllers
                 Visualizacion? visualizacion = await _visualizacionService.GetVisualizacionByIdAsyncSinToken(idVisualizacion);
                 if (visualizacion == null)
                 {
-                    return NotFound($"Visualization with ID not found {idVisualizacion}");
+                    return NotFound($"No se encontró la visualización con ID {idVisualizacion}");
                 }
 
                 return Ok(visualizacion);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error getting visualization: {ex.Message}");
+                return StatusCode(500, $"Error interno al obtener la visualización: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Deletes a visualization by its ID.
+        /// Elimina una visualización por su ID.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Visualizations.Delete")]
@@ -144,7 +144,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return Unauthorized("Invalid token or user not found.");
+                    return Unauthorized("Token inválido o usuario no encontrado.");
                 }
 
                 using (IServiceScope scope = HttpContext.RequestServices.CreateScope())
@@ -155,7 +155,7 @@ namespace OmniMonitor.Server.Controllers
                         .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion);
                     if (visualizacion == null)
                     {
-                        return NotFound($"Visualization with ID not found {idVisualizacion}.");
+                        return NotFound($"No se encontró la visualización con ID {idVisualizacion}.");
                     }
 
                     // Eliminar todos los GrupoVisualizacion asociados
@@ -172,12 +172,12 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error deleting visualization: {ex.Message}");
+                return StatusCode(500, $"Error interno al eliminar la visualización: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// Edits an existing visualization by its ID.
+        /// Edita una visualización existente por su ID.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Visualizations.Edit")]
@@ -193,7 +193,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return Unauthorized("Invalid token or user not found.");
+                    return Unauthorized("Token inválido o usuario no encontrado.");
                 }
 
                 if (!ModelState.IsValid)
@@ -208,15 +208,15 @@ namespace OmniMonitor.Server.Controllers
                     .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion);
                 if (visualizacion == null)
                 {
-                    return NotFound($"Visualization with ID not found {idVisualizacion}.");
+                    return NotFound($"No se encontró la visualización con ID {idVisualizacion}.");
                 }
 
-                // Validate unique name (except the visualization itself)
+                // Validar nombre único (excepto la propia visualización)
                 bool nombreDuplicado = await db.Visualizaciones
                     .AnyAsync(v => v.IdVisualizacion != idVisualizacion && v.Nombre == request.Nombre);
                 if (nombreDuplicado)
                 {
-                    return BadRequest($"Another visualization already exists with the name '{request.Nombre}'.");
+                    return BadRequest($"Ya existe otra visualización con el nombre '{request.Nombre}'.");
                 }
 
                 // Validar fechas
@@ -227,14 +227,14 @@ namespace OmniMonitor.Server.Controllers
 
                 if (request.FechaDesde == default || request.FechaHasta == default)
                 {
-                    return BadRequest("Start and end dates must be valid.");
+                    return BadRequest("Las fechas de inicio y fin deben ser válidas.");
                 }
 
                 // Actualizar campos principales
                 visualizacion.Nombre = request.Nombre;
                 visualizacion.FechaDesde = request.FechaDesde;
                 visualizacion.FechaHasta = request.FechaHasta;
-                visualizacion.JsonDesign = request.JsonDisenoGeneral;
+                visualizacion.JsonDesign = request.JsonDiseñoGeneral;
 
                 // --- Sincronizar GrupoDatasets ---
                 var requestDatasetIds = request.Datasets.Select(ds => ds.DatasetId).ToHashSet();
@@ -244,7 +244,7 @@ namespace OmniMonitor.Server.Controllers
                     db.GrupoDatasets.Remove(gd);
                 }
 
-                // Actualizar o agregar los que are in the request
+                // Actualizar o agregar los que están en el request
                 foreach (DatasetConfig ds in request.Datasets)
                 {
                     // Validar que el dataset exista en la tabla DatasetIM
@@ -258,14 +258,14 @@ namespace OmniMonitor.Server.Controllers
                     GrupoDataset? existing = visualizacion.GrupoDatasets.FirstOrDefault(gd => gd.DatasetId == ds.DatasetId);
                     if (existing != null)
                     {
-                        existing.JsonDesign = ds.JsonDiseno;
+                        existing.JsonDesign = ds.JsonDiseño;
                     }
                     else
                     {
                         visualizacion.GrupoDatasets.Add(new GrupoDataset
                         {
                             DatasetId = ds.DatasetId,
-                            JsonDesign = ds.JsonDiseno,
+                            JsonDesign = ds.JsonDiseño,
                         });
                     }
                 }
@@ -275,7 +275,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error editing visualization: {ex.Message}");
+                return StatusCode(500, $"Error interno al editar la visualización: {ex.Message}");
             }
         }
 
@@ -297,7 +297,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error generating visualization data: {ex.Message}");
+                return StatusCode(500, $"Error interno al generar los datos de visualización: {ex.Message}");
             }
         }
 
@@ -318,7 +318,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal error generating visualization data: {ex.Message}");
+                return StatusCode(500, $"Error interno al generar los datos de visualización: {ex.Message}");
             }
         }
     }

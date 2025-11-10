@@ -33,7 +33,7 @@ namespace OmniMonitor.Client.Auth
             _navigationManager = navigationManager;
         }
 
-        // Metodo auxiliar para forzar el logout y la redireccion
+        // M�todo auxiliar para forzar el logout y la redirecci�n
         private async Task ForceLogoutAndRedirect()
         {
             var apiProvider = _authStateProvider as ApiAuthenticationStateProvider;

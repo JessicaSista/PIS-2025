@@ -54,9 +54,15 @@
     {   
         var apiAuthStateProvider = (Auth.ApiAuthenticationStateProvider)AuthStateProvider;
         await apiAuthStateProvider.NotifyUserLogout();
+        // Navigation.NavigateTo("/login");
 
+
+        // Forzar un re-renderizado de este componente (y del Router)
+        // so that the 'NotAuthorized' state applies before jumping.
         StateHasChanged();
 
+        // Peque�o delay opcional si la UI es muy pesada (aunque no ideal):
+        // await Task.Delay(1);
 
         Navigation.NavigateTo("/login");
     }

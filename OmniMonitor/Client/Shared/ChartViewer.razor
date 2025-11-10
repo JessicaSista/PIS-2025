@@ -110,7 +110,7 @@
     // Parameters
     [Parameter] public int VisualizationId { get; set; }
 
-    // To reload the chart from outside
+    // Para recargar la gr�fica desde el exterior
     [Parameter]
     public int ChartReloadKey
     {
@@ -482,7 +482,7 @@
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
         DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
-        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Edit Visualization", parameters, options);
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualizaci�n", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -491,7 +491,7 @@
             await RetrieveData();
             StateHasChanged();
             _chartKey++;
-            Snackbar.Add("Visualization updated", Severity.Success);
+            Snackbar.Add("Visualizaci�n actualizada", Severity.Success);
         }
     }
 
