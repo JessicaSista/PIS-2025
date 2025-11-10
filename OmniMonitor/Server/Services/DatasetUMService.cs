@@ -8,11 +8,13 @@ namespace OmniMonitor.Server.Services
     public interface IDatasetUMService
     {
         Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request, int dataset);
+        Task<DatasetUM> CreateDatasetUMWithFiltersAsync(CreateDatasetUMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetUM>> GetAllDatasetsUMAsync(string username);
         Task<DatasetUM?> GetDatasetUMByIdAsync(int datasetId, string username);
     Task<DatasetUM?> GetDatasetUMByIdAsyncSinToken(int datasetId);
         Task<DatasetUM?> GetDatasetUMByIdForEditAsync(int datasetId, string username);
         Task<DatasetUM> UpdateDatasetUMAsync(int datasetId, CreateDatasetUMRequest request);
+        Task<DatasetUM> UpdateDatasetUMWithFiltersAsync(int datasetId, CreateDatasetUMRequest request, List<FilterCondition> filters);
         Task DeleteDatasetUMAsync(int datasetId, string username);
         Task<Datasets> CreateDatasetAsync(CreateDatasetRequest request);
         Task<List<Datasets>> GetAllDatasetsAsync(string username);
@@ -49,6 +51,31 @@ namespace OmniMonitor.Server.Services
                 Id_Zone = request.ZoneId,
                 DatasetId = dataset,
                 ContentType = GetContentType(request)
+            };
+
+            UpdateRelationsFromRequest(newDataset, request);
+
+            _context.DatasetsUM.Add(newDataset);
+            await _context.SaveChangesAsync();
+
+            return newDataset;
+        }
+
+        public async Task<DatasetUM> CreateDatasetUMWithFiltersAsync(CreateDatasetUMRequest request, int dataset, List<FilterCondition> filters)
+        {
+            // Serializar los filtros a JSON
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+            
+            var newDataset = new DatasetUM
+            {
+                Username = request.Username,
+                Name = request.Name,
+                Description = request.Description,
+                Is_Dataset = request.IsDataset,
+                Id_Zone = request.ZoneId,
+                DatasetId = dataset,
+                ContentType = GetContentType(request),
+                Filters = filtersJson // Almacenar los filtros como JSON
             };
 
             UpdateRelationsFromRequest(newDataset, request);
@@ -223,6 +250,42 @@ namespace OmniMonitor.Server.Services
             existingDataset.Id_Zone = request.ZoneId;
 
             // Eliminar relaciones existentes (si no tienes Cascade Delete, si lo tienes puedes solo limpiar)
+            _context.DatasetEvents.RemoveRange(existingDataset.DatasetEvents);
+            _context.DatasetNews.RemoveRange(existingDataset.DatasetNews);
+
+            // Limpiar colecciones
+            existingDataset.DatasetEvents.Clear();
+            existingDataset.DatasetNews.Clear();
+
+            // Agregar nuevas relaciones
+            UpdateRelationsFromRequest(existingDataset, request);
+
+            await _context.SaveChangesAsync();
+            return existingDataset;
+        }
+
+        public async Task<DatasetUM> UpdateDatasetUMWithFiltersAsync(int datasetId, CreateDatasetUMRequest request, List<FilterCondition> filters)
+        {
+            var existingDataset = await _context.DatasetsUM
+                .Include(d => d.DatasetEvents)
+                .Include(d => d.DatasetNews)
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
+
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            // Serializar los filtros a JSON
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+
+            // Actualizar campos básicos
+            existingDataset.Name = request.Name;
+            existingDataset.Description = request.Description;
+            existingDataset.Is_Dataset = request.IsDataset;
+            existingDataset.ContentType = GetContentType(request);
+            existingDataset.Id_Zone = request.ZoneId;
+            existingDataset.Filters = filtersJson; // Actualizar los filtros
+
+            // Eliminar relaciones existentes
             _context.DatasetEvents.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetNews.RemoveRange(existingDataset.DatasetNews);
 
