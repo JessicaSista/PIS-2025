@@ -7,16 +7,16 @@
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8">
         <h1 class="text-4xl font-bold text-gray-800">Panel de Control de Reportes</h1>
-        <p class="text-gray-600 mt-2">Crea Joins, construye reportes y a��deles los joins que necesites.</p>
+        <p class="text-gray-600 mt-2">Create Joins, build reports and add the joins you need.</p>
     </header>
 
     <!-- Session Token Card -->
     <div class="card mb-8 max-w-xl mx-auto">
-        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Autenticaci�n</h2>
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Authentication</h2>
         <div class="flex items-end space-x-2">
             <div class="flex-grow">
-                <label for="session-token" class="form-label">Token de Sesi�n (de Local Storage)</label>
-                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="El token se cargar� aqu�..." readonly />
+                <label for="session-token" class="form-label">Session Token (from Local Storage)</label>
+                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="The token will be loaded here..." readonly />
             </div>
             <button class="btn btn-secondary" @onclick="LoadData">Cargar Datos</button>
         </div>
@@ -113,7 +113,7 @@
                             <div class="p-3 border rounded-md @(selectedReport?.Id == report.Id ? "bg-blue-100 border-blue-400" : "bg-gray-50")">
                                 <p class="font-semibold">@report.Name (ID: @report.Id)</p>
                                 <div class="mt-2 space-x-2">
-                                    <button class="btn btn-sm btn-secondary" @onclick="() => SelectReport(report)">A�adir Joins</button>
+                                    <button class="btn btn-sm btn-secondary" @onclick="() => SelectReport(report)">Add Joins</button>
                                 </div>
                             </div>
                         }
@@ -135,13 +135,13 @@
             </div>
         </div>
 
-        <!-- Columna de Acci�n / Resultados -->
+        <!-- Action / Results Column -->
         <div class="lg:col-span-1">
             <div class="card sticky top-8">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-700">3. A�adir Join al Reporte</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">3. Add Join to Report</h2>
                 @if (selectedReport != null)
                 {
-                    <p class="mb-4">A�adiendo a: <strong class="text-blue-600">@selectedReport.Name</strong></p>
+                    <p class="mb-4">Adding to: <strong class="text-blue-600">@selectedReport.Name</strong></p>
                     <div class="space-y-3 max-h-64 overflow-y-auto p-2 border rounded-md">
                         @if (joins.Any())
                         {
@@ -149,20 +149,20 @@
                             {
                                 <div class="flex items-center justify-between p-2 hover:bg-gray-100 rounded-md">
                                     <label class="min-w-0 flex-1 text-gray-700">@join.Name</label>
-                                    <button class="btn btn-sm btn-success" @onclick="() => HandleAddJoinToReport(join.Id)">A�adir</button>
+                                    <button class="btn btn-sm btn-success" @onclick="() => HandleAddJoinToReport(join.Id)">Add</button>
                                 </div>
                             }
                         }
                         else
                         {
-                            <p class="text-gray-500">No hay Joins disponibles para a�adir.</p>
+                            <p class="text-gray-500">No hay Joins disponibles para Add.</p>
                         }
                     </div>
                     <button class="btn btn-secondary w-full mt-4" @onclick="() => selectedReport = null">Cancelar</button>
                 }
                 else
                 {
-                    <p class="text-gray-500">Selecciona un reporte de la lista para empezar a a�adirle joins.</p>
+                    <p class="text-gray-500">Selecciona un reporte de la lista para empezar a Addle joins.</p>
                 }
 
                 <h2 class="text-2xl font-semibold mt-6 mb-4 text-gray-700">Resultados</h2>
@@ -197,7 +197,7 @@
     private CreateJoinRequestDto newJoin = new();
     private CreateEmptyReportRequestDto newReport = new();
     private Report? selectedReport;
-    private string resultJson = "Los resultados de las operaciones aparecer�n aqu�...";
+    private string resultJson = "Operation results will appear here...";
 
     // --- Lifecycle and Data Loading ---
     protected override async Task OnInitializedAsync()
@@ -223,7 +223,7 @@
         await LoadTokenFromLocalStorage();
         if (string.IsNullOrWhiteSpace(sessionToken))
         {
-            DisplayResult(new { Error = "El token de sesi�n es necesario para cargar los datos." });
+            DisplayResult(new { Error = "The session token is required to load the data." });
             return;
         }
         await LoadReports();
@@ -272,7 +272,7 @@
 
     private async Task HandleCreateReport()
     {
-        // Este endpoint no requiere token seg�n tu controlador
+        // This endpoint does not require a token according to your controller
         try
         {
             var response = await Http.PostAsJsonAsync(ApiBaseUrl, newReport);
@@ -291,14 +291,14 @@
     private void SelectReport(Report report)
     {
         selectedReport = report;
-        resultJson = $"Seleccionado '{report.Name}'. Ahora puedes a�adirle joins desde el panel de la derecha.";
+        resultJson = $"Seleccionado '{report.Name}'. Ahora puedes Addle joins desde el panel de la derecha.";
     }
 
     private async Task HandleAddJoinToReport(int joinId)
     {
         if (selectedReport == null || string.IsNullOrWhiteSpace(sessionToken))
         {
-            DisplayResult(new { Error = "Por favor, selecciona un reporte y aseg�rate de que el token est� cargado." });
+            DisplayResult(new { Error = "Please select a report and make sure the token is loaded." });
             return;
         }
 
@@ -310,9 +310,9 @@
             if (response.IsSuccessStatusCode)
             {
                 var link = await response.Content.ReadFromJsonAsync<ReportJoin>();
-                DisplayResult(new { Success = $"Join {joinId} a�adido al reporte {selectedReport.Name}!", Response = link });
+                DisplayResult(new { Success = $"Join {joinId} added to report {selectedReport.Name}!", Response = link });
             }
-            else { DisplayResult(new { Error = "Fallo al a�adir el join.", Details = await response.Content.ReadAsStringAsync() }); }
+            else { DisplayResult(new { Error = "Fallo al Add el join.", Details = await response.Content.ReadAsStringAsync() }); }
         }
         catch (Exception ex) { DisplayResult(new { Error = ex.Message }); }
     }
