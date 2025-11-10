@@ -24,7 +24,7 @@ namespace OmniMonitor.Server.Attributes
             logger.LogInformation("--- [RequireRole] Authorization Check Started ---");
             logger.LogInformation("Required Role: {Role}", _roleName);
 
-            IAuthorizationService authorizationService = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+            IPermissionService permissionService = context.HttpContext.RequestServices.GetRequiredService<IPermissionService>();
 
             Claim? userIdClaim = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -35,7 +35,7 @@ namespace OmniMonitor.Server.Attributes
                 return;
             }
 
-            bool hasRole = await authorizationService.HasRoleAsync(userId, _roleName);
+            bool hasRole = await permissionService.HasRoleAsync(userId, _roleName);
             if (!hasRole)
             {
                 logger.LogWarning("Authorization FAILED: User {UserId} does not have role '{Role}'", userId, _roleName);

@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,6 +11,7 @@ using Microsoft.OpenApi.Models;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Models;
+using OmniMonitor.Server.Security;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -40,14 +42,15 @@ builder.Logging.AddAzureWebAppDiagnostics();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. ASP.NET Core Identity Configuration (AÑADIDO)
-builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
+// ASP.NET Core Identity Configuration - Solo usuarios (sin roles de Identity)
+builder.Services.AddIdentityCore<User>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireLowercase = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
+.AddSignInManager<SignInManager<User>>()
 .AddDefaultTokenProviders();
 
 string corsPolicy = "CORSPolicy";
@@ -100,6 +103,89 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 // --- END OF JWT SECTION ---
 
+// --- AUTHORIZATION POLICIES ---
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    // Definir políticas para cada permiso modular
+    // Estas políticas se usan con [RequirePermission("Module.Action")]
+    
+    // Módulo Users
+    options.AddPolicy("Users.View", policy => policy.Requirements.Add(new PermissionRequirement("Users.View")));
+    options.AddPolicy("Users.Create", policy => policy.Requirements.Add(new PermissionRequirement("Users.Create")));
+    options.AddPolicy("Users.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Users.Edit")));
+    options.AddPolicy("Users.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Users.Delete")));
+
+    // Módulo Dashboards
+    options.AddPolicy("Dashboards.View", policy => policy.Requirements.Add(new PermissionRequirement("Dashboards.View")));
+    options.AddPolicy("Dashboards.Create", policy => policy.Requirements.Add(new PermissionRequirement("Dashboards.Create")));
+    options.AddPolicy("Dashboards.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Dashboards.Edit")));
+    options.AddPolicy("Dashboards.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Dashboards.Delete")));
+    options.AddPolicy("Dashboards.Share", policy => policy.Requirements.Add(new PermissionRequirement("Dashboards.Share")));
+
+    // Módulo Datasets
+    options.AddPolicy("Datasets.View", policy => policy.Requirements.Add(new PermissionRequirement("Datasets.View")));
+    options.AddPolicy("Datasets.Create", policy => policy.Requirements.Add(new PermissionRequirement("Datasets.Create")));
+    options.AddPolicy("Datasets.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Datasets.Edit")));
+    options.AddPolicy("Datasets.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Datasets.Delete")));
+
+    // Módulo Visualizations
+    options.AddPolicy("Visualizations.View", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.View")));
+    options.AddPolicy("Visualizations.Create", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Create")));
+    options.AddPolicy("Visualizations.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Edit")));
+    options.AddPolicy("Visualizations.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Delete")));
+
+    // Módulo Reports
+    options.AddPolicy("Reports.View", policy => policy.Requirements.Add(new PermissionRequirement("Reports.View")));
+    options.AddPolicy("Reports.Create", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Create")));
+    options.AddPolicy("Reports.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Edit")));
+    options.AddPolicy("Reports.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Delete")));
+    options.AddPolicy("Reports.Export", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Export")));
+
+    // Módulo Sensors
+    options.AddPolicy("Sensors.View", policy => policy.Requirements.Add(new PermissionRequirement("Sensors.View")));
+    options.AddPolicy("Sensors.Configure", policy => policy.Requirements.Add(new PermissionRequirement("Sensors.Configure")));
+
+    // Módulo Devices
+    options.AddPolicy("Devices.View", policy => policy.Requirements.Add(new PermissionRequirement("Devices.View")));
+    options.AddPolicy("Devices.Manage", policy => policy.Requirements.Add(new PermissionRequirement("Devices.Manage")));
+
+    // Módulo Assets
+    options.AddPolicy("Assets.View", policy => policy.Requirements.Add(new PermissionRequirement("Assets.View")));
+    options.AddPolicy("Assets.Create", policy => policy.Requirements.Add(new PermissionRequirement("Assets.Create")));
+    options.AddPolicy("Assets.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Assets.Edit")));
+    options.AddPolicy("Assets.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Assets.Delete")));
+
+    // Módulo Tasks
+    options.AddPolicy("Tasks.View", policy => policy.Requirements.Add(new PermissionRequirement("Tasks.View")));
+    options.AddPolicy("Tasks.Create", policy => policy.Requirements.Add(new PermissionRequirement("Tasks.Create")));
+    options.AddPolicy("Tasks.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Tasks.Edit")));
+    options.AddPolicy("Tasks.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Tasks.Delete")));
+
+    // Módulo Zones
+    options.AddPolicy("Zones.View", policy => policy.Requirements.Add(new PermissionRequirement("Zones.View")));
+    options.AddPolicy("Zones.Manage", policy => policy.Requirements.Add(new PermissionRequirement("Zones.Manage")));
+
+    // Módulo Events
+    options.AddPolicy("Events.View", policy => policy.Requirements.Add(new PermissionRequirement("Events.View")));
+    options.AddPolicy("Events.Manage", policy => policy.Requirements.Add(new PermissionRequirement("Events.Manage")));
+
+    // Módulo Alerts
+    options.AddPolicy("Alerts.View", policy => policy.Requirements.Add(new PermissionRequirement("Alerts.View")));
+    options.AddPolicy("Alerts.Manage", policy => policy.Requirements.Add(new PermissionRequirement("Alerts.Manage")));
+
+    // Módulo System
+    options.AddPolicy("System.ViewRoles", policy => policy.Requirements.Add(new PermissionRequirement("System.ViewRoles")));
+    options.AddPolicy("System.ManageRoles", policy => policy.Requirements.Add(new PermissionRequirement("System.ManageRoles")));
+    options.AddPolicy("System.ViewPermissions", policy => policy.Requirements.Add(new PermissionRequirement("System.ViewPermissions")));
+    options.AddPolicy("System.ManagePermissions", policy => policy.Requirements.Add(new PermissionRequirement("System.ManagePermissions")));
+    options.AddPolicy("System.ViewLogs", policy => policy.Requirements.Add(new PermissionRequirement("System.ViewLogs")));
+    options.AddPolicy("System.ViewSettings", policy => policy.Requirements.Add(new PermissionRequirement("System.ViewSettings")));
+    options.AddPolicy("System.ManageSettings", policy => policy.Requirements.Add(new PermissionRequirement("System.ManageSettings")));
+});
+// --- END OF AUTHORIZATION POLICIES ---
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
@@ -115,7 +201,7 @@ builder.Services.AddScoped<ISondaUMService, SondaUMService>();
 builder.Services.AddScoped<ISondaAMService, SondaAMService>();
 builder.Services.AddScoped<ISondaEMService, SondaEMService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IDatasetService, DatasetIMService>();
 builder.Services.AddScoped<IDatasetAmService, DatasetAmService>();
 builder.Services.AddScoped<IDatasetUMService, DatasetUMService>();
@@ -172,19 +258,21 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<User>>();
         var context = services.GetRequiredService<ApplicationDbContext>();
 
-        logger.LogInformation("Iniciando seeding de usuarios...");
+        logger.LogInformation("Iniciando seeding de usuarios y roles...");
 
         await context.Database.MigrateAsync();
 
         // --- Crear usuario 'admin' ---
         string adminUsername = "admin";
         string adminPassword = "adminadmin";
-        if (await userManager.FindByNameAsync(adminUsername) == null)
+        var adminUser = await userManager.FindByNameAsync(adminUsername);
+        
+        if (adminUser == null)
         {
-            var adminUser = new User
+            adminUser = new User
             {
                 UserName = adminUsername,
-                Email = "IgnacioLavagnino@omnimonitor.com",
+                Email = "admin@omnimonitor.com",
                 EmailConfirmed = true
             };
             var result = await userManager.CreateAsync(adminUser, adminPassword);
@@ -197,32 +285,43 @@ using (var scope = app.Services.CreateScope())
                 logger.LogError($"Error al crear usuario '{adminUsername}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
             }
         }
-        else { logger.LogInformation($"Usuario '{adminUsername}' ya existe."); }
+        else 
+        { 
+            logger.LogInformation($"Usuario '{adminUsername}' ya existe."); 
+        }
 
-        // --- Crear usuario 'visitante' ---
-        string visitorUsername = "visitante";
-        string visitorPassword = "visitante";
-        if (await userManager.FindByNameAsync(visitorUsername) == null)
+        // --- Asignar rol Admin al usuario admin ---
+        if (adminUser != null)
         {
-            var visitorUser = new User
+            var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+            if (adminRole != null)
             {
-                UserName = visitorUsername,
-                Email = "visitante@omnimonitor.com",
-                EmailConfirmed = true
-            };
-            var result = await userManager.CreateAsync(visitorUser, visitorPassword);
-            if (result.Succeeded)
-            {
-                logger.LogInformation($"Usuario '{visitorUsername}' creado exitosamente.");
+                var existingUserRole = await context.UserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == adminUser.Id && ur.RoleId == adminRole.Id);
+                
+                if (existingUserRole == null)
+                {
+                    var userRole = new UserRole
+                    {
+                        UserId = adminUser.Id,
+                        RoleId = adminRole.Id
+                    };
+                    context.UserRoles.Add(userRole);
+                    await context.SaveChangesAsync();
+                    logger.LogInformation($"Rol 'Admin' asignado al usuario '{adminUsername}'.");
+                }
+                else
+                {
+                    logger.LogInformation($"Usuario '{adminUsername}' ya tiene el rol 'Admin'.");
+                }
             }
             else
             {
-                logger.LogError($"Error al crear usuario '{visitorUsername}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                logger.LogWarning("Rol 'Admin' no encontrado en la base de datos. Asegúrate de que las migraciones se hayan ejecutado correctamente.");
             }
         }
-        else { logger.LogInformation($"Usuario '{visitorUsername}' ya existe."); }
 
-        logger.LogInformation("Seeding de usuarios completado.");
+        logger.LogInformation("Seeding de usuarios y roles completado.");
     }
     catch (Exception ex)
     {

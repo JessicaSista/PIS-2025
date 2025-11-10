@@ -4,36 +4,55 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Services
 {
-    public interface IAuthorizationService
+    public interface IPermissionService
     {
         Task<bool> HasPermissionAsync(int userId, string permissionName);
         Task<bool> HasRoleAsync(int userId, string roleName);
         Task<List<string>> GetUserRolesAsync(int userId);
         Task<List<Permission>> GetUserPermissionsAsync(int userId);
         Task<List<Permission>> GetRolePermissionsAsync(string roleName);
+        Task<List<string>> GetUserPermissionClaimsAsync(int userId);
     }
 
-    public class AuthorizationService : IAuthorizationService
+    public class PermissionService : IPermissionService
     {
         private readonly ApplicationDbContext _context;
 
-        public AuthorizationService(ApplicationDbContext context)
+        public PermissionService(ApplicationDbContext context)
         {
             _context = context;
         }
 
         /// <summary>
         /// Verifica si un usuario tiene un permiso específico
+        /// Considera tanto permisos heredados de roles como claims específicos del usuario
         /// </summary>
         public async Task<bool> HasPermissionAsync(int userId, string permissionName)
         {
-            var hasPermission = await _context.UserRoles
+            // Verificar si el usuario tiene un claim explícito que REVOCA este permiso
+            var deniedClaim = await _context.UserClaims
+                .Where(uc => uc.UserId == userId && uc.Permission.Name == permissionName && !uc.IsGranted)
+                .AnyAsync();
+
+            if (deniedClaim)
+                return false;
+
+            // Verificar si tiene el permiso por claims directos
+            var hasDirectClaim = await _context.UserClaims
+                .Where(uc => uc.UserId == userId && uc.Permission.Name == permissionName && uc.IsGranted)
+                .AnyAsync();
+
+            if (hasDirectClaim)
+                return true;
+
+            // Verificar si tiene el permiso por roles
+            var hasPermissionFromRole = await _context.UserRoles
                 .Where(ur => ur.UserId == userId)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => rp.Permission)
                 .AnyAsync(p => p.Name == permissionName);
 
-            return hasPermission;
+            return hasPermissionFromRole;
         }
 
         /// <summary>
@@ -63,18 +82,45 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Obtiene todos los permisos de un usuario
+        /// Obtiene todos los permisos de un usuario (roles + claims específicos)
         /// </summary>
         public async Task<List<Permission>> GetUserPermissionsAsync(int userId)
         {
-            var permissions = await _context.UserRoles
+            // Permisos de roles
+            var rolePermissions = await _context.UserRoles
                 .Where(ur => ur.UserId == userId)
                 .SelectMany(ur => ur.Role.RolePermissions)
                 .Select(rp => rp.Permission)
-                .Distinct()
                 .ToListAsync();
 
-            return permissions;
+            // Claims específicos del usuario (solo granted)
+            var userClaimPermissions = await _context.UserClaims
+                .Where(uc => uc.UserId == userId && uc.IsGranted)
+                .Select(uc => uc.Permission)
+                .ToListAsync();
+
+            // Claims revocados del usuario
+            var revokedPermissionIds = await _context.UserClaims
+                .Where(uc => uc.UserId == userId && !uc.IsGranted)
+                .Select(uc => uc.PermissionId)
+                .ToListAsync();
+
+            // Combinar y filtrar
+            var allPermissions = rolePermissions.Concat(userClaimPermissions)
+                .Where(p => !revokedPermissionIds.Contains(p.Id))
+                .DistinctBy(p => p.Id)
+                .ToList();
+
+            return allPermissions;
+        }
+
+        /// <summary>
+        /// Obtiene todos los permisos del usuario como claims en formato Module.Action
+        /// </summary>
+        public async Task<List<string>> GetUserPermissionClaimsAsync(int userId)
+        {
+            var permissions = await GetUserPermissionsAsync(userId);
+            return permissions.Select(p => p.Name).ToList();
         }
 
         /// <summary>
