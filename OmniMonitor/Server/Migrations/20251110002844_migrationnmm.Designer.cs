@@ -12,13 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-<<<<<<<< HEAD:OmniMonitor/Server/Migrations/20251105040521_new_cmm.Designer.cs
-    [Migration("20251105040521_new_cmm")]
-    partial class new_cmm
-========
-    [Migration("20251107235849_initial")]
-    partial class initial
->>>>>>>> b005cc0906c1ef31d939e8bae46acb46488e0902:OmniMonitor/Server/Migrations/20251107235849_initial.Designer.cs
+    [Migration("20251110002844_migrationnmm")]
+    partial class migrationnmm
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -700,13 +695,18 @@ namespace OmniMonitor.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Grupo_Stock"));
 
-                    b.Property<int>("DatasetEventTaskInstanceId")
+                    b.Property<int>("DatasetAMId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DatasetEventTaskInstanceId")
                         .HasColumnType("int");
 
                     b.Property<int>("Id_Stock")
                         .HasColumnType("int");
 
                     b.HasKey("Grupo_Stock");
+
+                    b.HasIndex("DatasetAMId");
 
                     b.HasIndex("DatasetEventTaskInstanceId");
 
@@ -1743,13 +1743,17 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", "DatasetEventTaskInstance")
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetAM", "DatasetAM")
                         .WithMany("Grupo_Stock")
-                        .HasForeignKey("DatasetEventTaskInstanceId")
+                        .HasForeignKey("DatasetAMId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("DatasetEventTaskInstance");
+                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", null)
+                        .WithMany("Grupo_Stock")
+                        .HasForeignKey("DatasetEventTaskInstanceId");
+
+                    b.Navigation("DatasetAM");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
@@ -1874,6 +1878,8 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Grupo_Asset");
 
                     b.Navigation("Grupo_Event_Task_Instance");
+
+                    b.Navigation("Grupo_Stock");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>

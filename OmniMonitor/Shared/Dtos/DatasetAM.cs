@@ -39,8 +39,9 @@ namespace OmniMonitor.Shared.Dtos
         public int? Id_Asset_Type { get; set; }
 
         public ICollection<DatasetAsset> Grupo_Asset { get; set; } = new List<DatasetAsset>();
+        public ICollection<DatasetStock> Grupo_Stock { get; set; } = new List<DatasetStock>();
 
-        public int DatasetId { get; set; }  // Clave foránea
+        public int DatasetId { get; set; }  // Clave forï¿½nea
         [ForeignKey(nameof(DatasetId))]
         public virtual Datasets Datasets { get; set; } = null!;
     }

@@ -16,13 +16,15 @@ namespace OmniMonitor.Server.Controllers
         private readonly IDatasetEMService _datasetEMService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IDatasetUMService _datasetUMService;
+        private readonly ISondaEMService _sondaEMService;
         private readonly ApplicationDbContext _context;
 
-        public DatasetEMController(IDatasetEMService datasetEMService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ApplicationDbContext context)
+        public DatasetEMController(IDatasetEMService datasetEMService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ISondaEMService sondaEMService, ApplicationDbContext context)
         {
             _datasetEMService = datasetEMService;
             _sondaAuthService = sondaAuthService;
             _datasetUMService = datasetUMService;
+            _sondaEMService = sondaEMService;
             _context = context;
         }
 
@@ -71,6 +73,145 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
+            }
+        }
+
+                /// <summary>
+        /// Crea un nuevo dataset EM con filtrado.
+        /// </summary>
+        [HttpPost("filtered")]
+        [ProducesResponseType(typeof(DatasetEM), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetEM>> CreateDatasetEMFiltered([FromBody] CreateDatasetEMFilteredRequest request)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var req = request.DatasetRequest;
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
+                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+
+                // Filtrado para Alert, Event, Extension, Category
+                if (req.ContentType == "1") // Alert
+                {
+                    var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
+                    var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                    if (req.AlertIds == null) req.AlertIds = new List<int>();
+                    req.AlertIds.Clear();
+                    req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
+                }
+                else if (req.ContentType == "2") // Event
+                {
+                    var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
+                    var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                    if (req.EventIds == null) req.EventIds = new List<int>();
+                    req.EventIds.Clear();
+                    req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
+                }
+                else if (req.ContentType == "3") // Extension
+                {
+                    var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
+                    var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                    if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
+                    req.ExtensionIds.Clear();
+                    req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado");
+                }
+
+                DatasetEM newDatasetEM = await _datasetEMService.CreateDatasetEMAsync(req, newDataset.Id);
+                await _datasetUMService.UpdateDatasetAsyncEM(newDataset.Id, requestDataset, newDatasetEM);
+                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDatasetEM.Id, username = newDatasetEM.Username }, newDatasetEM);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al crear el DatasetEM filtrado: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Actualiza un dataset EM existente aplicando filtrado.
+        /// </summary>
+        [HttpPut("filtered/{datasetId}")]
+        [ProducesResponseType(typeof(DatasetEM), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetEM>> UpdateDatasetEMFiltered(int datasetId, [FromBody] CreateDatasetEMFilteredRequest request)
+        {
+            try
+            {
+                var req = request.DatasetRequest;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, req.Username);
+                if (existingDataset == null)
+                {
+                    return NotFound($"No se encontró el DatasetEM con ID {datasetId} para el usuario {req.Username}.");
+                }
+
+                await _datasetUMService.ValidateDatasetNameAsync(req.Name, req.Username, ModuleType.EventManager, existingDataset.DatasetId);
+                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
+
+                // Filtrado para Alert, Event, Extension, Category
+                if (req.ContentType == "1") // Alert
+                {
+                    var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
+                    var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                    if (req.AlertIds == null) req.AlertIds = new List<int>();
+                    req.AlertIds.Clear();
+                    req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
+                }
+                else if (req.ContentType == "2") // Event
+                {
+                    var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
+                    var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                    if (req.EventIds == null) req.EventIds = new List<int>();
+                    req.EventIds.Clear();
+                    req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
+                }
+                else if (req.ContentType == "3") // Extension
+                {
+                    var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
+                    var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                    if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
+                    req.ExtensionIds.Clear();
+                    req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado");
+                }
+
+                DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, req);
+                await _datasetUMService.UpdateDatasetAsyncEM(updatedDataset.DatasetId, requestDataset, updatedDataset);
+                return Ok(updatedDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar el DatasetEM filtrado: {ex.Message}");
             }
         }
 

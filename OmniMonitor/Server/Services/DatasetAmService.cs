@@ -35,14 +35,19 @@ namespace OmniMonitor.Server.Services
 
         public async Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset)
         {
+            Console.WriteLine($"[DEBUG][DatasetAmService] CreateDatasetAMAsync: Username={request.Username}, Nombre={request.Nombre}, Type_Dataset={request.Type_Dataset}, ContentType={request.ContentType}");
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
+            {
+                Console.WriteLine("[DEBUG][DatasetAmService] ArgumentException: El nombre de usuario y el nombre del dataset son obligatorios.");
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
+            }
 
             var existingDataset = await _context.DatasetAM
                 .FirstOrDefaultAsync(d => d.Username == request.Username && d.Nombre == request.Nombre);
 
             if (existingDataset != null)
             {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
             }
 
@@ -67,47 +72,44 @@ namespace OmniMonitor.Server.Services
                 newDatasetAM.ContentType = request.ContentType; // 1=device, 2=source, 3=sensor
             }
 
-
             if (request.Type_Dataset == 1 && request.Grupo_Event_Task_Instance_Ids != null)
             {
-                // Si hay stocks, debe haber solo un event task instance seleccionado
-                if (request.StockIds != null && request.StockIds.Count > 0)
+                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando EventTasks: {string.Join(",", request.Grupo_Event_Task_Instance_Ids)}");
+                newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
+                foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
                 {
-                    if (request.Grupo_Event_Task_Instance_Ids.Count != 1)
-                        throw new InvalidOperationException("Solo se pueden asociar stocks si se selecciona un único Event Task Instance.");
-
-                    // Asociar los stocks al único event task instance
-                    var eventTaskInstance = new DatasetEventTaskInstance
+                    newDatasetAM.Grupo_Event_Task_Instance.Add(new DatasetEventTaskInstance
                     {
-                        Id_Event_Task_Instance = request.Grupo_Event_Task_Instance_Ids[0],
-                        Grupo_Stock = request.StockIds.Select(stockId => new DatasetStock { Id_Stock = stockId }).ToList()
-                    };
-                    newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance> { eventTaskInstance };
-                }
-                else
-                {
-                    // Si no hay stocks, se pueden asociar varios event task instances sin stocks
-                    newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
-                    foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
-                    {
-                        newDatasetAM.Grupo_Event_Task_Instance.Add(new DatasetEventTaskInstance
-                        {
-                            Id_Event_Task_Instance = eventTaskInstanceId
-                        });
-                    }
+                        Id_Event_Task_Instance = eventTaskInstanceId
+                    });
                 }
             }
             else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
             {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Assets: {string.Join(",", request.Grupo_Asset_Ids)}");
                 newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
                 foreach (var id in request.Grupo_Asset_Ids)
                 {
                     newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
                 }
             }
+            else if (request.Type_Dataset == 3 && request.StockIds != null)
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Stocks: {string.Join(",", request.StockIds)}");
+                newDatasetAM.Grupo_Stock = new List<DatasetStock>();
+                foreach (var stockId in request.StockIds)
+                {
+                    newDatasetAM.Grupo_Stock.Add(new DatasetStock { Id_Stock = stockId });
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] No se asignó ninguna relación hija (Type_Dataset={request.Type_Dataset})");
+            }
 
             _context.DatasetAM.Add(newDatasetAM);
             await _context.SaveChangesAsync();
+            Console.WriteLine($"[DEBUG][DatasetAmService] DatasetAM guardado. Grupo_Stock count: {newDatasetAM.Grupo_Stock?.Count}");
             return newDatasetAM;
         }
 
@@ -134,6 +136,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.Grupo_Event_Task_Instance)
                     .ThenInclude(e => e.Grupo_Stock)
                 .Include(d => d.Grupo_Asset)
+                .Include(d => d.Grupo_Stock)
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
 
             if (datasetAM == null)
@@ -235,6 +238,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.Grupo_Event_Task_Instance)
                     .ThenInclude(e => e.Grupo_Stock)
                 .Include(d => d.Grupo_Asset)
+                .Include(d => d.Grupo_Stock)
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
         }
 

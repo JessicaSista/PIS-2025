@@ -15,12 +15,14 @@ namespace OmniMonitor.Server.Controllers
         private readonly IDatasetUMService _datasetUMService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly ApplicationDbContext _context;
+        private readonly ISondaUMService _sondaUMService;
 
-        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context)
+        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService)
         {
             _context = context;
             _datasetUMService = datasetUMService;
             _sondaAuthService = sondaAuthService;
+            _sondaUMService = sondaUMService;
         }
 
         /// <summary>
@@ -46,6 +48,85 @@ namespace OmniMonitor.Server.Controllers
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
                 DatasetUM newDataset = await _datasetUMService.CreateDatasetUMAsync(request, dataset.Id);
+                await _datasetUMService.UpdateDatasetAsyncUM(dataset.Id, requestDataset, newDataset);
+                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
+            }
+        }
+
+        public class CreateDatasetUMFilteredRequest
+        {
+            public CreateDatasetUMRequest DatasetRequest { get; set; } = new CreateDatasetUMRequest();
+            public string Token { get; set; } = string.Empty;
+            public List<FilterCondition> Filters { get; set; } = new List<FilterCondition>();
+        }
+
+        [HttpPost("filtered")]
+        [ProducesResponseType(typeof(DatasetUM), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetUM>> CreateDatasetFiltered([FromBody] CreateDatasetUMFilteredRequest request)
+        {
+            try
+            {
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var req = request.DatasetRequest;
+                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.UrbanMonitor);
+                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+
+                List<int> filteredIds = new List<int>();
+                if (req.ContentType == "2") // News
+                {
+                    var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    Console.WriteLine($"[DEBUG] Total news antes de filtrar: {allNews.Count}");
+                    var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                    Console.WriteLine($"[DEBUG] Total news filtrados: {filtrados.Count}");
+                    foreach (var news in filtrados)
+                    {
+                        Console.WriteLine($"[DEBUG] News filtrado: Id={news.Id}, Title={news.Title}");
+                    }
+                    filteredIds = filtrados.Select(n => (int)n.Id).ToList();
+                    req.NewsIds = filteredIds;
+                    Console.WriteLine($"[DEBUG] IDs agregados a request.NewsIds: {string.Join(",", req.NewsIds)}");
+                }
+                else if (req.ContentType == "1") // Eventos
+                {
+                    IEnumerable<object> eventos = (await _sondaUMService.GetAllEvents(username)).Cast<object>();
+                    Console.WriteLine($"[DEBUG] Total eventos antes de filtrar: {eventos.Count()}");
+                    var filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
+                    Console.WriteLine($"[DEBUG] Total eventos filtrados: {filtrados.Count}");
+                    foreach (var ev in filtrados)
+                    {
+                        Console.WriteLine($"[DEBUG] Evento filtrado: Id={ev.Id}, Name={ev.Name}");
+                    }
+                    filteredIds = filtrados.Select(e => (int)e.Id).ToList();
+                    req.EventIds = filteredIds;
+                    Console.WriteLine($"[DEBUG] IDs agregados a request.EventIds: {string.Join(",", req.EventIds)}");
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado");
+                }
+
+                DatasetUM newDataset = await _datasetUMService.CreateDatasetUMAsync(req, dataset.Id);
                 await _datasetUMService.UpdateDatasetAsyncUM(dataset.Id, requestDataset, newDataset);
                 return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
             }
@@ -158,6 +239,88 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al actualizar el dataset: {ex.Message}");
             }
         }
+
+            /// <summary>
+            /// Edita un dataset existente aplicando filtrado, similar a la creación filtrada.
+            /// </summary>
+            [HttpPut("EditarUMFiltrado/{datasetId}")]
+            [ProducesResponseType(typeof(DatasetUM), 200)]
+            [ProducesResponseType(400)]
+            [ProducesResponseType(403)]
+            [ProducesResponseType(404)]
+            [ProducesResponseType(500)]
+            public async Task<ActionResult<DatasetUM>> EditarDatasetUMFiltrado(int datasetId, [FromBody] CreateDatasetUMFilteredRequest request)
+            {
+                try
+                {
+                    if (!ModelState.IsValid)
+                    {
+                        return BadRequest(ModelState);
+                    }
+
+                    var req = request.DatasetRequest;
+                    string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                    DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, req.Username);
+                    if (existingDataset == null)
+                    {
+                        return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {req.Username}.");
+                    }
+
+                    await _datasetUMService.ValidateDatasetNameAsync(req.Name, req.Username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
+
+                    var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.UrbanMonitor);
+
+                    List<int> filteredIds = new List<int>();
+                    if (req.ContentType == "2") // News
+                    {
+                        var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                        Console.WriteLine($"[DEBUG] Total news antes de filtrar: {allNews.Count}");
+                        var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        Console.WriteLine($"[DEBUG] Total news filtrados: {filtrados.Count}");
+                        foreach (var news in filtrados)
+                        {
+                            Console.WriteLine($"[DEBUG] News filtrado: Id={news.Id}, Title={news.Title}");
+                        }
+                        filteredIds = filtrados.Select(n => (int)n.Id).ToList();
+                        req.NewsIds = filteredIds;
+                        Console.WriteLine($"[DEBUG] IDs agregados a request.NewsIds: {string.Join(",", req.NewsIds)}");
+                    }
+                    else if (req.ContentType == "1") // Eventos
+                    {
+                        IEnumerable<object> eventos = (await _sondaUMService.GetAllEvents(username)).Cast<object>();
+                        Console.WriteLine($"[DEBUG] Total eventos antes de filtrar: {eventos.Count()}");
+                        var filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
+                        Console.WriteLine($"[DEBUG] Total eventos filtrados: {filtrados.Count}");
+                        foreach (var ev in filtrados)
+                        {
+                            Console.WriteLine($"[DEBUG] Evento filtrado: Id={ev.Id}, Name={ev.Name}");
+                        }
+                        filteredIds = filtrados.Select(e => (int)e.Id).ToList();
+                        req.EventIds = filteredIds;
+                        Console.WriteLine($"[DEBUG] IDs agregados a request.EventIds: {string.Join(",", req.EventIds)}");
+                    }
+                    else
+                    {
+                        return BadRequest("ContentType inválido o no soportado");
+                    }
+
+                    DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, req);
+                    await _datasetUMService.UpdateDatasetAsyncUM(updatedDataset.DatasetId, requestDataset, updatedDataset);
+                    return Ok(updatedDataset);
+                }
+                catch (ArgumentException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return BadRequest(ex.Message);
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, $"Error interno al editar el dataset: {ex.Message}");
+                }
+            }
 
         /// <summary>
         /// Elimina un dataset.
