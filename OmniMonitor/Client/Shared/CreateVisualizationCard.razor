@@ -293,11 +293,11 @@
             {
                 Nombre = _visualizationName,
                 Username = username,
-                JsonDisenoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
+                JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
-                    JsonDiseno = JsonSerializer.Serialize( new Dictionary<string, object>
+                    JsonDiseño = JsonSerializer.Serialize( new Dictionary<string, object>
                     {
                         {"IdInModule", ds.Dataset.Id},
                         { "Multiplier", (double)ds.Multiplier },

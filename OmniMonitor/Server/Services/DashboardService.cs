@@ -531,7 +531,7 @@ namespace OmniMonitor.Server.Services
             visualizacion.Nombre = updatedCard.Nombre;
             visualizacion.FechaDesde = updatedCard.FechaDesde;
             visualizacion.FechaHasta = updatedCard.FechaHasta;
-            visualizacion.JsonDesign = updatedCard.JsonDisenoGeneral;
+            visualizacion.JsonDesign = updatedCard.JsonDiseñoGeneral;
 
             if (updatedCard.Datasets != null && updatedCard.Datasets.Any())
                 {
@@ -557,7 +557,7 @@ namespace OmniMonitor.Server.Services
 
                         if (existingGrupo != null)
                         {
-                            existingGrupo.JsonDesign = datasetConfig.JsonDiseno;
+                            existingGrupo.JsonDesign = datasetConfig.JsonDiseño;
                             _context.GrupoDatasets.Update(existingGrupo);
                         }
                         else
@@ -565,7 +565,7 @@ namespace OmniMonitor.Server.Services
                             var nuevoGrupo = new GrupoDataset
                             {
                                 DatasetId = datasetConfig.DatasetId,
-                                JsonDesign = datasetConfig.JsonDiseno
+                                JsonDesign = datasetConfig.JsonDiseño
                             };
                             visualizacion.GrupoDatasets.Add(nuevoGrupo);
                         }

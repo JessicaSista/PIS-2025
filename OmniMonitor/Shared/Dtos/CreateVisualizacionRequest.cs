@@ -18,7 +18,7 @@ namespace OmniMonitor.Shared.Dtos
         public DateTime FechaDesde { get; set; }
         public DateTime FechaHasta { get; set; }
 
-        public string JsonDisenoGeneral { get; set; }
+        public string JsonDiseñoGeneral { get; set; }
 
         public List<DatasetConfig> Datasets { get; set; } = new List<DatasetConfig>();
     }
