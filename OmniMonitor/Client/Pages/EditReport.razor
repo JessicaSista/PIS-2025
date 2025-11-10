@@ -400,7 +400,7 @@
     {
         private static int nextId = 1;
         public int Id { get; set; }
-        // ID del join creado en el backend (CrossModuleJoin.Id). Null si aún no fue persistido
+        // ID of the join created in the backend (CrossModuleJoin.Id). Null if not yet persisted
         public int? ServerJoinId { get; set; }
         public string LeftDataset { get; set; } = string.Empty;
         public string LeftField { get; set; } = string.Empty;
@@ -625,10 +625,10 @@
         }
     }
 
-    // --- Métodos de Columnas ---
+    // --- Column Methods ---
     private void SelectAllColumns()
     {
-        // Marcar todas las columnas como visibles
+        // Mark all columns as visible
         foreach (var column in availableColumns)
         {
             column.IsVisible = true;
@@ -638,12 +638,12 @@
 
     private void DeselectAllColumns()
     {
-        // Marcar todas las columnas como no visibles
+        // Mark all columns as not visible
         foreach (var column in availableColumns)
         {
             column.IsVisible = false;
         }
-        StateHasChanged(); // Forzar actualización de la UI
+        StateHasChanged(); // Force UI update
     }
 
     private void ToggleColumnVisibility(ColumnDefinition column)
@@ -659,7 +659,7 @@
 
 
 
-    // --- Métodos de Joins ---
+    // --- Join Methods ---
     private void AgregarJoin()
     {
         joins.Add(new JoinDto(JoinDto.GetNextId()));
@@ -683,7 +683,7 @@
                     {
                         var error = await response.Content.ReadAsStringAsync();
                         Snackbar.Add($"Error al quitar el join del reporte: {error}", Severity.Error);
-                        // Aún así, lo removemos de la UI para que el usuario pueda continuar
+                        // Still, we remove it from the UI so the user can continue
                     }
                 }
             }
@@ -695,7 +695,7 @@
         }
         finally
         {
-            // Quitar de la UI
+            // Remove from UI
             joins.Remove(join);
             StateHasChanged();
         }
@@ -718,7 +718,7 @@
             {
                 if (join.ServerJoinId.HasValue)
                 {
-                    // Ya asociado en backend, continuar
+                    // Already associated in backend, continue
                     continue;
                 }
 
@@ -852,7 +852,7 @@
         StateHasChanged();
     }
 
-    // --- Métodos de Filtros ---
+    // --- Filter Methods ---
     private void AgregarFiltro()
     {
         var newFilter = new FilterDto(_nextFilterId++);
@@ -872,7 +872,7 @@
     }
 
 
-    // --- Métodos de UI / Tabs ---
+    // --- UI / Tabs Methods ---
     private void SetActiveTab(string tab)
     {
         // Only allow moving to joins if we have at least two datasets
@@ -918,7 +918,7 @@
             UpdateAvailableColumns();
         }
 
-        StateHasChanged(); // Forzar actualización de la UI
+        StateHasChanged(); // Force UI update
     }
 
     private Task HandleDatasetEntityChanged(DatasetSelector.EntitySelectionChangedArgs args)
@@ -968,7 +968,7 @@
             return;
         }
 
-        // Conservar el estado de visibilidad previo por columna (clave = Nombre completo "Dataset.Prop")
+        // Preserve previous visibility state per column (key = Full Name "Dataset.Prop")
         var previousVisibility = availableColumns
             .GroupBy(c => c.Name)
             .ToDictionary(g => g.Key, g => g.First().IsVisible, StringComparer.OrdinalIgnoreCase);
@@ -996,7 +996,7 @@
             }
         }
 
-        // Reemplazar preservando la instancia de la lista para que el binding no se rompa
+        // Replace while preserving the list instance so the binding doesn't break
         availableColumns.Clear();
         availableColumns.AddRange(newColumns);
 
@@ -1665,12 +1665,12 @@
         }
     }
 
-    // --- Generar JSON de configuración ---
+    // --- Generate Configuration JSON ---
     private async Task GenerarJsonConfig()
     {
         try
         {
-            // Tomar columnas visibles
+            // Take visible columns
             var visibleColumns = availableColumns.Where(c => c.IsVisible).ToList();
 
             if (!selectedDatasets.Any())
@@ -1815,7 +1815,7 @@
                 Logger?.LogWarning(ex, "[EditarReporte] No fue posible registrar JSON_config en la consola del navegador");
             }
 
-            // Guardar en backend (UpdateReport) y luego ejecutar
+            // Save to backend (UpdateReport) and then execute
             var token = await LocalStorage.GetItemAsync<string>("authToken");
             if (string.IsNullOrEmpty(token))
             {
@@ -1999,7 +1999,7 @@
 
         if (t == null) return Array.Empty<string>();
 
-        // Tomar propiedades públicas simples (excluir colecciones complejas)
+        // Take simple public properties (exclude complex collections)
         return t.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
             .Where(p => IsSimplePropertyType(p.PropertyType))
             .Select(p => p.Name)
@@ -2009,7 +2009,7 @@
     private static bool IsSimplePropertyType(Type type)
     {
         if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
-            return false; // excluir listas y colecciones
+            return false; // exclude lists and collections
         if (type == typeof(string)) return true;
         if (type.IsPrimitive) return true;
         if (type == typeof(decimal) || type == typeof(DateTime) || type == typeof(DateTimeOffset)) return true;
@@ -2020,7 +2020,7 @@
 
     private void UpdateJoinFields(JoinDto join)
     {
-        // Limpiar los campos de unión al cambiar el dataset
+        // Clear join fields when changing dataset
         if (string.IsNullOrEmpty(join.LeftDataset) || string.IsNullOrEmpty(join.RightDataset))
         {
             join.LeftField = string.Empty; // Use empty string instead of null

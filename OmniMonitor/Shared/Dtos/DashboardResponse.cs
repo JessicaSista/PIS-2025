@@ -26,7 +26,7 @@ namespace OmniMonitor.Shared.Dtos
     }
 
     /// <summary>
-    /// Response para una visualización específica en el dashboard
+    /// Response for a specific visualization in the dashboard
     /// </summary>
     public class DashboardCardResponse
     {
@@ -36,14 +36,14 @@ namespace OmniMonitor.Shared.Dtos
     public string? PropsConfiguracion { get; set; }
     public DateTime FechaAgregado { get; set; }
     /// <summary>
-    /// Información básica de la visualización asociada
+    /// Basic information of the associated visualization
     /// </summary>
     public VisualizacionInfo? Visualizacion { get; set; }
     public KpiInfo? Kpi { get; set; }
     }
 
     /// <summary>
-    /// Información básica de una visualización
+    /// Basic information of a visualization
     /// </summary>
     public class VisualizacionInfo
     {

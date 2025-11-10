@@ -89,7 +89,7 @@
     {
         try
         {
-            // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
+            // According to the id, we get the name, description and corresponding JSON string
             string token = await LocalStorage.GetItemAsync<string>("authToken");
             HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}");
 
@@ -108,7 +108,7 @@
                         _visualizationsIDs.Add((dashboardData.Tarjetas[i].CardId,dashboardData.Tarjetas[i].TipoCard));
                     }
 
-                    // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
+                    // Get the json and parse it to obtain the card dimensions and build the cardsData
                     string jsonDesign = dashboardData.JsonDiseno;
                     if (string.IsNullOrEmpty(jsonDesign))
                     {
@@ -124,14 +124,14 @@
                             {
                                 if (i >= cardsElementArray.Count)
                                 {
-                                    break; // Evita errores si hay más IDs de cards que tamaños definidos
+                                    break; // Avoids errors if there are more card IDs than defined sizes
                                 }
                                 if (cardsElementArray[i].TryGetProperty("anchoSm", out JsonElement anchoSmElement) && 
                                     cardsElementArray[i].TryGetProperty("anchoMd", out JsonElement anchoMdElement) &&
                                     cardsElementArray[i].TryGetProperty("anchoLg", out JsonElement anchoLgElement) &&
                                     cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
                                 {
-                                    // Agregar el nuevo objeto CardData a la lista de resultados
+                                    // Add the new CardData object to the results list
                                     var (id, type) = _visualizationsIDs[i];
                                     cardsData.Add((id,type, anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
                                 }
@@ -183,7 +183,7 @@
 
         if (alreadyExists)
         {
-            // 2. Si ya existe, loguea la advertencia y sale del método.
+            // 2. If it already exists, log the warning and exit the method.
             return;
         }
         _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
@@ -218,7 +218,7 @@
 
         StateHasChanged();
 
-        // *** PRINT DE DIAGNÓSTICO: ESTADO FINAL ***
+        // *** DIAGNOSTIC PRINT: FINAL STATE ***
         // if (cardsData.Any())
         // {
         //     foreach (var card in cardsData)

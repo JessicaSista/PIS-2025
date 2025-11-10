@@ -76,7 +76,7 @@ namespace OmniMonitor.Server.Services
             if (dataset == null)
                 return null;
 
-            // Lógica de carga dinámica (igual que antes)
+            // Dynamic loading logic (same as before)
             if (dataset.Is_Dataset == "S" && !dataset.DatasetEvents.Any() && !dataset.DatasetNews.Any())
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
@@ -149,7 +149,7 @@ namespace OmniMonitor.Server.Services
                     finalNewsList = await _sondaUMService.GetAllNews(user.UserName, 1, null, null, 1000) ?? new List<News>();
                 }
 
-                // 5. Agregar events encontrados al dataset
+                // 5. Add found events to the dataset
                 if (finalEventList.Any())
                 {
                     IEnumerable<Event> filteredEvents = finalEventList;
@@ -167,7 +167,7 @@ namespace OmniMonitor.Server.Services
                     }
                 }
 
-                // 6. Agregar news encontrados al dataset
+                // 6. Add found news to the dataset
                 if (finalNewsList.Any())
                 {
                     var foundNewsIds = finalNewsList.Select(n => n.Id).ToList();
@@ -212,25 +212,25 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncUM)
-            // para garantizar unicidad global entre todos los módulos
+            // Duplicate name validation is done in the general table (UpdateDatasetAsyncUM)
+            // to guarantee global uniqueness across all modules
 
-            // Actualizar campos básicos
+            // Update basic fields
             existingDataset.Name = request.Name;
             existingDataset.Description = request.Description;
             existingDataset.Is_Dataset = request.IsDataset;
             existingDataset.ContentType = GetContentType(request);
             existingDataset.Id_Zone = request.ZoneId;
 
-            // Eliminar relaciones existentes (si no tienes Cascade Delete, si lo tienes puedes solo limpiar)
+            // Remove existing relationships (if you don't have Cascade Delete, if you do you can just clear)
             _context.DatasetEvents.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetNews.RemoveRange(existingDataset.DatasetNews);
 
-            // Limpiar colecciones
+            // Clear collections
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetNews.Clear();
 
-            // Agregar nuevas relaciones
+            // Add new relationships
             UpdateRelationsFromRequest(existingDataset, request);
 
             await _context.SaveChangesAsync();
@@ -330,15 +330,15 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // La validación ya se hizo en el controlador antes de llamar a este método
+            // Validation was already done in the controller before calling this method
 
-            // Actualizar campos básicos
+            // Update basic fields
             existingDataset.NameDataset = request.Name;
             existingDataset.Username = request.Username;
 
             existingDataset.DatasetUM.Clear();
 
-            // Agregar nuevas relaciones
+            // Add new relationships
             existingDataset.DatasetUM.Add(datasetUM);
             await _context.SaveChangesAsync();
             return existingDataset;
@@ -352,15 +352,15 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // La validación ya se hizo en el controlador antes de llamar a este método
+            // Validation was already done in the controller before calling this method
 
-            // Actualizar campos básicos
+            // Update basic fields
             existingDataset.NameDataset = request.Name;
             existingDataset.Username = request.Username;
 
             existingDataset.DatasetIM.Clear();
 
-            // Agregar nuevas relaciones
+            // Add new relationships
             existingDataset.DatasetIM.Add(datasetIM);
             await _context.SaveChangesAsync();
             return existingDataset;
@@ -374,15 +374,15 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // La validación ya se hizo en el controlador antes de llamar a este método
+            // Validation was already done in the controller before calling this method
 
-            // Actualizar campos básicos
+            // Update basic fields
             existingDataset.NameDataset = request.Name;
             existingDataset.Username = request.Username;
 
             existingDataset.DatasetAM.Clear();
 
-            // Agregar nuevas relaciones
+            // Add new relationships
             existingDataset.DatasetAM.Add(datasetAM);
             await _context.SaveChangesAsync();
             return existingDataset;
@@ -396,15 +396,15 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // La validación ya se hizo en el controlador antes de llamar a este método
+            // Validation was already done in the controller before calling this method
 
-            // Actualizar campos básicos
+            // Update basic fields
             existingDataset.NameDataset = request.Name;
             existingDataset.Username = request.Username;
 
             existingDataset.DatasetEM.Clear();
 
-            // Agregar nuevas relaciones
+            // Add new relationships
             existingDataset.DatasetEM.Add(datasetEM);
             await _context.SaveChangesAsync();
             return existingDataset;
@@ -424,7 +424,7 @@ namespace OmniMonitor.Server.Services
 
         public async Task ValidateDatasetNameAsync(string name, string username, ModuleType tipoDataset, int? excludeId = null)
         {
-            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
+            // Validate that there is no other dataset with the same name in ANY module for the same user
             var query = _context.Datasets
                 .Where(d => d.NameDataset == name && d.Username == username);
 
@@ -436,7 +436,7 @@ namespace OmniMonitor.Server.Services
         }
         private async Task ValidateDuplicateNameDataset(string name, string username, ModuleType tipoDataset, int? excludeId = null)
         {
-            // Validar que no exista otro dataset con el mismo nombre en CUALQUIER módulo para el mismo usuario
+            // Validate that there is no other dataset with the same name in ANY module for the same user
             var query = _context.Datasets
                 .Where(d => d.NameDataset == name && d.Username == username);
 

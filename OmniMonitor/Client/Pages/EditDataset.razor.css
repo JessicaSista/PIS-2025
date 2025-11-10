@@ -1,6 +1,6 @@
-/* EditarDataset.razor.css - estilos con scope al componente */
+/* EditDataset.razor.css - scoped component styles */
 
-/* Select y TextFields oscuros */
+/* Dark Select and TextFields */
 .dark-field .mud-input-root {
   background-color: #0f172a !important;
   color: #e5eaeb !important;
@@ -15,19 +15,19 @@
   color: #e5eaeb !important;
 }
 
-/* Placeholder y label */
+/* Placeholder and label */
 .dark-field .mud-input-label,
 .dark-field .mud-input-placeholder {
   color: #b0b6b6 !important;
 }
 
 /* Hover */
-.dark-field .mud-input-root:hover {
+.dark-field .mud-input-root:Hover {
   box-shadow: 0 0 6px #4a81e9;
   border-color: #4a81e9 !important;
 }
 
-/* Popover (dropdown) oscuro */
+/* Dark Popover (dropdown) */
 .dark-field-popover {
   background-color: #1e293b !important;
   color: #e5eaeb !important;
@@ -42,17 +42,17 @@
   padding-top: 9px !important;
 }
 
-/* Marcar campos obligatorios (label rojo) */
+/* Mark required fields (red label) */
 .required-empty .mud-input-label {
   color: #ef4444 !important;
 }
 
-/* si el usuario pone foco, resaltamos un poco más */
+/* if user focuses, highlight a bit more */
 .required-empty .mud-input-root:focus-within {
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
 }
 
-/* Estilos adicionales para componentes MudBlazor específicos */
+/* Additional styles for specific MudBlazor components */
 .dark-field .mud-select .mud-input-root {
   background-color: #0f172a !important;
   color: #e5eaeb !important;
@@ -63,13 +63,13 @@
   color: #e5eaeb !important;
 }
 
-/* Estilos para el componente MudSelect completo */
+/* Styles for the complete MudSelect component */
 .dark-field .mud-select {
   background-color: #0f172a !important;
   color: #e5eaeb !important;
 }
 
-/* Modo oscuro - cambiar a celeste más oscuro */
+/* Dark mode - change to darker cyan */
 @media (prefers-color-scheme: dark) {
   .dark-field .mud-input-root {
     background-color: #e8f4fd !important;
@@ -88,7 +88,7 @@
     color: #1976d2 !important;
   }
 
-  .dark-field .mud-input-root:hover {
+  .dark-field .mud-input-root:Hover {
     box-shadow: 0 0 6px #42a5f5;
     border-color: #42a5f5 !important;
   }

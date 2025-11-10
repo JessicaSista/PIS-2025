@@ -1,4 +1,4 @@
-Ôªø
+
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -107,7 +107,7 @@ public class SondaUMServiceTests
 
         var handler = new FakeHttpMessageHandler(req =>
         {
-            // Ejemplo de AbsolutePath: "/api/news" -> segments -> ["api","news"] -> tomamos el √∫ltimo -> "news"
+            // Ejemplo de AbsolutePath: "/api/news" -> segments -> ["api","news"] -> tomamos el ˙ltimo -> "news"
             var path = req.RequestUri!.AbsolutePath.Trim('/');
             var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
             var endpointKey = segments.Length > 0 ? segments.Last().ToLowerInvariant() : string.Empty; // e.g. "news"
@@ -119,7 +119,7 @@ public class SondaUMServiceTests
                 switch (data)
                 {
                     case IEnumerable<News> newsList:
-                        // Parseo robusto de par√°metros
+                        // Parseo robusto de par·metros
                         int startIndex = 1, count = 10;
                         if (queryParams.TryGetValue("startIndex", out StringValues siVals) && int.TryParse(siVals.FirstOrDefault(), out var si)) startIndex = si;
                         if (queryParams.TryGetValue("count", out StringValues cVals) && int.TryParse(cVals.FirstOrDefault(), out var c)) count = c;

@@ -70,7 +70,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene todos los datasets para un usuario específico.
+        /// Gets all datasets for a specific user.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("user")]
@@ -102,8 +102,8 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Identifica rápidamente a qué módulo pertenece un dataset.
-        /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
+        /// Quickly identifies which module a dataset belongs to.
+        /// Returns: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetModule")]
@@ -131,7 +131,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene un dataset específico por su ID y nombre de usuario.
+        /// Gets a specific dataset by its ID and username.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDataset")]
@@ -313,7 +313,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
+        /// Normalizes text for accent-insensitive and case-insensitive searches.
         /// </summary>
         private static string NormalizeText(string text)
         {

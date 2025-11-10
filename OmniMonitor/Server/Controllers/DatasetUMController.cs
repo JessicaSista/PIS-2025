@@ -67,7 +67,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene todos los datasets para un usuario específico.
+        /// Gets all datasets for a specific user.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasets")]
@@ -89,7 +89,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene un dataset específico por su ID y nombre de usuario.
+        /// Gets a specific dataset by its ID and username.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetById")]
@@ -215,7 +215,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene todos los datasets de todos los módulos en formato unificado desde la tabla general.
+        /// Gets all datasets from all modules in unified format from the general table.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDto")]
@@ -430,7 +430,7 @@ namespace OmniMonitor.Server.Controllers
 
 
         /// <summary>
-        /// Obtiene todos los datasets de todos los módulos con paginación.
+        /// Gets all datasets from all modules with pagination.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDtoPaginated")]
@@ -556,7 +556,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
+        /// Normalizes text for accent-insensitive and case-insensitive searches.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         private static string NormalizeText(string text)

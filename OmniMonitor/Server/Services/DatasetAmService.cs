@@ -76,7 +76,7 @@ namespace OmniMonitor.Server.Services
                     if (request.Grupo_Event_Task_Instance_Ids.Count != 1)
                         throw new InvalidOperationException("Solo se pueden asociar stocks si se selecciona un único Event Task Instance.");
 
-                    // Asociar los stocks al único event task instance
+                    // Associate the stocks with the single event task instance
                     var eventTaskInstance = new DatasetEventTaskInstance
                     {
                         Id_Event_Task_Instance = request.Grupo_Event_Task_Instance_Ids[0],
@@ -139,7 +139,7 @@ namespace OmniMonitor.Server.Services
             if (datasetAM == null)
                 return null;
 
-            // Si es un dataset formal ('S') y no tiene relaciones hijas, buscar dinámicamente
+            // If it's a formal dataset ('S') and has no child relationships, search dynamically
             if (datasetAM.Is_Dataset == "S")
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
@@ -151,7 +151,7 @@ namespace OmniMonitor.Server.Services
                 // Si es de tipo EventTask y no tiene instancias asociadas
                 if (datasetAM.Type_Dataset == 1 && (datasetAM.Grupo_Event_Task_Instance == null || !datasetAM.Grupo_Event_Task_Instance.Any()))
                 {
-                    // Llama correctamente al método del servicio inyectado y usa username/password del contexto
+                    // Correctly calls the injected service method and uses username/password from context
                     var eventTaskInstances = await _sondaAMService.GetEventTaskInstances(
                         "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
                         null,                                      // page (int?)
@@ -178,8 +178,8 @@ namespace OmniMonitor.Server.Services
                 // Si es de tipo Asset y no tiene assets asociados
                 else if (datasetAM.Type_Dataset == 2 && (datasetAM.Grupo_Asset == null || !datasetAM.Grupo_Asset.Any()))
                 {
-                    // Aquí deberías llamar a la API externa de SondaAM para obtener los assets
-                    // Ejemplo (ajusta el método según tu ISondaAMService):
+                    // Here you should call the external SondaAM API to get the assets
+                    // Example (adjust the method according to your ISondaAMService):
                     // Llamada actualizada para coincidir con la firma de ISondaAMService
                     // page, queryString, bundles, assetTypeId, sort, pageSize, username, password
                     var assets = await _sondaAMService.GetAssets(null, null, null, datasetAM.Id_Asset_Type, null, null, user.UserName);
@@ -226,8 +226,8 @@ namespace OmniMonitor.Server.Services
         }
 
                 /// <summary>
-        /// Obtiene un DatasetAM por su ID y nombre de usuario para edición, SIN lógica dinámica.
-        /// Devuelve el dataset exactamente como está guardado en la base de datos.
+        /// Gets a DatasetAM by its ID and username for editing, WITHOUT dynamic logic.
+        /// Returns the dataset exactly as stored in the database.
         /// </summary>
         public async Task<DatasetAM?> GetDatasetAMByIdForEditAsync(int id, string username)
         {
@@ -244,8 +244,8 @@ namespace OmniMonitor.Server.Services
             if (datasetAM == null)
                 throw new InvalidOperationException($"No se encontró el DatasetAM con ID {datasetAM.Id_Dataset}.");
 
-            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncAM)
-            // para garantizar unicidad global entre todos los módulos
+            // Duplicate name validation is done in the general table (UpdateDatasetAsyncAM)
+            // to guarantee global uniqueness across all modules
 
             // Actualiza los campos simples
             datasetAM.Nombre = request.Nombre;

@@ -975,7 +975,7 @@
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
         
-        // Recargar dispositivos según los filtros actuales
+        // Reload devices according to current filters
         if (selectedSourceId.HasValue)
         {
             await LoadDevices();
@@ -1022,7 +1022,7 @@
                 }
             }
 
-            // INTERSECCIÓN: Si hay ambos filtros, mostrar solo devices que están en ambos
+            // INTERSECTION: If there are both filters, show only devices that are in both
             if (devicesFromSource != null && devicesFromGroup != null)
             {
                 var deviceIdsFromGroup = new HashSet<int>(devicesFromGroup.Select(d => d.Id));

@@ -9,7 +9,7 @@ using OmniMonitor.Shared.Dtos;
 namespace OmniMonitor.Server.Controllers
 {
     /// <summary>
-    /// Controlador para la gestión de dashboards personalizables.
+    /// Controller for managing customizable dashboards.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -30,7 +30,7 @@ namespace OmniMonitor.Server.Controllers
         /// <param name="request">Datos del dashboard a crear.</param>
         /// <returns>Dashboard creado con su layout completo.</returns>
         /// <response code="201">Dashboard creado exitosamente.</response>
-        /// <response code="400">Datos de entrada inválidos.</response>
+        /// <response code="400">Invalid input data.</response>
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -71,7 +71,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene un dashboard específico por su ID y nombre de usuario.
+        /// Gets a specific dashboard by its ID and username.
         /// </summary>
         /// <param name="id">ID del dashboard.</param>
         /// <param name="token">Token de usuario.</param>
@@ -133,7 +133,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene todos los dashboards de un usuario específico.
+        /// Gets all dashboards for a specific user.
         /// </summary>
         /// <param name="token">Nombre de usuario.</param>
         /// <returns>Lista de dashboards del usuario.</returns>
@@ -161,12 +161,12 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene todos los dashboards de un usuario específico con paginación.
+        /// Gets all dashboards for a specific user with pagination.
         /// </summary>
-        /// <param name="token">Token de autenticación del usuario.</param>
-        /// <param name="page">Número de página (default: 1).</param>
-        /// <param name="pageSize">Tamaño de página (default: 9).</param>
-        /// <param name="query">Texto de búsqueda opcional.</param>
+        /// <param name="token">User authentication token.</param>
+        /// <param name="page">Page number (default: 1).</param>
+        /// <param name="pageSize">Page size (default: 9).</param>
+        /// <param name="query">Optional search text.</param>
         /// <returns>Dashboards paginados del usuario.</returns>
         /// <response code="200">Lista paginada de dashboards obtenida exitosamente.</response>
         /// <response code="401">Usuario no autenticado.</response>
@@ -219,9 +219,9 @@ namespace OmniMonitor.Server.Controllers
         /// Valida una lista de cardIds (IdVisualizacion).
         /// </summary>
         /// <param name="cardIds">Lista de IDs de visualizaciones a validar.</param>
-        /// <returns>Resultado de la validación.</returns>
-        /// <response code="200">Validación completada.</response>
-        /// <response code="400">Lista de IDs inválida.</response>
+        /// <returns>Validation result.</returns>
+        /// <response code="200">Validation completed.</response>
+        /// <response code="400">Invalid ID list.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("validate-cards")]
@@ -272,7 +272,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Actualiza el JSON de configuración (JsonDiseno) de un dashboard.
+        /// Updates the configuration JSON (JsonDiseno) of a dashboard.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -323,7 +323,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Reordena las tarjetas (GrupoVisualizaciones) de un dashboard según el orden de la lista recibida.
+        /// Reorders the cards (GrupoVisualizaciones) of a dashboard according to the order of the received list.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -365,7 +365,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Actualiza el nombre y/o la descripción de un dashboard (pasa ambos como strings por query).
+        /// Updates the name and/or description of a dashboard (both passed as strings via query).
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -398,7 +398,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Edita una tarjeta (GrupoVisualizacion) y su visualización asociada.
+        /// Edits a card (GrupoVisualizacion) and its associated visualization.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Dashboards.Edit")]
@@ -424,7 +424,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Busca dashboards por fragmento de texto en nombre o descripción.
+        /// Searches for dashboards by text fragment in name or description.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("search")]

@@ -29,7 +29,7 @@ namespace OmniMonitor.Server.Services
             _datasetAmService = datasetAmService;
 
         }
-                // Obtiene el valor de un campo de DatasetReducedAMDTO por nombre usando reflexión
+                // Gets the value of a DatasetReducedAMDTO field by name using reflection
         private string? GetAssetFieldValue(object asset, string fieldName)
         {
             var prop = asset.GetType().GetProperty(fieldName);
@@ -75,7 +75,7 @@ namespace OmniMonitor.Server.Services
             return response;
         }
 
-        // Métodos genéricos para operar sobre List<object>
+        // Generic methods to operate on List<object>
         private async Task<KpiResponse> CountStateGeneric<T>(Kpi kpi, List<T> items, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? "";

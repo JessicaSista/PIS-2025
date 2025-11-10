@@ -90,28 +90,28 @@
     color: var(--text-primary) !important;
 }
 
-/* --- CÓDIGO PARA OCULTAR TEXTO EN MOVILES --- */
+/* --- CODE TO HIDE TEXT ON MOBILE --- */
 @media (max-width: 599.98px) {
     ::deep .logo-text {
         display: none;
     }
 }
 
-/* --- AJUSTES FINOS PARA MOVILES MUY ESTRECHOS --- */
+/* --- FINE ADJUSTMENTS FOR VERY NARROW MOBILE DEVICES --- */
 @media (max-width: 390px) {
-    /* Reduce el padding de la barra al mínimo */
+    /* Reduce bar padding to minimum */
     .appbar-container ::deep .mud-appbar {
         padding: 0 2px;
     }
 
-    /* Elimina el ancho mínimo y reduce el padding de los botones */
+    /* Remove minimum width and reduce button padding */
     ::deep .language-selector,
     ::deep .user-selector {
         min-width: 0;
         padding: 0 2px;
     }
 
-    /* Reduce un poco más el ícono de usuario si es necesario */
+    /* Reduce user icon a bit more if necessary */
     ::deep .user-selector .mud-icon-root {
         font-size: 30px !important;
     }

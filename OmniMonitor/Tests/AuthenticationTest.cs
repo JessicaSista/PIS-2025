@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -16,7 +16,7 @@ namespace QA.Tests
     {
         private ApplicationDbContext CreateDbContext()
         {
-            // Configuración real apuntando a la DB de test
+            // Configuraci�n real apuntando a la DB de test
             var inMemorySettings = new Dictionary<string, string?> {
             {"ConnectionStrings:DefaultConnection", "Server=localhost;Database=OmniMonitorTest;Trusted_Connection=True;TrustServerCertificate=True;"}
         };

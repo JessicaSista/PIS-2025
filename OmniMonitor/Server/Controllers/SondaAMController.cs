@@ -369,7 +369,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
+        /// Gets a list of unique TaskTypeDto from all task instances for the given user and password.
         /// </summary>
         [HttpGet("typeDtos")]
         public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos()

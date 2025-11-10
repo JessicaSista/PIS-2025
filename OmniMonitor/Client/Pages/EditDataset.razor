@@ -551,12 +551,12 @@ else if (selectedTipo == "Insight Monitor")
     private string selectedTipo = "Insight Monitor";
     private List<string> tiposDataset = new() { "Insight Monitor", "Asset Manager", "Urban Monitor", "Event Manager" };
 
-    // Listas dinámicas desde la API
+    // Dynamic lists from the API
     private List<Source> sources = new();
     private List<DeviceGroup> deviceGroups = new();
     private List<Device> devices = new();
 
-    // Valores seleccionados (ahora son IDs)
+    // Selected values (now they are IDs)
     private int? selectedSourceId = null;
     private int? selectedGroupId = null;
     private HashSet<int> selectedDeviceIds = new();
@@ -570,7 +570,7 @@ else if (selectedTipo == "Insight Monitor")
     private bool cargando = true;
     private bool noEncontrado = false;
 
-    // Credenciales del usuario / token logic from develop
+    // User credentials / token logic from develop
     private string currentUsername = string.Empty;
     private string authToken = string.Empty;
     private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
@@ -701,7 +701,7 @@ else if (selectedTipo == "Insight Monitor")
                 return;
             }
 
-            // NO cargar nada aquí - solo cargaremos lo necesario después de saber el módulo
+            // DO NOT load anything here - we'll only load what's necessary after knowing the module
         }
         catch (Exception ex)
         {
@@ -718,7 +718,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         selectedTipo = newModule;
         
-        // Limpiar todos los datos y selecciones previas
+        // Clear all data and previous selections
         ClearAllSelections();
         switch (newModule)
         {
@@ -817,7 +817,7 @@ else if (selectedTipo == "Insight Monitor")
                 }
             }
 
-            // Si tenemos un hint del módulo, intentar cargar directamente desde ese módulo primero
+            // If we have a module hint, try loading directly from that module first
             if (!string.IsNullOrEmpty(ModuleHint))
             {
                 switch (ModuleHint)
@@ -836,7 +836,7 @@ else if (selectedTipo == "Insight Monitor")
                         break;
                 }
 
-                // Si se encontró con el hint, terminamos aquí
+                // If found with the hint, we're done here
                 if (datasetFound)
                 {
                     cargando = false;
@@ -845,7 +845,7 @@ else if (selectedTipo == "Insight Monitor")
                 }
             }
 
-            // Si no hay hint o no se encontró, intentar con todos los módulos
+            // If there's no hint or not found, try with all modules
             if (!datasetFound)
             {
                 datasetFound = await TryLoadAsInsightMonitor(token);
@@ -1078,7 +1078,7 @@ else if (selectedTipo == "Insight Monitor")
         devices.Clear();
         sensores.Clear();
 
-        // solo recargo si hay una fuente seleccionada
+        // only reload if there's a selected source
         if (selectedSourceId.HasValue)
         {
             await LoadDevices();
@@ -1088,16 +1088,16 @@ else if (selectedTipo == "Insight Monitor")
         StateHasChanged();
     }
 
-    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
+    // When selected group changes: clear devices and sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
         
-        // Resetear dispositivos y sensores seleccionados
+        // Reset selected devices and sensors
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
         
-        // Recargar dispositivos según los filtros actuales
+        // Reload devices according to current filters
         if (selectedSourceId.HasValue)
         {
             await LoadDevices();
@@ -1106,7 +1106,7 @@ else if (selectedTipo == "Insight Monitor")
         StateHasChanged();
     }
 
-    // Cuando cambian los dispositivos seleccionados (multi-select)
+    // When selected devices change (multi-select)
     private Task OnSelectedDevicesChanged(IEnumerable<int> values)
     {
         selectedDeviceIds = values != null ? new HashSet<int>(values) : new HashSet<int>();
@@ -1173,7 +1173,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            // Guardar el sensor actualmente seleccionado
+            // Save currently selected sensor
             var currentSelectedSensor = selectedSensor;
             
             sensores.Clear();
@@ -1185,7 +1185,7 @@ else if (selectedTipo == "Insight Monitor")
                 {
                     sensores = await sensorsResponse.Content.ReadFromJsonAsync<List<string>>() ?? new List<string>();
                     
-                    // Si el sensor previamente seleccionado existe en la nueva lista, mantenerlo seleccionado
+                    // If the previously selected sensor exists in the new list, keep it selected
                     if (!string.IsNullOrEmpty(currentSelectedSensor) && sensores.Contains(currentSelectedSensor))
                     {
                         selectedSensor = currentSelectedSensor;

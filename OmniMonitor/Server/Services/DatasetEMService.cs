@@ -67,7 +67,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Obtiene un dataset por su ID y nombre de usuario, aplicando la lógica de carga dinámica.
+        /// Gets a dataset by its ID and username, applying dynamic loading logic.
         /// </summary>
         public async Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username)
         {
@@ -81,7 +81,7 @@ namespace OmniMonitor.Server.Services
             if (dataset == null)
                 return null;
 
-            // Lógica de carga dinámica (sin cambios aquí)
+            // Dynamic loading logic (no changes here)
             if (dataset.Is_Dataset == "S" &&
                 !dataset.DatasetAlerts.Any() &&
                 !dataset.DatasetEvents.Any() &&
@@ -152,7 +152,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Obtiene un dataset por su ID y nombre de usuario para edición (sin carga dinámica).
+        /// Gets a dataset by its ID and username for editing (without dynamic loading).
         /// </summary>
         public async Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username)
         {
@@ -179,10 +179,10 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncEM)
-            // para garantizar unicidad global entre todos los módulos
+            // Duplicate name validation is done in the general table (UpdateDatasetAsyncEM)
+            // to guarantee global uniqueness across all modules
 
-            // Actualizar campos básicos
+            // Update basic fields
             existingDataset.Name = request.Name;
             existingDataset.Description = request.Description;
             existingDataset.Is_Dataset = request.IsDataset;
