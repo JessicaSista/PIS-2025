@@ -8,26 +8,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class initial : Migration
+    public partial class InitialClean : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "AspNetRoles",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
-                });
-
             migrationBuilder.CreateTable(
                 name: "AspNetUsers",
                 columns: table => new
@@ -159,6 +144,8 @@ namespace OmniMonitor.Server.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    Module = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
                 },
@@ -215,27 +202,6 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "AspNetRoleClaims",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleId = table.Column<int>(type: "int", nullable: false),
-                    ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetRoleClaims", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_AspNetRoleClaims_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "AspNetUserClaims",
                 columns: table => new
                 {
@@ -270,30 +236,6 @@ namespace OmniMonitor.Server.Migrations
                     table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
                     table.ForeignKey(
                         name: "FK_AspNetUserLogins_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUserRoles",
-                columns: table => new
-                {
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
-                    table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
@@ -476,6 +418,34 @@ namespace OmniMonitor.Server.Migrations
                         principalTable: "JoinOperands",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserClaims",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false),
+                    IsGranted = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserClaims", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserClaims_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserClaims_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -845,39 +815,62 @@ namespace OmniMonitor.Server.Migrations
 
             migrationBuilder.InsertData(
                 table: "Permissions",
-                columns: new[] { "Id", "Description", "Name" },
+                columns: new[] { "Id", "Action", "Description", "Module", "Name" },
                 values: new object[,]
                 {
-                    { 1, "Permite ver la lista de usuarios", "Ver Usuarios" },
-                    { 2, "Permite crear nuevos usuarios", "Crear Usuarios" },
-                    { 3, "Permite editar usuarios existentes", "Editar Usuarios" },
-                    { 4, "Permite eliminar usuarios", "Eliminar Usuarios" },
-                    { 5, "Permite ver datos de sensores", "Ver Sensores" },
-                    { 6, "Permite configurar sensores", "Configurar Sensores" },
-                    { 7, "Permite ver la lista de empleados", "Ver Empleados" },
-                    { 8, "Permite crear, editar y eliminar empleados", "Gestionar Empleados" },
-                    { 9, "Permite ver la lista de items", "Ver Items" },
-                    { 10, "Permite crear, editar y eliminar items", "Gestionar Items" },
-                    { 11, "Permite ver datasets del módulo UM (Zonas, Eventos, Noticias)", "Ver Datasets UM" },
-                    { 12, "Permite crear nuevos datasets del módulo UM", "Crear Datasets UM" },
-                    { 13, "Permite eliminar datasets del módulo UM", "Eliminar Datasets UM" },
-                    { 14, "Permite ver datasets del módulo EM (Alertas, Eventos, Extensiones, Recursos)", "Ver Datasets EM" },
-                    { 15, "Permite crear nuevos datasets del módulo EM", "Crear Datasets EM" },
-                    { 16, "Permite eliminar datasets del módulo EM", "Eliminar Datasets EM" },
-                    { 17, "Permite ver dashboards personalizables", "Ver Dashboards" },
-                    { 18, "Permite crear nuevos dashboards personalizables", "Crear Dashboards" },
-                    { 19, "Permite editar dashboards existentes", "Editar Dashboards" },
-                    { 20, "Permite eliminar dashboards", "Eliminar Dashboards" }
+                    { 1, "View", "Ver usuarios", "Users", "Users.View" },
+                    { 2, "Create", "Crear usuarios", "Users", "Users.Create" },
+                    { 3, "Edit", "Editar usuarios", "Users", "Users.Edit" },
+                    { 4, "Delete", "Eliminar usuarios", "Users", "Users.Delete" },
+                    { 5, "View", "Ver dashboards", "Dashboards", "Dashboards.View" },
+                    { 6, "Create", "Crear dashboards", "Dashboards", "Dashboards.Create" },
+                    { 7, "Edit", "Editar dashboards", "Dashboards", "Dashboards.Edit" },
+                    { 8, "Delete", "Eliminar dashboards", "Dashboards", "Dashboards.Delete" },
+                    { 9, "Share", "Compartir dashboards", "Dashboards", "Dashboards.Share" },
+                    { 10, "View", "Ver datasets", "Datasets", "Datasets.View" },
+                    { 11, "Create", "Crear datasets", "Datasets", "Datasets.Create" },
+                    { 12, "Edit", "Editar datasets", "Datasets", "Datasets.Edit" },
+                    { 13, "Delete", "Eliminar datasets", "Datasets", "Datasets.Delete" },
+                    { 14, "View", "Ver visualizaciones", "Visualizations", "Visualizations.View" },
+                    { 15, "Create", "Crear visualizaciones", "Visualizations", "Visualizations.Create" },
+                    { 16, "Edit", "Editar visualizaciones", "Visualizations", "Visualizations.Edit" },
+                    { 17, "Delete", "Eliminar visualizaciones", "Visualizations", "Visualizations.Delete" },
+                    { 18, "View", "Ver reportes", "Reports", "Reports.View" },
+                    { 19, "Create", "Crear reportes", "Reports", "Reports.Create" },
+                    { 20, "Edit", "Editar reportes", "Reports", "Reports.Edit" },
+                    { 21, "Delete", "Eliminar reportes", "Reports", "Reports.Delete" },
+                    { 22, "Export", "Exportar reportes", "Reports", "Reports.Export" },
+                    { 23, "View", "Ver datos de sensores", "Sensors", "Sensors.View" },
+                    { 24, "Configure", "Configurar sensores", "Sensors", "Sensors.Configure" },
+                    { 25, "View", "Ver dispositivos", "Devices", "Devices.View" },
+                    { 26, "Manage", "Gestionar dispositivos", "Devices", "Devices.Manage" },
+                    { 27, "View", "Ver activos", "Assets", "Assets.View" },
+                    { 28, "Create", "Crear activos", "Assets", "Assets.Create" },
+                    { 29, "Edit", "Editar activos", "Assets", "Assets.Edit" },
+                    { 30, "Delete", "Eliminar activos", "Assets", "Assets.Delete" },
+                    { 31, "View", "Ver tareas", "Tasks", "Tasks.View" },
+                    { 32, "Create", "Crear tareas", "Tasks", "Tasks.Create" },
+                    { 33, "Edit", "Editar tareas", "Tasks", "Tasks.Edit" },
+                    { 34, "Delete", "Eliminar tareas", "Tasks", "Tasks.Delete" },
+                    { 35, "View", "Ver zonas", "Zones", "Zones.View" },
+                    { 36, "Manage", "Gestionar zonas", "Zones", "Zones.Manage" },
+                    { 37, "View", "Ver eventos", "Events", "Events.View" },
+                    { 38, "Manage", "Gestionar eventos", "Events", "Events.Manage" },
+                    { 39, "View", "Ver alertas", "Alerts", "Alerts.View" },
+                    { 40, "Manage", "Gestionar alertas", "Alerts", "Alerts.Manage" },
+                    { 41, "ViewRoles", "Ver roles del sistema", "System", "System.ViewRoles" },
+                    { 42, "ManageRoles", "Gestionar roles", "System", "System.ManageRoles" },
+                    { 43, "ViewPermissions", "Ver permisos", "System", "System.ViewPermissions" },
+                    { 44, "ManagePermissions", "Gestionar permisos", "System", "System.ManagePermissions" },
+                    { 45, "ViewLogs", "Ver logs del sistema", "System", "System.ViewLogs" },
+                    { 46, "ViewSettings", "Ver configuración del sistema", "System", "System.ViewSettings" },
+                    { 47, "ManageSettings", "Gestionar configuración del sistema", "System", "System.ManageSettings" }
                 });
 
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "Id", "Description", "Name" },
-                values: new object[,]
-                {
-                    { 1, "Rol con acceso completo al sistema", "Administrador" },
-                    { 2, "Rol con acceso limitado de solo lectura", "Visitante" }
-                });
+                values: new object[] { 1, "Rol con acceso completo al sistema", "Admin" });
 
             migrationBuilder.InsertData(
                 table: "RolePermissions",
@@ -894,36 +887,44 @@ namespace OmniMonitor.Server.Migrations
                     { 8, 8, 1 },
                     { 9, 9, 1 },
                     { 10, 10, 1 },
-                    { 15, 11, 1 },
-                    { 16, 12, 1 },
-                    { 17, 13, 1 },
-                    { 18, 14, 1 },
-                    { 19, 15, 1 },
-                    { 20, 16, 1 },
-                    { 21, 1, 2 },
-                    { 22, 5, 2 },
-                    { 23, 7, 2 },
-                    { 24, 9, 2 },
-                    { 25, 11, 2 },
-                    { 26, 14, 2 },
-                    { 27, 17, 1 },
-                    { 28, 18, 1 },
-                    { 29, 19, 1 },
-                    { 30, 20, 1 },
-                    { 31, 17, 2 }
+                    { 11, 11, 1 },
+                    { 12, 12, 1 },
+                    { 13, 13, 1 },
+                    { 14, 14, 1 },
+                    { 15, 15, 1 },
+                    { 16, 16, 1 },
+                    { 17, 17, 1 },
+                    { 18, 18, 1 },
+                    { 19, 19, 1 },
+                    { 20, 20, 1 },
+                    { 21, 21, 1 },
+                    { 22, 22, 1 },
+                    { 23, 23, 1 },
+                    { 24, 24, 1 },
+                    { 25, 25, 1 },
+                    { 26, 26, 1 },
+                    { 27, 27, 1 },
+                    { 28, 28, 1 },
+                    { 29, 29, 1 },
+                    { 30, 30, 1 },
+                    { 31, 31, 1 },
+                    { 32, 32, 1 },
+                    { 33, 33, 1 },
+                    { 34, 34, 1 },
+                    { 35, 35, 1 },
+                    { 36, 36, 1 },
+                    { 37, 37, 1 },
+                    { 38, 38, 1 },
+                    { 39, 39, 1 },
+                    { 40, 40, 1 },
+                    { 41, 41, 1 },
+                    { 42, 42, 1 },
+                    { 43, 43, 1 },
+                    { 44, 44, 1 },
+                    { 45, 45, 1 },
+                    { 46, 46, 1 },
+                    { 47, 47, 1 }
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetRoleClaims_RoleId",
-                table: "AspNetRoleClaims",
-                column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "RoleNameIndex",
-                table: "AspNetRoles",
-                column: "NormalizedName",
-                unique: true,
-                filter: "[NormalizedName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
@@ -934,11 +935,6 @@ namespace OmniMonitor.Server.Migrations
                 name: "IX_AspNetUserLogins_UserId",
                 table: "AspNetUserLogins",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserRoles_RoleId",
-                table: "AspNetUserRoles",
-                column: "RoleId");
 
             migrationBuilder.CreateIndex(
                 name: "EmailIndex",
@@ -1068,6 +1064,12 @@ namespace OmniMonitor.Server.Migrations
                 column: "id_visualizacion");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Permissions_Module_Action",
+                table: "Permissions",
+                columns: new[] { "Module", "Action" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ReportJoins_CrossModuleJoinId",
                 table: "ReportJoins",
                 column: "CrossModuleJoinId");
@@ -1095,6 +1097,17 @@ namespace OmniMonitor.Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserClaims_PermissionId",
+                table: "UserClaims",
+                column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserClaims_UserId_PermissionId",
+                table: "UserClaims",
+                columns: new[] { "UserId", "PermissionId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleId",
                 table: "UserRoles",
                 column: "RoleId");
@@ -1110,16 +1123,10 @@ namespace OmniMonitor.Server.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "AspNetRoleClaims");
-
-            migrationBuilder.DropTable(
                 name: "AspNetUserClaims");
 
             migrationBuilder.DropTable(
                 name: "AspNetUserLogins");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUserTokens");
@@ -1170,10 +1177,10 @@ namespace OmniMonitor.Server.Migrations
                 name: "SharedLinks");
 
             migrationBuilder.DropTable(
-                name: "UserRoles");
+                name: "UserClaims");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "UserRoles");
 
             migrationBuilder.DropTable(
                 name: "DatasetsIM");
@@ -1203,10 +1210,10 @@ namespace OmniMonitor.Server.Migrations
                 name: "Reports");
 
             migrationBuilder.DropTable(
-                name: "Permissions");
+                name: "Dashboards");
 
             migrationBuilder.DropTable(
-                name: "Dashboards");
+                name: "Permissions");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

@@ -11,6 +11,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetUMController : ControllerBase
     {
         private readonly IDatasetUMService _datasetUMService;

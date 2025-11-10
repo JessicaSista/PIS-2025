@@ -28,5 +28,8 @@ namespace OmniMonitor.Shared.Dtos
 
         // Relación con roles
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+
+        // Relación con claims/permisos específicos del usuario
+        public virtual ICollection<UserClaim> UserClaims { get; set; } = new List<UserClaim>();
     }
 }

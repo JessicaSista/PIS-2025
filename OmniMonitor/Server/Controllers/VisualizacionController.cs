@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -25,6 +26,7 @@ namespace OmniMonitor.Server.Controllers
         /// Crea una nueva visualización.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.Create")]
         [HttpPost]
         [ProducesResponseType(typeof(Visualizacion), 201)] // 201 Created
         [ProducesResponseType(400)] // Bad Request
@@ -57,6 +59,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todas las visualizaciones para un usuario específico.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
         [HttpGet("GetAllVisualizaciones")]
         [ProducesResponseType(typeof(List<Visualizacion>), 200)]
         [ProducesResponseType(500)]
@@ -78,6 +81,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene una visualización específica por su ID y nombre de usuario.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
         [HttpGet("GetVisualizacionById")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(404)]
@@ -128,6 +132,7 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina una visualización por su ID.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.Delete")]
         [HttpDelete("{idVisualizacion}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
@@ -175,6 +180,7 @@ namespace OmniMonitor.Server.Controllers
         /// Edita una visualización existente por su ID.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.Edit")]
         [HttpPut("{idVisualizacion}")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(400)]

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -33,6 +34,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Create")]
         [HttpPost]
         [ProducesResponseType(typeof(DashboardResponse), 201)]
         [ProducesResponseType(400)]
@@ -80,6 +82,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="403">Usuario no tiene permisos para ver este dashboard.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("GetDashboard")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
@@ -138,6 +141,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("GetAllDashboards")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
@@ -168,6 +172,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("GetAllDashboardsPaginated")]
         [ProducesResponseType(typeof(PaginatedDashboardDto), 200)]
         [ProducesResponseType(401)]
@@ -258,6 +263,7 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dashboard y sus GrupoVisualizaciones asociados (no elimina visualizaciones/KPIs).
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Delete")]
         [HttpDelete("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -278,6 +284,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/config")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -328,6 +335,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/cards/order")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -348,6 +356,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpDelete("{id}/card/{idCard}/{tipoCard}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -368,6 +377,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/info")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
@@ -399,6 +409,7 @@ namespace OmniMonitor.Server.Controllers
         /// Edita una tarjeta (GrupoVisualizacion) y su visualización asociada.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/card/edit")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -433,6 +444,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Share")]
         [HttpPost("createShare/{dashboardId}/share")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(400)]
@@ -467,6 +479,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("getShares/{dashboardId}/share")]
         [ProducesResponseType(typeof(List<ShareResponseDto>), 200)]
         [ProducesResponseType(401)]
@@ -530,6 +543,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Share")]
         [HttpPut("UpdateShare/{slug}")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(401)]
@@ -556,6 +570,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Share")]
         [HttpDelete("DeleteShare/{slug}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(401)]
