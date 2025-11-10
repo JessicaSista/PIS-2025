@@ -3,9 +3,6 @@ using System.Security.Claims;
 
 namespace OmniMonitor.Server.Security
 {
-    /// <summary>
-    /// Handler que verifica si el usuario tiene el permiso requerido en sus claims
-    /// </summary>
     public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
     {
         private readonly ILogger<PermissionAuthorizationHandler> _logger;
@@ -19,14 +16,12 @@ namespace OmniMonitor.Server.Security
             AuthorizationHandlerContext context, 
             PermissionRequirement requirement)
         {
-            // Verificar si el usuario está autenticado
             if (context.User?.Identity?.IsAuthenticated != true)
             {
                 _logger.LogWarning("Usuario no autenticado intentando acceder a recurso protegido");
                 return Task.CompletedTask;
             }
 
-            // Buscar el claim de permiso en el token JWT
             var hasPermission = context.User.HasClaim(c => 
                 c.Type == "permission" && c.Value == requirement.PermissionName);
 

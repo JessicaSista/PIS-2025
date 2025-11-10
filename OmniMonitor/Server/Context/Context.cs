@@ -7,10 +7,6 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Context
 {
-    /// <summary>
-    /// DbContext configurado con IdentityUser (solo usuarios) + sistema de permisos personalizado.
-    /// No usa AspNetRoles/AspNetUserRoles, usa tablas personalizadas Roles/UserRoles.
-    /// </summary>
     public class ApplicationDbContext : IdentityUserContext<User, int>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)

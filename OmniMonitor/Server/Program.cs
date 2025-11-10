@@ -19,7 +19,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 ConfigurationManager configuration = builder.Configuration;
 
-// --- Logging Configuration ---
 builder.Logging.ClearProviders();
 builder.Logging.AddDebug();
 builder.Logging.AddConsole();
@@ -38,7 +37,6 @@ if (OperatingSystem.IsWindows())
 }
 builder.Logging.AddAzureWebAppDiagnostics();
 
-// --- Add services to the container ---
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -65,7 +63,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// --- JWT AUTHENTICATION SERVICES WITH DEBUGGING ---
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -83,34 +80,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero
         };
 
-        // --- DEBUGGING EVENTS ---
         options.Events = new JwtBearerEvents
         {
             OnTokenValidated = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogInformation("--- Token validation SUCCEEDED for user: {User}", context.Principal.Identity.Name);
+                logger.LogInformation("Token validado para usuario: {User}", context.Principal.Identity.Name);
                 return Task.CompletedTask;
             },
             OnAuthenticationFailed = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogError(context.Exception, "--- Token validation FAILED ---");
+                logger.LogError(context.Exception, "Error al validar token");
                 return Task.CompletedTask;
             }
         };
-        // --- END OF DEBUGGING EVENTS ---
     });
-// --- END OF JWT SECTION ---
 
-// --- AUTHORIZATION POLICIES ---
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
 builder.Services.AddAuthorization(options =>
 {
-    // Definir políticas para cada permiso modular
-    // Estas políticas se usan con [RequirePermission("Module.Action")]
-    
     // Módulo Users
     options.AddPolicy("Users.View", policy => policy.Requirements.Add(new PermissionRequirement("Users.View")));
     options.AddPolicy("Users.Create", policy => policy.Requirements.Add(new PermissionRequirement("Users.Create")));
@@ -184,8 +174,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("System.ViewSettings", policy => policy.Requirements.Add(new PermissionRequirement("System.ViewSettings")));
     options.AddPolicy("System.ManageSettings", policy => policy.Requirements.Add(new PermissionRequirement("System.ManageSettings")));
 });
-// --- END OF AUTHORIZATION POLICIES ---
-
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
@@ -262,7 +250,6 @@ using (var scope = app.Services.CreateScope())
 
         await context.Database.MigrateAsync();
 
-        // --- Crear usuario 'admin' ---
         string adminUsername = "admin";
         string adminPassword = "adminadmin";
         var adminUser = await userManager.FindByNameAsync(adminUsername);
@@ -290,7 +277,6 @@ using (var scope = app.Services.CreateScope())
             logger.LogInformation($"Usuario '{adminUsername}' ya existe."); 
         }
 
-        // --- Asignar rol Admin al usuario admin ---
         if (adminUser != null)
         {
             var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
@@ -329,7 +315,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// --- Configure the HTTP request pipeline ---
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -361,10 +346,8 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseRouting();
 app.UseCors(corsPolicy);
 
-// --- ADD AUTHENTICATION MIDDLEWARE (ORDER IS CRITICAL) ---
 app.UseAuthentication();
 app.UseAuthorization();
-// --- END OF MIDDLEWARE SECTION ---
 
 app.MapRazorPages();
 app.MapControllers();

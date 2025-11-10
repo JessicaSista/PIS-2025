@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
@@ -29,6 +30,7 @@ namespace OmniMonitor.Server.Controllers
         /// Creates a new report with a specified list of joins.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Create")]
         [HttpPost]
         [ProducesResponseType(typeof(Report), 201)]
         [ProducesResponseType(400)]
@@ -44,6 +46,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Edit")]
         [HttpPost("{reportId}/joins/create-and-add")]
         [ProducesResponseType(typeof(ReportJoin), 200)]
         [ProducesResponseType(404)] // Not Found
@@ -71,6 +74,7 @@ namespace OmniMonitor.Server.Controllers
         /// Gets a list of all reports for a specific user.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
         [HttpGet("by-user")]
         [ProducesResponseType(typeof(List<Report>), 200)]
         public async Task<IActionResult> GetAllReportsByUsername()
@@ -84,6 +88,7 @@ namespace OmniMonitor.Server.Controllers
         /// Gets a single, detailed report by its ID.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)]
@@ -107,6 +112,7 @@ namespace OmniMonitor.Server.Controllers
         /// Creates a new join configuration.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
         [HttpPost("joins")]
         [ProducesResponseType(typeof(CrossModuleJoin), 201)]
         [ProducesResponseType(400)]
@@ -126,6 +132,7 @@ namespace OmniMonitor.Server.Controllers
         /// Gets a list of all join configurations for a specific user.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
         [HttpGet("joins/by-user")]
         [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
         public async Task<IActionResult> GetJoinsByUsername()
@@ -136,6 +143,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Export")]
         [HttpGet("joins/{joinId}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]
@@ -158,6 +166,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Edit")]
         [HttpPut("UpdateReport")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
@@ -189,6 +198,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Delete")]
         [HttpDelete("DeleteReport")]
         [ProducesResponseType(204)] // No Content (éxito)
         [ProducesResponseType(404)] // Not Found
@@ -221,6 +231,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Edit")]
         [HttpDelete("RemoveJoinFromReport")]
         [ProducesResponseType(204)] // No Content (éxito)
         [ProducesResponseType(404)] // Not Found
@@ -251,6 +262,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Export")]
         [HttpGet("{id}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]

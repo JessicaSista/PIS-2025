@@ -12,6 +12,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class KPIController : ControllerBase
     {
         private readonly ISondaAuthService _sondaAuthService;

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -11,6 +12,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetController : ControllerBase
     {
         private readonly IDatasetService _datasetService;
@@ -31,7 +33,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo dataset.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Create")]
         [HttpPost]
         [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
         [ProducesResponseType(400)] // Bad Request

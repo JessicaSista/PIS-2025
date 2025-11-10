@@ -27,8 +27,6 @@ namespace OmniMonitor.Server.Services
         private readonly SignInManager<User> _signInManager;
         private readonly IPermissionService _permissionService;
 
-
-        // Inject IConfiguration to access appsettings.json for JWT settings
         public AuthService(ApplicationDbContext context, IConfiguration configuration, UserManager<User> UserManager, SignInManager<User> SignInManager, IPermissionService permissionService)
         {
             _context = context;
@@ -62,25 +60,21 @@ namespace OmniMonitor.Server.Services
                     new Claim(ClaimTypes.Name, user.UserName)
                 };
 
-                // Agregar roles personalizados (de la tabla Roles, no AspNetRoles)
                 var roles = await _permissionService.GetUserRolesAsync(user.Id);
                 foreach (var role in roles)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, role));
                 }
 
-                // Agregar permisos como claims (formato: permission:Module.Action)
                 var permissions = await _permissionService.GetUserPermissionClaimsAsync(user.Id);
                 foreach (var permission in permissions)
                 {
                     claims.Add(new Claim("permission", permission));
                 }
 
-                // 2. Get the secret key from appsettings.json
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
-                // 3. Create the token object
+                
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(claims),
@@ -90,25 +84,21 @@ namespace OmniMonitor.Server.Services
                     Audience = _configuration["Jwt:Audience"]
                 };
 
-                // 4. Create and write the token
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
 
-
-                // 5. Return the successful response with the token included
                 return new LoginResponse
                 {
                     Success = true,
                     Message = "Login exitoso",
-                    Token = tokenString, // The token is now included
+                    Token = tokenString,
                     UserId = user.Id,
                     Username = user.UserName
                 };
             }
             catch (Exception ex)
             {
-                // Log the exception
                 return new LoginResponse { Success = false, Message = $"Error interno: {ex.Message}" };
             }
         }

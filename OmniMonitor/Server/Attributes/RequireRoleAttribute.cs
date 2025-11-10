@@ -21,16 +21,13 @@ namespace OmniMonitor.Server.Attributes
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
             ILogger<RequireRoleAttribute> logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<RequireRoleAttribute>>();
-            logger.LogInformation("--- [RequireRole] Authorization Check Started ---");
-            logger.LogInformation("Required Role: {Role}", _roleName);
-
             IPermissionService permissionService = context.HttpContext.RequestServices.GetRequiredService<IPermissionService>();
 
             Claim? userIdClaim = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
-                logger.LogWarning("Authorization FAILED: UserId claim not found or invalid.");
+                logger.LogWarning("UserId claim no encontrado o inválido");
                 context.Result = new UnauthorizedResult();
                 return;
             }
@@ -38,12 +35,9 @@ namespace OmniMonitor.Server.Attributes
             bool hasRole = await permissionService.HasRoleAsync(userId, _roleName);
             if (!hasRole)
             {
-                logger.LogWarning("Authorization FAILED: User {UserId} does not have role '{Role}'", userId, _roleName);
+                logger.LogWarning("Usuario {UserId} no tiene rol '{Role}'", userId, _roleName);
                 context.Result = new ForbidResult();
-                return;
             }
-
-            logger.LogInformation("Authorization SUCCEEDED for User {UserId} with Role '{Role}'", userId, _roleName);
         }
     }
 }
