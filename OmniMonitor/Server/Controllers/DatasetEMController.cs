@@ -126,7 +126,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("ContentType inválido o no soportado");
                 }
 
-                DatasetEM newDatasetEM = await _datasetEMService.CreateDatasetEMAsync(req, newDataset.Id);
+                DatasetEM newDatasetEM = await _datasetEMService.CreateDatasetEMWithFiltersAsync(req, newDataset.Id, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncEM(newDataset.Id, requestDataset, newDatasetEM);
                 return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDatasetEM.Id, username = newDatasetEM.Username }, newDatasetEM);
             }
@@ -147,7 +147,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset EM existente aplicando filtrado.
         /// </summary>
-        [HttpPut("filtered/{datasetId}")]
+        [HttpPut("with-filters/{datasetId}")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -197,7 +197,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("ContentType inválido o no soportado");
                 }
 
-                DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, req);
+                DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMWithFiltersAsync(datasetId, req, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncEM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }

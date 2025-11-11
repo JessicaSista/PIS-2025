@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251110002844_migrationnmm")]
-    partial class migrationnmm
+    [Migration("20251110051531_InitialMigrationss")]
+    partial class InitialMigrationss
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -377,6 +377,9 @@ namespace OmniMonitor.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("Id_Asset_Type")
                         .HasColumnType("int");
 
@@ -510,6 +513,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Is_Dataset")
                         .IsRequired()
@@ -730,6 +736,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Id_Zone")
                         .HasColumnType("int");

@@ -374,6 +374,9 @@ namespace OmniMonitor.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("Id_Asset_Type")
                         .HasColumnType("int");
 
@@ -507,6 +510,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Is_Dataset")
                         .IsRequired()
@@ -727,6 +733,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Id_Zone")
                         .HasColumnType("int");
