@@ -14,16 +14,90 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        #loading-container {
+            display: flex;
+            align-items: center;    /* Centrado horizontal */
+            justify-content: start; /* Centrado vertical */
+            flex-direction: column; /* Apila el spinner y el texto */
+
+            /* gap: 10px;
+            
+            height: 100%; /* Ocupa toda la altura de la ventana */
+            /*width: 100%;
+            top: 0;
+            left: 0; */
+        }
+    
+        
+        #app {
+            height: 100%; 
+            width: 100%;
+        }
+
+        /* --- 1. FONDO GENERAL (BODY) --- */
+        body {
+            /* Fallback estático (Tema Claro) */
+            background: #E3F2FD;
+            transition: background 0.3s ease-in-out;
+
+            background-size: cover; 
+            background-repeat: no-repeat;
+        }
+
+        .light-theme {
+            background: #E3F2FD;
+        }
+
+        .dark-theme {
+            background: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
+        }
+
+        /* --- 2. SPINNER DE CARGA (.loading-progress) --- */
+        .loading-progress-text {
+            color: #333333;
+            position: relative !important;
+            inset: auto !important;
+        }
+
+
+        /* Tema Oscuro */
+        .dark-theme .loading-progress-text {
+            color: #FFFFFF;
+        }
+
+
+        /* --- 3. MENSAJE DE ERROR (#blazor-error-ui) --- */
+        #blazor-error-ui {
+            background-color: #fce8e8; /* Fondo claro de error */
+            color: #d93025; /* Texto de error rojo */
+            border-color: #d93025;
+        }
+
+        .dark-theme #blazor-error-ui {
+            background-color: #330000;
+            color: #FFCCCC;
+            border-color: #FFCCCC;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="app">
-        <!--<svg class="loading-progress">
+    <div id="loading-container"> 
+        <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />
             <circle r="40%" cx="50%" cy="50%" />
         </svg>
-        <div class="loading-progress-text"></div>-->
+        <div class="loading-progress-text">OmniMonitor...</div> 
     </div>
+    
+    <div id="app"></div>
 
     <div id="blazor-error-ui">
         An unhandled error has occurred.
@@ -31,28 +105,65 @@
         <a class="dismiss">🗙</a>
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
+    <script>
+        // Ocultar el contenedor de carga tan pronto como Blazor inyecte la app.
+        // Lo ejecutamos aquí porque es el último script que corre antes de la inyección.
+        document.addEventListener("DOMContentLoaded", () => {
+            // Se le da un pequeño retraso para asegurar que el navegador haya tenido tiempo de dibujar
+            setTimeout(function() {
+                const loadingContainer = document.getElementById('loading-container');
+                if (loadingContainer) {
+                    loadingContainer.style.display = 'none';
+                }
+            }, 50); // Un retraso de 50 milisegundos
+        });
+
+    </script>
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="js/dnd-helpers.js"></script>
-</body>
 
-<script>
-    window.equalizeCardHeights = () => {
-        const cards = document.querySelectorAll('.dataset-card, .kpi-card');
-        let max = 0;
+    <script>const themeKey = "currentThemeMode";
 
-        cards.forEach(c => c.style.height = 'auto');
+        // Leer el valor del localStorage
+        let themePreferenceValue = localStorage.getItem(themeKey);
+       
+        // Modo por defecto = oscuro
+        if (!themePreferenceValue) {
+            themePreferenceValue = "1";
+        }
 
-        cards.forEach(c => {
-            if (c.offsetHeight > max) max = c.offsetHeight;
+        // Convertir el valor numérico a la string de tema
+        let themeName;
+        if (themePreferenceValue === "0") {
+            themeName = "light"; // 0 = Light
+        } else {
+            themeName = "dark";  // 1 = Dark
+        }
+
+        // Crear y aplicar la clase
+        const themeClass = themeName + '-theme';
+        document.body.classList.add(themeClass);
+
+        
+
+        window.equalizeCardHeights = () => {
+            const cards = document.querySelectorAll('.dataset-card, .kpi-card');
+            let max = 0;
+
+            cards.forEach(c => c.style.height = 'auto');
+
+            cards.forEach(c => {
+                if (c.offsetHeight > max) max = c.offsetHeight;
+            });
+
+            cards.forEach(c => c.style.height = max + 'px');
+        };
+
+        window.addEventListener('resize', () => {
+            window.equalizeCardHeights();
         });
-
-        cards.forEach(c => c.style.height = max + 'px');
-    };
-
-    window.addEventListener('resize', () => {
-        window.equalizeCardHeights();
-    });
-</script>
+    </script>
+</body>
 
 </html>
