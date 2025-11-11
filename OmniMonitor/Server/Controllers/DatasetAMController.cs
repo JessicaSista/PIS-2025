@@ -90,20 +90,32 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // Asset
                 {
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
+                    Console.WriteLine($"[CREATE AM DATASET] Total Assets obtenidos: {allAssets.Count()}");
+                    
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
+                    Console.WriteLine($"[CREATE AM DATASET] Assets después de filtrar: {filtrados.Count()}");
+                    
                     req.Grupo_Asset_Ids = filtrados.Select(a => a.Id != null ? a.Id.ToString() : string.Empty).OfType<string>().ToList();
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
+                    Console.WriteLine($"[CREATE AM DATASET] Total EventTasks obtenidos: {allEventTasks.Count()}");
+                    
                     var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
+                    Console.WriteLine($"[CREATE AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
+                    
                     req.Grupo_Event_Task_Instance_Ids = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
                 }
                 else if (req.ContentType == "3") // Stock
                 {
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
+                    Console.WriteLine($"[CREATE AM DATASET] Total Stocks obtenidos: {allStocks.Count()}");
+                    
                     var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
+                    Console.WriteLine($"[CREATE AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
+                    
                     req.StockIds = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
                 }
                 else
@@ -111,7 +123,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("ContentType inválido o no soportado");
                 }
 
-                DatasetAM newDatasetAM = await _datasetAmService.CreateDatasetAMAsync(req, newDataset.Id);
+                DatasetAM newDatasetAM = await _datasetAmService.CreateDatasetAMWithFiltersAsync(req, newDataset.Id, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncAM(newDataset.Id, requestDataset, newDatasetAM);
                 return CreatedAtAction(nameof(GetDatasetAMByIdForEdit), new { id = newDatasetAM.Id_Dataset, username = newDatasetAM.Username }, newDatasetAM);
             }
@@ -134,7 +146,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un DatasetAM existente aplicando filtrado.
         /// </summary>
-        [HttpPut("filtered/{id}")]
+        [HttpPut("with-filters/{id}")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -160,7 +172,11 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // Asset
                 {
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
+                    Console.WriteLine($"[EDIT AM DATASET] Total Assets obtenidos: {allAssets.Count()}");
+                    
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
+                    Console.WriteLine($"[EDIT AM DATASET] Assets después de filtrar: {filtrados.Count()}");
+                    
                     if (req.Grupo_Asset_Ids == null) req.Grupo_Asset_Ids = new List<string>();
                     req.Grupo_Asset_Ids.Clear();
                     req.Grupo_Asset_Ids.AddRange(filtrados.Select(a => a.Id != null ? a.Id.ToString() : string.Empty).OfType<string>().ToList());
@@ -169,7 +185,11 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
+                    Console.WriteLine($"[EDIT AM DATASET] Total EventTasks obtenidos: {allEventTasks.Count()}");
+                    
                     var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
+                    Console.WriteLine($"[EDIT AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
+                    
                     if (req.Grupo_Event_Task_Instance_Ids == null) req.Grupo_Event_Task_Instance_Ids = new List<int>();
                     req.Grupo_Event_Task_Instance_Ids.Clear();
                     req.Grupo_Event_Task_Instance_Ids.AddRange(filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList());
@@ -179,7 +199,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("ContentType inválido o no soportado");
                 }
 
-                DatasetAM updatedDataset = await _datasetAmService.UpdateDatasetAMAsync(existingDataset, req);
+                DatasetAM updatedDataset = await _datasetAmService.UpdateDatasetAMWithFiltersAsync(id, req, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncAM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }

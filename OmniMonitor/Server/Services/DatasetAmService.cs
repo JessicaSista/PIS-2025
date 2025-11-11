@@ -14,11 +14,13 @@ namespace OmniMonitor.Server.Services
     Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username);
     Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username);
         Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset);
+        Task<DatasetAM> CreateDatasetAMWithFiltersAsync(CreateDatasetAMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username);
         Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username);
         Task<DatasetAM?> GetDatasetAMByIdAsyncSinToken(int id);
         Task<DatasetAM?> GetDatasetAMByIdForEditAsync(int id, string username);
         Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request);
+        Task<DatasetAM> UpdateDatasetAMWithFiltersAsync(int datasetId, CreateDatasetAMRequest request, List<FilterCondition> filters);
         Task DeleteDatasetAMAsync(int id, string username);
     }
 
@@ -433,6 +435,162 @@ namespace OmniMonitor.Server.Services
                 }
             }
             return reducedList;
+        }
+
+        public async Task<DatasetAM> CreateDatasetAMWithFiltersAsync(CreateDatasetAMRequest request, int dataset, List<FilterCondition> filters)
+        {
+            // Serializar los filtros a JSON
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+
+            Console.WriteLine($"[DEBUG][DatasetAmService] CreateDatasetAMWithFiltersAsync: Username={request.Username}, Nombre={request.Nombre}, Type_Dataset={request.Type_Dataset}, ContentType={request.ContentType}");
+            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
+            {
+                Console.WriteLine("[DEBUG][DatasetAmService] ArgumentException: El nombre de usuario y el nombre del dataset son obligatorios.");
+                throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
+            }
+
+            var existingDataset = await _context.DatasetAM
+                .FirstOrDefaultAsync(d => d.Username == request.Username && d.Nombre == request.Nombre);
+
+            if (existingDataset != null)
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
+            }
+
+            var newDatasetAM = new DatasetAM
+            {
+                Username = request.Username,
+                Nombre = request.Nombre,
+                Descripcion = request.Descripcion,
+                Is_Dataset = request.IsDataset,
+                DatasetId = dataset,
+                Type_Dataset = request.Type_Dataset,
+                Id_Event_Task = request.Type_Dataset == 1 ? request.Id_Event_Task : null,
+                Id_Asset_Type = request.Type_Dataset == 2 ? request.Id_Asset_Type : null,
+                Filters = filtersJson // Almacenar los filtros como JSON
+            };
+
+            if (request.IsDataset == "S")
+            {
+                newDatasetAM.ContentType = "0"; // Dataset formal
+            }
+            else
+            {
+                newDatasetAM.ContentType = request.ContentType; // 1=device, 2=source, 3=sensor
+            }
+
+            if (request.Type_Dataset == 1 && request.Grupo_Event_Task_Instance_Ids != null)
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando EventTasks: {string.Join(",", request.Grupo_Event_Task_Instance_Ids)}");
+                newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
+                foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
+                {
+                    newDatasetAM.Grupo_Event_Task_Instance.Add(new DatasetEventTaskInstance
+                    {
+                        Id_Event_Task_Instance = eventTaskInstanceId
+                    });
+                }
+            }
+            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Assets: {string.Join(",", request.Grupo_Asset_Ids)}");
+                newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
+                foreach (var id in request.Grupo_Asset_Ids)
+                {
+                    newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                }
+            }
+            else if (request.Type_Dataset == 3 && request.StockIds != null)
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Stocks: {string.Join(",", request.StockIds)}");
+                newDatasetAM.Grupo_Stock = new List<DatasetStock>();
+                foreach (var stockId in request.StockIds)
+                {
+                    newDatasetAM.Grupo_Stock.Add(new DatasetStock { Id_Stock = stockId });
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[DEBUG][DatasetAmService] No se asignó ninguna relación hija (Type_Dataset={request.Type_Dataset})");
+            }
+
+            _context.DatasetAM.Add(newDatasetAM);
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"[DEBUG][DatasetAmService] DatasetAM con filtros guardado. Grupo_Stock count: {newDatasetAM.Grupo_Stock?.Count}");
+            return newDatasetAM;
+        }
+
+        public async Task<DatasetAM> UpdateDatasetAMWithFiltersAsync(int datasetId, CreateDatasetAMRequest request, List<FilterCondition> filters)
+        {
+            var existingDataset = await _context.DatasetAM
+                .Include(d => d.Grupo_Event_Task_Instance)
+                .Include(d => d.Grupo_Asset)
+                .Include(d => d.Grupo_Stock)
+                .FirstOrDefaultAsync(d => d.Id_Dataset == datasetId && d.Username == request.Username);
+
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            // Serializar los filtros a JSON
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+
+            // Actualizar campos básicos
+            existingDataset.Nombre = request.Nombre;
+            existingDataset.Descripcion = request.Descripcion;
+            existingDataset.Is_Dataset = request.IsDataset;
+            existingDataset.Type_Dataset = request.Type_Dataset;
+            existingDataset.Id_Event_Task = request.Type_Dataset == 1 ? request.Id_Event_Task : null;
+            existingDataset.Id_Asset_Type = request.Type_Dataset == 2 ? request.Id_Asset_Type : null;
+            existingDataset.Filters = filtersJson; // Actualizar los filtros
+
+            if (request.IsDataset == "S")
+            {
+                existingDataset.ContentType = "0"; // Dataset formal
+            }
+            else
+            {
+                existingDataset.ContentType = request.ContentType; // 1=device, 2=source, 3=sensor
+            }
+
+            // Eliminar relaciones existentes
+            _context.DatasetEventTaskInstance.RemoveRange(existingDataset.Grupo_Event_Task_Instance);
+            _context.DatasetAsset.RemoveRange(existingDataset.Grupo_Asset);
+            _context.DatasetStock.RemoveRange(existingDataset.Grupo_Stock);
+
+            // Limpiar colecciones
+            existingDataset.Grupo_Event_Task_Instance.Clear();
+            existingDataset.Grupo_Asset.Clear();
+            existingDataset.Grupo_Stock.Clear();
+
+            // Agregar nuevas relaciones
+            if (request.Type_Dataset == 1 && request.Grupo_Event_Task_Instance_Ids != null)
+            {
+                foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
+                {
+                    existingDataset.Grupo_Event_Task_Instance.Add(new DatasetEventTaskInstance
+                    {
+                        Id_Event_Task_Instance = eventTaskInstanceId
+                    });
+                }
+            }
+            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
+            {
+                foreach (var id in request.Grupo_Asset_Ids)
+                {
+                    existingDataset.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                }
+            }
+            else if (request.Type_Dataset == 3 && request.StockIds != null)
+            {
+                foreach (var stockId in request.StockIds)
+                {
+                    existingDataset.Grupo_Stock.Add(new DatasetStock { Id_Stock = stockId });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return existingDataset;
         }
     }
 }

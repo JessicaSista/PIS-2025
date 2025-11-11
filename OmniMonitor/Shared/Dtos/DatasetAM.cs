@@ -41,7 +41,15 @@ namespace OmniMonitor.Shared.Dtos
         public ICollection<DatasetAsset> Grupo_Asset { get; set; } = new List<DatasetAsset>();
         public ICollection<DatasetStock> Grupo_Stock { get; set; } = new List<DatasetStock>();
 
-        public int DatasetId { get; set; }  // Clave for�nea
+        public int DatasetId { get; set; }  // Clave foránea
+        
+        /// <summary>
+        /// Filtros aplicados almacenados como JSON. 
+        /// Contiene un array de FilterCondition serializados.
+        /// </summary>
+        [Column(TypeName = "nvarchar(max)")]
+        public string? Filters { get; set; }
+        
         [ForeignKey(nameof(DatasetId))]
         public virtual Datasets Datasets { get; set; } = null!;
     }

@@ -669,6 +669,36 @@ public class ApiDataService : IApiDataService
                         var prop = actual.GetType().GetProperty(partes[i]);
                         actual = prop?.GetValue(actual);
                     }
+                    
+                    // Manejo especial para colecciones en enums (como Categories.Name)
+                    if (filter.ValueType == FilterValueType.Enum && actual != null && i < partes.Length - 1 && 
+                        actual is System.Collections.IEnumerable enumerable && !(actual is string))
+                    {
+                        var remainingPath = string.Join(".", partes.Skip(i + 1));
+                        var collectionValues = new List<object>();
+                        
+                        foreach (var item in enumerable)
+                        {
+                            if (item == null) continue;
+                            
+                            var itemValue = item;
+                            var remainingParts = partes.Skip(i + 1).ToArray();
+                            
+                            // Navegar el path restante en cada item de la colección
+                            for (int j = 0; j < remainingParts.Length; j++)
+                            {
+                                if (itemValue == null) break;
+                                var itemProp = itemValue.GetType().GetProperty(remainingParts[j]);
+                                itemValue = itemProp?.GetValue(itemValue);
+                            }
+                            
+                            if (itemValue != null)
+                                collectionValues.Add(itemValue);
+                        }
+                        
+                        actual = collectionValues;
+                        break; // Salir del loop principal porque ya procesamos el path completo
+                    }
                 }
                 value = actual;
                 if (value == null)
@@ -775,7 +805,44 @@ public class ApiDataService : IApiDataService
             case FilterValueType.Enum:
                 // Si el valor es objeto y el filtro es compuesto, busca la propiedad indicada
                 Console.WriteLine($"[DEBUG] Enum: valor para comparación='{value}' tipo={value?.GetType().Name}");
-                // Manejar el caso de 'In' con array de valores
+                
+                // Si value es una colección (como List<string> de nombres de categorías)
+                if (value is System.Collections.IEnumerable enumerable && !(value is string))
+                {
+                    if (filter.Type == FilterType.In)
+                    {
+                        List<string> conditionValues = new();
+                        if (filter.Condition is System.Text.Json.JsonElement jeArray && jeArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        {
+                            foreach (var item in jeArray.EnumerateArray())
+                            {
+                                if (item.ValueKind == System.Text.Json.JsonValueKind.String)
+                                    conditionValues.Add(item.GetString() ?? "");
+                                else
+                                    conditionValues.Add(item.ToString());
+                            }
+                        }
+                        else if (filter.Condition is IEnumerable<object> list)
+                        {
+                            foreach (var item in list)
+                                conditionValues.Add(item?.ToString() ?? "");
+                        }
+                        
+                        // Verificar si algún valor de la colección está en la condición
+                        foreach (var item in enumerable)
+                        {
+                            if (item?.ToString() != null && conditionValues.Contains(item.ToString()))
+                            {
+                                Console.WriteLine($"[DEBUG] Enum/In/Collection: Match encontrado: '{item}' está en [{string.Join(", ", conditionValues)}]");
+                                return true;
+                            }
+                        }
+                        Console.WriteLine($"[DEBUG] Enum/In/Collection: No match, ningún valor de la colección está en [{string.Join(", ", conditionValues)}]");
+                        return false;
+                    }
+                }
+                
+                // Manejar el caso de 'In' con array de valores (valor simple)
                 if (filter.Type == FilterType.In)
                 {
                     List<string> valores = new();

@@ -8,12 +8,14 @@ namespace OmniMonitor.Server.Services
     public interface IDatasetEMService
     {
         Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request,int dataset);
+        Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetEM>> GetAllDatasetsEMAsync(string username);
         Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username);
         Task<DatasetEM?> GetDatasetEMByIdAsyncSinToken(int datasetId);
         Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username);
         Task DeleteDatasetEMAsync(int datasetId, string username);
         Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request);
+        Task<DatasetEM> UpdateDatasetEMWithFiltersAsync(int datasetId, CreateDatasetEMRequest request, List<FilterCondition> filters);
     }
 
     public class DatasetEMService : IDatasetEMService
@@ -293,6 +295,72 @@ namespace OmniMonitor.Server.Services
 
             if (await query.AnyAsync())
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+        }
+
+        public async Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters)
+        {
+            // Serializar los filtros a JSON
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+            
+            var newDataset = new DatasetEM
+            {
+                Username = request.Username,
+                Name = request.Name,
+                Description = request.Description,
+                Is_Dataset = request.IsDataset,
+                DatasetId = dataset,
+                ContentType = GetContentType(request).ToString(),
+                Filters = filtersJson // Almacenar los filtros como JSON
+            };
+
+            UpdateRelationsFromRequest(newDataset, request);
+
+            _context.DatasetsEM.Add(newDataset);
+            await _context.SaveChangesAsync();
+
+            return newDataset;
+        }
+
+        public async Task<DatasetEM> UpdateDatasetEMWithFiltersAsync(int datasetId, CreateDatasetEMRequest request, List<FilterCondition> filters)
+        {
+            var existingDataset = await _context.DatasetsEM
+                .Include(d => d.DatasetAlerts)
+                .Include(d => d.DatasetEvents)
+                .Include(d => d.DatasetExtensions)
+            
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
+
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            // Serializar los filtros a JSON
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+
+            // Actualizar campos básicos
+            existingDataset.Name = request.Name;
+            existingDataset.Description = request.Description;
+            existingDataset.Is_Dataset = request.IsDataset;
+            existingDataset.ContentType = GetContentType(request).ToString();
+            existingDataset.Filters = filtersJson; // Actualizar los filtros
+
+            // Eliminar relaciones existentes
+            _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
+            _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
+            _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
+            _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
+            
+
+            // Limpiar colecciones
+            existingDataset.DatasetAlerts.Clear();
+            existingDataset.DatasetEvents.Clear();
+            existingDataset.DatasetExtensions.Clear();
+            existingDataset.DatasetCategory.Clear();
+
+            // Agregar nuevas relaciones
+            UpdateRelationsFromRequest(existingDataset, request);
+
+            await _context.SaveChangesAsync();
+            return existingDataset;
         }
     }
 

@@ -129,7 +129,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("ContentType inválido o no soportado");
                 }
 
-                DatasetUM newDataset = await _datasetUMService.CreateDatasetUMAsync(req, dataset.Id);
+                DatasetUM newDataset = await _datasetUMService.CreateDatasetUMWithFiltersAsync(req, dataset.Id, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncUM(dataset.Id, requestDataset, newDataset);
                 return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
             }
@@ -194,6 +194,124 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
+            }
+        }
+
+        [HttpPut("with-filters/{datasetId}")]
+        [ProducesResponseType(typeof(DatasetUM), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(403)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetUM>> UpdateDatasetWithFilters(int datasetId, [FromBody] CreateDatasetUMFilteredRequest request)
+        {
+            try
+            {
+                Console.WriteLine($"[DEBUG] Iniciando UpdateDatasetWithFilters para datasetId: {datasetId}");
+                
+                if (!ModelState.IsValid)
+                {
+                    Console.WriteLine($"[DEBUG] ModelState inválido");
+                    return BadRequest(ModelState);
+                }
+
+                var req = request.DatasetRequest;
+                //string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                string username = "admin";
+                Console.WriteLine($"[DEBUG] Username usado: {username}, req.Username: {req.Username}");
+                
+                // Usar el username consistente
+                req.Username = username;
+                
+                // Obtener el dataset existente
+                DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
+                if (existingDataset == null)
+                {
+                    Console.WriteLine($"[DEBUG] Dataset no encontrado para ID {datasetId} y usuario {username}");
+                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                }
+
+                Console.WriteLine($"[DEBUG] Dataset encontrado: {existingDataset.Name}");
+                Console.WriteLine($"[DEBUG] Número de filtros recibidos: {request.Filters.Count}");
+
+                // Validar nombre único
+                await _datasetUMService.ValidateDatasetNameAsync(req.Name, username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
+
+                var requestDataset = new CreateDatasetRequest(req.Name, username, ModuleType.UrbanMonitor);
+
+                // Aplicar filtros - SIEMPRE procesar datos (sin filtros = todos los datos)
+                List<int> filteredIds = new List<int>();
+                Console.WriteLine($"[DEBUG] ContentType: {req.ContentType}");
+                Console.WriteLine($"[DEBUG] Filtros disponibles: {request.Filters.Any()}");
+                
+                // SIEMPRE procesar según ContentType
+                Console.WriteLine($"[DEBUG] Procesando datos - ContentType: {req.ContentType}");
+                
+                if (req.ContentType == "2") // News
+                {
+                    var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    Console.WriteLine($"[DEBUG] Total news antes de filtrar: {allNews.Count}");
+                    
+                    if (request.Filters.Any())
+                    {
+                        var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        Console.WriteLine($"[DEBUG] Total news filtrados: {filtrados.Count}");
+                        filteredIds = filtrados.Select(n => (int)n.Id).ToList();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DEBUG] Sin filtros - tomando todas las news");
+                        filteredIds = allNews.Select(n => (int)n.Id).ToList();
+                    }
+                    
+                    req.NewsIds = filteredIds;
+                    Console.WriteLine($"[DEBUG] IDs agregados a request.NewsIds: {string.Join(",", req.NewsIds)}");
+                }
+                else if (req.ContentType == "1") // Eventos
+                {
+                    var eventos = await _sondaUMService.GetAllEvents(username);
+                    Console.WriteLine($"[DEBUG] Total eventos antes de filtrar: {eventos.Count}");
+                    
+                    if (request.Filters.Any())
+                    {
+                        IEnumerable<object> eventosObj = eventos.Cast<object>();
+                        var filtrados = ApiDataService.StaticFilterObjects(eventosObj, request.Filters);
+                        Console.WriteLine($"[DEBUG] Total eventos filtrados: {filtrados.Count}");
+                        filteredIds = filtrados.Select(e => (int)e.Id).ToList();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[DEBUG] Sin filtros - tomando todos los eventos");
+                        filteredIds = eventos.Select(e => e.Id).ToList();
+                    }
+                    
+                    req.EventIds = filteredIds;
+                    Console.WriteLine($"[DEBUG] IDs agregados a request.EventIds: {string.Join(",", req.EventIds)}");
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado para filtros");
+                }
+
+                // Actualizar dataset con filtros
+                Console.WriteLine($"[DEBUG] Actualizando dataset con filtros...");
+                DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMWithFiltersAsync(datasetId, req, request.Filters);
+                await _datasetUMService.UpdateDatasetAsyncUM(updatedDataset.DatasetId, requestDataset, updatedDataset);
+                
+                Console.WriteLine($"[DEBUG] Dataset actualizado exitosamente: {updatedDataset.Name}");
+                return Ok(updatedDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar el dataset con filtros: {ex.Message}");
             }
         }
 

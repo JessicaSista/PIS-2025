@@ -294,6 +294,7 @@ namespace OmniMonitor.Server.Services
             existingDataset.DatasetNews.Clear();
 
             // Agregar nuevas relaciones
+            Console.WriteLine($"[DEBUG][UpdateDatasetUMWithFiltersAsync] Antes de UpdateRelationsFromRequest - EventIds: {request.EventIds?.Count ?? 0}, NewsIds: {request.NewsIds?.Count ?? 0}");
             UpdateRelationsFromRequest(existingDataset, request);
 
             await _context.SaveChangesAsync();
@@ -313,8 +314,24 @@ namespace OmniMonitor.Server.Services
         }
         private static void UpdateRelationsFromRequest(DatasetUM dataset, CreateDatasetUMRequest request)
         {
+            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] EventIds recibidos: {request.EventIds?.Count ?? 0}");
+            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] NewsIds recibidos: {request.NewsIds?.Count ?? 0}");
+            
+            if (request.EventIds?.Any() == true)
+            {
+                Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] EventIds: [{string.Join(",", request.EventIds)}]");
+            }
+            
+            if (request.NewsIds?.Any() == true)
+            {
+                Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] NewsIds: [{string.Join(",", request.NewsIds)}]");
+            }
+            
             dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEvent { Id_event = id }).ToList() ?? new();
             dataset.DatasetNews = request.NewsIds?.Select(id => new DatasetNews { Id_news = id }).ToList() ?? new();
+            
+            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] DatasetEvents creados: {dataset.DatasetEvents.Count}");
+            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] DatasetNews creados: {dataset.DatasetNews.Count}");
         }
 
         private static string GetContentType(CreateDatasetUMRequest r)

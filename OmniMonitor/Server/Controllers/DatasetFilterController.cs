@@ -56,7 +56,7 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "StartDate", Tipo = FilterValueType.Date });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "EndDate", Tipo = FilterValueType.Date });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Important", Tipo = FilterValueType.Boolean });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Zone", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Zone.Name", Tipo = FilterValueType.Enum });
                             break;
                         case 1: // Eventos
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
@@ -74,7 +74,7 @@ namespace OmniMonitor.Server.Controllers
                 case "AM":
                     switch (entidadId)
                     {
-                        case 1: // Asset
+                        case 2: // Asset
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "ExternalId", Tipo = FilterValueType.String });
@@ -82,13 +82,22 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Address", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "CreatedAt", Tipo = FilterValueType.Date });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "LifeTimeToDate", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TypeDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "BundleDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "BrandDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "StateDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ResponsibleDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Device.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ProviderDto.Name", Tipo = FilterValueType.Enum });
                             break;
-                        case 2: // EventTaskInstance
+                        case 1: // EventTaskInstance
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "EventTaskDto.Id", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "StartDate", Tipo = FilterValueType.Date });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "State", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Subject", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "FinalizedDate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TakenBy.Name", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Critical", Tipo = FilterValueType.Boolean });
                             break;
                         case 3: // Stock
@@ -98,6 +107,10 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Location", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Sku", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Minimum", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Bundle.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "BundleId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Supervisor.Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
                             //faltarian categories y tambien los Dtos compuestos
                             break;
                     }
@@ -172,17 +185,17 @@ namespace OmniMonitor.Server.Controllers
             switch (modulo)
             {
                 case "UM":
-                    if (entidadId == 1)
+                    if (entidadId == 2)
                         entidades = await _sondaUMService.GetAllNews(username);
-                    else if (entidadId == 2)
+                    else if (entidadId == 1)
                         entidades = await _sondaUMService.GetAllEvents(username);
                     else
                         entidadValida = false;
                     break;
                 case "AM":
-                    if (entidadId == 1)
+                    if (entidadId == 2)
                         entidades = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
-                    else if (entidadId == 2)
+                    else if (entidadId == 1)
                         entidades = await _sondaAMService.GetEventTaskInstances(
                             "1900-11-01,3030-11-06", // dates
                             null, // page
@@ -305,17 +318,17 @@ namespace OmniMonitor.Server.Controllers
         switch (request.Modulo)
         {
             case "UM":
-                if (request.EntidadId == 1)
+                if (request.EntidadId == 2)
                     entidades = await _sondaUMService.GetAllNews(username);
-                else if (request.EntidadId == 2)
+                else if (request.EntidadId == 1)
                     entidades = await _sondaUMService.GetAllEvents(username);
                 else
                     entidadValida = false;
                 break;
             case "AM":
-                if (request.EntidadId == 1)
+                if (request.EntidadId == 2)
                     entidades = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
-                else if (request.EntidadId == 2)
+                else if (request.EntidadId == 1)
                     entidades = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
                 else if (request.EntidadId == 3)
