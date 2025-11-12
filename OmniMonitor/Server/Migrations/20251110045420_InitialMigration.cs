@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class usersPass : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -144,7 +144,9 @@ namespace OmniMonitor.Server.Migrations
                     DefaultColor = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ColorRanges = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Username = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ExtraInfo = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Atributo = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ExtraInfo = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Type = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -319,6 +321,31 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SharedLinks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Slug = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    DashboardId = table.Column<int>(type: "int", nullable: false),
+                    Visibility = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SharedLinks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SharedLinks_Dashboards_DashboardId",
+                        column: x => x.DashboardId,
+                        principalTable: "Dashboards",
+                        principalColumn: "id_dashboard",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DatasetAM",
                 columns: table => new
                 {
@@ -356,7 +383,8 @@ namespace OmniMonitor.Server.Migrations
                     Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                    DatasetId = table.Column<int>(type: "int", nullable: false),
+                    Filters = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -408,7 +436,8 @@ namespace OmniMonitor.Server.Migrations
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Id_Zone = table.Column<int>(type: "int", nullable: true),
-                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                    DatasetId = table.Column<int>(type: "int", nullable: false),
+                    Filters = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -528,13 +557,41 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "GrupoDatasets",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id_visualizacion = table.Column<int>(type: "int", nullable: false),
+                    id_dataset = table.Column<int>(type: "int", nullable: false),
+                    JSON_design = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GrupoDatasets", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_GrupoDatasets_Datasets_id_dataset",
+                        column: x => x.id_dataset,
+                        principalTable: "Datasets",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GrupoDatasets_Visualizaciones_Id_visualizacion",
+                        column: x => x.Id_visualizacion,
+                        principalTable: "Visualizaciones",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "GrupoVisualizaciones",
                 columns: table => new
                 {
                     id_grupo_visualizacion = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     grupo_visualizacion = table.Column<int>(type: "int", nullable: false),
-                    id_visualizacion = table.Column<int>(type: "int", nullable: false),
+                    id_visualizacion = table.Column<int>(type: "int", nullable: true),
+                    id_kpi = table.Column<int>(type: "int", nullable: true),
                     tipo_card = table.Column<int>(type: "int", nullable: false),
                     props_configuracion = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
                     fecha_agregado = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -549,6 +606,12 @@ namespace OmniMonitor.Server.Migrations
                         principalTable: "Dashboards",
                         principalColumn: "id_dashboard",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_GrupoVisualizaciones_Kpi_id_kpi",
+                        column: x => x.id_kpi,
+                        principalTable: "Kpi",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_GrupoVisualizaciones_Visualizaciones_id_visualizacion",
                         column: x => x.id_visualizacion,
@@ -698,33 +761,6 @@ namespace OmniMonitor.Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "GrupoDatasets",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Id_visualizacion = table.Column<int>(type: "int", nullable: false),
-                    id_dataset = table.Column<int>(type: "int", nullable: false),
-                    JSON_design = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_GrupoDatasets", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_GrupoDatasets_DatasetsIM_id_dataset",
-                        column: x => x.id_dataset,
-                        principalTable: "DatasetsIM",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_GrupoDatasets_Visualizaciones_Id_visualizacion",
-                        column: x => x.Id_visualizacion,
-                        principalTable: "Visualizaciones",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "DatasetEvents",
                 columns: table => new
                 {
@@ -796,17 +832,23 @@ namespace OmniMonitor.Server.Migrations
                     Grupo_Stock = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Id_Stock = table.Column<int>(type: "int", nullable: false),
-                    DatasetEventTaskInstanceId = table.Column<int>(type: "int", nullable: false)
+                    DatasetAMId = table.Column<int>(type: "int", nullable: false),
+                    DatasetEventTaskInstanceId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DatasetStock", x => x.Grupo_Stock);
                     table.ForeignKey(
+                        name: "FK_DatasetStock_DatasetAM_DatasetAMId",
+                        column: x => x.DatasetAMId,
+                        principalTable: "DatasetAM",
+                        principalColumn: "Id_Dataset",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
                         name: "FK_DatasetStock_DatasetEventTaskInstance_DatasetEventTaskInstanceId",
                         column: x => x.DatasetEventTaskInstanceId,
                         principalTable: "DatasetEventTaskInstance",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.InsertData(
@@ -934,12 +976,6 @@ namespace OmniMonitor.Server.Migrations
                 column: "username");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Dashboards_username_nombre",
-                table: "Dashboards",
-                columns: new[] { "username", "nombre" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_DatasetAlerts_DatasetId",
                 table: "DatasetAlerts",
                 column: "DatasetId");
@@ -1005,6 +1041,11 @@ namespace OmniMonitor.Server.Migrations
                 column: "DatasetId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DatasetStock_DatasetAMId",
+                table: "DatasetStock",
+                column: "DatasetAMId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DatasetStock_DatasetEventTaskInstanceId",
                 table: "DatasetStock",
                 column: "DatasetEventTaskInstanceId");
@@ -1030,6 +1071,11 @@ namespace OmniMonitor.Server.Migrations
                 column: "grupo_visualizacion");
 
             migrationBuilder.CreateIndex(
+                name: "IX_GrupoVisualizaciones_id_kpi",
+                table: "GrupoVisualizaciones",
+                column: "id_kpi");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_GrupoVisualizaciones_id_visualizacion",
                 table: "GrupoVisualizaciones",
                 column: "id_visualizacion");
@@ -1048,6 +1094,17 @@ namespace OmniMonitor.Server.Migrations
                 name: "IX_RolePermissions_RoleId_PermissionId",
                 table: "RolePermissions",
                 columns: new[] { "RoleId", "PermissionId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SharedLinks_DashboardId",
+                table: "SharedLinks",
+                column: "DashboardId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SharedLinks_Slug",
+                table: "SharedLinks",
+                column: "Slug",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1117,19 +1174,22 @@ namespace OmniMonitor.Server.Migrations
                 name: "GrupoVisualizaciones");
 
             migrationBuilder.DropTable(
-                name: "Kpi");
-
-            migrationBuilder.DropTable(
                 name: "ReportJoins");
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
 
             migrationBuilder.DropTable(
+                name: "SharedLinks");
+
+            migrationBuilder.DropTable(
                 name: "UserRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "DatasetsIM");
 
             migrationBuilder.DropTable(
                 name: "DatasetsEM");
@@ -1144,10 +1204,7 @@ namespace OmniMonitor.Server.Migrations
                 name: "DatasetEventTaskInstance");
 
             migrationBuilder.DropTable(
-                name: "DatasetsIM");
-
-            migrationBuilder.DropTable(
-                name: "Dashboards");
+                name: "Kpi");
 
             migrationBuilder.DropTable(
                 name: "Visualizaciones");
@@ -1160,6 +1217,9 @@ namespace OmniMonitor.Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "Dashboards");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

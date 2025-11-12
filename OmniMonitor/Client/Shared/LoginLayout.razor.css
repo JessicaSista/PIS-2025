@@ -1,0 +1,133 @@
+﻿::deep .mud-drawer {
+    background: var(--fondo-drawer) !important;
+    border-right: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12)) !important;
+}
+
+::deep .mud-main-content {
+    min-height: 100vh;
+    background: var(--fondo) !important;
+}
+
+::deep .mud-drawer-content {
+    background: var(--fondo-drawer) !important;
+    overflow: hidden !important;
+    border-right: 1px solid var(--borde-drawer, rgba(0, 0, 0, 0.12)) !important;
+}
+
+    ::deep .mud-drawer-content .mud-nav-menu {
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-right: 8px;
+        margin-right: -8px;
+    }
+
+        ::deep .mud-drawer-content .mud-nav-menu::-webkit-scrollbar {
+            width: 0 !important;
+            display: none;
+        }
+
+::deep .mud-drawer-header {
+    min-height: 64px;
+    border-bottom: 1px solid var(--borde-drawer);
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page {
+    min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-fondo, #f5f5f5);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-pulgar, #bdbdbd);
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--scrollbar-pulgar-hover, #9e9e9e);
+    }
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-pulgar, #bdbdbd) var(--scrollbar-fondo, #f5f5f5);
+}
+
+.top-row {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #d6d5d5;
+    justify-content: flex-end;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+}
+
+    .top-row ::deep a, .top-row ::deep .btn-link {
+        white-space: nowrap;
+        margin-left: 1.5rem;
+        text-decoration: none;
+    }
+
+        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        .top-row ::deep a:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+@media (max-width: 640.98px) {
+    .top-row:not(.auth) {
+        display: none;
+    }
+
+    .top-row.auth {
+        justify-content: space-between;
+    }
+
+    .top-row ::deep a, .top-row ::deep .btn-link {
+        margin-left: 0;
+    }
+}
+
+@media (min-width: 641px) {
+    .page {
+        flex-direction: row;
+    }
+
+    .sidebar {
+        width: 250px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+    }
+
+    .top-row {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+        .top-row.auth ::deep a:first-child {
+            flex: 1;
+            text-align: right;
+            width: 0;
+        }
+
+    .top-row, article {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+}

@@ -507,37 +507,30 @@ namespace OmniMonitor.Server.Services
             {
                         var datasetAM = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
                         var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
-                        if (datasetAM.Grupo_Event_Task_Instance != null)
+                        if (datasetAM.Grupo_Stock != null)
                         {
-                            Console.WriteLine($"EventTaskInstances count: {datasetAM.Grupo_Event_Task_Instance.Count}");
-                            foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
+                            Console.WriteLine($"Grupo_Stock count: {datasetAM.Grupo_Stock.Count}");
+                            foreach (var dsStock in datasetAM.Grupo_Stock)
                             {
-                                if (eventTaskInstance.Grupo_Stock != null)
+                                Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
+                                var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
+                                if (stockDto != null)
                                 {
-                                    Console.WriteLine($"  Grupo_Stock count: {eventTaskInstance.Grupo_Stock.Count}");
-                                    foreach (var dsStock in eventTaskInstance.Grupo_Stock)
+                                    Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
+                                    stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
                                     {
-                                        Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
-                                        var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
-                                        if (stockDto != null)
-                                        {
-                                            Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
-                                            stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
-                                            {
-                                                Nombre = stockDto.Name,
-                                                Cantidad = stockDto.Quantity,
-                                                Proveedor = stockDto.Provider?.Name ?? string.Empty,
-                                                Sku = stockDto.Sku ?? string.Empty,
-                                                Minimo = stockDto.Minimum,
-                                                Bundle = stockDto.Bundle?.Name ?? stockDto.BundleId.ToString(),
-                                                Supervisor = stockDto.Supervisor?.UserName ?? string.Empty
-                                            });
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
-                                        }
-                                    }
+                                        Nombre = stockDto.Name,
+                                        Cantidad = stockDto.Quantity,
+                                        Proveedor = stockDto.Provider?.Name ?? string.Empty,
+                                        Sku = stockDto.Sku ?? string.Empty,
+                                        Minimo = stockDto.Minimum,
+                                        Bundle = stockDto.Bundle?.Name ?? stockDto.BundleId.ToString(),
+                                        Supervisor = stockDto.Supervisor?.UserName ?? string.Empty
+                                    });
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
                                 }
                             }
                         }

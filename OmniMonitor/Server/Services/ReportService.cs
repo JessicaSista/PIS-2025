@@ -17,6 +17,9 @@ public interface IReportService
     Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config);
     Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username);
     Task<List<dynamic>> ExecuteReportAsync(int reportId, string username);
+    Task<List<Report>> GetAllReportsPaginatedAsync(string username, int page = 1, int pageSize = 10, string? query = null);
+    Task<int> GetReportsCountAsync(string username, string? query = null);
+
 }
 
 public class ReportService : IReportService
@@ -89,6 +92,42 @@ public class ReportService : IReportService
             .AsNoTracking()
             .Where(r => r.Username == username)
             .ToListAsync();
+    }
+
+    public async Task<List<Report>> GetAllReportsPaginatedAsync(string username, int page = 1, int pageSize = 10, string? query = null)
+    {
+            var reportsQuery = _context.Reports
+                .Where(r => r.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                reportsQuery = reportsQuery.Where(r =>
+                    (r.Name != null && r.Name.ToLower().Contains(loweredQuery)) ||
+                    (r.Description != null && r.Description.ToLower().Contains(loweredQuery)));
+            }
+
+            return await reportsQuery
+                .OrderByDescending(r => r.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+    }
+
+    public async Task<int> GetReportsCountAsync(string username, string? query = null)
+    {
+            var reportsQuery = _context.Reports
+                .Where(r => r.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                reportsQuery = reportsQuery.Where(r =>
+                    (r.Name != null && r.Name.ToLower().Contains(loweredQuery)) ||
+                    (r.Description != null && r.Description.ToLower().Contains(loweredQuery)));
+            }
+
+            return await reportsQuery.CountAsync();
     }
 
     /// <summary>

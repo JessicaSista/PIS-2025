@@ -40,6 +40,8 @@ namespace OmniMonitor.Server.Services
         Task<ValidateSharePasswordResponseDto> ValidatePasswordAsync(string slug, string password);
         Task<ShareResponseDto?> UpdateShareLinkAsync(string slug, ShareRequestDto request, string username);
         Task<bool> DeleteShareLinkAsync(string slug, string username);
+        Task<int> GetDashboardsCount(string username, string? query);
+        Task<List<DashboardSummaryResponse>> GetAllDashboardsPaginatedAsync(string username, string? query, int page = 1, int pageSize = 9);
     }   
 
     /// <summary>
@@ -277,6 +279,51 @@ namespace OmniMonitor.Server.Services
                 })
                 .OrderByDescending(d => d.FechaModificacion)
                 .ToListAsync();
+        }
+
+        public async Task<List<DashboardSummaryResponse>> GetAllDashboardsPaginatedAsync(string username, string? query, int page = 1, int pageSize = 9)
+        {
+            var dashboardsQuery = _context.Dashboards
+                .Where(d => d.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                dashboardsQuery = dashboardsQuery.Where(d =>
+                    (d.Nombre != null && d.Nombre.ToLower().Contains(loweredQuery)) ||
+                    (d.Descripcion != null && d.Descripcion.ToLower().Contains(loweredQuery)));
+            }
+
+            return await dashboardsQuery
+                .OrderByDescending(d => d.FechaModificacion)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(d => new DashboardSummaryResponse
+                {
+                    IdDashboard = d.IdDashboard,
+                    Username = d.Username,
+                    Nombre = d.Nombre,
+                    Descripcion = d.Descripcion,
+                    FechaCreacion = d.FechaCreacion,
+                    FechaModificacion = d.FechaModificacion,
+                    CantidadTarjetas = d.GrupoVisualizaciones.Count
+                })
+                .ToListAsync();
+        }
+
+        public async Task<int> GetDashboardsCount(string username, string? query)
+        {
+            var dashboardsQuery = _context.Dashboards
+                .Where(d => d.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                dashboardsQuery = dashboardsQuery.Where(d =>
+                    (d.Nombre != null && d.Nombre.ToLower().Contains(loweredQuery)) ||
+                    (d.Descripcion != null && d.Descripcion.ToLower().Contains(loweredQuery)));
+            }
+            return await dashboardsQuery.CountAsync();
         }
 
         /// <summary>

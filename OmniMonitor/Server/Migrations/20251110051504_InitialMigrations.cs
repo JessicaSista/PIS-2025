@@ -5,25 +5,24 @@
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class new_cmm : Migration
+    public partial class InitialMigrations : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Atributo",
-                table: "Kpi",
+                name: "Filters",
+                table: "DatasetAM",
                 type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Atributo",
-                table: "Kpi");
+                name: "Filters",
+                table: "DatasetAM");
         }
     }
 }
