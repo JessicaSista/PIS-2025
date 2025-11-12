@@ -13,7 +13,7 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Services
 {
-    // --- Interfaz para el servicio de Visualizaciones ---
+    // -- Interfaz para el servicio de Visualizaciones --
     public interface IVisualizacionService
     {
         Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
