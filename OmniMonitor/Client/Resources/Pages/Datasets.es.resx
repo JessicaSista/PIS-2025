@@ -255,4 +255,7 @@
   <data name="SeleccionarTodos" xml:space="preserve">
     <value>Seleccionar Todas</value>
   </data>
+  <data name="NoResultados" xml:space="preserve">
+    <value>No se encontraron resultados para tu búsqueda</value>
+  </data>
 </root>

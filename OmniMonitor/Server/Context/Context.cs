@@ -7,11 +7,7 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Context
 {
-    /// <summary>
-    /// This DbContext is configured to read the connection string directly from IConfiguration.
-    /// </summary>
-    // Using a primary constructor to inject IConfiguration.
-    public class ApplicationDbContext : IdentityDbContext<User, IdentityRole<int>, int>
+    public class ApplicationDbContext : IdentityUserContext<User, int>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -31,6 +27,8 @@ namespace OmniMonitor.Server.Context
         public DbSet<RolePermission> RolePermissions { get; set; }
 
         public DbSet<Permission> Permissions { get; set; }
+
+        public DbSet<UserClaim> UserClaims { get; set; }
 
         public DbSet<Datasets> Datasets { get; set; }
 
@@ -115,75 +113,100 @@ namespace OmniMonitor.Server.Context
         {
             // Datos de roles
             builder.Entity<Role>().HasData(
-                new Role { Id = 1, Name = "Administrador", Description = "Rol con acceso completo al sistema" },
-                new Role { Id = 2, Name = "Visitante", Description = "Rol con acceso limitado de solo lectura" });
+                new Role { Id = 1, Name = "Admin", Description = "Rol con acceso completo al sistema" });
 
-            // Datos de permisos
-            builder.Entity<Permission>().HasData(
-                new Permission { Id = 1, Name = "Ver Usuarios", Description = "Permite ver la lista de usuarios" },
-                new Permission { Id = 2, Name = "Crear Usuarios", Description = "Permite crear nuevos usuarios" },
-                new Permission { Id = 3, Name = "Editar Usuarios", Description = "Permite editar usuarios existentes" },
-                new Permission { Id = 4, Name = "Eliminar Usuarios", Description = "Permite eliminar usuarios" },
+            // Definir permisos modulares con formato Module.Action
+            var permissions = new List<Permission>
+            {
+                // Módulo Users
+                new Permission { Id = 1, Module = "Users", Action = "View", Name = "Users.View", Description = "Ver usuarios" },
+                new Permission { Id = 2, Module = "Users", Action = "Create", Name = "Users.Create", Description = "Crear usuarios" },
+                new Permission { Id = 3, Module = "Users", Action = "Edit", Name = "Users.Edit", Description = "Editar usuarios" },
+                new Permission { Id = 4, Module = "Users", Action = "Delete", Name = "Users.Delete", Description = "Eliminar usuarios" },
 
-                // Permisos de sensores
-                new Permission { Id = 5, Name = "Ver Sensores", Description = "Permite ver datos de sensores" },
-                new Permission { Id = 6, Name = "Configurar Sensores", Description = "Permite configurar sensores" },
+                // Módulo Dashboards
+                new Permission { Id = 5, Module = "Dashboards", Action = "View", Name = "Dashboards.View", Description = "Ver dashboards" },
+                new Permission { Id = 6, Module = "Dashboards", Action = "Create", Name = "Dashboards.Create", Description = "Crear dashboards" },
+                new Permission { Id = 7, Module = "Dashboards", Action = "Edit", Name = "Dashboards.Edit", Description = "Editar dashboards" },
+                new Permission { Id = 8, Module = "Dashboards", Action = "Delete", Name = "Dashboards.Delete", Description = "Eliminar dashboards" },
+                new Permission { Id = 9, Module = "Dashboards", Action = "Share", Name = "Dashboards.Share", Description = "Compartir dashboards" },
 
-                // Permisos de empleados
-                new Permission { Id = 7, Name = "Ver Empleados", Description = "Permite ver la lista de empleados" },
-                new Permission { Id = 8, Name = "Gestionar Empleados", Description = "Permite crear, editar y eliminar empleados" },
+                // Módulo Datasets
+                new Permission { Id = 10, Module = "Datasets", Action = "View", Name = "Datasets.View", Description = "Ver datasets" },
+                new Permission { Id = 11, Module = "Datasets", Action = "Create", Name = "Datasets.Create", Description = "Crear datasets" },
+                new Permission { Id = 12, Module = "Datasets", Action = "Edit", Name = "Datasets.Edit", Description = "Editar datasets" },
+                new Permission { Id = 13, Module = "Datasets", Action = "Delete", Name = "Datasets.Delete", Description = "Eliminar datasets" },
 
-                // Permisos de items
-                new Permission { Id = 9, Name = "Ver Items", Description = "Permite ver la lista de items" },
-                new Permission { Id = 10, Name = "Gestionar Items", Description = "Permite crear, editar y eliminar items" },
+                // Módulo Visualizations
+                new Permission { Id = 14, Module = "Visualizations", Action = "View", Name = "Visualizations.View", Description = "Ver visualizaciones" },
+                new Permission { Id = 15, Module = "Visualizations", Action = "Create", Name = "Visualizations.Create", Description = "Crear visualizaciones" },
+                new Permission { Id = 16, Module = "Visualizations", Action = "Edit", Name = "Visualizations.Edit", Description = "Editar visualizaciones" },
+                new Permission { Id = 17, Module = "Visualizations", Action = "Delete", Name = "Visualizations.Delete", Description = "Eliminar visualizaciones" },
 
-                // Permisos de datasets UM
-                new Permission { Id = 11, Name = "Ver Datasets UM", Description = "Permite ver datasets del módulo UM (Zonas, Eventos, Noticias)" },
-                new Permission { Id = 12, Name = "Crear Datasets UM", Description = "Permite crear nuevos datasets del módulo UM" },
-                new Permission { Id = 13, Name = "Eliminar Datasets UM", Description = "Permite eliminar datasets del módulo UM" },
+                // Módulo Reports
+                new Permission { Id = 18, Module = "Reports", Action = "View", Name = "Reports.View", Description = "Ver reportes" },
+                new Permission { Id = 19, Module = "Reports", Action = "Create", Name = "Reports.Create", Description = "Crear reportes" },
+                new Permission { Id = 20, Module = "Reports", Action = "Edit", Name = "Reports.Edit", Description = "Editar reportes" },
+                new Permission { Id = 21, Module = "Reports", Action = "Delete", Name = "Reports.Delete", Description = "Eliminar reportes" },
+                new Permission { Id = 22, Module = "Reports", Action = "Export", Name = "Reports.Export", Description = "Exportar reportes" },
 
-                // Permisos de datasets EM
-                new Permission { Id = 14, Name = "Ver Datasets EM", Description = "Permite ver datasets del módulo EM (Alertas, Eventos, Extensiones, Recursos)" },
-                new Permission { Id = 15, Name = "Crear Datasets EM", Description = "Permite crear nuevos datasets del módulo EM" },
-                new Permission { Id = 16, Name = "Eliminar Datasets EM", Description = "Permite eliminar datasets del módulo EM" },
+                // Módulo Sensors (IM)
+                new Permission { Id = 23, Module = "Sensors", Action = "View", Name = "Sensors.View", Description = "Ver datos de sensores" },
+                new Permission { Id = 24, Module = "Sensors", Action = "Configure", Name = "Sensors.Configure", Description = "Configurar sensores" },
 
-                // Permisos de dashboards
-                new Permission { Id = 17, Name = "Ver Dashboards", Description = "Permite ver dashboards personalizables" },
-                new Permission { Id = 18, Name = "Crear Dashboards", Description = "Permite crear nuevos dashboards personalizables" },
-                new Permission { Id = 19, Name = "Editar Dashboards", Description = "Permite editar dashboards existentes" },
-                new Permission { Id = 20, Name = "Eliminar Dashboards", Description = "Permite eliminar dashboards" });
+                // Módulo Devices (IM)
+                new Permission { Id = 25, Module = "Devices", Action = "View", Name = "Devices.View", Description = "Ver dispositivos" },
+                new Permission { Id = 26, Module = "Devices", Action = "Manage", Name = "Devices.Manage", Description = "Gestionar dispositivos" },
 
-            // Asignar permisos a roles
-            builder.Entity<RolePermission>().HasData(
-                new RolePermission { Id = 1, RoleId = 1, PermissionId = 1 },
-                new RolePermission { Id = 2, RoleId = 1, PermissionId = 2 },
-                new RolePermission { Id = 3, RoleId = 1, PermissionId = 3 },
-                new RolePermission { Id = 4, RoleId = 1, PermissionId = 4 },
-                new RolePermission { Id = 5, RoleId = 1, PermissionId = 5 },
-                new RolePermission { Id = 6, RoleId = 1, PermissionId = 6 },
-                new RolePermission { Id = 7, RoleId = 1, PermissionId = 7 },
-                new RolePermission { Id = 8, RoleId = 1, PermissionId = 8 },
-                new RolePermission { Id = 9, RoleId = 1, PermissionId = 9 },
-                new RolePermission { Id = 10, RoleId = 1, PermissionId = 10 },
-                new RolePermission { Id = 15, RoleId = 1, PermissionId = 11 },
-                new RolePermission { Id = 16, RoleId = 1, PermissionId = 12 },
-                new RolePermission { Id = 17, RoleId = 1, PermissionId = 13 },
-                new RolePermission { Id = 18, RoleId = 1, PermissionId = 14 },
-                new RolePermission { Id = 19, RoleId = 1, PermissionId = 15 },
-                new RolePermission { Id = 20, RoleId = 1, PermissionId = 16 },
-                new RolePermission { Id = 27, RoleId = 1, PermissionId = 17 },
-                new RolePermission { Id = 28, RoleId = 1, PermissionId = 18 },
-                new RolePermission { Id = 29, RoleId = 1, PermissionId = 19 },
-                new RolePermission { Id = 30, RoleId = 1, PermissionId = 20 },
+                // Módulo Assets (AM)
+                new Permission { Id = 27, Module = "Assets", Action = "View", Name = "Assets.View", Description = "Ver activos" },
+                new Permission { Id = 28, Module = "Assets", Action = "Create", Name = "Assets.Create", Description = "Crear activos" },
+                new Permission { Id = 29, Module = "Assets", Action = "Edit", Name = "Assets.Edit", Description = "Editar activos" },
+                new Permission { Id = 30, Module = "Assets", Action = "Delete", Name = "Assets.Delete", Description = "Eliminar activos" },
 
-                // Visitante solo tiene permisos de lectura
-                new RolePermission { Id = 21, RoleId = 2, PermissionId = 1 },
-                new RolePermission { Id = 22, RoleId = 2, PermissionId = 5 },
-                new RolePermission { Id = 23, RoleId = 2, PermissionId = 7 },
-                new RolePermission { Id = 24, RoleId = 2, PermissionId = 9 },
-                new RolePermission { Id = 25, RoleId = 2, PermissionId = 11 },
-                new RolePermission { Id = 26, RoleId = 2, PermissionId = 14 },
-                new RolePermission { Id = 31, RoleId = 2, PermissionId = 17 });
+                // Módulo Tasks (AM)
+                new Permission { Id = 31, Module = "Tasks", Action = "View", Name = "Tasks.View", Description = "Ver tareas" },
+                new Permission { Id = 32, Module = "Tasks", Action = "Create", Name = "Tasks.Create", Description = "Crear tareas" },
+                new Permission { Id = 33, Module = "Tasks", Action = "Edit", Name = "Tasks.Edit", Description = "Editar tareas" },
+                new Permission { Id = 34, Module = "Tasks", Action = "Delete", Name = "Tasks.Delete", Description = "Eliminar tareas" },
+
+                // Módulo Zones (UM)
+                new Permission { Id = 35, Module = "Zones", Action = "View", Name = "Zones.View", Description = "Ver zonas" },
+                new Permission { Id = 36, Module = "Zones", Action = "Manage", Name = "Zones.Manage", Description = "Gestionar zonas" },
+
+                // Módulo Events (UM/EM)
+                new Permission { Id = 37, Module = "Events", Action = "View", Name = "Events.View", Description = "Ver eventos" },
+                new Permission { Id = 38, Module = "Events", Action = "Manage", Name = "Events.Manage", Description = "Gestionar eventos" },
+
+                // Módulo Alerts (EM)
+                new Permission { Id = 39, Module = "Alerts", Action = "View", Name = "Alerts.View", Description = "Ver alertas" },
+                new Permission { Id = 40, Module = "Alerts", Action = "Manage", Name = "Alerts.Manage", Description = "Gestionar alertas" },
+
+                // Módulo System (Administración)
+                new Permission { Id = 41, Module = "System", Action = "ViewRoles", Name = "System.ViewRoles", Description = "Ver roles del sistema" },
+                new Permission { Id = 42, Module = "System", Action = "ManageRoles", Name = "System.ManageRoles", Description = "Gestionar roles" },
+                new Permission { Id = 43, Module = "System", Action = "ViewPermissions", Name = "System.ViewPermissions", Description = "Ver permisos" },
+                new Permission { Id = 44, Module = "System", Action = "ManagePermissions", Name = "System.ManagePermissions", Description = "Gestionar permisos" },
+                new Permission { Id = 45, Module = "System", Action = "ViewLogs", Name = "System.ViewLogs", Description = "Ver logs del sistema" },
+                new Permission { Id = 46, Module = "System", Action = "ViewSettings", Name = "System.ViewSettings", Description = "Ver configuración del sistema" },
+                new Permission { Id = 47, Module = "System", Action = "ManageSettings", Name = "System.ManageSettings", Description = "Gestionar configuración del sistema" }
+            };
+
+            builder.Entity<Permission>().HasData(permissions);
+
+            // Asignar TODOS los permisos al rol Admin
+            var rolePermissions = new List<RolePermission>();
+            for (int i = 0; i < permissions.Count; i++)
+            {
+                rolePermissions.Add(new RolePermission 
+                { 
+                    Id = i + 1, 
+                    RoleId = 1, // Admin
+                    PermissionId = permissions[i].Id 
+                });
+            }
+
+            builder.Entity<RolePermission>().HasData(rolePermissions);
         }
 
         private static void ConfigureReports(ModelBuilder builder)
@@ -309,6 +332,22 @@ namespace OmniMonitor.Server.Context
                 .HasForeignKey(rp => rp.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Configurar UserClaim
+            builder.Entity<UserClaim>()
+                .HasKey(uc => uc.Id);
+
+            builder.Entity<UserClaim>()
+                .HasOne(uc => uc.User)
+                .WithMany(u => u.UserClaims)
+                .HasForeignKey(uc => uc.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<UserClaim>()
+                .HasOne(uc => uc.Permission)
+                .WithMany()
+                .HasForeignKey(uc => uc.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Índices únicos para evitar duplicados
             builder.Entity<UserRole>()
                 .HasIndex(ur => new { ur.UserId, ur.RoleId })
@@ -316,6 +355,15 @@ namespace OmniMonitor.Server.Context
 
             builder.Entity<RolePermission>()
                 .HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+                .IsUnique();
+
+            builder.Entity<UserClaim>()
+                .HasIndex(uc => new { uc.UserId, uc.PermissionId })
+                .IsUnique();
+
+            // Índice para búsqueda rápida de permisos por Module.Action
+            builder.Entity<Permission>()
+                .HasIndex(p => new { p.Module, p.Action })
                 .IsUnique();
         }
         private static void ConfigureDashboardRelationships(ModelBuilder builder)

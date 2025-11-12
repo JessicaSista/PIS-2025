@@ -1,3 +1,7 @@
+using System.Linq.Dynamic.Core.Tokenizer;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Shared.Dtos;
@@ -6,6 +10,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class SondaMainController : ControllerBase
     {
         private readonly ISondaIMService _sondaIMApiService;
@@ -20,14 +25,15 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // ---------------- DEVICES ----------------
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices")]
         [ProducesResponseType(typeof(List<Device>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Device>>> GetSondaDevices([FromQuery] string token)
+        public async Task<ActionResult<List<Device>>> GetSondaDevices()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Device>? devices = await _sondaIMApiService.GetAllDevices(username);
                 return Ok(devices);
             }
@@ -37,15 +43,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices/{id}")]
         [ProducesResponseType(typeof(Device), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Device>> GetSondaDeviceById(int id, [FromQuery] string token)
+        public async Task<ActionResult<Device>> GetSondaDeviceById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 Device? device = await _sondaIMApiService.GetDeviceById(id, username);
                 if (device == null)
                 {
@@ -60,15 +67,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("data")]
         [ProducesResponseType(typeof(List<DeviceData>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DeviceData>>> GetDeviceData(int deviceId, DateTime dateFrom, DateTime dateTo, [FromQuery] string token)
+        public async Task<ActionResult<List<DeviceData>>> GetDeviceData(int deviceId, DateTime dateFrom, DateTime dateTo)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DeviceData>? deviceData = await _sondaIMApiService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
                 if (deviceData == null || deviceData.Count == 0)
                 {
@@ -84,14 +92,15 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // ---------------- DEVICE GROUPS ----------------
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("groups")]
         [ProducesResponseType(typeof(List<DeviceGroup>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DeviceGroup>>> GetAllDeviceGroups([FromQuery] string token)
+        public async Task<ActionResult<List<DeviceGroup>>> GetAllDeviceGroups()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DeviceGroup> groups = await _sondaIMApiService.GetAllDeviceGroups(username);
                 return Ok(groups);
             }
@@ -101,15 +110,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("groups/{id}")]
         [ProducesResponseType(typeof(DeviceGroup), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DeviceGroup>> GetDeviceGroupById(int id, [FromQuery] string token)
+        public async Task<ActionResult<DeviceGroup>> GetDeviceGroupById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DeviceGroup? group = await _sondaIMApiService.GetDeviceGroupById(id, username);
                 if (group == null)
                 {
@@ -124,15 +134,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices/group/{id}")]
         [ProducesResponseType(typeof(List<Device>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Device>>> GetDevicesOfGroup(int id, [FromQuery] string token)
+        public async Task<ActionResult<List<Device>>> GetDevicesOfGroup(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfGroup(id, username);
                 if (devices == null || devices.Count == 0)
                 {
@@ -148,14 +159,15 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // ---------------- SOURCES ----------------
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sources")]
         [ProducesResponseType(typeof(List<Source>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Source>>> GetAllSources([FromQuery] string token)
+        public async Task<ActionResult<List<Source>>> GetAllSources()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Source> sources = await _sondaIMApiService.GetAllSources(username);
                 return Ok(sources);
             }
@@ -165,15 +177,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sources/{id}")]
         [ProducesResponseType(typeof(Source), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Source>> GetSourceById(int id, [FromQuery] string token)
+        public async Task<ActionResult<Source>> GetSourceById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 Source? source = await _sondaIMApiService.GetSourceById(id, username);
                 if (source == null)
                 {
@@ -188,15 +201,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices/source/{id}")]
         [ProducesResponseType(typeof(List<Device>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Device>>> GetDevicesOfSource(int id, [FromQuery] string token)
+        public async Task<ActionResult<List<Device>>> GetDevicesOfSource(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfSource(id, username);
                 if (devices == null || devices.Count == 0)
                 {
@@ -214,11 +228,12 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los sensores únicos de los dispositivos seleccionados.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("sensors/devices")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<string>>> GetSensorsByDevices([FromBody] List<int> deviceIds, [FromQuery] string token)
+        public async Task<ActionResult<List<string>>> GetSensorsByDevices([FromBody] List<int> deviceIds)
         {
             try
             {
@@ -232,7 +247,7 @@ namespace OmniMonitor.Server.Controllers
 
                 foreach (int deviceId in deviceIds)
                 {
-                    string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                    var username = User.Identity?.Name;
                     Device? device = await _sondaIMApiService.GetDeviceById(deviceId, username);
                     if (device != null && device.Sensors != null && device.Sensors.Count != 0)
                     {
@@ -266,15 +281,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los sensores únicos de los dispositivos pertenecientes a una fuente específica.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sensors/source/{sourceId}")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<string>>> GetSensorsBySource(int sourceId, [FromQuery] string token)
+        public async Task<ActionResult<List<string>>> GetSensorsBySource(int sourceId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 // Obtener todos los dispositivos de la fuente
                 List<Device>? devices = await _sondaIMApiService.GetDeviceOfSource(sourceId, username);
@@ -307,15 +323,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sensors/data")]
         [ProducesResponseType(typeof(List<SensorData>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<SensorData>>> GetSensorData(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, [FromQuery] string token)
+        public async Task<ActionResult<List<SensorData>>> GetSensorData(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDate(deviceId, sensorName, dateFrom, dateTo, username);
                 if (sensorData == null || sensorData.Count == 0)
                 {
@@ -352,15 +369,21 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones")]
         [ProducesResponseType(typeof(List<Zone>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Zone>>> GetAllZones([FromQuery] string token)
+        public async Task<ActionResult<List<Zone>>> GetAllZones()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
-                List<Zone> zones = await _sondaUMApiService.GetAllZones(username);
+                var username = User.Identity?.Name;
+
+                if (string.IsNullOrEmpty(username))
+                    return Unauthorized("No se pudo obtener el usuario del token.");
+
+                var zones = await _sondaUMApiService.GetAllZones(username);
+
                 return Ok(zones);
             }
             catch (Exception ex)
@@ -369,14 +392,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones/{id}")]
         [ProducesResponseType(typeof(Zone), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Zone>> GetZoneById(int id, [FromQuery] string token)
+        public async Task<ActionResult<Zone>> GetZoneById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 Zone? zone = await _sondaUMApiService.GetZoneById(id, username);
                 if (zone == null)
                 {
@@ -391,11 +415,11 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("newsUM")]
         [ProducesResponseType(typeof(List<News>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<News>>> GetAllNews(
-            [FromQuery] string token,
             [FromQuery] int startIndex = 1,
             [FromQuery] string? queryString = null,
             [FromQuery] string? sort = null,
@@ -404,7 +428,7 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 // Pasar los parámetros al servicio
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<News> news = await _sondaUMApiService.GetAllNews(username, startIndex, queryString, sort, count);
                 return Ok(news);
             }
@@ -414,14 +438,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("newsUM/{id}")]
         [ProducesResponseType(typeof(News), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<News>> GetNewsById(int id, [FromQuery] string token)
+        public async Task<ActionResult<News>> GetNewsById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 News? newsItem = await _sondaUMApiService.GetNewsById(id, username);
                 if (newsItem == null)
                 {
@@ -436,13 +461,13 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones/{id}/news")]
         [ProducesResponseType(typeof(List<News>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<News>>> GetNewsByZoneId(
             int id,
-            [FromQuery] string token,
             [FromQuery] int startIndex = 1,
             [FromQuery] string? queryString = null,
             [FromQuery] string? sort = null,
@@ -450,7 +475,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<News> news = await _sondaUMApiService.GetNewsByZoneId(id, username, startIndex, queryString, sort, count);
                 if (news == null || news.Count == 0)
                 {
@@ -465,14 +490,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("events")]
         [ProducesResponseType(typeof(List<Event>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Event>>> GetAllEvents([FromQuery] string token)
+        public async Task<ActionResult<List<Event>>> GetAllEvents()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Event> events = await _sondaUMApiService.GetAllEvents(username);
                 return Ok(events);
             }
@@ -482,14 +508,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("events/{id}")]
         [ProducesResponseType(typeof(Event), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<Event>> GetEventById(int id, [FromQuery] string token)
+        public async Task<ActionResult<Event>> GetEventById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 Event? eventItem = await _sondaUMApiService.GetEventById(id, username);
                 if (eventItem == null)
                 {
@@ -504,15 +531,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones/{id}/events")]
         [ProducesResponseType(typeof(List<Event>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Event>>> GetEventsByZoneId(int id, [FromQuery] string token)
+        public async Task<ActionResult<List<Event>>> GetEventsByZoneId(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<Event> events = await _sondaUMApiService.GetEventsByZoneId(id, username);
                 if (events == null || events.Count == 0)
                 {
@@ -527,14 +555,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("kpi/deviceCount")]
         [ProducesResponseType(typeof(int), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<int>> GetDeviceCount([FromQuery] string token)
+        public async Task<ActionResult<int>> GetDeviceCount()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 int count = await _sondaIMApiService.GetSSDeviceCount(username);
                 return Ok(count);
             }
@@ -544,14 +573,15 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("kpi/dataStatus")]
         [ProducesResponseType(typeof(DeviceDataStatusResponse), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DeviceDataStatusResponse>> GetDataStatus([FromQuery] string token)
+        public async Task<ActionResult<DeviceDataStatusResponse>> GetDataStatus()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DeviceDataStatusResponse? count = await _sondaIMApiService.GetSSDataStatus(username);
                 return Ok(count);
             }

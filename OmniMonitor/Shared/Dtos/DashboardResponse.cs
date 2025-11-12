@@ -52,6 +52,7 @@ namespace OmniMonitor.Shared.Dtos
         public DateTime FechaDesde { get; set; }
         public DateTime FechaHasta { get; set; }
         public string? JsonDesign { get; set; }
+        public string? Link { get; set; }
     }
 
     public class KpiInfo

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,14 +12,15 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class AuthorizationController : ControllerBase
     {
-        private readonly IAuthorizationService _authorizationService;
+        private readonly IPermissionService _permissionService;
         private readonly ApplicationDbContext _context;
 
-        public AuthorizationController(IAuthorizationService authorizationService, ApplicationDbContext context)
+        public AuthorizationController(IPermissionService permissionService, ApplicationDbContext context)
         {
-            _authorizationService = authorizationService;
+            _permissionService = permissionService;
             _context = context;
         }
 
@@ -26,7 +29,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("roles")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("System.ViewRoles")]
         public async Task<ActionResult<List<Role>>> GetRoles()
         {
             List<Role> roles = await _context.Roles.ToListAsync();
@@ -38,7 +41,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("permissions")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("System.ViewPermissions")]
         public async Task<ActionResult<List<Permission>>> GetPermissions()
         {
             List<Permission> permissions = await _context.Permissions.ToListAsync();
@@ -50,10 +53,10 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/roles")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("Users.View")]
         public async Task<ActionResult<List<string>>> GetUserRoles(int userId)
         {
-            List<string> roles = await _authorizationService.GetUserRolesAsync(userId);
+            List<string> roles = await _permissionService.GetUserRolesAsync(userId);
             return Ok(roles);
         }
 
@@ -62,10 +65,10 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/permissions")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("Users.View")]
         public async Task<ActionResult<List<Permission>>> GetUserPermissions(int userId)
         {
-            List<Permission> permissions = await _authorizationService.GetUserPermissionsAsync(userId);
+            List<Permission> permissions = await _permissionService.GetUserPermissionsAsync(userId);
             return Ok(permissions);
         }
 
@@ -74,10 +77,10 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/has-permission")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("Users.View")]
         public async Task<ActionResult<bool>> HasPermission(int userId, [FromQuery] string permissionName)
         {
-            bool hasPermission = await _authorizationService.HasPermissionAsync(userId, permissionName);
+            bool hasPermission = await _permissionService.HasPermissionAsync(userId, permissionName);
             return Ok(hasPermission);
         }
 
@@ -86,10 +89,10 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("users/{userId}/has-role")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("Users.View")]
         public async Task<ActionResult<bool>> HasRole(int userId, [FromQuery] string roleName)
         {
-            bool hasRole = await _authorizationService.HasRoleAsync(userId, roleName);
+            bool hasRole = await _permissionService.HasRoleAsync(userId, roleName);
             return Ok(hasRole);
         }
 
@@ -98,10 +101,10 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet("roles/{roleName}/permissions")]
-        [RequirePermission("Ver Usuarios")]
+        [RequirePermission("System.ViewPermissions")]
         public async Task<ActionResult<List<Permission>>> GetRolePermissions(string roleName)
         {
-            List<Permission> permissions = await _authorizationService.GetRolePermissionsAsync(roleName);
+            List<Permission> permissions = await _permissionService.GetRolePermissionsAsync(roleName);
             return Ok(permissions);
         }
     }

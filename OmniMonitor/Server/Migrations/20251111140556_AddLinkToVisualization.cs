@@ -5,25 +5,24 @@
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class new_cmm : Migration
+    public partial class AddLinkToVisualization : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Atributo",
-                table: "Kpi",
+                name: "link",
+                table: "Visualizaciones",
                 type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Atributo",
-                table: "Kpi");
+                name: "link",
+                table: "Visualizaciones");
         }
     }
 }
