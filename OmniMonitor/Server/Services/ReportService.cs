@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System.Dynamic;
@@ -15,6 +15,7 @@ public interface IReportService
     Task<Report?> GetReportByIdAsync(int reportId, string username);
     Task<bool> DeleteReportAsync(int reportId, string username);
     Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config);
+    Task<Report?> UpdateReportWithFiltersAsync(int reportId, string name, string descripcion, string username, string JSON_config, string? JSON_filters);
     Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username);
     Task<List<dynamic>> ExecuteReportAsync(int reportId, string username);
     Task<List<Report>> GetAllReportsPaginatedAsync(string username, int page = 1, int pageSize = 10, string? query = null);
@@ -50,7 +51,8 @@ public class ReportService : IReportService
             Name = request.Name,
             Description = request.Description,
             Username = request.Username,
-            JSON_config = request.JSON_config
+            JSON_config = request.JSON_config,
+            JSON_filters = request.JSON_filters
         };
         _context.Reports.Add(report);
         await _context.SaveChangesAsync();
@@ -149,15 +151,17 @@ public class ReportService : IReportService
 
     public async Task<bool> DeleteReportAsync(int reportId, string username)
     {
-        // 1. Busca el reporte asegur�ndote de que pertenezca al usuario correcto.
+        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
         var reportToDelete = await _context.Reports
             .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        // 2. Si no se encuentra, retorna false.
         if (reportToDelete == null)
         {
             return false;
         }
 
-        // 3. Elimina el reporte. La base de datos se encargar� de eliminar en cascada
+        // 3. Elimina el reporte. La base de datos se encargará de eliminar en cascada
         //    las entradas correspondientes en la tabla 'ReportJoins'.
         _context.Reports.Remove(reportToDelete);
         await _context.SaveChangesAsync();
@@ -167,9 +171,11 @@ public class ReportService : IReportService
 
     public async Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config)
     {
-        // 1. Busca el reporte asegur�ndote de que pertenezca al usuario correcto.
+        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
         var reportToUpdate = await _context.Reports
             .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        // 2. Si no se encuentra, retorna null.
         if (reportToUpdate == null)
         {
             return null;
@@ -179,6 +185,29 @@ public class ReportService : IReportService
         reportToUpdate.Name = name;
         reportToUpdate.Description = descripcion;
         reportToUpdate.JSON_config = JSON_config;
+
+        await _context.SaveChangesAsync();
+
+        return reportToUpdate;
+    }
+
+    public async Task<Report?> UpdateReportWithFiltersAsync(int reportId, string name, string descripcion, string username, string JSON_config, string? JSON_filters)
+    {
+        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
+        var reportToUpdate = await _context.Reports
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        // 2. Si no se encuentra, retorna null.
+        if (reportToUpdate == null)
+        {
+            return null;
+        }
+
+        // 3. Actualiza las propiedades incluyendo filtros y guarda los cambios.
+        reportToUpdate.Name = name;
+        reportToUpdate.Description = descripcion;
+        reportToUpdate.JSON_config = JSON_config;
+        reportToUpdate.JSON_filters = JSON_filters;
 
         await _context.SaveChangesAsync();
 
@@ -210,10 +239,11 @@ public class ReportService : IReportService
 
     public async Task<List<dynamic>> ExecuteReportAsync(int reportId, string username)
     {
+        // 1. Obtener el reporte y su configuración JSON
         var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
         if (report == null || string.IsNullOrWhiteSpace(report.JSON_config))
         {
-            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuraci�n JSON v�lida.");
+            throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuración JSON válida.");
         }
 
         var serializerOptions = new JsonSerializerOptions
@@ -223,19 +253,41 @@ public class ReportService : IReportService
         };
 
         var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, serializerOptions);
-
-    var finalResults = new List<dynamic>();
-
-    var sources = config?.Sources ?? new List<ReportSourceConfig>();
-    foreach (var sourceConfig in sources)
+        
+        // Deserializar filtros si existen
+        ReportFiltersConfig? filtersConfig = null;
+        if (!string.IsNullOrWhiteSpace(report.JSON_filters))
         {
+            try
+            {
+                filtersConfig = JsonSerializer.Deserialize<ReportFiltersConfig>(report.JSON_filters, serializerOptions);
+            }
+            catch (JsonException)
+            {
+                // Si hay error en la deserialización de filtros, continuar sin filtros
+                filtersConfig = null;
+            }
+        }
 
+        var finalResults = new List<dynamic>();
+
+        var sources = config?.Sources ?? new List<ReportSourceConfig>();
+        foreach (var sourceConfig in sources)
+        {
             IEnumerable<dynamic> rawData;
             switch (sourceConfig.SourceType.ToLower())
             {
                 case "join":
                     if (!sourceConfig.SourceId.HasValue) continue;
-                    rawData = await _joinConfigService.ExecuteJoinAsync(sourceConfig.SourceId.Value);
+                    
+                    // Para joins, necesitamos obtener la información del join y crear filtros para sus operandos
+                    JoinFiltersConfig? joinFilters = null;
+                    if (filtersConfig?.DatasetFilters != null && filtersConfig.DatasetFilters.Any())
+                    {
+                        joinFilters = await CreateJoinFiltersFromReportFilters(sourceConfig.SourceId.Value, filtersConfig);
+                    }
+                    
+                    rawData = await _joinConfigService.ExecuteJoinWithFiltersAsync(sourceConfig.SourceId.Value, joinFilters);
                     break;
 
                 case "dataset":
@@ -248,6 +300,19 @@ public class ReportService : IReportService
                     };
                     var datasetData = await _apiDataService.GetDataForOperand(operand, username);
                     rawData = PrefixDatasetData(datasetData, sourceConfig.EntityName.Value.ToString());
+                    
+                    // Aplicar filtros específicos para este dataset si existen
+                    if (filtersConfig?.DatasetFilters != null)
+                    {
+                        var datasetFilter = filtersConfig.DatasetFilters.FirstOrDefault(f => 
+                            f.DatasetId == sourceConfig.SourceId.Value && 
+                            f.ModuleType == sourceConfig.SourceModule.Value);
+                        
+                        if (datasetFilter?.Filters != null && datasetFilter.Filters.Any())
+                        {
+                            rawData = ApiDataService.StaticFilterObjects(rawData, datasetFilter.Filters);
+                        }
+                    }
                     break;
 
                 case "device":
@@ -326,18 +391,71 @@ public class ReportService : IReportService
         if (obj == null) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
         // Si el objeto ya es un diccionario (como un ExpandoObject), lo usamos para crear
-        // un nuevo diccionario est�ndar y normalizar el comportamiento.
+        // un nuevo diccionario estándar y normalizar el comportamiento.
         if (obj is IDictionary<string, object> dict)
         {
             return new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase);
         }
 
-        // Si es una clase est�ndar (como Device), usamos reflexi�n para convertirlo en un diccionario.
+        // Si es una clase estándar (como Device), usamos reflexión para convertirlo en un diccionario.
         var dictionary = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             dictionary[property.Name] = property.GetValue(obj) ?? default!;
         }
         return dictionary;
+    }
+
+    /// <summary>
+    /// Crea filtros para un join específico basándose en los filtros del reporte y los operandos del join.
+    /// </summary>
+    private async Task<JoinFiltersConfig?> CreateJoinFiltersFromReportFilters(int joinId, ReportFiltersConfig reportFilters)
+    {
+        // 1. Obtener la configuración del join para conocer sus operandos
+        var joinConfig = await _context.CrossModuleJoins
+            .Include(j => j.LeftOperand)
+            .Include(j => j.RightOperand)
+            .FirstOrDefaultAsync(j => j.Id == joinId);
+
+        if (joinConfig == null)
+        {
+            return null;
+        }
+
+        var joinFilters = new JoinFiltersConfig();
+
+        // 2. Buscar filtros para el operando izquierdo
+        var leftFilter = reportFilters.DatasetFilters.FirstOrDefault(f => 
+            f.DatasetId == joinConfig.LeftOperand.DatasetId && 
+            f.ModuleType == joinConfig.LeftOperand.ModuleType);
+        
+        if (leftFilter?.Filters != null && leftFilter.Filters.Any())
+        {
+            joinFilters.LeftOperandFilters = new OperandFilterConfig
+            {
+                Filters = leftFilter.Filters
+            };
+        }
+
+        // 3. Buscar filtros para el operando derecho
+        var rightFilter = reportFilters.DatasetFilters.FirstOrDefault(f => 
+            f.DatasetId == joinConfig.RightOperand.DatasetId && 
+            f.ModuleType == joinConfig.RightOperand.ModuleType);
+        
+        if (rightFilter?.Filters != null && rightFilter.Filters.Any())
+        {
+            joinFilters.RightOperandFilters = new OperandFilterConfig
+            {
+                Filters = rightFilter.Filters
+            };
+        }
+
+        // 4. Solo devolver filtros si hay al menos uno
+        if (joinFilters.LeftOperandFilters == null && joinFilters.RightOperandFilters == null)
+        {
+            return null;
+        }
+
+        return joinFilters;
     }
 }

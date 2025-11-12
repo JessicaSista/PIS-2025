@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-using OmniMonitor.Server.Attributes;
+Ôªøusing Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
@@ -21,12 +19,14 @@ namespace OmniMonitor.Server.Controllers
             _joinConfigService = joinConfigService;
             _sondaAuthService = sondaAuthService;
         }
+
+        // ===============================================
         // Report-related Endpoints
+        // ===============================================
+
         /// <summary>
         /// Creates a new report with a specified list of joins.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Create")]
         [HttpPost]
         [ProducesResponseType(typeof(Report), 201)]
         [ProducesResponseType(400)]
@@ -41,12 +41,10 @@ namespace OmniMonitor.Server.Controllers
             return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
         [HttpPost("{reportId}/joins/create-and-add")]
         [ProducesResponseType(typeof(ReportJoin), 200)]
         [ProducesResponseType(404)] // Not Found
-        public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest)
+        public async Task<IActionResult> CreateAndAddJoinToReport(int reportId, [FromBody] CreateJoinRequestDto joinRequest, [FromQuery] string token)
         {
             if (!ModelState.IsValid)
             {
@@ -55,7 +53,7 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                var username = User.Identity?.Name;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 ReportJoin createdLink = await _reportService.CreateAndAddJoinToReportAsync(reportId, joinRequest, username);
 
                 return Ok(createdLink);
@@ -69,13 +67,11 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a list of all reports for a specific user.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.View")]
         [HttpGet("by-user")]
         [ProducesResponseType(typeof(List<Report>), 200)]
-        public async Task<IActionResult> GetAllReportsByUsername()
+        public async Task<IActionResult> GetAllReportsByUsername([FromQuery] string token)
         {
-            var username = User.Identity?.Name;
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             List<Report> reports = await _reportService.GetAllReportsByUsernameAsync(username);
             return Ok(reports);
         }
@@ -108,14 +104,12 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a single, detailed report by its ID.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.View")]
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetReportById(int id)
+        public async Task<IActionResult> GetReportById(int id, [FromQuery] string token)
         {
-            var username = User.Identity?.Name;
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             Report? report = await _reportService.GetReportByIdAsync(id, username);
             if (report == null)
             {
@@ -124,23 +118,25 @@ namespace OmniMonitor.Server.Controllers
 
             return Ok(report);
         }
+
+        // ===============================================
         // Join-related Endpoints
+        // ===============================================
+
         /// <summary>
         /// Creates a new join configuration.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.View")]
         [HttpPost("joins")]
         [ProducesResponseType(typeof(CrossModuleJoin), 201)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> CreateJoin([FromBody] CreateJoinRequestDto request)
+        public async Task<IActionResult> CreateJoin([FromBody] CreateJoinRequestDto request, [FromQuery] string token)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var username = User.Identity?.Name;
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             CrossModuleJoin createdJoin = await _joinConfigService.CreateJoinAsync(request, username);
             return Ok(createdJoin);
         }
@@ -148,19 +144,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a list of all join configurations for a specific user.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.View")]
         [HttpGet("joins/by-user")]
         [ProducesResponseType(typeof(List<CrossModuleJoinDto>), 200)]
-        public async Task<IActionResult> GetJoinsByUsername()
+        public async Task<IActionResult> GetJoinsByUsername([FromQuery] string token)
         {
-            var username = User.Identity?.Name;
+            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
             List<CrossModuleJoinDto> joins = await _joinConfigService.GetJoinsByUsernameAsync(username);
             return Ok(joins);
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Export")]
         [HttpGet("joins/{joinId}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]
@@ -182,23 +174,54 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
+        [HttpPost("joins/{joinId}/executefiltered")]
+        [ProducesResponseType(typeof(List<dynamic>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ExecuteJoinWithFilters(int joinId, [FromBody] JoinFiltersConfig? filters = null)
+        {
+            try
+            {
+                List<dynamic> results = await _joinConfigService.ExecuteJoinWithFiltersAsync(joinId, filters);
+                return Ok(results);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception)
+            {
+                // Log exception ex
+                return StatusCode(500, "An error occurred while executing the join.");
+            }
+        }
+
         [HttpPut("UpdateReport")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> UpdateReport(int id, [FromBody] UpdateReportRequestDto updateRequest)
+        public async Task<IActionResult> UpdateReport(int id, [FromBody] UpdateReportRequestDto updateRequest, [FromQuery] string token)
         {
             try
             {
-                var username = User.Identity?.Name;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv·lido." });
+                    return Unauthorized(new { message = "Token inv√°lido." });
                 }
 
-                Report? updatedReport = await _reportService.UpdateReportAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config);
+                // Serializar filtros a JSON si existen
+                string? jsonFilters = null;
+                if (updateRequest.Filters != null)
+                {
+                    var serializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        Converters = { new JsonStringEnumConverter() }
+                    };
+                    jsonFilters = JsonSerializer.Serialize(updateRequest.Filters, serializerOptions);
+                }
+
+                Report? updatedReport = await _reportService.UpdateReportWithFiltersAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config, jsonFilters);
 
                 if (updatedReport == null)
                 {
@@ -209,25 +232,23 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception)
             {
-                // Opcional: Loggear la excepciÛn 'ex'
-                return StatusCode(500, new { message = "OcurriÛ un error interno al actualizar el reporte." });
+                // Opcional: Loggear la excepci√≥n 'ex'
+                return StatusCode(500, new { message = "Ocurri√≥ un error interno al actualizar el reporte." });
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Delete")]
         [HttpDelete("DeleteReport")]
-        [ProducesResponseType(204)] // No Content (Èxito)
+        [ProducesResponseType(204)] // No Content (√©xito)
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> DeleteReport(int id)
+        public async Task<IActionResult> DeleteReport(int id, [FromQuery] string token)
         {
             try
             {
-                var username = User.Identity?.Name;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv·lido." });
+                    return Unauthorized(new { message = "Token inv√°lido." });
                 }
 
                 bool success = await _reportService.DeleteReportAsync(id, username);
@@ -237,61 +258,57 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
                 }
 
-                // Retorna un 204 No Content, que es el est·ndar para un DELETE exitoso.
+                // Retorna un 204 No Content, que es el est√°ndar para un DELETE exitoso.
                 return NoContent();
             }
             catch (Exception)
             {
-                // Opcional: Loggear la excepciÛn 'ex'
-                return StatusCode(500, new { message = "OcurriÛ un error interno al eliminar el reporte." });
+                // Opcional: Loggear la excepci√≥n 'ex'
+                return StatusCode(500, new { message = "Ocurri√≥ un error interno al eliminar el reporte." });
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
         [HttpDelete("RemoveJoinFromReport")]
-        [ProducesResponseType(204)] // No Content (Èxito)
+        [ProducesResponseType(204)] // No Content (√©xito)
         [ProducesResponseType(404)] // Not Found
         [ProducesResponseType(401)] // Unauthorized
-        public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId)
+        public async Task<IActionResult> RemoveJoinFromReport(int reportId, int joinId, [FromQuery] string token)
         {
             try
             {
-                var username = User.Identity?.Name;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv·lido." });
+                    return Unauthorized(new { message = "Token inv√°lido." });
                 }
 
                 bool success = await _reportService.RemoveJoinFromReportAsync(reportId, joinId, username);
 
                 if (!success)
                 {
-                    return NotFound(new { message = $"No se encontrÛ la asociaciÛn del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
+                    return NotFound(new { message = $"No se encontr√≥ la asociaci√≥n del Join con ID {joinId} en el Reporte con ID {reportId} para este usuario." });
                 }
 
                 return NoContent();
             }
             catch (Exception)
             {
-                return StatusCode(500, new { message = "OcurriÛ un error interno al intentar quitar el join del reporte." });
+                return StatusCode(500, new { message = "Ocurri√≥ un error interno al intentar quitar el join del reporte." });
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Export")]
         [HttpGet("{id}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
-        public async Task<IActionResult> ExecuteReport(int id)
+        public async Task<IActionResult> ExecuteReport(int id, [FromQuery] string token)
         {
             try
             {
-                var username = User.Identity?.Name;
+                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inv·lido." });
+                    return Unauthorized(new { message = "Token inv√°lido." });
                 }
 
                 List<dynamic> results = await _reportService.ExecuteReportAsync(id, username);
@@ -303,7 +320,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "OcurriÛ un error interno al ejecutar el reporte.", details = ex.Message });
+                return StatusCode(500, new { message = "Ocurri√≥ un error interno al ejecutar el reporte.", details = ex.Message });
             }
         }
     }

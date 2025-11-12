@@ -7,6 +7,8 @@ using OmniMonitor.Client;
 using OmniMonitor.Client.Auth;
 using OmniMonitor.Client.Services;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
