@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
@@ -173,6 +174,27 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [HttpPost("joins/{joinId}/executefiltered")]
+        [ProducesResponseType(typeof(List<dynamic>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ExecuteJoinWithFilters(int joinId, [FromBody] JoinFiltersConfig? filters = null)
+        {
+            try
+            {
+                List<dynamic> results = await _joinConfigService.ExecuteJoinWithFiltersAsync(joinId, filters);
+                return Ok(results);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception)
+            {
+                // Log exception ex
+                return StatusCode(500, "An error occurred while executing the join.");
+            }
+        }
+
         [HttpPut("UpdateReport")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
@@ -187,7 +209,19 @@ namespace OmniMonitor.Server.Controllers
                     return Unauthorized(new { message = "Token inválido." });
                 }
 
-                Report? updatedReport = await _reportService.UpdateReportAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config);
+                // Serializar filtros a JSON si existen
+                string? jsonFilters = null;
+                if (updateRequest.Filters != null)
+                {
+                    var serializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        Converters = { new JsonStringEnumConverter() }
+                    };
+                    jsonFilters = JsonSerializer.Serialize(updateRequest.Filters, serializerOptions);
+                }
+
+                Report? updatedReport = await _reportService.UpdateReportWithFiltersAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config, jsonFilters);
 
                 if (updatedReport == null)
                 {
