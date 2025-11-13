@@ -321,5 +321,46 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al generar los datos de visualizaci�n: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Actualiza el link de una visualización.
+        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.Edit")]
+        [HttpPatch("{idVisualizacion}/link")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> UpdateVisualizacionLink(int idVisualizacion, [FromBody] string? link)
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                {
+                    return Unauthorized("Token inválido o usuario no encontrado.");
+                }
+
+                using IServiceScope scope = HttpContext.RequestServices.CreateScope();
+                Context.ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<Context.ApplicationDbContext>();
+                
+                Visualizacion? visualizacion = await db.Visualizaciones
+                    .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion && v.Username == username);
+                    
+                if (visualizacion == null)
+                {
+                    return NotFound($"No se encontró la visualización con ID {idVisualizacion}.");
+                }
+
+                visualizacion.Link = link;
+                await db.SaveChangesAsync();
+                
+                return Ok(new { message = "Link actualizado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar el link: {ex.Message}");
+            }
+        }
     }
 }

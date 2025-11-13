@@ -182,7 +182,8 @@ namespace OmniMonitor.Server.Services
                         Nombre = gv.Visualizacion.Nombre,
                         FechaDesde = gv.Visualizacion.FechaDesde,
                         FechaHasta = gv.Visualizacion.FechaHasta,
-                        JsonDesign = gv.Visualizacion.JsonDesign
+                        JsonDesign = gv.Visualizacion.JsonDesign,
+                        Link = gv.Visualizacion.Link
                     } : null,
                     Kpi = (gv.TipoCard == 2 && gv.Kpi != null) ? new KpiInfo
                     {
@@ -235,7 +236,8 @@ namespace OmniMonitor.Server.Services
                         Nombre = gv.Visualizacion.Nombre,
                         FechaDesde = gv.Visualizacion.FechaDesde,
                         FechaHasta = gv.Visualizacion.FechaHasta,
-                        JsonDesign = gv.Visualizacion.JsonDesign
+                        JsonDesign = gv.Visualizacion.JsonDesign,
+                        Link = gv.Visualizacion.Link
                     } : null,
                     Kpi = (gv.TipoCard == 2 && gv.Kpi != null) ? new KpiInfo
                     {
