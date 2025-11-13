@@ -79,9 +79,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-                /// <summary>
-        /// Crea un nuevo dataset EM con filtrado.
-        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
@@ -90,8 +88,13 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
                 var req = request.DatasetRequest;
+                // Usar el username desde JWT
+                req.Username = username;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -147,9 +150,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        /// <summary>
-        /// Actualiza un dataset EM existente aplicando filtrado.
-        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{datasetId}")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
@@ -160,7 +161,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 var req = request.DatasetRequest;
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                // Usar el username desde JWT
+                req.Username = username;
                 DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, req.Username);
                 if (existingDataset == null)
                 {

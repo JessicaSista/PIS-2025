@@ -76,12 +76,14 @@ namespace OmniMonitor.Server.Controllers
             return Ok(reports);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
         [HttpGet("GetAllReportsPaginated")]
-        public async Task<ActionResult<object>> GetAllReportsPaginated(string token, int page = 1, int pageSize = 10, string? query = null)
+        public async Task<ActionResult<object>> GetAllReportsPaginated(int page = 1, int pageSize = 10, string? query = null)
         {
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            var username = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(username))
-                return BadRequest("Token inválido o usuario no encontrado.");
+                return BadRequest("Usuario no encontrado.");
 
             if (page <= 0 || pageSize <= 0)
                 return BadRequest("La página y el tamaño deben ser mayores a 0.");
@@ -174,6 +176,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Execute")]
         [HttpPost("joins/{joinId}/executefiltered")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]

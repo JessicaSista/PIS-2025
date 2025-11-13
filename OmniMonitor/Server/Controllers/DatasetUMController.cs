@@ -75,6 +75,7 @@ namespace OmniMonitor.Server.Controllers
             public List<FilterCondition> Filters { get; set; } = new List<FilterCondition>();
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetUM), 201)]
         [ProducesResponseType(400)]
@@ -84,7 +85,9 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
 
                 if (!ModelState.IsValid)
                 {
@@ -197,6 +200,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{datasetId}")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(400)]
@@ -216,8 +220,10 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 var req = request.DatasetRequest;
-                //string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
-                string username = "admin";
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
                 Console.WriteLine($"[DEBUG] Username usado: {username}, req.Username: {req.Username}");
                 
                 // Usar el username consistente
@@ -360,9 +366,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-            /// <summary>
-            /// Edita un dataset existente aplicando filtrado, similar a la creación filtrada.
-            /// </summary>
+            [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
             [HttpPut("EditarUMFiltrado/{datasetId}")]
             [ProducesResponseType(typeof(DatasetUM), 200)]
             [ProducesResponseType(400)]
@@ -379,7 +383,9 @@ namespace OmniMonitor.Server.Controllers
                     }
 
                     var req = request.DatasetRequest;
-                    string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                    var username = User.Identity?.Name;
+                    if (string.IsNullOrWhiteSpace(username))
+                        return BadRequest("Usuario no encontrado.");
                     DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, req.Username);
                     if (existingDataset == null)
                     {

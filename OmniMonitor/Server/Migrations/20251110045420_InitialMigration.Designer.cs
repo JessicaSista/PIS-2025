@@ -12,8 +12,13 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
+<<<<<<<< HEAD:OmniMonitor/Server/Migrations/20251110045420_InitialMigration.Designer.cs
     [Migration("20251110045420_InitialMigration")]
     partial class InitialMigration
+========
+    [Migration("20251113031423_AddLinkToVisualizationl")]
+    partial class AddLinkToVisualizationl
+>>>>>>>> 3273e80 (ahora bastante segura):OmniMonitor/Server/Migrations/20251113031423_AddLinkToVisualizationl.Designer.cs
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -376,6 +381,9 @@ namespace OmniMonitor.Server.Migrations
                     b.Property<string>("Descripcion")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Filters")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("Id_Asset_Type")
                         .HasColumnType("int");
@@ -1480,6 +1488,9 @@ namespace OmniMonitor.Server.Migrations
 
                     b.Property<string>("JSON_config")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JSON_filters")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
