@@ -55,7 +55,8 @@ namespace OmniMonitor.Server.Services
                 Username = request.Username,
                 FechaDesde = request.FechaDesde,
                 FechaHasta = request.FechaHasta,
-                JsonDesign = request.JsonDiseñoGeneral
+                JsonDesign = request.JsonDiseñoGeneral,
+                Link = request.Link
             };
 
             // Añadir los datasets asociados a la visualización

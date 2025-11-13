@@ -3,6 +3,7 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Client.Extensions
 @inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
@@ -313,12 +314,12 @@
                     // Cargar detalles del dataset IM (opcional) para soporte de columnas/joins
                     var token = await LocalStorage.GetItemAsync<string>("authToken");
                     var responseDataset = !string.IsNullOrEmpty(token)
-                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={token}")
+                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}")
                         : null;
 
                     if (responseDataset != null && responseDataset.IsSuccessStatusCode)
                     {
-                        var datasetIM = await responseDataset.Content.ReadFromJsonAsync<DatasetIM>();
+                        var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
                         if (datasetIM != null)
                         {
                             selectedDatasetsIM[dataset.Id] = datasetIM;
@@ -493,10 +494,10 @@
             await LoadAvailableJoinsAsync(token);
 
             // Cargar detalles del reporte (nombre/descripcion)
-            var reportResp = await Http.GetAsync($"api/reports/{ReportId}?token={token}");
+            var reportResp = await Http.GetAsync($"api/reports/{ReportId}");
             if (reportResp.IsSuccessStatusCode)
             {
-                currentReport = await reportResp.Content.ReadFromJsonAsync<Report>();
+                currentReport = await reportResp.Content.ReadFromJsonWithEnumSupportAsync<Report>();
                 if (currentReport != null)
                 {
                     reportName = currentReport.Name ?? string.Empty;
@@ -509,10 +510,10 @@
             // Cargar datasets de Insight Monitor
             try
             {
-                var responseIM = await Http.GetAsync($"api/Dataset/user?token={Uri.EscapeDataString(token)}");
+                var responseIM = await Http.GetAsync($"api/Dataset/user");
                 if (responseIM.IsSuccessStatusCode)
                 {
-                    var datasetsIM = await responseIM.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                    var datasetsIM = await responseIM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetIM>>();
                     aggregatedDatasets.AddRange(datasetsIM?.Select(d => new DatasetDto
                     {
                         Id = d.Id,
@@ -535,10 +536,10 @@
             // Cargar datasets de Asset Manager
             try
             {
-                var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs?token={Uri.EscapeDataString(token)}");
+                var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs");
                 if (responseAM.IsSuccessStatusCode)
                 {
-                    var datasetsAM = await responseAM.Content.ReadFromJsonAsync<List<DatasetAM>>();
+                    var datasetsAM = await responseAM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetAM>>();
                     aggregatedDatasets.AddRange(datasetsAM?.Select(d => new DatasetDto
                     {
                         Id = d.Id_Dataset,
@@ -561,10 +562,10 @@
             // Cargar datasets de Urban Monitor
             try
             {
-                var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets?token={Uri.EscapeDataString(token)}");
+                var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets");
                 if (responseUM.IsSuccessStatusCode)
                 {
-                    var datasetsUM = await responseUM.Content.ReadFromJsonAsync<List<DatasetUM>>();
+                    var datasetsUM = await responseUM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetUM>>();
                     aggregatedDatasets.AddRange(datasetsUM?.Select(d => new DatasetDto
                     {
                         Id = d.Id,
@@ -587,10 +588,10 @@
             // Cargar datasets de Event Manager
             try
             {
-                var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets?token={Uri.EscapeDataString(token)}");
+                var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets");
                 if (responseEM.IsSuccessStatusCode)
                 {
-                    var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<DatasetEM>>();
+                    var datasetsEM = await responseEM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetEM>>();
                     aggregatedDatasets.AddRange(datasetsEM?.Select(d => new DatasetDto
                     {
                         Id = d.Id,
@@ -689,7 +690,7 @@
                 }
                 else
                 {
-                    var response = await Http.DeleteAsync($"api/reports/RemoveJoinFromReport?reportId={ReportId}&joinId={join.ServerJoinId.Value}&token={Uri.EscapeDataString(token)}");
+                    var response = await Http.DeleteAsync($"api/reports/RemoveJoinFromReport?reportId={ReportId}&joinId={join.ServerJoinId.Value}");
                     if (!response.IsSuccessStatusCode)
                     {
                         var error = await response.Content.ReadAsStringAsync();
@@ -798,7 +799,7 @@
                         }
                     };
 
-                var endpoint = $"api/reports/{ReportId}/joins/create-and-add?token={Uri.EscapeDataString(token)}";
+                var endpoint = $"api/reports/{ReportId}/joins/create-and-add";
                 var createJoinResponse = await Http.PostAsJsonAsync(endpoint, createJoinRequest);
 
                 if (!createJoinResponse.IsSuccessStatusCode)
@@ -818,7 +819,8 @@
                     {
                         var createdLink = JsonSerializer.Deserialize<ReportJoin>(rawResponse, new JsonSerializerOptions
                             {
-                                PropertyNameCaseInsensitive = true
+                                PropertyNameCaseInsensitive = true,
+                                Converters = { new JsonStringEnumConverter() }
                             });
                         if (createdLink?.CrossModuleJoinId > 0)
                         {
@@ -1201,10 +1203,10 @@
     {
         try
         {
-            var response = await Http.GetAsync($"api/reports/joins/by-user?token={Uri.EscapeDataString(token)}");
+            var response = await Http.GetAsync($"api/reports/joins/by-user");
             if (response.IsSuccessStatusCode)
             {
-                var joinsFromApi = await response.Content.ReadFromJsonAsync<List<CrossModuleJoinDto>>();
+                var joinsFromApi = await response.Content.ReadFromJsonWithEnumSupportAsync<List<CrossModuleJoinDto>>();
                 userJoins = joinsFromApi ?? new List<CrossModuleJoinDto>();
             }
             else
@@ -1546,7 +1548,7 @@
         }
         try
         {
-            var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}&token={Uri.EscapeDataString(token)}");
+            var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}");
             if (!responseDataset.IsSuccessStatusCode)
             {
                 var error = await responseDataset.Content.ReadAsStringAsync();
@@ -1554,7 +1556,7 @@
                 return;
             }
 
-            var datasetIM = await responseDataset.Content.ReadFromJsonAsync<DatasetIM>();
+            var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
             if (datasetIM == null)
             {
                 return;
@@ -1847,7 +1849,7 @@
                     JSON_config = json
                 };
 
-            var url = $"api/reports/UpdateReport?id={ReportId}&token={Uri.EscapeDataString(token)}";
+            var url = $"api/reports/UpdateReport?id={ReportId}";
             var putResp = await Http.PutAsJsonAsync(url, updateRequest);
             isSaving = false;
 
@@ -1880,7 +1882,7 @@
             previewExecuted = false;
             StateHasChanged();
 
-            var execUrl = $"api/reports/{ReportId}/execute?id={ReportId}&token={Uri.EscapeDataString(token)}";
+            var execUrl = $"api/reports/{ReportId}/execute?id={ReportId}";
             var execResp = await Http.GetAsync(execUrl);
             isExecuting = false;
 

@@ -91,7 +91,7 @@
         {
             // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
             string token = await LocalStorage.GetItemAsync<string>("authToken");
-            HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}&token={token}");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}");
 
             if (response.IsSuccessStatusCode)
             {

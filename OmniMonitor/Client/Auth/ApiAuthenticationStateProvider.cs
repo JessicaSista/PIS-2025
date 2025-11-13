@@ -7,23 +7,39 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection; // Para IServiceProvider, aunque usaremos IHttpClientFactory
+using System.Net.Http;
+using Microsoft.Extensions.Http; // Para IHttpClientFactory
 
 namespace OmniMonitor.Client.Auth
 {
     public class ApiAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly ILocalStorageService _localStorage;
+        // 💡 CAMBIO: Usamos la Factoría para crear clientes, rompiendo el ciclo de dependencia.
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly JwtSecurityTokenHandler _tokenHandler = new();
-        private readonly HttpClient _httpClient;
 
-        public ApiAuthenticationStateProvider(ILocalStorageService localStorage, HttpClient httpClient)
+        // El HttpClient ya no es un campo privado directo, se obtiene bajo demanda.
+
+        public ApiAuthenticationStateProvider(ILocalStorageService localStorage, IHttpClientFactory httpClientFactory)
         {
             _localStorage = localStorage;
-            _httpClient = httpClient;
+            _httpClientFactory = httpClientFactory;
+        }
+
+        // Método auxiliar para obtener el HttpClient, usando el cliente nombrado "API"
+        private HttpClient GetHttpClient()
+        {
+            // Usamos la factoría para crear una instancia del cliente "API".
+            // Esto evita que el DI intente resolver el cliente durante la inicialización del proveedor.
+            return _httpClientFactory.CreateClient("API");
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
+            var httpClient = GetHttpClient();
+
             try
             {
                 var token = await _localStorage.GetItemAsync<string>("authToken");
@@ -32,7 +48,7 @@ namespace OmniMonitor.Client.Auth
                 // Si no hay token
                 if (string.IsNullOrWhiteSpace(token))
                 {
-                    _httpClient.DefaultRequestHeaders.Authorization = null;
+                    httpClient.DefaultRequestHeaders.Authorization = null;
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Anonymous user
                 }
 
@@ -44,7 +60,7 @@ namespace OmniMonitor.Client.Auth
                 if (jsonToken == null || jsonToken.ValidTo < DateTime.UtcNow)
                 {
                     await _localStorage.RemoveItemAsync("authToken");
-                    _httpClient.DefaultRequestHeaders.Authorization = null;
+                    httpClient.DefaultRequestHeaders.Authorization = null;
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
@@ -80,27 +96,28 @@ namespace OmniMonitor.Client.Auth
             catch
             {
                 await _localStorage.RemoveItemAsync("authToken");
-                _httpClient.DefaultRequestHeaders.Authorization = null;
+                httpClient.DefaultRequestHeaders.Authorization = null;
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Error state
             }
         }
 
         public async Task NotifyUserAuthentication(string token)
         {
+            var httpClient = GetHttpClient();
             await _localStorage.SetItemAsync("authToken", token);
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var authState = await GetAuthenticationStateAsync();
             NotifyAuthenticationStateChanged(Task.FromResult(authState));
         }
 
         public async Task NotifyUserLogout()
         {
+            var httpClient = GetHttpClient();
             await _localStorage.RemoveItemAsync("authToken");
-            _httpClient.DefaultRequestHeaders.Authorization = null;
+            httpClient.DefaultRequestHeaders.Authorization = null;
             var anonymousUser = new ClaimsPrincipal(new ClaimsIdentity());
             var authState = Task.FromResult(new AuthenticationState(anonymousUser));
             NotifyAuthenticationStateChanged(authState);
         }
     }
 }
-

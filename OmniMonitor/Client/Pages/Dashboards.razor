@@ -91,6 +91,7 @@
     <MudGrid Spacing="3" Justify="Justify.FlexStart">
         @if (_isLoading == true)
         {
+            @*
             @for (int i = 0; i < 8; i++)
             {
                 <MudItem xs="12" sm="6" md="4" lg="3"> 
@@ -101,6 +102,7 @@
                     </MudCard>
                 </MudItem>
             }
+            *@
         }
         else if (filteredDashboards.Count == 0)
         {
@@ -257,7 +259,7 @@
             }
 
             // Construir URL con paginación
-            var url = $"api/Dashboard/GetAllDashboardsPaginated?token={token}&page={currentPage}&pageSize={pageSize}";
+            var url = $"api/Dashboard/GetAllDashboardsPaginated?page={currentPage}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(_searchText))
             {
                 url += $"&query={Uri.EscapeDataString(_searchText)}";
@@ -483,7 +485,7 @@
                 if (response.IsSuccessStatusCode)
                 {
                     // dashboards eliminado, solo se usa filteredDashboards
-                    filteredDashboards.RemoveAll(d => d.IdDashboard == dashboard.IdDashboard);
+                    LoadDashboardsAsync();
                     Snackbar.Add($"'{dashboard.Nombre}' deleted successfully", Severity.Success);
                 }
                 else

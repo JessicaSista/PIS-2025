@@ -129,60 +129,6 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("JoinOperands");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex")
-                        .HasFilter("[NormalizedName] IS NOT NULL");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetRoleClaims", (string)null);
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
                     b.Property<int>("Id")
@@ -226,21 +172,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("AspNetUserLogins", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
@@ -946,9 +877,19 @@ namespace OmniMonitor.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Description")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -957,128 +898,387 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Module", "Action")
+                        .IsUnique();
+
                     b.ToTable("Permissions");
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            Description = "Permite ver la lista de usuarios",
-                            Name = "Ver Usuarios"
+                            Action = "View",
+                            Description = "Ver usuarios",
+                            Module = "Users",
+                            Name = "Users.View"
                         },
                         new
                         {
                             Id = 2,
-                            Description = "Permite crear nuevos usuarios",
-                            Name = "Crear Usuarios"
+                            Action = "Create",
+                            Description = "Crear usuarios",
+                            Module = "Users",
+                            Name = "Users.Create"
                         },
                         new
                         {
                             Id = 3,
-                            Description = "Permite editar usuarios existentes",
-                            Name = "Editar Usuarios"
+                            Action = "Edit",
+                            Description = "Editar usuarios",
+                            Module = "Users",
+                            Name = "Users.Edit"
                         },
                         new
                         {
                             Id = 4,
-                            Description = "Permite eliminar usuarios",
-                            Name = "Eliminar Usuarios"
+                            Action = "Delete",
+                            Description = "Eliminar usuarios",
+                            Module = "Users",
+                            Name = "Users.Delete"
                         },
                         new
                         {
                             Id = 5,
-                            Description = "Permite ver datos de sensores",
-                            Name = "Ver Sensores"
+                            Action = "View",
+                            Description = "Ver dashboards",
+                            Module = "Dashboards",
+                            Name = "Dashboards.View"
                         },
                         new
                         {
                             Id = 6,
-                            Description = "Permite configurar sensores",
-                            Name = "Configurar Sensores"
+                            Action = "Create",
+                            Description = "Crear dashboards",
+                            Module = "Dashboards",
+                            Name = "Dashboards.Create"
                         },
                         new
                         {
                             Id = 7,
-                            Description = "Permite ver la lista de empleados",
-                            Name = "Ver Empleados"
+                            Action = "Edit",
+                            Description = "Editar dashboards",
+                            Module = "Dashboards",
+                            Name = "Dashboards.Edit"
                         },
                         new
                         {
                             Id = 8,
-                            Description = "Permite crear, editar y eliminar empleados",
-                            Name = "Gestionar Empleados"
+                            Action = "Delete",
+                            Description = "Eliminar dashboards",
+                            Module = "Dashboards",
+                            Name = "Dashboards.Delete"
                         },
                         new
                         {
                             Id = 9,
-                            Description = "Permite ver la lista de items",
-                            Name = "Ver Items"
+                            Action = "Share",
+                            Description = "Compartir dashboards",
+                            Module = "Dashboards",
+                            Name = "Dashboards.Share"
                         },
                         new
                         {
                             Id = 10,
-                            Description = "Permite crear, editar y eliminar items",
-                            Name = "Gestionar Items"
+                            Action = "View",
+                            Description = "Ver datasets",
+                            Module = "Datasets",
+                            Name = "Datasets.View"
                         },
                         new
                         {
                             Id = 11,
-                            Description = "Permite ver datasets del módulo UM (Zonas, Eventos, Noticias)",
-                            Name = "Ver Datasets UM"
+                            Action = "Create",
+                            Description = "Crear datasets",
+                            Module = "Datasets",
+                            Name = "Datasets.Create"
                         },
                         new
                         {
                             Id = 12,
-                            Description = "Permite crear nuevos datasets del módulo UM",
-                            Name = "Crear Datasets UM"
+                            Action = "Edit",
+                            Description = "Editar datasets",
+                            Module = "Datasets",
+                            Name = "Datasets.Edit"
                         },
                         new
                         {
                             Id = 13,
-                            Description = "Permite eliminar datasets del módulo UM",
-                            Name = "Eliminar Datasets UM"
+                            Action = "Delete",
+                            Description = "Eliminar datasets",
+                            Module = "Datasets",
+                            Name = "Datasets.Delete"
                         },
                         new
                         {
                             Id = 14,
-                            Description = "Permite ver datasets del módulo EM (Alertas, Eventos, Extensiones, Recursos)",
-                            Name = "Ver Datasets EM"
+                            Action = "View",
+                            Description = "Ver visualizaciones",
+                            Module = "Visualizations",
+                            Name = "Visualizations.View"
                         },
                         new
                         {
                             Id = 15,
-                            Description = "Permite crear nuevos datasets del módulo EM",
-                            Name = "Crear Datasets EM"
+                            Action = "Create",
+                            Description = "Crear visualizaciones",
+                            Module = "Visualizations",
+                            Name = "Visualizations.Create"
                         },
                         new
                         {
                             Id = 16,
-                            Description = "Permite eliminar datasets del módulo EM",
-                            Name = "Eliminar Datasets EM"
+                            Action = "Edit",
+                            Description = "Editar visualizaciones",
+                            Module = "Visualizations",
+                            Name = "Visualizations.Edit"
                         },
                         new
                         {
                             Id = 17,
-                            Description = "Permite ver dashboards personalizables",
-                            Name = "Ver Dashboards"
+                            Action = "Delete",
+                            Description = "Eliminar visualizaciones",
+                            Module = "Visualizations",
+                            Name = "Visualizations.Delete"
                         },
                         new
                         {
                             Id = 18,
-                            Description = "Permite crear nuevos dashboards personalizables",
-                            Name = "Crear Dashboards"
+                            Action = "View",
+                            Description = "Ver reportes",
+                            Module = "Reports",
+                            Name = "Reports.View"
                         },
                         new
                         {
                             Id = 19,
-                            Description = "Permite editar dashboards existentes",
-                            Name = "Editar Dashboards"
+                            Action = "Create",
+                            Description = "Crear reportes",
+                            Module = "Reports",
+                            Name = "Reports.Create"
                         },
                         new
                         {
                             Id = 20,
-                            Description = "Permite eliminar dashboards",
-                            Name = "Eliminar Dashboards"
+                            Action = "Edit",
+                            Description = "Editar reportes",
+                            Module = "Reports",
+                            Name = "Reports.Edit"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Action = "Delete",
+                            Description = "Eliminar reportes",
+                            Module = "Reports",
+                            Name = "Reports.Delete"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Action = "Export",
+                            Description = "Exportar reportes",
+                            Module = "Reports",
+                            Name = "Reports.Export"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Action = "View",
+                            Description = "Ver datos de sensores",
+                            Module = "Sensors",
+                            Name = "Sensors.View"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Action = "Configure",
+                            Description = "Configurar sensores",
+                            Module = "Sensors",
+                            Name = "Sensors.Configure"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Action = "View",
+                            Description = "Ver dispositivos",
+                            Module = "Devices",
+                            Name = "Devices.View"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Action = "Manage",
+                            Description = "Gestionar dispositivos",
+                            Module = "Devices",
+                            Name = "Devices.Manage"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Action = "View",
+                            Description = "Ver activos",
+                            Module = "Assets",
+                            Name = "Assets.View"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Action = "Create",
+                            Description = "Crear activos",
+                            Module = "Assets",
+                            Name = "Assets.Create"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Action = "Edit",
+                            Description = "Editar activos",
+                            Module = "Assets",
+                            Name = "Assets.Edit"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Action = "Delete",
+                            Description = "Eliminar activos",
+                            Module = "Assets",
+                            Name = "Assets.Delete"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Action = "View",
+                            Description = "Ver tareas",
+                            Module = "Tasks",
+                            Name = "Tasks.View"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Action = "Create",
+                            Description = "Crear tareas",
+                            Module = "Tasks",
+                            Name = "Tasks.Create"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Action = "Edit",
+                            Description = "Editar tareas",
+                            Module = "Tasks",
+                            Name = "Tasks.Edit"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Action = "Delete",
+                            Description = "Eliminar tareas",
+                            Module = "Tasks",
+                            Name = "Tasks.Delete"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Action = "View",
+                            Description = "Ver zonas",
+                            Module = "Zones",
+                            Name = "Zones.View"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Action = "Manage",
+                            Description = "Gestionar zonas",
+                            Module = "Zones",
+                            Name = "Zones.Manage"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Action = "View",
+                            Description = "Ver eventos",
+                            Module = "Events",
+                            Name = "Events.View"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Action = "Manage",
+                            Description = "Gestionar eventos",
+                            Module = "Events",
+                            Name = "Events.Manage"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Action = "View",
+                            Description = "Ver alertas",
+                            Module = "Alerts",
+                            Name = "Alerts.View"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Action = "Manage",
+                            Description = "Gestionar alertas",
+                            Module = "Alerts",
+                            Name = "Alerts.Manage"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Action = "ViewRoles",
+                            Description = "Ver roles del sistema",
+                            Module = "System",
+                            Name = "System.ViewRoles"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Action = "ManageRoles",
+                            Description = "Gestionar roles",
+                            Module = "System",
+                            Name = "System.ManageRoles"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Action = "ViewPermissions",
+                            Description = "Ver permisos",
+                            Module = "System",
+                            Name = "System.ViewPermissions"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Action = "ManagePermissions",
+                            Description = "Gestionar permisos",
+                            Module = "System",
+                            Name = "System.ManagePermissions"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            Action = "ViewLogs",
+                            Description = "Ver logs del sistema",
+                            Module = "System",
+                            Name = "System.ViewLogs"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Action = "ViewSettings",
+                            Description = "Ver configuración del sistema",
+                            Module = "System",
+                            Name = "System.ViewSettings"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            Action = "ManageSettings",
+                            Description = "Gestionar configuración del sistema",
+                            Module = "System",
+                            Name = "System.ManageSettings"
                         });
                 });
 
@@ -1108,13 +1308,7 @@ namespace OmniMonitor.Server.Migrations
                         {
                             Id = 1,
                             Description = "Rol con acceso completo al sistema",
-                            Name = "Administrador"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Description = "Rol con acceso limitado de solo lectura",
-                            Name = "Visitante"
+                            Name = "Admin"
                         });
                 });
 
@@ -1204,105 +1398,225 @@ namespace OmniMonitor.Server.Migrations
                         },
                         new
                         {
-                            Id = 15,
+                            Id = 11,
                             PermissionId = 11,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 16,
+                            Id = 12,
                             PermissionId = 12,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 17,
+                            Id = 13,
                             PermissionId = 13,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 18,
+                            Id = 14,
                             PermissionId = 14,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 19,
+                            Id = 15,
                             PermissionId = 15,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 20,
+                            Id = 16,
                             PermissionId = 16,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 27,
+                            Id = 17,
                             PermissionId = 17,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 28,
+                            Id = 18,
                             PermissionId = 18,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 29,
+                            Id = 19,
                             PermissionId = 19,
                             RoleId = 1
                         },
                         new
                         {
-                            Id = 30,
+                            Id = 20,
                             PermissionId = 20,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 21,
-                            PermissionId = 1,
-                            RoleId = 2
+                            PermissionId = 21,
+                            RoleId = 1
                         },
                         new
                         {
                             Id = 22,
-                            PermissionId = 5,
-                            RoleId = 2
+                            PermissionId = 22,
+                            RoleId = 1
                         },
                         new
                         {
                             Id = 23,
-                            PermissionId = 7,
-                            RoleId = 2
+                            PermissionId = 23,
+                            RoleId = 1
                         },
                         new
                         {
                             Id = 24,
-                            PermissionId = 9,
-                            RoleId = 2
+                            PermissionId = 24,
+                            RoleId = 1
                         },
                         new
                         {
                             Id = 25,
-                            PermissionId = 11,
-                            RoleId = 2
+                            PermissionId = 25,
+                            RoleId = 1
                         },
                         new
                         {
                             Id = 26,
-                            PermissionId = 14,
-                            RoleId = 2
+                            PermissionId = 26,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 27,
+                            PermissionId = 27,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 28,
+                            PermissionId = 28,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 29,
+                            PermissionId = 29,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 30,
+                            PermissionId = 30,
+                            RoleId = 1
                         },
                         new
                         {
                             Id = 31,
-                            PermissionId = 17,
-                            RoleId = 2
+                            PermissionId = 31,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 32,
+                            PermissionId = 32,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 33,
+                            PermissionId = 33,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 34,
+                            PermissionId = 34,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 35,
+                            PermissionId = 35,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 36,
+                            PermissionId = 36,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 37,
+                            PermissionId = 37,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 38,
+                            PermissionId = 38,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 39,
+                            PermissionId = 39,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 40,
+                            PermissionId = 40,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 41,
+                            PermissionId = 41,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 42,
+                            PermissionId = 42,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 43,
+                            PermissionId = 43,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 44,
+                            PermissionId = 44,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 45,
+                            PermissionId = 45,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 46,
+                            PermissionId = 46,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 47,
+                            PermissionId = 47,
+                            RoleId = 1
                         });
                 });
 
@@ -1404,6 +1718,36 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.UserClaim", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsGranted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("UserId", "PermissionId")
+                        .IsUnique();
+
+                    b.ToTable("UserClaims");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.UserRole", b =>
                 {
                     b.Property<int>("Id")
@@ -1451,6 +1795,10 @@ namespace OmniMonitor.Server.Migrations
                         .HasColumnType("nvarchar(1000)")
                         .HasColumnName("JSON_design");
 
+                    b.Property<string>("Link")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("link");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1480,6 +1828,9 @@ namespace OmniMonitor.Server.Migrations
 
                     b.Property<string>("JSON_config")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("JSON_filters")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
@@ -1553,15 +1904,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Report");
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.User", null)
@@ -1573,21 +1915,6 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
                 {
-                    b.HasOne("OmniMonitor.Shared.Dtos.User", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<int>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("OmniMonitor.Shared.Dtos.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -1836,6 +2163,25 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.UserClaim", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.Permission", "Permission")
+                        .WithMany()
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("OmniMonitor.Shared.Dtos.User", "User")
+                        .WithMany("UserClaims")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.UserRole", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.Role", "Role")
@@ -1941,6 +2287,8 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.User", b =>
                 {
+                    b.Navigation("UserClaims");
+
                     b.Navigation("UserRoles");
                 });
 

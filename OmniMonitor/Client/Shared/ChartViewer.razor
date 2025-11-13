@@ -187,7 +187,7 @@
                     _title = cardVisualization.Nombre;
 
                     JsonDocument design = JsonDocument.Parse(cardVisualization.JsonDesign);
-                    var _chartType = design.RootElement.GetProperty("ChartType").ToString();
+                    _chartType = design.RootElement.GetProperty("ChartType").ToString();
                     _seriesType = MapSeriesType(_chartType);
 
                     _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +12,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetEMController : ControllerBase
     {
         private readonly IDatasetEMService _datasetEMService;
@@ -31,6 +33,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo dataset EM.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
@@ -76,9 +79,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-                /// <summary>
-        /// Crea un nuevo dataset EM con filtrado.
-        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
@@ -87,8 +88,13 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
                 var req = request.DatasetRequest;
+                // Usar el username desde JWT
+                req.Username = username;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -144,9 +150,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        /// <summary>
-        /// Actualiza un dataset EM existente aplicando filtrado.
-        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{datasetId}")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
@@ -157,7 +161,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 var req = request.DatasetRequest;
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                // Usar el username desde JWT
+                req.Username = username;
                 DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, req.Username);
                 if (existingDataset == null)
                 {
@@ -218,15 +227,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasets")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetEM>>> GetAllDatasets(string token)
+        public async Task<ActionResult<List<DatasetEM>>> GetAllDatasets()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DatasetEM> datasets = await _datasetEMService.GetAllDatasetsEMAsync(username);
                 return Ok(datasets);
             }
@@ -239,15 +249,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{datasetId}")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId, string token)
+        public async Task<ActionResult<DatasetEM>> GetDatasetById(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetEM? dataset = await _datasetEMService.GetDatasetEMByIdAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -265,6 +276,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset EM existente.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
         //[RequirePermission("Crear Datasets EM")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
@@ -303,15 +315,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset EM.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{datasetId}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> DeleteDataset(int datasetId, string token)
+        public async Task<IActionResult> DeleteDataset(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetEM? id = await _context.DatasetsEM
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
                 await _datasetEMService.DeleteDatasetEMAsync(datasetId, username);
