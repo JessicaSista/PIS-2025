@@ -67,8 +67,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
                 /// <summary>
-        /// Crea un nuevo DatasetAM con filtrado.
-        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetAM), 201)]
         [ProducesResponseType(400)]
@@ -78,6 +77,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 var req = request.DatasetRequest;
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                // Usar el username desde JWT
+                req.Username = username;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -143,9 +148,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        /// <summary>
-        /// Actualiza un DatasetAM existente aplicando filtrado.
-        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{id}")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(400)]
@@ -156,7 +159,12 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 var req = request.DatasetRequest;
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                // Usar el username desde JWT
+                req.Username = username;
                 DatasetAM? existingDataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, req.Username);
                 if (existingDataset == null)
                 {

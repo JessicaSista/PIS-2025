@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Context;
 using System.Collections.Generic;
@@ -36,6 +38,7 @@ namespace OmniMonitor.Server.Controllers
             _sondaAuthService = sondaAuthService;
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("FiltrarPorModuloYEntidad")]
         public async Task<ActionResult<List<PropiedadEntidadDto>>> FiltrarPorModuloYEntidad(string modulo, int entidadId)
         {
@@ -164,19 +167,16 @@ namespace OmniMonitor.Server.Controllers
         }
 
     
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAtributoValores")]
-        public async Task<ActionResult<List<string>>> GetAtributoValores(string modulo, int entidadId, string atributo, string token)
+        public async Task<ActionResult<List<string>>> GetAtributoValores(string modulo, int entidadId, string atributo)
         {
             // DEBUG: Loguear los datos crudos de entidades para EM eventos
             
-            // Get token from query
-            
-            if (string.IsNullOrWhiteSpace(token))
-                return BadRequest("El parámetro 'token' es obligatorio.");
-
-            string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+            // Get username from JWT
+            var username = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(username))
-                return BadRequest("No se pudo obtener el usuario a partir del token.");
+                return BadRequest("Usuario no encontrado.");
 
             List<object> valores = new();
             IEnumerable<object> entidades = Enumerable.Empty<object>();
@@ -302,15 +302,13 @@ namespace OmniMonitor.Server.Controllers
             // DTO para la petición de filtrado
     // Usar FiltrarDatosRequest desde Shared.Dtos
 
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost("FiltrarDatos")]
     public async Task<ActionResult<List<object>>> FiltrarDatos([FromBody] OmniMonitor.Shared.Dtos.FiltrarDatosRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Token))
-            return BadRequest("El parámetro 'token' es obligatorio.");
-
-        string username = await _sondaAuthService.GetUserByTokenOMAsync(request.Token);
+        var username = User.Identity?.Name;
         if (string.IsNullOrWhiteSpace(username))
-            return BadRequest("No se pudo obtener el usuario a partir del token.");
+            return BadRequest("Usuario no encontrado.");
 
         IEnumerable<object> entidades = Enumerable.Empty<object>();
         bool moduloValido = true, entidadValida = true;
