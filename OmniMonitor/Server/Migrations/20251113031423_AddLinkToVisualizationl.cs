@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace OmniMonitor.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialClean : Migration
+    public partial class AddLinkToVisualizationl : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -163,7 +163,8 @@ namespace OmniMonitor.Server.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    JSON_config = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    JSON_config = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    JSON_filters = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -194,7 +195,8 @@ namespace OmniMonitor.Server.Migrations
                     Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Date_from = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Date_to = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    JSON_design = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false)
+                    JSON_design = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    link = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -301,7 +303,8 @@ namespace OmniMonitor.Server.Migrations
                     Type_Dataset = table.Column<int>(type: "int", nullable: false),
                     Id_Event_Task = table.Column<int>(type: "int", nullable: true),
                     Id_Asset_Type = table.Column<int>(type: "int", nullable: true),
-                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                    DatasetId = table.Column<int>(type: "int", nullable: false),
+                    Filters = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -325,7 +328,8 @@ namespace OmniMonitor.Server.Migrations
                     Username = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                    DatasetId = table.Column<int>(type: "int", nullable: false),
+                    Filters = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -377,7 +381,8 @@ namespace OmniMonitor.Server.Migrations
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ContentType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Id_Zone = table.Column<int>(type: "int", nullable: true),
-                    DatasetId = table.Column<int>(type: "int", nullable: false)
+                    DatasetId = table.Column<int>(type: "int", nullable: false),
+                    Filters = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -800,17 +805,23 @@ namespace OmniMonitor.Server.Migrations
                     Grupo_Stock = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Id_Stock = table.Column<int>(type: "int", nullable: false),
-                    DatasetEventTaskInstanceId = table.Column<int>(type: "int", nullable: false)
+                    DatasetAMId = table.Column<int>(type: "int", nullable: false),
+                    DatasetEventTaskInstanceId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DatasetStock", x => x.Grupo_Stock);
                     table.ForeignKey(
+                        name: "FK_DatasetStock_DatasetAM_DatasetAMId",
+                        column: x => x.DatasetAMId,
+                        principalTable: "DatasetAM",
+                        principalColumn: "Id_Dataset",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
                         name: "FK_DatasetStock_DatasetEventTaskInstance_DatasetEventTaskInstanceId",
                         column: x => x.DatasetEventTaskInstanceId,
                         principalTable: "DatasetEventTaskInstance",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.InsertData(
@@ -1027,6 +1038,11 @@ namespace OmniMonitor.Server.Migrations
                 name: "IX_DatasetsIM_DatasetId",
                 table: "DatasetsIM",
                 column: "DatasetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DatasetStock_DatasetAMId",
+                table: "DatasetStock",
+                column: "DatasetAMId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DatasetStock_DatasetEventTaskInstanceId",

@@ -11,9 +11,10 @@ namespace OmniMonitor.Shared.Dtos
         [Required]
         public int Id_Stock { get; set; }
 
-        // Clave foránea a DatasetEventTaskInstance
-        public int DatasetEventTaskInstanceId { get; set; }
-        [ForeignKey("DatasetEventTaskInstanceId")]
-        public virtual DatasetEventTaskInstance DatasetEventTaskInstance { get; set; }
+        // Clave foránea a DatasetAM
+        public int DatasetAMId { get; set; }
+        [ForeignKey("DatasetAMId")]
+        [System.Text.Json.Serialization.JsonIgnore]
+        public DatasetAM? DatasetAM { get; set; }
     }
 }
