@@ -1,9 +1,3 @@
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ISnackbar Snackbar
-@inject HttpClient Http
-@inject IDialogService DialogService
-@inject NavigationManager Nav
-@inject VisualizationDraftService DraftService
 @using OmniMonitor.Shared.Dtos
 @using OmniMonitor.Client.Services
 @using System.Text.Json;
@@ -11,8 +5,15 @@
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
 @using System.Globalization
-@inject IStringLocalizer<CreateVisualizationCard> Localizer
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient Http
+@inject IDialogService DialogService
 @inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
+@inject NavigationManager Nav
+@inject VisualizationDraftService DraftService
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
@@ -57,7 +58,7 @@
                                         Variant="Variant.Outlined"
                                         Culture="@(new CultureInfo("en-US"))"
                                         Step=".2M"
-                                        Validation="@((decimal m) => m == 0 ? "No puede ser 0" : null)" />
+                                        Validation="@((decimal m) => m == 0 ? "<> 0" : null)" />
                     </MudItem>
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
@@ -85,11 +86,30 @@
                         Disabled="false">
                     @Localizer["AddDataset"]
                 </MudButton>
+
+                <MudButton OnClick="OpenSelectDashboardLinkModal"
+                           FullWidth="true"
+                           Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
+                           StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Check : Icons.Material.Filled.AddLink)"
+                           Color="MudBlazor.Color.Inherit"
+                           Size="MudBlazor.Size.Large"
+                           Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                           Disabled="false">
+
+                        @if (_selectedDashboard != null)
+                        {
+                            <MudText Typo="Typo.body1">@Localizer["DashboardLinked", _selectedDashboard.Nombre]</MudText>
+                        }
+                        else
+                        {
+                            @Localizer["AddDashboard"]
+                        }
+                </MudButton>
             </MudItem>
         </MudGrid>
 
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["VisualisationName"]</MudText>
-        <MudTextField Class="mb-2" @bind-Value="_visualizationName" T="string"  
+        <MudTextField T="string" Class="mb-2" @bind-Value="_visualizationName"
                       Label="@Localizer["Name"]"
                       Variant="Variant.Outlined"
                       Required="true"
@@ -144,7 +164,7 @@
 
 @code {
     [CascadingParameter]
-    public required IMudDialogInstance _mudDialog { get; set; }
+    public required IMudDialogInstance mudDialog { get; set; }
 
     [Parameter]
     public string? ReturnTo { get; set; }
@@ -157,15 +177,14 @@
 
     private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar"};
     private string _selectedChartType = "line";
-
     private DateTime? _beginDate { get; set; }
     private TimeSpan? _beginHour { get; set; }
     private DateTime? _endDate { get; set; }
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
+    private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
 
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
-
     private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
     {
         { "Device", new List<string> { "LayerId", "IsActive", "SectorId", "TenantId"} },
@@ -194,6 +213,17 @@
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
+    }
+
+    private async Task OpenSelectDashboardLinkModal()
+    {
+        var parameters = new DialogParameters
+        {
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<SelectDashboardLink>(Localizer["AddDashboard"], parameters, options);
     }
 
     private async Task HandleDatasetSelected(DatasetDtoGenerico dataset)
@@ -230,6 +260,14 @@
                 await HandleDatasetSelected(newDataset);
             }
         }
+    }
+
+    private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
+    {
+        _selectedDashboard = dashboard;
+        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        StateHasChanged();
+        return;
     }
 
     private bool ValidateSubmission()
@@ -295,6 +333,7 @@
                 Nombre = _visualizationName,
                 Username = username,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
+                Link = _selectedDashboard != null ? JsonSerializer.Serialize(new { DashboardId = _selectedDashboard.Id }) : null,
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
@@ -322,7 +361,7 @@
             }
             else
             {
-                _mudDialog.Close(DialogResult.Ok(1));
+                mudDialog.Close(DialogResult.Ok(1));
                 Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
             }
         }
@@ -335,7 +374,7 @@
     
     private void Cancel()
     {
-        _mudDialog.Cancel();
+        mudDialog.Cancel();
     }
     
     protected override async Task OnInitializedAsync()
