@@ -1,9 +1,3 @@
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ISnackbar Snackbar
-@inject HttpClient Http
-@inject IDialogService DialogService
-@inject NavigationManager Nav
-@inject VisualizationDraftService DraftService
 @using OmniMonitor.Shared.Dtos
 @using OmniMonitor.Client.Services
 @using System.Text.Json;
@@ -11,8 +5,13 @@
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
 @using System.Globalization
-@inject IStringLocalizer<CreateVisualizationCard> Localizer
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient Http
+@inject IDialogService DialogService
 @inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
@@ -86,6 +85,25 @@
                     @Localizer["AddDataset"]
                 </MudButton>
             </MudItem>
+
+            <MudButton OnClick="OpenSelectDashboardLinkModal"
+                       FullWidth="true"
+                       Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
+                       StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Check : Icons.Material.Filled.AddLink)"
+                       Color="MudBlazor.Color.Inherit"
+                       Size="MudBlazor.Size.Large"
+                       Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                       Disabled="false">
+
+                @if (_selectedDashboard != null)
+                {
+                    <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}, {Localizer["ClickForSelectOther"]}")</MudText>
+                }
+                else
+                {
+                    @Localizer["AddDashboard"]
+                }
+            </MudButton>
         </MudGrid>
 
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["VisualisationName"]</MudText>
@@ -154,7 +172,7 @@
 
     [Parameter]
     public int? NewDatasetId { get; set; }
-    
+
     [Parameter]
     public string? NewDatasetModule { get; set; }
 
@@ -163,18 +181,18 @@
 
     [Parameter] 
     public Visualizacion currVisualization {get; set;} = null;
-    
+
     [Parameter]
     public System.Int32 dashboardId {get; set;} = -1; //caso en el que se edita desde visualizaciones
 
     private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar"};
     private string _selectedChartType = "line";
-
     private DateTime? _beginDate { get; set; }
     private TimeSpan? _beginHour { get; set; }
     private DateTime? _endDate { get; set; }
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
+    private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
     private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
     {
@@ -195,6 +213,94 @@
     };
 
 
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (currVisualization == null)
+            {
+                AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                string? username = authState.User.Identity?.Name;
+                string token = await LocalStorage.GetItemAsync<string>("authToken");
+
+                if (string.IsNullOrEmpty(username))
+                {
+                    Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
+                    return;
+                }
+
+                HttpResponseMessage? responseVisualization = await Http.GetAsync(
+                    $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}&token={token}"
+                );
+
+                currVisualization = await responseVisualization.Content.ReadFromJsonAsync<Visualizacion>();
+            }
+            string _visualizationLink = currVisualization.Link;
+            try
+            {
+                HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={_visualizationLink}");
+                DashboardResponse? dashboardData = await response.Content.ReadFromJsonAsync<DashboardResponse>();
+                _selectedDashboard = new DashboardSummaryResponse { Nombre = dashboardData.Nombre, IdDashboard = dashboardData.IdDashboard };
+            }
+            catch(Exception ex)
+            {
+                Snackbar.Add("ErrorFetchingDashboard", Severity.Error);
+                return;
+            }
+
+
+            visualizationId = currVisualization.IdVisualizacion;
+            _visualizationName = currVisualization.Nombre;
+            _beginDate = currVisualization.FechaDesde.Date;
+            _beginHour = currVisualization.FechaDesde.TimeOfDay;
+            _endDate = currVisualization.FechaHasta.Date;
+            _endHour = currVisualization.FechaHasta.TimeOfDay;
+
+            JsonDocument design = JsonDocument.Parse(currVisualization.JsonDesign);
+            _selectedChartType = design.RootElement.GetProperty("ChartType").ToString();
+
+            try
+            {
+                foreach (var grupoDataset in currVisualization.GrupoDatasets)
+                {
+                    JsonElement root = JsonDocument.Parse(grupoDataset.JsonDesign).RootElement;
+
+                    decimal multiplier = root.GetProperty("Multiplier").GetDecimal();
+                    System.String color = root.GetProperty("Color").GetString();
+                    System.String datasetEntity = root.GetProperty("Entity").GetString();
+                    System.String selectedAttribute = root.GetProperty("EntityAttribute").GetString();
+                    System.String displayName = root.GetProperty("DisplayName").GetString();
+                    System.String module = root.GetProperty("Module").GetString();
+                    System.Int32 IdInModule = root.GetProperty("IdInModule").GetInt32();
+
+                    _selectedDatasets.Add(new DatasetSelection
+                    {
+                        Dataset = new DatasetDtoGenerico
+                        {
+                            Id = IdInModule,
+                            IdGenerico = grupoDataset.DatasetId,
+                            Nombre = grupoDataset.Dataset.NameDataset,
+                            Module = module
+                        },
+                        DisplayName = displayName,
+                        Entity = datasetEntity,
+                        EntityAttribute = selectedAttribute,
+                        Multiplier = multiplier,
+                        Color = color
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error fetching properties of datasets: {ex.Message}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error cargando visualización: {ex.Message}", Severity.Error);
+        }
+    }
+
     private async Task OpenAddDatasetModal()
     {
         var parameters = new DialogParameters
@@ -205,6 +311,17 @@
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
+    }
+
+    private async Task OpenSelectDashboardLinkModal()
+    {
+        var parameters = new DialogParameters
+        {
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<SelectDashboardLink>(Localizer["AddDashboard"], parameters, options);
     }
 
     private async Task HandleNewDataset()
@@ -239,6 +356,14 @@
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Info);
+        StateHasChanged();
+        return;
+    }
+
+    private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
+    {
+        _selectedDashboard = dashboard;
+        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
         StateHasChanged();
         return;
     }
@@ -305,6 +430,7 @@
                 Nombre = _visualizationName,
                 Username = username,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
+                Link = _selectedDashboard == null ? null : _selectedDashboard.IdDashboard.ToString(),
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
@@ -358,75 +484,6 @@
     }
     
     private void Cancel() => _mudDialog.Cancel();
-
-    protected override async Task OnInitializedAsync()
-    {
-        try 
-        {
-            if(currVisualization == null){
-                AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                string? username = authState.User.Identity?.Name;
-                string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-                if (string.IsNullOrEmpty(username)) {
-                    Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
-                    return;
-                }
-
-                HttpResponseMessage? responseVisualization = await Http.GetAsync(
-                    $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}&token={token}"
-                );
-                
-                currVisualization = await responseVisualization.Content.ReadFromJsonAsync<Visualizacion>();
-            }
-            visualizationId = currVisualization.IdVisualizacion;
-            _visualizationName = currVisualization.Nombre;
-            _beginDate = currVisualization.FechaDesde.Date;
-            _beginHour = currVisualization.FechaDesde.TimeOfDay;
-            _endDate = currVisualization.FechaHasta.Date;
-            _endHour = currVisualization.FechaHasta.TimeOfDay;
-            
-            JsonDocument design = JsonDocument.Parse(currVisualization.JsonDesign);
-            _selectedChartType = design.RootElement.GetProperty("ChartType").ToString();
-
-            try{
-                foreach (var grupoDataset in currVisualization.GrupoDatasets)
-                {
-                    JsonElement root = JsonDocument.Parse(grupoDataset.JsonDesign).RootElement;
-
-                    decimal multiplier = root.GetProperty("Multiplier").GetDecimal();
-                    System.String color = root.GetProperty("Color").GetString();
-                    System.String datasetEntity = root.GetProperty("Entity").GetString();
-                    System.String selectedAttribute = root.GetProperty("EntityAttribute").GetString();
-                    System.String displayName = root.GetProperty("DisplayName").GetString();
-                    System.String module = root.GetProperty("Module").GetString();
-                    System.Int32 IdInModule = root.GetProperty("IdInModule").GetInt32();
-
-                    _selectedDatasets.Add(new DatasetSelection
-                    {
-                        Dataset = new DatasetDtoGenerico {
-                            Id = IdInModule,
-                            IdGenerico = grupoDataset.DatasetId,
-                            Nombre = grupoDataset.Dataset.NameDataset,
-                            Module = module
-                        },
-                        DisplayName = displayName,
-                        Entity = datasetEntity,
-                        EntityAttribute = selectedAttribute,
-                        Multiplier = multiplier,
-                        Color = color
-                    });
-                }
-            }
-            catch(Exception ex)
-            {
-                Snackbar.Add($"Error fetching properties of datasets: {ex.Message}", Severity.Error);
-            }
-        }
-        catch (Exception ex) {
-            Snackbar.Add($"Error cargando visualización: {ex.Message}", Severity.Error);
-        }
-    }
 
     private void RemoveDataset(DatasetSelection item)
     {

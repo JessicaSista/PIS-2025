@@ -42,6 +42,7 @@
                 }
             }
         </MudStack>
+        <MudButton Disabled="@(!_hasNextPage)" OnClick="LoadMoreDashboards">@Localizer["LoadMore"]</MudButton>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Outlined" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
@@ -60,9 +61,6 @@
 
     private int _currentPage = 1;
     private int _pageSize = 12;
-    private int _totalPages = 0;
-    private int _totalCount = 0;
-    private bool _hasPreviousPage = false;
     private bool _hasNextPage = false;
 
 
@@ -77,10 +75,32 @@
             if (result != null)
             {
                 _dashboards = result.Items ?? new List<DashboardSummaryResponse>();
-                _totalCount = result.TotalCount;
-                _totalPages = result.TotalPages;
                 _currentPage = result.Page;
-                _hasPreviousPage = result.HasPreviousPage;
+                _hasNextPage = result.HasNextPage;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(string.Format(Localizer["ErrorFetchingDashboards"], ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMoreDashboards()
+    {
+        _isLoading = true;
+        _currentPage++;
+        try
+        {
+            string requestUrl = $"api/Dashboard/GetAllDashboardsPaginated?page={_currentPage}&pageSize={_pageSize}";
+            PaginatedDashboardDto result = await Http.GetFromJsonAsync<PaginatedDashboardDto>(requestUrl);
+            if (result != null && result.Items != null)
+            {
+                _dashboards.AddRange(result.Items);
                 _hasNextPage = result.HasNextPage;
             }
         }

@@ -12,8 +12,6 @@
 @inject ILocalStorageService LocalStorage
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<CreateVisualizationCard> Localizer
-@inject NavigationManager Nav
-@inject VisualizationDraftService DraftService
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
@@ -98,7 +96,7 @@
 
                         @if (_selectedDashboard != null)
                         {
-                            <MudText Typo="Typo.body1">@Localizer["DashboardLinked", _selectedDashboard.Nombre]</MudText>
+                        <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}, {Localizer["ClickForSelectOther"]}")</MudText>
                         }
                         else
                         {
@@ -175,6 +173,7 @@
     [Parameter]
     public string? NewDatasetModule { get; set; }
 
+
     private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar"};
     private string _selectedChartType = "line";
     private DateTime? _beginDate { get; set; }
@@ -183,7 +182,6 @@
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
     private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
-
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
     private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
     {
@@ -202,6 +200,17 @@
         { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
         { "Categoria", new List<string> { "Name", "Priority", "Protocol", "CategoryState", "Selected" } }
     };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        DateTime today = DateTime.Today;
+        _beginDate = today;
+        _beginHour = new TimeSpan(0, 0, 0);
+        _endDate = today;
+        _endHour = new TimeSpan(23, 59, 0);
+
+    }
 
     private async Task OpenAddDatasetModal()
     {
@@ -333,7 +342,7 @@
                 Nombre = _visualizationName,
                 Username = username,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
-                Link = _selectedDashboard != null ? JsonSerializer.Serialize(new { DashboardId = _selectedDashboard.Id }) : null,
+                Link = _selectedDashboard == null ? null : _selectedDashboard.IdDashboard.ToString(),
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
@@ -376,17 +385,7 @@
     {
         mudDialog.Cancel();
     }
-    
-    protected override async Task OnInitializedAsync()
-    {
-        DateTime today = DateTime.Today;
-        _beginDate = today;
-        _beginHour = new TimeSpan(0, 0, 0);
-        _endDate = today;
-        _endHour = new TimeSpan(23, 59, 0);
-
-    }
-    
+        
     private void RemoveDataset(DatasetSelection ds)
     {
         var found = _selectedDatasets.FirstOrDefault(x => x.Dataset.IdGenerico == ds.Dataset.IdGenerico);
