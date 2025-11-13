@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetUMController : ControllerBase
     {
         private readonly IDatasetUMService _datasetUMService;
@@ -28,16 +30,17 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo dataset.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(DatasetUM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request, string token)
+        public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 if (!ModelState.IsValid)
                 {
@@ -147,15 +150,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasets")]
         [ProducesResponseType(typeof(List<DatasetUM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetUM>>> GetAllDatasets(string token)
+        public async Task<ActionResult<List<DatasetUM>>> GetAllDatasets()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DatasetUM> datasets = await _datasetUMService.GetAllDatasetsUMAsync(username);
                 return Ok(datasets);
             }
@@ -168,16 +172,17 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetById")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId, string token)
+        public async Task<ActionResult<DatasetUM>> GetDatasetById(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
@@ -313,6 +318,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(400)]
@@ -443,16 +449,17 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{datasetId}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(403)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult> DeleteDataset(int datasetId, string token)
+        public async Task<ActionResult> DeleteDataset(int datasetId)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 DatasetUM? dataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
@@ -472,15 +479,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDataset")]
         [ProducesResponseType(typeof(List<Datasets>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetUM>>> GetAllDataset(string token)
+        public async Task<ActionResult<List<DatasetUM>>> GetAllDataset()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 List<Datasets> datasets = await _datasetUMService.GetAllDatasetsAsync(username);
                 return Ok(datasets);
@@ -494,15 +502,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets de todos los módulos en formato unificado desde la tabla general.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDto")]
         [ProducesResponseType(typeof(List<DatasetDto>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetDto>>> GetAllDatasetsDto(string token, [FromQuery] string? search = null)
+        public async Task<ActionResult<List<DatasetDto>>> GetAllDatasetsDto([FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDto>();
 
@@ -605,17 +614,18 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-                /// <summary>
+        /// <summary>
         /// Devuelve todos los datasets en formato DatasetDtoGenerico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllGenericDatasetDtos")]
         [ProducesResponseType(typeof(List<DatasetDtoGenerico>), 200)]
         [ProducesResponseType(500)]
-    public async Task<ActionResult<List<DatasetDtoGenerico>>> GetAllGenericDatasetDtos(string token, [FromQuery] string? search = null)
+    public async Task<ActionResult<List<DatasetDtoGenerico>>> GetAllGenericDatasetDtos([FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDtoGenerico>();
 
@@ -727,126 +737,112 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets de todos los módulos con paginación.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDtoPaginated")]
         [ProducesResponseType(typeof(PaginatedDatasetDto), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<PaginatedDatasetDto>> GetAllDatasetsDtoPaginated(
-            string token, 
             [FromQuery] int page = 1, 
             [FromQuery] int pageSize = 10,
             [FromQuery] string? search = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
-                var datasetDtos = new List<DatasetDto>();
+                // Validar parámetros de entrada
+                if (page < 1)
+                {
+                    return BadRequest("El número de página debe ser mayor a 0.");
+                }
 
-                // Obtener datasets IM
-                var datasetsIM = await _context.Datasets
+                if (pageSize < 1 || pageSize > 100) // Límite máximo para prevenir sobrecarga
+                {
+                    return BadRequest("El tamaño de página debe estar entre 1 y 100.");
+                }
+
+                // Construir una consulta unificada más eficiente
+                var normalizedSearch = !string.IsNullOrWhiteSpace(search) ? NormalizeText(search) : null;
+
+                // Query para datasets IM
+                var imQuery = _context.Datasets
                     .Include(d => d.DatasetIM)
-                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor)
-                    .ToListAsync();
-
-                foreach (var dataset in datasetsIM)
-                {
-                    if (dataset.DatasetIM.Any())
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor && d.DatasetIM.Any())
+                    .Select(d => new DatasetDto
                     {
-                        var imDataset = dataset.DatasetIM.First();
-                        datasetDtos.Add(new DatasetDto
-                        {
-                            Id = imDataset.Id,
-                            Nombre = imDataset.Name,
-                            Descripcion = imDataset.Description ?? string.Empty,
-                            Module = "Insight Monitor"
-                        });
-                    }
-                }
+                        Id = d.DatasetIM.First().Id,
+                        Nombre = d.DatasetIM.First().Name,
+                        Descripcion = d.DatasetIM.First().Description ?? string.Empty,
+                        Module = "Insight Monitor"
+                    });
 
-                // Obtener datasets UM
-                var datasetsUM = await _context.Datasets
+                // Query para datasets UM
+                var umQuery = _context.Datasets
                     .Include(d => d.DatasetUM)
-                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor)
-                    .ToListAsync();
-
-                foreach (var dataset in datasetsUM)
-                {
-                    if (dataset.DatasetUM.Any())
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor && d.DatasetUM.Any())
+                    .Select(d => new DatasetDto
                     {
-                        var umDataset = dataset.DatasetUM.First();
-                        datasetDtos.Add(new DatasetDto
-                        {
-                            Id = umDataset.Id,
-                            Nombre = umDataset.Name,
-                            Descripcion = umDataset.Description ?? string.Empty,
-                            Module = "Urban Monitor"
-                        });
-                    }
-                }
+                        Id = d.DatasetUM.First().Id,
+                        Nombre = d.DatasetUM.First().Name,
+                        Descripcion = d.DatasetUM.First().Description ?? string.Empty,
+                        Module = "Urban Monitor"
+                    });
 
-                // Obtener datasets AM
-                var datasetsAM = await _context.Datasets
+                // Query para datasets AM
+                var amQuery = _context.Datasets
                     .Include(d => d.DatasetAM)
-                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager)
-                    .ToListAsync();
-
-                foreach (var dataset in datasetsAM)
-                {
-                    if (dataset.DatasetAM.Any())
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager && d.DatasetAM.Any())
+                    .Select(d => new DatasetDto
                     {
-                        var amDataset = dataset.DatasetAM.First();
-                        datasetDtos.Add(new DatasetDto
-                        {
-                            Id = amDataset.Id_Dataset,
-                            Nombre = amDataset.Nombre,
-                            Descripcion = amDataset.Descripcion ?? string.Empty,
-                            Module = "Asset Manager"
-                        });
-                    }
-                }
+                        Id = d.DatasetAM.First().Id_Dataset,
+                        Nombre = d.DatasetAM.First().Nombre,
+                        Descripcion = d.DatasetAM.First().Descripcion ?? string.Empty,
+                        Module = "Asset Manager"
+                    });
 
-                // Obtener datasets EM
-                var datasetsEM = await _context.Datasets
+                // Query para datasets EM
+                var emQuery = _context.Datasets
                     .Include(d => d.DatasetEM)
-                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager)
-                    .ToListAsync();
-
-                foreach (var dataset in datasetsEM)
-                {
-                    if (dataset.DatasetEM.Any())
+                    .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager && d.DatasetEM.Any())
+                    .Select(d => new DatasetDto
                     {
-                        var emDataset = dataset.DatasetEM.First();
-                        datasetDtos.Add(new DatasetDto
-                        {
-                            Id = emDataset.Id,
-                            Nombre = emDataset.Name,
-                            Descripcion = emDataset.Description ?? string.Empty,
-                            Module = "Event Manager"
-                        });
-                    }
-                }
+                        Id = d.DatasetEM.First().Id,
+                        Nombre = d.DatasetEM.First().Name,
+                        Descripcion = d.DatasetEM.First().Description ?? string.Empty,
+                        Module = "Event Manager"
+                    });
 
-                // Aplicar filtro de búsqueda si existe
-                if (!string.IsNullOrWhiteSpace(search))
+                // Combinar todas las consultas
+                var combinedQuery = imQuery
+                    .Concat(umQuery)
+                    .Concat(amQuery)
+                    .Concat(emQuery);
+
+                // Aplicar filtro de búsqueda si existe a nivel de SQL
+                if (!string.IsNullOrWhiteSpace(normalizedSearch))
                 {
-                    string normalizedSearch = NormalizeText(search);
-                    datasetDtos = datasetDtos.Where(d => NormalizeText(d.Nombre).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)).ToList();
+                    combinedQuery = combinedQuery.Where(d => EF.Functions.Like(d.Nombre.ToLower(), $"%{normalizedSearch.ToLower()}%"));
                 }
 
-                // Calcular totales
-                int totalCount = datasetDtos.Count;
+                // Obtener el total de registros antes de aplicar paginación
+                int totalCount = await combinedQuery.CountAsync();
+
+                // Calcular páginas totales
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+                
+                // Validar que la página solicitada no exceda las páginas disponibles
+                // Si hay datos y la página es mayor al total, usar la última página
+                if (page > totalPages && totalPages > 0) 
+                {
+                    page = totalPages;
+                }
 
-                // Validar página
-                if (page < 1) page = 1;
-                if (page > totalPages && totalPages > 0) page = totalPages;
-
-                // Aplicar paginación
-                var paginatedItems = datasetDtos
+                // Aplicar paginación directamente en SQL y ejecutar la consulta
+                var paginatedItems = await combinedQuery
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .ToList();
+                    .ToListAsync();
 
                 // Crear respuesta paginada
                 var result = new PaginatedDatasetDto
@@ -871,6 +867,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         private static string NormalizeText(string text)
         {
             if (string.IsNullOrEmpty(text))

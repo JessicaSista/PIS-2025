@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +11,7 @@ namespace OmniMonitor.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetAMController : ControllerBase
     {
         private readonly IDatasetAmService _datasetAmService;
@@ -29,6 +32,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo DatasetAM.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
         [ProducesResponseType(typeof(DatasetAM), 201)]
         [ProducesResponseType(400)]
@@ -216,14 +220,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los DatasetAM para un usuario específico.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetAMs")]
         [ProducesResponseType(typeof(List<DatasetAM>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetAM>>> GetAllDatasetAMs(string token)
+        public async Task<ActionResult<List<DatasetAM>>> GetAllDatasetAMs()
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DatasetAM> datasets = await _datasetAmService.GetAllDatasetAMsAsync(username);
                 return Ok(datasets);
             }
@@ -236,15 +241,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un DatasetAM específico por su ID y nombre de usuario (con lógica dinámica).
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetAMById")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetAM>> GetDatasetAMById(int id, string token)
+        public async Task<ActionResult<DatasetAM>> GetDatasetAMById(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdAsync(id, username);
                 if (dataset == null)
                 {
@@ -262,15 +268,16 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un DatasetAM específico por su ID y nombre de usuario para edición (SIN lógica dinámica).
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetAMByIdForEdit")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetAM>> GetDatasetAMByIdForEdit(int id, string token)
+        public async Task<ActionResult<DatasetAM>> GetDatasetAMByIdForEdit(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, username);
                 if (dataset == null)
                 {
@@ -288,6 +295,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un DatasetAM existente.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{id}")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(400)]
@@ -334,16 +342,17 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un DatasetAM y todas sus relaciones hijas.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{id}")]
         [ProducesResponseType(204)] // No Content
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<IActionResult> DeleteDatasetAM(int id, [FromQuery] string token)
+        public async Task<IActionResult> DeleteDatasetAM(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DatasetAM? datasetid = await _context.DatasetAM
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
                 

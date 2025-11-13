@@ -29,6 +29,9 @@ namespace OmniMonitor.Shared.Dtos
         [MaxLength(1000)]
         public string JsonDesign { get; set; }
 
+        [Column("link")]
+        public string? Link { get; set; }
+
         // Propiedad de navegación para la relación uno a muchos
         public virtual ICollection<GrupoDataset> GrupoDatasets { get; set; } = new List<GrupoDataset>();
     }

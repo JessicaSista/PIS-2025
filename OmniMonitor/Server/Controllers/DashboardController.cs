@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -31,6 +33,8 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="400">Datos de entrada inválidos.</response>
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Create")]
         [HttpPost]
         [ProducesResponseType(typeof(DashboardResponse), 201)]
         [ProducesResponseType(400)]
@@ -77,17 +81,19 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="403">Usuario no tiene permisos para ver este dashboard.</response>
         /// <response code="500">Error interno del servidor.</response>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("GetDashboard")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id, string token)
+        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdAsync(id, username);
                 if (dashboard == null)
                 {
@@ -134,15 +140,17 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="200">Lista de dashboards obtenida exitosamente.</response>
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("GetAllDashboards")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string token, string? query)
+        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string? query)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 List<DashboardSummaryResponse> dashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
                 return Ok(dashboards);
             }
@@ -163,28 +171,23 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="200">Lista paginada de dashboards obtenida exitosamente.</response>
         /// <response code="401">Usuario no autenticado.</response>
         /// <response code="500">Error interno del servidor.</response>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("GetAllDashboardsPaginated")]
         [ProducesResponseType(typeof(PaginatedDashboardDto), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<PaginatedDashboardDto>> GetAllDashboardsPaginated(
-            string token, 
+        public async Task<ActionResult<PaginatedDashboardDto>> GetAllDashboardsPaginated( 
             [FromQuery] int page = 1, 
             [FromQuery] int pageSize = 9,
             [FromQuery] string? query = null)
         {
             try
             {
-                string username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
 
-                if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Token inválido o usuario no encontrado.");
-
-                if (page <= 0 || pageSize <= 0)
-                    return BadRequest("La página y el tamaño deben ser mayores a 0.");
-
-                // Obtener solo los dashboards necesarios para la página
-                List<DashboardSummaryResponse> paginatedItems = await _dashboardService.GetAllDashboardsPaginatedAsync(username, query, page, pageSize);
+                // Obtener todos los dashboards (con filtro de búsqueda si existe)
+                List<DashboardSummaryResponse> allDashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
 
                 // Calcular totales
                 int totalCount = await _dashboardService.GetDashboardsCount(username, query);
@@ -222,6 +225,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="200">Validación completada.</response>
         /// <response code="400">Lista de IDs inválida.</response>
         /// <response code="500">Error interno del servidor.</response>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("validate-cards")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
@@ -252,11 +256,14 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dashboard y sus GrupoVisualizaciones asociados (no elimina visualizaciones/KPIs).
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Delete")]
         [HttpDelete("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteDashboard(int id, [FromQuery] string username)
+        public async Task<IActionResult> DeleteDashboard(int id)
         {
+            var username = User.Identity?.Name;
             bool result = await _dashboardService.DeleteDashboardAsync(id, username);
             if (!result)
             {
@@ -270,11 +277,14 @@ namespace OmniMonitor.Server.Controllers
         /// Actualiza el JSON de configuración (JsonDiseno) de un dashboard.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/config")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> UpdateDashboardConfig(int id, [FromQuery] string username, [FromBody] string nuevoJsonDiseno)
+        public async Task<IActionResult> UpdateDashboardConfig(int id, [FromBody] string nuevoJsonDiseno)
         {
+            var username = User.Identity?.Name;
             bool result = await _dashboardService.UpdateDashboardConfigAsync(id, username, nuevoJsonDiseno);
             if (!result)
             {
@@ -287,13 +297,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("{id}/card")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string username, [FromQuery] string? jsonConfig, [FromBody] DashboardCard nuevaCard)
+        public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string? jsonConfig, [FromBody] DashboardCard nuevaCard)
         {
             try
             {
+                var username = User.Identity?.Name;
                 bool result = await _dashboardService.AddDashboardCardAsync(id, username, jsonConfig!, nuevaCard);
                 if (!result)
                 {
@@ -316,11 +328,14 @@ namespace OmniMonitor.Server.Controllers
         /// Reordena las tarjetas (GrupoVisualizaciones) de un dashboard según el orden de la lista recibida.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/cards/order")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> ReorderDashboardCards(int id, [FromQuery] string username, [FromQuery] string jsonConfig, [FromBody] List<DashboardCard> orderedCards)
+        public async Task<IActionResult> ReorderDashboardCards(int id, [FromQuery] string jsonConfig, [FromBody] List<DashboardCard> orderedCards)
         {
+            var username = User.Identity?.Name;
             bool result = await _dashboardService.ReorderDashboardCardsAsync(id, username, jsonConfig, orderedCards);
             if (!result)
             {
@@ -334,11 +349,14 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina una tarjeta (GrupoVisualizacion) de un dashboard y actualiza el orden de las restantes.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpDelete("{id}/card/{idCard}/{tipoCard}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteDashboardCard(int id, int idCard, int tipoCard, [FromQuery] string username)
+        public async Task<IActionResult> DeleteDashboardCard(int id, int idCard, int tipoCard)
         {
+            var username = User.Identity?.Name;
             bool result = await _dashboardService.DeleteDashboardCardAsync(id, username, idCard, tipoCard);
             if (!result)
             {
@@ -352,14 +370,17 @@ namespace OmniMonitor.Server.Controllers
         /// Actualiza el nombre y/o la descripción de un dashboard (pasa ambos como strings por query).
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/info")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> UpdateDashboardInfo(int id, [FromQuery] string username, [FromQuery] string? nombre, [FromQuery] string? descripcion)
+        public async Task<IActionResult> UpdateDashboardInfo(int id,[FromQuery] string? nombre, [FromQuery] string? descripcion)
         {
             try
             {
+                var username = User.Identity?.Name;
                 DashboardResponse? updated = await _dashboardService.UpdateDashboardInfoAsync(id, username, nombre, descripcion);
                 if (updated == null)
                 {
@@ -381,12 +402,15 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Edita una tarjeta (GrupoVisualizacion) y su visualización asociada.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPut("{id}/card/edit")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string username, [FromQuery] string? jsonConfig, [FromQuery] int idVisualizacion, [FromBody] CreateVisualizacionRequest request)
+        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string? jsonConfig, [FromQuery] int idVisualizacion, [FromBody] CreateVisualizacionRequest request)
         {
+            var username = User.Identity?.Name;
             if (request == null || request.Nombre == null)
             {
                 return BadRequest(new { message = "Datos inválidos para la edición de la tarjeta." });
@@ -404,6 +428,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Busca dashboards por fragmento de texto en nombre o descripción.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         public async Task<IActionResult> SearchDashboards([FromQuery] string query)
@@ -412,12 +437,14 @@ namespace OmniMonitor.Server.Controllers
             return Ok(result);
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Share")]
         [HttpPost("createShare/{dashboardId}/share")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<ShareResponseDto>> CreateShareLink(int dashboardId, [FromBody] ShareRequestDto request, [FromQuery] string token)
+        public async Task<ActionResult<ShareResponseDto>> CreateShareLink(int dashboardId, [FromBody] ShareRequestDto request)
         {
             if (!ModelState.IsValid)
             {
@@ -426,7 +453,7 @@ namespace OmniMonitor.Server.Controllers
 
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
                     return Unauthorized(new { message = "Token inválido." });
@@ -445,14 +472,16 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("getShares/{dashboardId}/share")]
         [ProducesResponseType(typeof(List<ShareResponseDto>), 200)]
         [ProducesResponseType(401)]
-        public async Task<ActionResult<List<ShareResponseDto>>> GetShareLinksForDashboard(int dashboardId, [FromQuery] string token)
+        public async Task<ActionResult<List<ShareResponseDto>>> GetShareLinksForDashboard(int dashboardId)
         {
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
 
                 var response = await _dashboardService.GetAllByDashboardAsync(dashboardId, username);
@@ -507,16 +536,18 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Share")]
         [HttpPut("UpdateShare/{slug}")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<ShareResponseDto>> UpdateShareLink(string slug, [FromBody] ShareRequestDto request, [FromQuery] string token)
+        public async Task<ActionResult<ShareResponseDto>> UpdateShareLink(string slug, [FromBody] ShareRequestDto request)
         {
             if (!ModelState.IsValid) return BadRequest();
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
 
                 var response = await _dashboardService.UpdateShareLinkAsync(slug, request, username);
@@ -532,15 +563,17 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Share")]
         [HttpDelete("DeleteShare/{slug}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteShareLink(string slug, [FromQuery] string token)
+        public async Task<IActionResult> DeleteShareLink(string slug)
         {
             try
             {
-                var username = await _sondaAuthService.GetUserByTokenOMAsync(token);
+                var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
 
                 var success = await _dashboardService.DeleteShareLinkAsync(slug, username);
