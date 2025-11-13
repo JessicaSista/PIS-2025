@@ -195,6 +195,10 @@ public class JoinConfigurationService : IJoinConfigurationService
         if (filters?.LeftOperandFilters?.Filters != null && filters.LeftOperandFilters.Filters.Any())
         {
             Console.WriteLine($"[DEBUG] Applying {filters.LeftOperandFilters.Filters.Count} left filters");
+            foreach (var f in filters.LeftOperandFilters.Filters)
+            {
+                Console.WriteLine($"[DEBUG] ExecuteJoinWithFiltersAsync: Left filter -> Attribute='{f.AttributeName}', Type={f.Type}, ValueType={f.ValueType}, Condition={f.Condition}");
+            }
             leftData = ApiDataService.StaticFilterObjects(leftData, filters.LeftOperandFilters.Filters);
             Console.WriteLine($"[DEBUG] Left data after filtering: {leftData?.Count()} records");
         }
@@ -206,6 +210,10 @@ public class JoinConfigurationService : IJoinConfigurationService
         if (filters?.RightOperandFilters?.Filters != null && filters.RightOperandFilters.Filters.Any())
         {
             Console.WriteLine($"[DEBUG] Applying {filters.RightOperandFilters.Filters.Count} right filters");
+            foreach (var f in filters.RightOperandFilters.Filters)
+            {
+                Console.WriteLine($"[DEBUG] ExecuteJoinWithFiltersAsync: Right filter -> Attribute='{f.AttributeName}', Type={f.Type}, ValueType={f.ValueType}, Condition={f.Condition}");
+            }
             rightData = ApiDataService.StaticFilterObjects(rightData, filters.RightOperandFilters.Filters);
             Console.WriteLine($"[DEBUG] Right data after filtering: {rightData?.Count()} records");
         }
