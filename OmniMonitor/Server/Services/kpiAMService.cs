@@ -81,16 +81,17 @@ namespace OmniMonitor.Server.Services
             var estadoNecesario = kpi.ExtraInfo ?? "";
             var atributo = kpi.Atributo ?? "";
                 int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int countFinal = (int)(count * (kpi.Multiplier ?? 1));
             string color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color = GetColorForValue(kpi.ColorRanges, count, kpi.DefaultColor);
+                color = GetColorForValue(kpi.ColorRanges, countFinal, kpi.DefaultColor);
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "count",
-                Value = count,
+                Value = countFinal,
                 Unit = null,
                 ActualColor = color
             };
@@ -103,16 +104,17 @@ namespace OmniMonitor.Server.Services
                 int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             double porcentaje = (items.Count > 0) ? (double)count / items.Count * 100.0 : 0.0;
             double porcentajeFormateado = Math.Round(porcentaje, 2);
+            double porcentajeFinal = Math.Round(porcentajeFormateado * (kpi.Multiplier ?? 1), 2);
             string color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color = GetColorForValue(kpi.ColorRanges, porcentajeFormateado, kpi.DefaultColor);
+                color = GetColorForValue(kpi.ColorRanges, porcentajeFinal, kpi.DefaultColor);
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "average",
-                Value = porcentajeFormateado,
+                Value = porcentajeFinal,
                 Unit = "%",
                 ActualColor = color
             };
@@ -144,16 +146,17 @@ namespace OmniMonitor.Server.Services
                 };
             }
             int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int countFinal = (int)(count * (kpi.Multiplier ?? 1));
             string color2 = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color2 = GetColorForValue(kpi.ColorRanges, count, kpi.DefaultColor);
+                color2 = GetColorForValue(kpi.ColorRanges, countFinal, kpi.DefaultColor);
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "state",
-                Value = count,
+                Value = countFinal,
                 Unit = null,
                 ActualColor = color2
             };
