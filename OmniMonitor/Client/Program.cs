@@ -7,6 +7,8 @@ using OmniMonitor.Client;
 using OmniMonitor.Client.Auth;
 using OmniMonitor.Client.Services;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -27,6 +29,13 @@ builder.Services.AddHttpClient("API", client =>
 builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("API"));
 
+// Configure JSON serialization options globally for HttpClient operations
+builder.Services.Configure<JsonSerializerOptions>("HttpClientJsonOptions", options =>
+{
+    options.PropertyNameCaseInsensitive = true;
+    options.Converters.Add(new JsonStringEnumConverter());
+});
+
 // --- END OF HTTPCLIENT CONFIGURATION ---
 
 
@@ -46,6 +55,12 @@ builder.Services.AddScoped<ShareLinkService>();
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
+// Configure JSON serialization options to handle enums as strings
+builder.Services.Configure<JsonSerializerOptions>(options =>
+{
+    options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.Converters.Add(new JsonStringEnumConverter());
+});
 
 // Agrega una instancia del servicio de inicializacion de cultura
 builder.Services.AddScoped<CultureInitializer>();

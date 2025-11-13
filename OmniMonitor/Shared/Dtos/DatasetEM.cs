@@ -40,6 +40,14 @@ namespace OmniMonitor.Shared.Dtos
         // Relación con los resources seleccionados explícitamente
         public virtual ICollection<DatasetCategory> DatasetCategory { get; set; } = new List<DatasetCategory>();
         public int DatasetId { get; set; }  // Clave foránea
+        
+        /// <summary>
+        /// Filtros aplicados almacenados como JSON. 
+        /// Contiene un array de FilterCondition serializados.
+        /// </summary>
+        [Column(TypeName = "nvarchar(max)")]
+        public string? Filters { get; set; }
+        
         [ForeignKey(nameof(DatasetId))]
         public virtual Datasets Datasets { get; set; } = null!;
 

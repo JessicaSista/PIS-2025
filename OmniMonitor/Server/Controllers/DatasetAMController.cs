@@ -18,13 +18,15 @@ namespace OmniMonitor.Server.Controllers
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IDatasetUMService _datasetUMService;
         private readonly ApplicationDbContext _context;
+        private readonly ISondaAMService _sondaAMService;
 
-        public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ApplicationDbContext context)
+        public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ApplicationDbContext context, ISondaAMService sondaAMService)
         {
             _datasetAmService = datasetAmService;
             _sondaAuthService = sondaAuthService;
             _datasetUMService = datasetUMService;
             _context = context;
+            _sondaAMService = sondaAMService;
         }
 
         /// <summary>
@@ -62,6 +64,164 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al crear el DatasetAM: {ex.Message}");
+            }
+        }
+                /// <summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpPost("filtered")]
+        [ProducesResponseType(typeof(DatasetAM), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetAM>> CreateDatasetAMFiltered([FromBody] CreateDatasetAMFilteredRequest request)
+        {
+            try
+            {
+                var req = request.DatasetRequest;
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                // Usar el username desde JWT
+                req.Username = username;
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
+                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+
+                // Filtrado para EventTask o Asset o Stock
+                if (req.ContentType == "2") // Asset
+                {
+                    var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
+                    Console.WriteLine($"[CREATE AM DATASET] Total Assets obtenidos: {allAssets.Count()}");
+                    
+                    var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
+                    Console.WriteLine($"[CREATE AM DATASET] Assets después de filtrar: {filtrados.Count()}");
+                    
+                    req.Grupo_Asset_Ids = filtrados.Select(a => a.Id != null ? a.Id.ToString() : string.Empty).OfType<string>().ToList();
+                }
+                else if (req.ContentType == "1") // EventTask
+                {
+                    var allEventTasks = await _sondaAMService.GetEventTaskInstances(
+                        "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
+                    Console.WriteLine($"[CREATE AM DATASET] Total EventTasks obtenidos: {allEventTasks.Count()}");
+                    
+                    var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
+                    Console.WriteLine($"[CREATE AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
+                    
+                    req.Grupo_Event_Task_Instance_Ids = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
+                }
+                else if (req.ContentType == "3") // Stock
+                {
+                    var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
+                    Console.WriteLine($"[CREATE AM DATASET] Total Stocks obtenidos: {allStocks.Count()}");
+                    
+                    var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
+                    Console.WriteLine($"[CREATE AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
+                    
+                    req.StockIds = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado");
+                }
+
+                DatasetAM newDatasetAM = await _datasetAmService.CreateDatasetAMWithFiltersAsync(req, newDataset.Id, request.Filters);
+                await _datasetUMService.UpdateDatasetAsyncAM(newDataset.Id, requestDataset, newDatasetAM);
+                return CreatedAtAction(nameof(GetDatasetAMByIdForEdit), new { id = newDatasetAM.Id_Dataset, username = newDatasetAM.Username }, newDatasetAM);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine($"[DEBUG] InvalidOperationException: {ex.Message}");
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[DEBUG] Exception: {ex.Message}");
+                return StatusCode(500, $"Error interno al crear el DatasetAM filtrado: {ex.Message}");
+            }
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpPut("with-filters/{id}")]
+        [ProducesResponseType(typeof(DatasetAM), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetAM>> UpdateDatasetAMFiltered(int id, [FromBody] CreateDatasetAMFilteredRequest request)
+        {
+            try
+            {
+                var req = request.DatasetRequest;
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                // Usar el username desde JWT
+                req.Username = username;
+                DatasetAM? existingDataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, req.Username);
+                if (existingDataset == null)
+                {
+                    return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {req.Username}.");
+                }
+
+                await _datasetUMService.ValidateDatasetNameAsync(req.Nombre, req.Username, ModuleType.AssetManager, existingDataset.DatasetId);
+
+                var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
+
+                // Filtrado para EventTask o Asset
+                List<int> filteredIds = new List<int>();
+                if (req.ContentType == "2") // Asset
+                {
+                    var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
+                    Console.WriteLine($"[EDIT AM DATASET] Total Assets obtenidos: {allAssets.Count()}");
+                    
+                    var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
+                    Console.WriteLine($"[EDIT AM DATASET] Assets después de filtrar: {filtrados.Count()}");
+                    
+                    if (req.Grupo_Asset_Ids == null) req.Grupo_Asset_Ids = new List<string>();
+                    req.Grupo_Asset_Ids.Clear();
+                    req.Grupo_Asset_Ids.AddRange(filtrados.Select(a => a.Id != null ? a.Id.ToString() : string.Empty).OfType<string>().ToList());
+                }
+                else if (req.ContentType == "1") // EventTask
+                {
+                    var allEventTasks = await _sondaAMService.GetEventTaskInstances(
+                        "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
+                    Console.WriteLine($"[EDIT AM DATASET] Total EventTasks obtenidos: {allEventTasks.Count()}");
+                    
+                    var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
+                    Console.WriteLine($"[EDIT AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
+                    
+                    if (req.Grupo_Event_Task_Instance_Ids == null) req.Grupo_Event_Task_Instance_Ids = new List<int>();
+                    req.Grupo_Event_Task_Instance_Ids.Clear();
+                    req.Grupo_Event_Task_Instance_Ids.AddRange(filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList());
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado");
+                }
+
+                DatasetAM updatedDataset = await _datasetAmService.UpdateDatasetAMWithFiltersAsync(id, req, request.Filters);
+                await _datasetUMService.UpdateDatasetAsyncAM(updatedDataset.DatasetId, requestDataset, updatedDataset);
+                return Ok(updatedDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar el DatasetAM filtrado: {ex.Message}");
             }
         }
 

@@ -86,7 +86,7 @@ public class SondaAMService : ISondaAMService
         }
 
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
+        // Console.WriteLine($"SONDA API TOKEN: {token}");
         string getDataUrl = baseUrl + endpoint + "?assetId=" + id;
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -109,7 +109,7 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
+        // Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         // Puedes revisar el log de consola para ver el JSON exacto que devuelve la API
         return JsonSerializer.Deserialize<AssetDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
