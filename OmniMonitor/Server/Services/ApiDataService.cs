@@ -784,21 +784,51 @@ public class ApiDataService : IApiDataService
                         return false;
                 }
             case FilterValueType.String:
-                string condStr = filter.Condition is string str ? str
-                    : filter.Condition is System.Text.Json.JsonElement je ? je.GetString()
-                    : filter.Condition?.ToString() ?? "";
+                string condStr = "";
+                if (filter.Condition is string str)
+                {
+                    condStr = str;
+                }
+                else if (filter.Condition is System.Text.Json.JsonElement je)
+                {
+                    // Intentar obtener como string primero
+                    if (je.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        condStr = je.GetString() ?? "";
+                    }
+                    else if (je.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    {
+                        // Si es un número, convertirlo a string
+                        condStr = je.GetRawText(); // Obtiene el valor como string sin comillas
+                    }
+                    else
+                    {
+                        // Si no es string ni número, convertir a string
+                        condStr = je.GetRawText();
+                    }
+                }
+                else
+                {
+                    condStr = filter.Condition?.ToString() ?? "";
+                }
+                
+                // Convertir el valor a string para comparar
+                string valueStr = value?.ToString() ?? "";
+                
+                Console.WriteLine($"[DEBUG] String filter comparison: valueStr='{valueStr}', condStr='{condStr}', match={valueStr == condStr}");
+                
                 switch (filter.Type)
                 {
                     case FilterType.Equals:
-                        return value is string sv && sv == condStr;
+                        return valueStr == condStr;
                     case FilterType.NotEquals:
-                        return value is string snv && snv != condStr;
+                        return valueStr != condStr;
                     case FilterType.Contains:
-                        return value is string sc && sc.Contains(condStr);
+                        return valueStr.Contains(condStr, StringComparison.OrdinalIgnoreCase);
                     case FilterType.StartsWith:
-                        return value is string ss && ss.StartsWith(condStr);
+                        return valueStr.StartsWith(condStr, StringComparison.OrdinalIgnoreCase);
                     case FilterType.EndsWith:
-                        return value is string se && se.EndsWith(condStr);
+                        return valueStr.EndsWith(condStr, StringComparison.OrdinalIgnoreCase);
                     default:
                         return false;
                 }
@@ -828,13 +858,20 @@ public class ApiDataService : IApiDataService
                                 conditionValues.Add(item?.ToString() ?? "");
                         }
                         
+                        // Normalizar valores de condición para comparación Unicode
+                        var normalizedConditionValues = conditionValues.Select(v => v.Normalize(System.Text.NormalizationForm.FormC)).ToList();
+                        
                         // Verificar si algún valor de la colección está en la condición
                         foreach (var item in enumerable)
                         {
-                            if (item?.ToString() != null && conditionValues.Contains(item.ToString()))
+                            if (item?.ToString() != null)
                             {
-                                Console.WriteLine($"[DEBUG] Enum/In/Collection: Match encontrado: '{item}' está en [{string.Join(", ", conditionValues)}]");
-                                return true;
+                                string normalizedItem = item.ToString().Normalize(System.Text.NormalizationForm.FormC);
+                                if (normalizedConditionValues.Contains(normalizedItem, StringComparer.OrdinalIgnoreCase))
+                                {
+                                    Console.WriteLine($"[DEBUG] Enum/In/Collection: Match encontrado: '{item}' está en [{string.Join(", ", conditionValues)}]");
+                                    return true;
+                                }
                             }
                         }
                         Console.WriteLine($"[DEBUG] Enum/In/Collection: No match, ningún valor de la colección está en [{string.Join(", ", conditionValues)}]");
@@ -865,17 +902,61 @@ public class ApiDataService : IApiDataService
                     {
                         valores.Add(s);
                     }
-                    Console.WriteLine($"[DEBUG] Enum/In: valor final para comparación='{value?.ToString()}', valores comparados=[{string.Join(", ", valores)}]");
-                    bool resultado = valores.Contains(value?.ToString());
+                    // Normalizar valores para comparación Unicode
+                    string normalizedValue = (value?.ToString() ?? "").Normalize(System.Text.NormalizationForm.FormC);
+                    var normalizedValores = valores.Select(v => v.Normalize(System.Text.NormalizationForm.FormC)).ToList();
+                    
+                    Console.WriteLine($"[DEBUG] Enum/In: valor final para comparación='{normalizedValue}', valores comparados=[{string.Join(", ", normalizedValores)}]");
+                    bool resultado = normalizedValores.Contains(normalizedValue, StringComparer.OrdinalIgnoreCase);
                     Console.WriteLine($"[DEBUG] Enum/In: resultado comparación={resultado}");
                     return resultado;
                 }
                 // Manejar Equals para enums
-                string condEnum = filter.Condition is string estr ? estr
-                    : filter.Condition is System.Text.Json.JsonElement jee ? jee.GetString()
-                    : filter.Condition?.ToString() ?? "";
+                string condEnum = "";
+                if (filter.Condition is string estr)
+                {
+                    condEnum = estr;
+                }
+                else if (filter.Condition is System.Text.Json.JsonElement jee)
+                {
+                    // Normalizar el string del JsonElement para manejar caracteres Unicode correctamente
+                    if (jee.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        condEnum = jee.GetString() ?? "";
+                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement deserializado de '{jee.GetRawText()}' a '{condEnum}'");
+                    }
+                    else
+                    {
+                        // Si no es string, intentar deserializar como string
+                        condEnum = jee.GetRawText().Trim('"');
+                        // Si viene como escape Unicode, deserializarlo
+                        if (condEnum.StartsWith("\\u"))
+                        {
+                            condEnum = System.Text.RegularExpressions.Regex.Unescape(condEnum);
+                        }
+                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement raw '{jee.GetRawText()}' procesado a '{condEnum}'");
+                    }
+                }
+                else
+                {
+                    condEnum = filter.Condition?.ToString() ?? "";
+                }
+                
+                // Normalizar ambos strings para comparación (normalizar caracteres Unicode)
+                string enumValueStr = value?.ToString() ?? "";
+                condEnum = condEnum.Normalize(System.Text.NormalizationForm.FormC);
+                enumValueStr = enumValueStr.Normalize(System.Text.NormalizationForm.FormC);
+                
                 if (filter.Type == FilterType.Equals)
-                    return value?.ToString() == condEnum;
+                {
+                    bool result = string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
+                    Console.WriteLine($"[DEBUG] Enum/Equals: comparando '{enumValueStr}' con '{condEnum}', resultado={result}");
+                    return result;
+                }
+                if (filter.Type == FilterType.NotEquals)
+                {
+                    return !string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
+                }
                 return false;
             case FilterValueType.Boolean:
                 bool condBool;

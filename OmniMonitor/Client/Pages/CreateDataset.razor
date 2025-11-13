@@ -212,9 +212,7 @@
                                 OnClose="() => RemoveFilter(filter)"
                                 CloseIcon="@Icons.Material.Filled.Close"
                                 Class="ma-1">
-                            <strong>@filter.AttributeName</strong> 
-                            @GetFilterTypeDisplayName(filter.Type) 
-                            @GetFilterValueDisplay(filter)
+                            <strong>@filter.AttributeName</strong>&nbsp;@GetFilterTypeDisplayName(filter.Type)&nbsp;@GetFilterValueDisplay(filter)
                         </MudChip>
                     }
                 </MudPaper>
@@ -675,7 +673,7 @@
             return filter.Condition.ToString() ?? "";
         }
     }
-
+    
     //Cargar sources y groups desde la API
     private async Task LoadSourcesAndGroups()
     {

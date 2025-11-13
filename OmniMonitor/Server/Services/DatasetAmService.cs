@@ -86,14 +86,20 @@ namespace OmniMonitor.Server.Services
                     });
                 }
             }
-            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
+            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null && request.Grupo_Asset_Ids.Any())
             {
                 Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Assets: {string.Join(",", request.Grupo_Asset_Ids)}");
+                Console.WriteLine($"[DEBUG][DatasetAmService] Total IDs de assets a asignar: {request.Grupo_Asset_Ids.Count}");
                 newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
                 foreach (var id in request.Grupo_Asset_Ids)
                 {
-                    newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                        Console.WriteLine($"[DEBUG][DatasetAmService] Agregado DatasetAsset con Id_Asset: {id}");
+                    }
                 }
+                Console.WriteLine($"[DEBUG][DatasetAmService] Total DatasetAsset creados: {newDatasetAM.Grupo_Asset.Count}");
             }
             else if (request.Type_Dataset == 3 && request.StockIds != null)
             {
@@ -106,12 +112,12 @@ namespace OmniMonitor.Server.Services
             }
             else
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] No se asignó ninguna relación hija (Type_Dataset={request.Type_Dataset})");
+                Console.WriteLine($"[DEBUG][DatasetAmService] No se asignó ninguna relación hija (Type_Dataset={request.Type_Dataset}, Grupo_Asset_Ids={request.Grupo_Asset_Ids?.Count ?? 0})");
             }
 
             _context.DatasetAM.Add(newDatasetAM);
             await _context.SaveChangesAsync();
-            Console.WriteLine($"[DEBUG][DatasetAmService] DatasetAM guardado. Grupo_Stock count: {newDatasetAM.Grupo_Stock?.Count}");
+            Console.WriteLine($"[DEBUG][DatasetAmService] DatasetAM guardado. Grupo_Asset count: {newDatasetAM.Grupo_Asset?.Count ?? 0}, Grupo_Stock count: {newDatasetAM.Grupo_Stock?.Count ?? 0}");
             return newDatasetAM;
         }
 

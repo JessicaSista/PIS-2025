@@ -88,10 +88,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
-                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-
-                // Filtrado para EventTask o Asset o Stock
+                // Validar filtros ANTES de crear el dataset general
                 if (req.ContentType == "2") // Asset
                 {
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
@@ -100,7 +97,32 @@ namespace OmniMonitor.Server.Controllers
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
                     Console.WriteLine($"[CREATE AM DATASET] Assets después de filtrar: {filtrados.Count()}");
                     
-                    req.Grupo_Asset_Ids = filtrados.Select(a => a.Id != null ? a.Id.ToString() : string.Empty).OfType<string>().ToList();
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún asset. El dataset no puede crearse sin resultados.");
+                    }
+                    
+                    Console.WriteLine($"[CREATE AM DATASET] IDs de assets filtrados:");
+                    foreach (var asset in filtrados)
+                    {
+                        Console.WriteLine($"[CREATE AM DATASET]   - Asset Id: {asset.Id} (tipo: {asset.Id?.GetType().Name})");
+                    }
+                    
+                    var assetIds = new List<string>();
+                    foreach (var asset in filtrados)
+                    {
+                        if (asset.Id != null)
+                        {
+                            var idStr = asset.Id.ToString();
+                            if (!string.IsNullOrEmpty(idStr))
+                            {
+                                assetIds.Add(idStr);
+                            }
+                        }
+                    }
+                    req.Grupo_Asset_Ids = assetIds;
+                    
+                    Console.WriteLine($"[CREATE AM DATASET] Grupo_Asset_Ids asignado: {string.Join(", ", req.Grupo_Asset_Ids ?? new List<string>())}");
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
@@ -110,6 +132,11 @@ namespace OmniMonitor.Server.Controllers
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
                     Console.WriteLine($"[CREATE AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede crearse sin resultados.");
+                    }
                     
                     req.Grupo_Event_Task_Instance_Ids = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
                 }
@@ -121,12 +148,21 @@ namespace OmniMonitor.Server.Controllers
                     var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
                     Console.WriteLine($"[CREATE AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
                     
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún Stock. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     req.StockIds = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
                 }
                 else
                 {
                     return BadRequest("ContentType inválido o no soportado");
                 }
+
+                // Crear el dataset general SOLO después de validar los filtros
+                var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
+                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
 
                 DatasetAM newDatasetAM = await _datasetAmService.CreateDatasetAMWithFiltersAsync(req, newDataset.Id, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncAM(newDataset.Id, requestDataset, newDatasetAM);

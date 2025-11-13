@@ -60,7 +60,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("RightOperandId");
 
-                    b.ToTable("CrossModuleJoins");
+                    b.ToTable("CrossModuleJoins", (string)null);
                 });
 
             modelBuilder.Entity("DatasetReports", b =>
@@ -75,7 +75,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetsOfReportsId");
 
-                    b.ToTable("DatasetReports");
+                    b.ToTable("DatasetReports", (string)null);
                 });
 
             modelBuilder.Entity("DatasetsOfReports", b =>
@@ -97,7 +97,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DatasetsOfReports");
+                    b.ToTable("DatasetsOfReports", (string)null);
                 });
 
             modelBuilder.Entity("JoinOperand", b =>
@@ -126,7 +126,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("JoinOperands");
+                    b.ToTable("JoinOperands", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
@@ -233,7 +233,7 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.ToTable("SharedLinks");
+                    b.ToTable("SharedLinks", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DashboardDto", b =>
@@ -283,7 +283,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("Username");
 
-                    b.ToTable("Dashboards");
+                    b.ToTable("Dashboards", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAM", b =>
@@ -336,7 +336,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetAM");
+                    b.ToTable("DatasetAM", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAlert", b =>
@@ -357,7 +357,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetAlerts");
+                    b.ToTable("DatasetAlerts", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetAsset", b =>
@@ -379,7 +379,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetAMId");
 
-                    b.ToTable("DatasetAsset");
+                    b.ToTable("DatasetAsset", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
@@ -400,7 +400,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetCategory");
+                    b.ToTable("DatasetCategory", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
@@ -421,7 +421,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetDevices");
+                    b.ToTable("DatasetDevices", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEM", b =>
@@ -464,7 +464,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetsEM");
+                    b.ToTable("DatasetsEM", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEvent", b =>
@@ -485,7 +485,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetEvents");
+                    b.ToTable("DatasetEvents", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventEM", b =>
@@ -506,7 +506,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetEventsEM");
+                    b.ToTable("DatasetEventsEM", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetEventTaskInstance", b =>
@@ -527,7 +527,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetAMId");
 
-                    b.ToTable("DatasetEventTaskInstance");
+                    b.ToTable("DatasetEventTaskInstance", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetExtension", b =>
@@ -548,7 +548,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetExtensions");
+                    b.ToTable("DatasetExtensions", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetIM", b =>
@@ -597,7 +597,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetsIM");
+                    b.ToTable("DatasetsIM", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetNews", b =>
@@ -618,7 +618,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetNews");
+                    b.ToTable("DatasetNews", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetStock", b =>
@@ -644,7 +644,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetEventTaskInstanceId");
 
-                    b.ToTable("DatasetStock");
+                    b.ToTable("DatasetStock", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetUM", b =>
@@ -690,7 +690,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("DatasetId");
 
-                    b.ToTable("DatasetsUM");
+                    b.ToTable("DatasetsUM", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Datasets", b =>
@@ -716,7 +716,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Datasets");
+                    b.ToTable("Datasets", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoDataset", b =>
@@ -748,7 +748,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("VisualizacionId");
 
-                    b.ToTable("GrupoDatasets");
+                    b.ToTable("GrupoDatasets", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.GrupoVisualizacion", b =>
@@ -797,7 +797,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("KpiId");
 
-                    b.ToTable("GrupoVisualizaciones");
+                    b.ToTable("GrupoVisualizaciones", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Kpi", b =>
@@ -866,7 +866,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Kpi");
+                    b.ToTable("Kpi", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Permission", b =>
@@ -901,7 +901,7 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("Module", "Action")
                         .IsUnique();
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
 
                     b.HasData(
                         new
@@ -1301,7 +1301,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
 
                     b.HasData(
                         new
@@ -1333,7 +1333,7 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("RoleId", "PermissionId")
                         .IsUnique();
 
-                    b.ToTable("RolePermissions");
+                    b.ToTable("RolePermissions", (string)null);
 
                     b.HasData(
                         new
@@ -1745,7 +1745,7 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("UserId", "PermissionId")
                         .IsUnique();
 
-                    b.ToTable("UserClaims");
+                    b.ToTable("UserClaims", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.UserRole", b =>
@@ -1769,7 +1769,7 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("UserId", "RoleId")
                         .IsUnique();
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.Visualizacion", b =>
@@ -1811,7 +1811,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("IdVisualizacion");
 
-                    b.ToTable("Visualizaciones");
+                    b.ToTable("Visualizaciones", (string)null);
                 });
 
             modelBuilder.Entity("Report", b =>
@@ -1845,7 +1845,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Reports");
+                    b.ToTable("Reports", (string)null);
                 });
 
             modelBuilder.Entity("ReportJoin", b =>
@@ -1863,7 +1863,7 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasIndex("CrossModuleJoinId");
 
-                    b.ToTable("ReportJoins");
+                    b.ToTable("ReportJoins", (string)null);
                 });
 
             modelBuilder.Entity("CrossModuleJoin", b =>
