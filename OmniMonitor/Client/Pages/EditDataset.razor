@@ -1567,7 +1567,14 @@ else if (selectedTipo == "Insight Monitor")
                 Type_Dataset = amMode
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}", request);
+            var filteredRequest = new CreateDatasetAMFilteredRequest
+            {
+                DatasetRequest = datasetRequest,
+                Token = authToken,
+                Filters = amFilters
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/with-filters/{id}", filteredRequest);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetAM>();
