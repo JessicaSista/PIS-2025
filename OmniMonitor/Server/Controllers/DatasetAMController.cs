@@ -163,7 +163,7 @@ namespace OmniMonitor.Server.Controllers
 
                 var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
 
-                // Filtrado para EventTask o Asset
+                // Filtrado para EventTask, Asset o Stock
                 List<int> filteredIds = new List<int>();
                 if (req.ContentType == "2") // Asset
                 {
@@ -189,6 +189,18 @@ namespace OmniMonitor.Server.Controllers
                     if (req.Grupo_Event_Task_Instance_Ids == null) req.Grupo_Event_Task_Instance_Ids = new List<int>();
                     req.Grupo_Event_Task_Instance_Ids.Clear();
                     req.Grupo_Event_Task_Instance_Ids.AddRange(filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList());
+                }
+                else if (req.ContentType == "3") // Stock
+                {
+                    var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
+                    Console.WriteLine($"[EDIT AM DATASET] Total Stocks obtenidos: {allStocks.Count()}");
+                    
+                    var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
+                    Console.WriteLine($"[EDIT AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
+                    
+                    if (req.StockIds == null) req.StockIds = new List<int>();
+                    req.StockIds.Clear();
+                    req.StockIds.AddRange(filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList());
                 }
                 else
                 {

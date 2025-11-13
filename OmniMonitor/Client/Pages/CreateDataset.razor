@@ -9,6 +9,7 @@
 @inject HttpClient Http
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
@@ -180,113 +181,51 @@
                       Required="true" />
     </MudStack>
 
-    <!-- Toggle de modo: Asset vs Event Task -->
+    <!-- Toggle de modo: Asset, Event Task, Stock -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
         <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(2)">Asset</MudButton>
         <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(1)">Event Task</MudButton>
+        <MudButton Variant="@(amMode == 3 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(3)">Stock</MudButton>
     </MudStack>
 
-    @if (amMode == 2)
+    @if (amMode == 2 || amMode == 1 || amMode == 3)
     {
-        <!-- Asset Manager: AssetType (req) -> Assets (multi, opcional) -->
-        <MudStack Row Spacing="2" Class="mb-4 mx-4">
-            <div style="width: 50%;">
-                <MudSelect T="int?"
-                           Value="@selectedAssetTypeId"
-                           ValueChanged="OnAssetTypeChanged"
-                           Variant="Variant.Outlined"
-                           FullWidth="true"
-                           Clearable
-                           Label="@Localizer["SeleccionarTipoAsset"]"
-                           Class="dark-field"
-                           Required="true">
-                    @foreach (var t in assetTypes)
+        <!-- Sistema de Filtros -->
+        <MudStack Class="mb-4 mx-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            
+            @if (amFilters.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    No hay filtros configurados. Agrega al menos un filtro para crear el dataset.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    @foreach (var filter in amFilters)
                     {
-                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                        <MudChip T="FilterCondition"
+                                Size="MudBlazor.Size.Small" 
+                                Color="MudBlazor.Color.Primary" 
+                                Variant="Variant.Filled"
+                                OnClose="() => RemoveFilter(filter)"
+                                CloseIcon="@Icons.Material.Filled.Close"
+                                Class="ma-1">
+                            <strong>@filter.AttributeName</strong> 
+                            @GetFilterTypeDisplayName(filter.Type) 
+                            @GetFilterValueDisplay(filter)
+                        </MudChip>
                     }
-                </MudSelect>
-            </div>
-            <div style="width: 50%;">
-                <MudSelect T="string"
-                           SelectedValues="selectedAssetIds"
-                           SelectedValuesChanged="OnSelectedAssetsChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           SelectAll="true" 
-                           SelectAllText="@Localizer["SeleccionarTodos"]"
-                           Clearable
-                           FullWidth="true"
-                           Disabled="@(!selectedAssetTypeId.HasValue)"
-                           Label="@Localizer["SeleccionarAsset"]"
-                           Class="dark-field"
-                           Required="true"
-                           ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
-                    @foreach (var a in assets)
-                    {
-                        <MudSelectItem T="string" Value="@a.Id">@a.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-        </MudStack>
-    }
-    else if (amMode == 1)
-    {
-        <!-- Asset Manager: Event Task flow -->
-        <MudStack Row Spacing="2" Class="mb-4 mx-4">
-            <div style="width: 33.33%;">
-                <MudSelect T="int?"
-                           Value="@selectedTaskTypeId"
-                           ValueChanged="OnTaskTypeChanged"
-                           Variant="Variant.Outlined"
-                           FullWidth="true"
-                           Label="@Localizer["SeleccionarTaskType"]"
-                           Clearable
-                           Class="dark-field"
-                           Required="true">
-                    @foreach (var t in taskTypes)
-                    {
-                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-            <div style="width: 33.33%;">
-                <MudSelect T="int"
-                           SelectedValues="selectedEventTaskInstanceIds"
-                           SelectedValuesChanged="OnSelectedEventTaskInstancesChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           SelectAll="true" 
-                           SelectAllText="@Localizer["SeleccionarTodos"]"
-                           Clearable
-                           FullWidth="true"
-                           Disabled="@(!selectedTaskTypeId.HasValue)"
-                           Label="@Localizer["SeleccionarEventTaskInstance"]"
-                           Class="dark-field"
-                           ToStringFunc="@(id => GetEventTaskInstanceDisplayName(id))">
-                    @foreach (var e in eventTaskInstances)
-                    {
-                        <MudSelectItem T="int" Value="@e.Id">@GetEventTaskInstanceDisplayName(e.Id)</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-            <div style="width: 33.33%;">
-                <MudSelect T="int"
-                           SelectedValues="selectedStockIds"
-                           SelectedValuesChanged="OnSelectedStocksChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           Clearable
-                           FullWidth="true"
-                           Disabled="@(!EnableStocksSelect)"
-                           Label="@Localizer["SeleccionarStock"]"
-                           Class="dark-field"
-                           ToStringFunc="@(id => stocks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString())">
-                    @foreach (var s in stocks)
-                    {
-                        <MudSelectItem T="int" Value="@s.Id">@s.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
+                </MudPaper>
+            }
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                      Variant="Variant.Outlined" 
+                      Color="MudBlazor.Color.Primary"
+                      OnClick="OpenFilterModal">
+                Agregar Filtro
+            </MudButton>
         </MudStack>
     }
 
@@ -548,8 +487,12 @@
     private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
 
     // AM UI State
-    // amMode: 1 = Event Task, 2 = Asset
+    // amMode: 1 = Event Task, 2 = Asset, 3 = Stock
     private int amMode = 2;
+    
+    // Filtros para AM
+    private List<FilterCondition> amFilters = new();
+    private List<PropiedadEntidadDto> availableAttributes = new();
 
     // Asset flow
     private List<AssetTypeDto> assetTypes = new();
@@ -615,25 +558,122 @@
         }
     }
 
-    private void SetAmMode(int mode)
+    private async Task SetAmMode(int mode)
     {
         if (amMode == mode) return;
         amMode = mode;
-        // Reset selections when switching modes
-        if (amMode == 2)
+        // Reset filtros y atributos cuando cambia el modo
+        amFilters.Clear();
+        availableAttributes.Clear();
+        
+        // Cargar atributos disponibles para la entidad seleccionada
+        await LoadAvailableAttributes();
+        
+        StateHasChanged();
+    }
+    
+    private async Task LoadAvailableAttributes()
+    {
+        try
         {
-            selectedTaskTypeId = null;
-            selectedEventTaskInstanceIds.Clear();
-            selectedStockIds.Clear();
-            stocks.Clear();
+            var entidadId = amMode switch
+            {
+                1 => 1, // EventTaskInstance
+                2 => 2, // Asset
+                3 => 3, // Stock
+                _ => 2
+            };
+            
+            var url = $"api/DatasetFilter/FiltrarPorModuloYEntidad?modulo=AM&entidadId={entidadId}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                availableAttributes = await response.Content.ReadFromJsonAsync<List<PropiedadEntidadDto>>() ?? new List<PropiedadEntidadDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando atributos: {ex.Message}");
+            availableAttributes = new List<PropiedadEntidadDto>();
+        }
+    }
+    
+    private async Task OpenFilterModal()
+    {
+        if (availableAttributes.Count == 0)
+        {
+            await LoadAvailableAttributes();
+        }
+        
+        var parameters = new DialogParameters<FilterModal>
+        {
+            { x => x.AvailableAttributes, availableAttributes },
+            { x => x.Modulo, "AM" },
+            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } },
+            { x => x.Token, authToken }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FilterCondition filter)
+        {
+            amFilters.Add(filter);
+            StateHasChanged();
+        }
+    }
+    
+    private void RemoveFilter(FilterCondition filter)
+    {
+        amFilters.Remove(filter);
+        StateHasChanged();
+    }
+    
+    private string GetFilterTypeDisplayName(FilterType type)
+    {
+        return type switch
+        {
+            FilterType.Equals => "=",
+            FilterType.NotEquals => "≠",
+            FilterType.GreaterThan => ">",
+            FilterType.LessThan => "<",
+            FilterType.Contains => "contiene",
+            FilterType.StartsWith => "comienza con",
+            FilterType.EndsWith => "termina con",
+            FilterType.In => "en",
+            FilterType.Between => "entre",
+            _ => type.ToString()
+        };
+    }
+    
+    private string GetFilterValueDisplay(FilterCondition filter)
+    {
+        if (filter.Condition == null)
+            return "";
+            
+        if (filter.Type == FilterType.Between)
+        {
+            return $"{filter.Condition}";
+        }
+        else if (filter.Type == FilterType.In)
+        {
+            if (filter.Condition is List<object> list)
+            {
+                return $"({string.Join(", ", list)})";
+            }
+            return filter.Condition.ToString() ?? "";
         }
         else
         {
-            selectedAssetTypeId = null;
-            selectedAssetIds.Clear();
-            assets.Clear();
+            return filter.Condition.ToString() ?? "";
         }
-        StateHasChanged();
     }
 
     //Cargar sources y groups desde la API
@@ -712,12 +752,8 @@
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            if (amMode == 2)
-            {
-                return selectedAssetTypeId.HasValue && selectedAssetIds.Count > 0;
-            }
-            // Event Task
-            return selectedTaskTypeId.HasValue && selectedEventTaskInstanceIds.Count > 0;
+            // Requiere al menos un filtro
+            return amFilters.Count > 0;
         }
     }
 
@@ -953,27 +989,47 @@
                 ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
+            if (amFilters.Count == 0)
+            {
+                ShowError("Debe agregar al menos un filtro para crear el dataset.");
+                return;
+            }
 
-            var request = new CreateDatasetAMRequest
+            var contentType = amMode switch
+            {
+                1 => "1", // EventTask
+                2 => "2", // Asset
+                3 => "3", // Stock
+                _ => "2"
+            };
+
+            var datasetRequest = new CreateDatasetAMRequest
             {
                 Username = username,
                 Nombre = addName,
                 Descripcion = addDesc,
                 IsDataset = "S",
-                ContentType = "0",
-                Type_Dataset = amMode,
-                Id_Event_Task = amMode == 1 ? selectedTaskTypeId : null,
-                Id_Asset_Type = amMode == 2 ? selectedAssetTypeId : null,
-                Grupo_Event_Task_Instance_Ids = amMode == 1 && selectedEventTaskInstanceIds.Any() ? selectedEventTaskInstanceIds.ToList() : null,
-                Grupo_Asset_Ids = amMode == 2 && selectedAssetIds.Any() ? selectedAssetIds.ToList() : null,
-                StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
+                ContentType = contentType,
+                Type_Dataset = amMode
             };
 
-            var resp = await Http.PostAsJsonAsync($"api/DatasetAM?token={GetEncodedToken()}", request);
+            var filteredRequest = new CreateDatasetAMFilteredRequest
+            {
+                DatasetRequest = datasetRequest,
+                Token = authToken,
+                Filters = amFilters
+            };
+
+            var resp = await Http.PostAsJsonAsync($"api/DatasetAM/filtered?token={GetEncodedToken()}", filteredRequest);
             if (resp.IsSuccessStatusCode)
             {
                 var created = await resp.Content.ReadFromJsonAsync<DatasetAM>();
                 ShowSuccess($"'{created?.Nombre}' {Localizer["DatasetCreadoExito"]}");
+                // Limpiar formulario
+                addName = string.Empty;
+                addDesc = string.Empty;
+                amFilters.Clear();
+                availableAttributes.Clear();
             }
             else
             {
