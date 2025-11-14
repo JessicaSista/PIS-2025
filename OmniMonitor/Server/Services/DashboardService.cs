@@ -711,7 +711,6 @@ namespace OmniMonitor.Server.Services
 
         public async Task<ShareResponseDto> CreateShareLinkAsync(int dashboardId, ShareRequestDto request, string username)
         {
-            // 1. Validar que el dashboard existe y pertenece al usuario
             var dashboard = await _context.Dashboards
                 .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.IdDashboard == dashboardId && d.Username == username);

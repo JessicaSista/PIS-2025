@@ -106,9 +106,7 @@
                     for (int i = 0; i < dashboardData.Tarjetas.Count; i++)
                     {
                         _visualizationsIDs.Add((dashboardData.Tarjetas[i].CardId,dashboardData.Tarjetas[i].TipoCard));
-                        Console.WriteLine($"Dashboard: Agregada visualización con ID,Tipo: {_visualizationsIDs[i]} desde el dashboard.");
                     }
-                    Console.WriteLine($"Dashboard: Total de visualizaciones cargadas: {dashboardData.Tarjetas.Count}");
 
                     // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
                     string jsonDesign = dashboardData.JsonDiseno;
@@ -145,7 +143,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error recargando dashboard: {ex.Message}");
         }
     }
 
@@ -187,7 +184,6 @@
         if (alreadyExists)
         {
             // 2. Si ya existe, loguea la advertencia y sale del método.
-            // Console.WriteLine($"ADVERTENCIA: La visualización con ID {newVisualizationId}, Tipo {newVisualizationType} ya existe y no se agregará.");
             return;
         }
         _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
@@ -198,7 +194,6 @@
 
         StateHasChanged();
 
-        // Console.WriteLine($"Dashboard: Nueva visualización agregada. ID: {newVisualizationId}, Tipo: {newVisualizationType} Tamaño: {DefaultAnchoSm}x{DefaultAlto}. Total Cards: {cardsData.Count}");
     }
 
     private void HandleDeleteVisualization((int Id, int Type) deletedVisualization)
@@ -207,16 +202,11 @@
         // {
         //     Se utiliza el descarte (_) para imprimir todos los campos de la tupla.
         //     var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
-        //     Console.WriteLine($"  Id: {Id}, Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
         // }
-        // ---------------------------------------------
-
-
         bool alreadyExists = _visualizationsIDs.Contains((deletedVisualization.Id, deletedVisualization.Type));
 
         if (!alreadyExists)
         {
-            Console.WriteLine($"ADVERTENCIA: La visualización con ID {deletedVisualization.Id} Tipo {deletedVisualization.Type} no existe en _visualizationsIDs.");
             return;
         }
 
@@ -229,23 +219,16 @@
         StateHasChanged();
 
         // *** PRINT DE DIAGNÓSTICO: ESTADO FINAL ***
-        // Console.WriteLine($"Dashboard: Se borró la visualización. ID: {deletedVisualizationId}. Total Cards Removidas: {countRemoved}");
-        // Console.WriteLine($"_visualizationsIDs (Después): {string.Join(", ", _visualizationsIDs)}");
-        // Console.WriteLine("cardsData (Después):");
         // if (cardsData.Any())
         // {
         //     foreach (var card in cardsData)
         //     {
         //         var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
-        //         Console.WriteLine($"  Id: {Id}, Type: {Type} Sm: {AnchoSm}, Md: {AnchoMd}, Lg: {AnchoLg}, Alto: {Alto}");
         //     }
         // }
         // else
         // {
-        //     Console.WriteLine("  (Lista de tarjetas vacía)");
         // }
-        // Console.WriteLine($"Total Cards (Final): {cardsData.Count}");
-        // Console.WriteLine("--- FIN HandleDeleteVisualization ---\n");
     }
 
     private void UpdateCardSize((int Id, int Type, int AnchoSm, int AnchoMd, int AnchoLg, int Alto) cardInfo)
@@ -255,7 +238,6 @@
             if ((cardsData[i].Id == cardInfo.Id)&&(cardsData[i].CardType == cardInfo.Type))
             {
                 cardsData[i] = cardInfo;
-                Console.WriteLine($"Tamaño de la tarjeta actualizado. ID: {cardInfo.Id}, Type: {cardInfo.Type} Nuevos Anchos: {cardInfo.AnchoSm}, {cardInfo.AnchoMd}, {cardInfo.AnchoLg}. Alto: {cardInfo.Alto}");
                 break;
             }
         }
@@ -308,14 +290,12 @@
                     }
                     else
                     {
-                        Console.WriteLine($"Tarjeta eliminada del servidor: ID: {id}, Type: {type}.");
                     }
                 }
             }
             catch (Exception ex)
             {
                 allActionsOk = false;
-                Console.WriteLine($"Error procesando acción '{op}' para ID: {id}, Type: {type}: {ex.Message}");
                 Snackbar.Add($"Error interno procesando acción '{op}' para ID: {id}, Type: {type}.", Severity.Error);
                 break;
             }
@@ -346,8 +326,6 @@
 
                 string newJsonDesign = nuevoJsonDisenoElement.GetRawText();
 
-                Console.WriteLine("Nuevo JSON de Diseño (obtenido vía GetRawText):");
-                Console.WriteLine(newJsonDesign);
 
                 string requestUri = $"api/Dashboard/{DashboardId}/config?username={username}";
 
@@ -377,7 +355,6 @@
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error al actualizar el orden de las tarjetas: {ex.Message}");
                         Snackbar.Add($"Error interno al actualizar el orden de las tarjetas.", Severity.Error);
                     }
 
@@ -394,7 +371,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al guardar cambios en el dashboard: {ex.Message}");
             Snackbar.Add($"Error al guardar el diseño del dashboard: {ex.Message}", Severity.Error);
         }
 

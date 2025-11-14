@@ -1,4 +1,4 @@
-ï»¿@page "/dashboard/{id:guid}"
+@page "/dashboard/{id:guid}"
 @attribute [Authorize]
 
 <Dashboard Widgets="@Widgets"></Dashboard>
@@ -7,7 +7,7 @@
     [Parameter] public Guid Id { get; set; }
 
     // Por ahora dejamos los datos hardcodeados,
-    // luego esto vendrÃ¡ del backend segÃºn el Id del dashboard.
+    // luego esto vendrá del backend según el Id del dashboard.
     private (bool, string)[] Widgets = new (bool, string)[]
     {
         (true, "DATA1,2999,false"),
@@ -16,17 +16,17 @@
         (true,"DATA4,484342.99,false"),
         (false, "Sensor de Proximidad"),
         (false, "Dispositivo de Monitoreo"),
-        (false, "Tarjeta de ExpansiÃ³n"),
-        (false, "MÃ³dulo Wi-Fi"),
+        (false, "Tarjeta de Expansión"),
+        (false, "Módulo Wi-Fi"),
         (false, "Sensor de Flujo de Agua"),
         (false, "Medidor de Voltaje"),
-        (false, "BaterÃ­a de Litio Recargable"),
-        (false, "Cargador de BaterÃ­as")
+        (false, "Batería de Litio Recargable"),
+        (false, "Cargador de Baterías")
     };
 
     protected override async Task OnInitializedAsync()
     {
-        // MÃ¡s adelante vas a reemplazar esto por:
+        // Más adelante vas a reemplazar esto por:
         // var dashboard = await Http.GetFromJsonAsync<DashboardDto>($"api/Dashboard/{Id}");
         // Widgets = dashboard.Widgets?.Select(w => ...).ToArray();
     }

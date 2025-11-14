@@ -236,9 +236,6 @@ namespace OmniMonitor.Server.Services
             _context.DatasetsEM.Remove(dataset);
             await _context.SaveChangesAsync();
         }
-
-        // --- Helpers ---
-
         private static void UpdateRelationsFromRequest(DatasetEM dataset, CreateDatasetEMRequest request)
         {
             if (request.AlertIds?.Any() == true)

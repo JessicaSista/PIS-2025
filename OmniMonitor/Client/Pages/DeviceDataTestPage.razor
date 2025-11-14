@@ -1,4 +1,4 @@
-ï»¿@page "/device-data-test"
+@page "/device-data-test"
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -6,7 +6,7 @@
 @using System.Text.Json
 @using System.Globalization
 
-<PageTitle>PÃ¡gina de Prueba de Datos de Dispositivo</PageTitle>
+<PageTitle>Página de Prueba de Datos de Dispositivo</PageTitle>
 
 <MudText Typo="Typo.h4" GutterBottom="true">Prueba de Endpoint de Datos de Dispositivo</MudText>
 
@@ -19,7 +19,7 @@
             <MudTextField @bind-Value="request.User" Label="Usuario" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <MudTextField @bind-Value="request.Password" Label="ContraseÃ±a" Variant="Variant.Outlined" InputType="InputType.Password" />
+            <MudTextField @bind-Value="request.Password" Label="Contraseña" Variant="Variant.Outlined" InputType="InputType.Password" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
             <MudDateRangePicker @bind-DateRange="dateRange" Label="Rango de Fechas" Variant="Variant.Outlined" />
@@ -78,7 +78,7 @@
     {
         if (dateRange == null || !dateRange.Start.HasValue || !dateRange.End.HasValue)
         {
-            Snackbar.Add("Por favor, selecciona un rango de fechas vÃ¡lido.", Severity.Warning);
+            Snackbar.Add("Por favor, selecciona un rango de fechas válido.", Severity.Warning);
             return;
         }
 
@@ -86,7 +86,7 @@
         deviceData = null;
         try
         {
-            // --- LÃ“GICA CORREGIDA ---
+            // --- LÓGICA CORREGIDA ---
             // 1. Formatear las fechas en un formato que el backend pueda interpretar (ISO 8601 round-trip)
             string from = dateRange.Start.Value.ToString("o");
             string to = dateRange.End.Value.ToString("o");

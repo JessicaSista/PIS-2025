@@ -98,9 +98,7 @@ public class SondaEMService : ISondaEMService
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Category"]["GetById"].Replace("{id}", categoryid.ToString());
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
@@ -118,7 +116,6 @@ public class SondaEMService : ISondaEMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             return null;
@@ -136,8 +133,6 @@ public class SondaEMService : ISondaEMService
         }
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -159,7 +154,6 @@ public class SondaEMService : ISondaEMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             return null;
@@ -179,8 +173,6 @@ public class SondaEMService : ISondaEMService
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
 
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -200,7 +192,6 @@ public class SondaEMService : ISondaEMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             return null;
@@ -239,21 +230,16 @@ public class SondaEMService : ISondaEMService
         
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST (Alerts): {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             return new List<AlertDto>();
         }
-
-        // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
@@ -263,7 +249,6 @@ public class SondaEMService : ISondaEMService
         }
         else if (trimmed.StartsWith("["))
         {
-            // Si la API devuelve una lista directa
             var listResponse = JsonSerializer.Deserialize<List<AlertDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<AlertDto>();
         }
@@ -313,21 +298,16 @@ public class SondaEMService : ISondaEMService
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             return new List<AlertDto>();
         }
-
-        // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
@@ -337,7 +317,6 @@ public class SondaEMService : ISondaEMService
         }
         else if (trimmed.StartsWith("["))
         {
-            // Si la API devuelve una lista directa
             var listResponse = JsonSerializer.Deserialize<List<AlertDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<AlertDto>();
         }
@@ -367,10 +346,8 @@ public class SondaEMService : ISondaEMService
         
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST (Events - no pagination): {getDataUrl}");
         
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -378,13 +355,10 @@ public class SondaEMService : ISondaEMService
         response.EnsureSuccessStatusCode();
         
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             return new List<EventDto>();
         }
-
-        // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))
         {
@@ -394,7 +368,6 @@ public class SondaEMService : ISondaEMService
         }
         else if (trimmed.StartsWith("["))
         {
-            // Si la API devuelve una lista directa
             var listResponse = JsonSerializer.Deserialize<List<EventDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             return listResponse ?? new List<EventDto>();
         }
@@ -409,15 +382,12 @@ public class SondaEMService : ISondaEMService
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["EventType"]["GetEventTypes"];
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("["))
         {
             return new List<EventTypeDto>();
@@ -434,9 +404,7 @@ public class SondaEMService : ISondaEMService
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Extension"]["GetById"].Replace("{extensionId}", extensionId.ToString());
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
@@ -454,7 +422,6 @@ public class SondaEMService : ISondaEMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             return null;
@@ -492,15 +459,12 @@ public class SondaEMService : ISondaEMService
         if (!string.IsNullOrEmpty(zones)) queryParams.Add($"zones={Uri.EscapeDataString(zones)}");
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             return new List<ExtensionDto>();
@@ -514,15 +478,12 @@ public class SondaEMService : ISondaEMService
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Extension"]["GetAttachedItems"].Replace("{extensionId}", extensionId.ToString());
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("["))
         {
             return new List<AttachmentDto>();
@@ -540,9 +501,7 @@ public class SondaEMService : ISondaEMService
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Event"]["Extensions"].Replace("{eventId}", eventId.ToString());
         string getDataUrl = baseUrl + endpoint;
-        Console.WriteLine($"SONDA API REQUEST: {getDataUrl}");
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
@@ -560,7 +519,6 @@ public class SondaEMService : ISondaEMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
    
         var options = new JsonSerializerOptions
         {
@@ -592,10 +550,8 @@ public class SondaEMService : ISondaEMService
         
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        Console.WriteLine($"SONDA API REQUEST (Categories - no pagination support): {getDataUrl}");
         
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        Console.WriteLine($"SONDA API TOKEN: {token}");
         
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -603,7 +559,6 @@ public class SondaEMService : ISondaEMService
         response.EnsureSuccessStatusCode();
         
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             return null;

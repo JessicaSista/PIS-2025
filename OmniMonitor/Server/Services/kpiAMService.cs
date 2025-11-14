@@ -171,25 +171,19 @@ namespace OmniMonitor.Server.Services
                 var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson, options);
                 if (ranges == null)
                 {
-                    Console.WriteLine($"[DEBUG] ColorRanges nulo. Usando color por defecto: {defaultColor}");
                     return defaultColor;
                 }
 
-                Console.WriteLine($"[DEBUG] Buscando color para valor: {value}. Rango JSON: {colorRangesJson}");
                 foreach (var range in ranges)
                 {
-                    Console.WriteLine($"[DEBUG] Rango: min={range.min}, max={range.max}, color={range.color}");
                     if (value >= range.min && value <= range.max)
                     {
-                        Console.WriteLine($"[DEBUG] Valor {value} está en el rango [{range.min}, {range.max}]. Color seleccionado: {range.color}");
                         return range.color;
                     }
                 }
-                Console.WriteLine($"[DEBUG] Ningún rango coincide para valor {value}. Usando color por defecto: {defaultColor}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DEBUG] Error al deserializar ColorRanges o calcular color: {ex.Message}. Usando color por defecto: {defaultColor}");
                 return defaultColor;
             }
             return defaultColor;

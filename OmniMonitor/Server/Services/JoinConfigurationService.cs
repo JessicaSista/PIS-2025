@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using System.Dynamic;
@@ -137,7 +137,6 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
         var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
-        //
         List<dynamic> nestedResults;
 
         var leftList = processedLeftQuery.ToDynamicList();
@@ -242,7 +241,7 @@ public class JoinConfigurationService : IJoinConfigurationService
             throw new InvalidOperationException(
                 $"Incompatibilidad de tipos para el Join. La propiedad izquierda '{leftJoinKey}' es de tipo '{leftJoinType}', " +
                 $"pero la propiedad derecha '{rightJoinKey}' es de tipo '{rightJoinType}'. " +
-                "Por favor, asegúrate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
+                "Por favor, asegÃºrate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
             );
         }
 
@@ -280,7 +279,7 @@ public class JoinConfigurationService : IJoinConfigurationService
                 break;
 
             default:
-                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no está soportado.");
+                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no estÃ¡ soportado.");
         }
 
         Console.WriteLine($"[DEBUG] Join completed. Nested results: {nestedResults?.Count} records");

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
 using System.Net.Http.Headers;
@@ -54,7 +54,6 @@ public class SondaUMService : ISondaUMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (DeviceGroups): {responseBody}");
 
         var parsed = JsonSerializer.Deserialize<List<Zone>>(responseBody, new JsonSerializerOptions
         {
@@ -82,7 +81,6 @@ public class SondaUMService : ISondaUMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response Body: {responseBody}");
         var parsed = JsonSerializer.Deserialize<Zone>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -143,7 +141,6 @@ public class SondaUMService : ISondaUMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response Body: {responseBody}");
         var parsed = JsonSerializer.Deserialize<News>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -154,7 +151,7 @@ public class SondaUMService : ISondaUMService
     public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
     {
         // 1. Traer todos los news (sin filtrar por zona)
-        // Validar parámetros de entrada
+        // Validar par�metros de entrada
         if (startIndex <= 0)
             throw new ArgumentException("startIndex debe ser mayor a 0");
         if (count <= 0)
@@ -196,7 +193,6 @@ public class SondaUMService : ISondaUMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response Body (DeviceGroups): {responseBody}");
         var parsed = JsonSerializer.Deserialize<List<Event>>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -220,7 +216,6 @@ public class SondaUMService : ISondaUMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response Body: {responseBody}");
         var parsed = JsonSerializer.Deserialize<Event>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -230,7 +225,6 @@ public class SondaUMService : ISondaUMService
 
     public async Task<List<Event>> GetEventsByZoneId(int zoneId, string username)
     {
-        // Primero obtener la zona para obtener sus áreas geográficas
         var zone = await GetZoneById(zoneId, username);
         if (zone == null)
         {
@@ -244,7 +238,7 @@ public class SondaUMService : ISondaUMService
             return new List<Event>();
         }
 
-        // Filtrar eventos que están dentro de las áreas de la zona
+        // Filtrar eventos que est�n dentro de las �reas de la zona
         var eventsInZone = new List<Event>();
         
         foreach (var eventItem in allEvents)

@@ -292,7 +292,6 @@
         {
             AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             string? username = authState.User.Identity?.Name;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -324,7 +323,7 @@
             };
             if(dashboardId == -1)
             {
-                HttpResponseMessage? response = await Http.PutAsJsonAsync($"api/Visualizacion/{visualizationId}?token={token}", request);
+                HttpResponseMessage? response = await Http.PutAsJsonAsync($"api/Visualizacion/{visualizationId}", request);
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
@@ -366,7 +365,6 @@
             if(currVisualization == null){
                 AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 string? username = authState.User.Identity?.Name;
-                string token = await LocalStorage.GetItemAsync<string>("authToken");
 
                 if (string.IsNullOrEmpty(username)) {
                     Snackbar.Add("No se pudo obtener el usuario actual", Severity.Warning);
@@ -374,7 +372,7 @@
                 }
 
                 HttpResponseMessage? responseVisualization = await Http.GetAsync(
-                    $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}&token={token}"
+                    $"api/Visualizacion/GetVisualizacionById?idVisualizacion={visualizationId}"
                 );
                 
                 currVisualization = await responseVisualization.Content.ReadFromJsonAsync<Visualizacion>();
@@ -439,7 +437,6 @@
         {
             AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             string? username = authState.User.Identity?.Name;
-            string? token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -449,7 +446,7 @@
 
             if(module.Equals("Insight Monitor"))
             {
-                HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}&token={token}");
+                HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}");
                 DatasetIM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetIM>();
 
                 if (datasetFromApi == null)
@@ -458,7 +455,7 @@
             }
             else if(module.Equals("Asset Manager"))
             {
-                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={datasetId}&token={token}");
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={datasetId}");
                 DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
 
                 if (datasetFromApi == null)
@@ -468,18 +465,17 @@
             }
             else if(module.Equals("Urban Monitor"))
             {
-                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}&token={token}");
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}");
                 DatasetUM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetUM>();
 
                 if (datasetFromApi == null)
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
 
-                //una solucion fea para saber el tipo, pero funciona... :thumbsup
                 return datasetFromApi.DatasetNews.Count > 0 ? "New" : "EventUM";
             }
             else
             {
-                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetEM/{datasetId}?token={token}");
+                HttpResponseMessage? response = await Http.GetAsync($"api/DatasetEM/{datasetId}");
                 DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
 
                 if (datasetFromApi == null)
