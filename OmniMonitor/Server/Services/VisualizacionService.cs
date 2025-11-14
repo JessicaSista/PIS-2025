@@ -105,7 +105,6 @@ namespace OmniMonitor.Server.Services
                 .OrderByDescending(v => v.IdVisualizacion)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Include(v => v.GrupoDatasets)
                 .ToListAsync();
         }
 
