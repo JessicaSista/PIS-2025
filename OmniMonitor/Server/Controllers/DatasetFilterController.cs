@@ -2,11 +2,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Server.Attributes;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OmniMonitor.Shared.Dtos;
-
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -31,6 +31,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("FiltrarPorModuloYEntidad")]
         public async Task<ActionResult<List<PropiedadEntidadDto>>> FiltrarPorModuloYEntidad(string modulo, int entidadId)
         {
@@ -159,6 +160,7 @@ namespace OmniMonitor.Server.Controllers
 
     
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("GetAtributoValores")]
         public async Task<ActionResult<List<string>>> GetAtributoValores(string modulo, int entidadId, string atributo)
         {
@@ -288,6 +290,7 @@ namespace OmniMonitor.Server.Controllers
 
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("Datasets.View")]
     [HttpPost("FiltrarDatos")]
     public async Task<ActionResult<List<object>>> FiltrarDatos([FromBody] OmniMonitor.Shared.Dtos.FiltrarDatosRequest request)
     {
