@@ -143,7 +143,6 @@
         }
     </MudGrid>
 
-    @* Controles de paginación *@
     @if (totalPages > 1)
     {
         <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
@@ -223,7 +222,6 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
             if (string.IsNullOrEmpty(username))
             {
@@ -247,17 +245,6 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                Snackbar.Add(Localizer["TokenMissing"], Severity.Warning);
-                filteredDashboards = new List<DashboardSummaryResponse>();
-                totalCount = 0;
-                totalPages = 0;
-                StateHasChanged();
-                return;
-            }
-
             // Construir URL con paginación
             var url = $"api/Dashboard/GetAllDashboardsPaginated?page={currentPage}&pageSize={pageSize}";
             if (!string.IsNullOrWhiteSpace(_searchText))
@@ -276,7 +263,6 @@
                 hasPreviousPage = result.HasPreviousPage;
                 hasNextPage = result.HasNextPage;
                 
-                Console.WriteLine($"DEBUG: Página {currentPage}/{totalPages}, Total: {totalCount}, Mostrando: {filteredDashboards.Count}");
             }
             else
             {

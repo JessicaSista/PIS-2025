@@ -23,8 +23,6 @@ namespace OmniMonitor.Server.Controllers
             _sondaUMApiService = sondaUMApiService;
             _sondaAuthService = sondaAuthService;
         }
-
-        // ---------------- DEVICES ----------------
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices")]
         [ProducesResponseType(typeof(List<Device>), 200)]
@@ -91,7 +89,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        // ---------------- DEVICE GROUPS ----------------
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("groups")]
         [ProducesResponseType(typeof(List<DeviceGroup>), 200)]
@@ -157,8 +154,6 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al obtener los dispositivos del grupo: {ex.Message}");
             }
         }
-
-        // ---------------- SOURCES ----------------
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sources")]
         [ProducesResponseType(typeof(List<Source>), 200)]

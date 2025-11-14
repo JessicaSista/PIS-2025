@@ -10,14 +10,6 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
 {
-    // Usar los tipos definidos en ApiDataService
-
-    public class PropiedadEntidadDto
-    {
-        public string Nombre { get; set; } = string.Empty;
-    public FilterValueType Tipo { get; set; }
-    }
-
     [ApiController]
     [Route("api/[controller]")]
     public class DatasetFilterController : ControllerBase
@@ -116,7 +108,6 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "BundleId", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Supervisor.Name", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
-                            //faltarian categories y tambien los Dtos compuestos
                             break;
                     }
                     break;
@@ -221,7 +212,6 @@ namespace OmniMonitor.Server.Controllers
         [HttpGet("GetAtributoValores")]
         public async Task<ActionResult<List<string>>> GetAtributoValores(string modulo, int entidadId, string atributo)
         {
-            // DEBUG: Loguear los datos crudos de entidades para EM eventos
             
             // Get username from JWT
             var username = User.Identity?.Name;
@@ -313,17 +303,14 @@ namespace OmniMonitor.Server.Controllers
                     var categorias = categoriasProp?.GetValue(entidad) as IEnumerable<object>;
                     if (categorias != null)
                     {
-                        Console.WriteLine($"Evento: {entidad.GetType().GetProperty("Id")?.GetValue(entidad)}");
                         foreach (var cat in categorias)
                         {
                             var id = cat.GetType().GetProperty("Id")?.GetValue(cat);
                             var name = cat.GetType().GetProperty("Name")?.GetValue(cat);
-                            Console.WriteLine($"  Categoria: Id={id}, Name={name}");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Evento: {entidad.GetType().GetProperty("Id")?.GetValue(entidad)} no tiene categorias");
                     }
                 }
             }
@@ -368,8 +355,6 @@ namespace OmniMonitor.Server.Controllers
             return Ok(valores.Distinct().ToList());
         }
 
-            // DTO para la petición de filtrado
-    // Usar FiltrarDatosRequest desde Shared.Dtos
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpPost("FiltrarDatos")]
@@ -442,32 +427,24 @@ namespace OmniMonitor.Server.Controllers
         if (!entidadValida)
             return BadRequest("Entidad no definida para el módulo seleccionado");
 
-        // DEBUG: Mostrar filtros recibidos
-        Console.WriteLine($"[DEBUG] Filtros recibidos: {request.Filtros.Count}");
         foreach (var filtro in request.Filtros)
         {
-            Console.WriteLine($"[DEBUG] Filtro: AttributeName={filtro.AttributeName}, Type={filtro.Type}, ValueType={filtro.ValueType}, Condition={filtro.Condition}");
         }
 
-        // DEBUG: Mostrar propiedades de los objetos antes de filtrar
         int idx = 0;
         foreach (var entidad in entidades)
         {
-            Console.WriteLine($"[DEBUG] Entidad #{idx}: Tipo={entidad.GetType().Name}");
             foreach (var prop in entidad.GetType().GetProperties())
             {
                 var val = prop.GetValue(entidad);
-                Console.WriteLine($"    Propiedad: {prop.Name} = {val}");
             }
             idx++;
         }
 
         // Filtrar usando ApiDataService.FilterObjects
         var filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filtros);
-        Console.WriteLine($"[DEBUG] Total objetos filtrados: {filtrados.Count}");
         foreach (var obj in filtrados)
         {
-            Console.WriteLine($"[DEBUG] Filtrado: Tipo={obj.GetType().Name}");
         }
         return Ok(filtrados);
     }

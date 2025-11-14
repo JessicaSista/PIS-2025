@@ -182,7 +182,6 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncEM)
-            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos básicos
             existingDataset.Name = request.Name;
@@ -202,14 +201,13 @@ namespace OmniMonitor.Server.Services
             _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;
-            */// Eliminar relaciones existentes de la base de datos
+            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;*/
+            
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
             _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
 
-            // Limpiar colecciones
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();
@@ -236,9 +234,6 @@ namespace OmniMonitor.Server.Services
             _context.DatasetsEM.Remove(dataset);
             await _context.SaveChangesAsync();
         }
-
-        // --- Helpers ---
-
         private static void UpdateRelationsFromRequest(DatasetEM dataset, CreateDatasetEMRequest request)
         {
             if (request.AlertIds?.Any() == true)
@@ -302,7 +297,6 @@ namespace OmniMonitor.Server.Services
 
         public async Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters)
         {
-            // Serializar los filtros a JSON
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
             
             var newDataset = new DatasetEM
@@ -336,7 +330,6 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // Serializar los filtros a JSON
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
             // Actualizar campos básicos
@@ -346,14 +339,12 @@ namespace OmniMonitor.Server.Services
             existingDataset.ContentType = GetContentType(request).ToString();
             existingDataset.Filters = filtersJson; // Actualizar los filtros
 
-            // Eliminar relaciones existentes
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
             _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
             
 
-            // Limpiar colecciones
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();

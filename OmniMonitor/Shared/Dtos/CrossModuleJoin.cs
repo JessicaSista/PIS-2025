@@ -18,7 +18,6 @@ public class CrossModuleJoin
 
     public JoinType JoinType { get; set; } // Inner Join, Left Join, etc.
 
-    // --- The two sides of the join ---
     public int LeftOperandId { get; set; }
     public virtual JoinOperand LeftOperand { get; set; }
 

@@ -1,4 +1,4 @@
-ï»¿@page "/dashboard-share-tester"
+@page "/dashboard-share-tester"
 @inject HttpClient Http
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @using System.Text.Json
@@ -7,16 +7,16 @@
 <div class="container mx-auto p-4 md:p-8 font-sans">
     <header class="text-center mb-8">
         <h1 class="text-4xl font-bold text-gray-800">Prueba de Enlaces Compartidos</h1>
-        <p class="text-gray-600 mt-2">PÃ¡gina para probar la creaciÃ³n y validaciÃ³n de enlaces para dashboards.</p>
+        <p class="text-gray-600 mt-2">Página para probar la creación y validación de enlaces para dashboards.</p>
     </header>
 
     <!-- Session Token Card -->
     <div class="card mb-8 max-w-2xl mx-auto">
-        <h2 class="text-2xl font-semibold mb-4 text-gray-700">AutenticaciÃ³n</h2>
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Autenticación</h2>
         <div class="flex items-end space-x-2">
             <div class="flex-grow">
-                <label for="session-token" class="form-label">Token de SesiÃ³n (de Local Storage)</label>
-                <input @bind="sessionToken" id="session-token" class="form-input font-mono" placeholder="Pega tu token aquÃ­ si no se carga automÃ¡ticamente..." />
+                <label for="session-token" class="form-label">Token de Sesión (de Local Storage)</label>
+                <input @bind="sessionToken" id="session-token" class="form-input font-mono" placeholder="Pega tu token aquí si no se carga automáticamente..." />
             </div>
             <button class="btn btn-secondary" @onclick="LoadTokenFromLocalStorage">Cargar Token</button>
         </div>
@@ -39,7 +39,7 @@
                     <div>
                         <label class="form-label">Visibilidad</label>
                         <InputSelect @bind-Value="shareRequest.Visibility" class="form-input">
-                            <option value="public">PÃºblico</option>
+                            <option value="public">Público</option>
                             <option value="private">Privado</option>
                         </InputSelect>
                     </div>
@@ -47,13 +47,13 @@
                     @if (shareRequest.Visibility == "private")
                     {
                         <div>
-                            <label class="form-label">ContraseÃ±a (requerida para privado)</label>
+                            <label class="form-label">Contraseña (requerida para privado)</label>
                             <InputText @bind-Value="shareRequest.Password" type="password" class="form-input" />
                         </div>
                     }
 
                     <div>
-                        <label class="form-label">Fecha de ExpiraciÃ³n (Opcional)</label>
+                        <label class="form-label">Fecha de Expiración (Opcional)</label>
                         <InputDate @bind-Value="expiresAtDate" class="form-input" />
                     </div>
 
@@ -61,20 +61,20 @@
                 </EditForm>
             </div>
 
-            <!-- --- NUEVA TARJETA PARA VALIDACIÃ“N --- -->
+            <!-- --- NUEVA TARJETA PARA VALIDACIÓN --- -->
             <div class="card">
                 <h2 class="text-2xl font-semibold mb-4 text-gray-700">2. Validar Enlace Privado</h2>
                 <EditForm Model="@validationRequest" OnValidSubmit="HandleValidatePassword" class="space-y-4">
                     <DataAnnotationsValidator />
                     <div>
                         <label class="form-label">Slug del Enlace</label>
-                        <InputText @bind-Value="slugToValidate" class="form-input" placeholder="Pega el slug aquÃ­ (ej: a8f3bZp1oK)" />
+                        <InputText @bind-Value="slugToValidate" class="form-input" placeholder="Pega el slug aquí (ej: a8f3bZp1oK)" />
                     </div>
                     <div>
-                        <label class="form-label">ContraseÃ±a</label>
+                        <label class="form-label">Contraseña</label>
                         <InputText @bind-Value="validationRequest.Password" type="password" class="form-input" />
                     </div>
-                    <button type="submit" class="btn btn-success w-full h-12">Validar ContraseÃ±a</button>
+                    <button type="submit" class="btn btn-success w-full h-12">Validar Contraseña</button>
                 </EditForm>
             </div>
         </div>
@@ -157,7 +157,7 @@
 
     // --- State Variables ---
     private string sessionToken = "";
-    private string resultJson = "Completa un formulario y haz clic en un botÃ³n...";
+    private string resultJson = "Completa un formulario y haz clic en un botón...";
 
     // Para crear
     private int dashboardId;
@@ -185,7 +185,7 @@
     {
         if (string.IsNullOrWhiteSpace(sessionToken))
         {
-            DisplayResult(new { Error = "Se requiere un token de sesiÃ³n." });
+            DisplayResult(new { Error = "Se requiere un token de sesión." });
             return;
         }
         if (dashboardId == 0)
@@ -195,7 +195,7 @@
         }
 
         shareRequest.ExpiresAt = expiresAtDate;
-        var fullUrl = $"{ApiBaseUrl}/{dashboardId}/share?token={sessionToken}";
+        var fullUrl = $"{ApiBaseUrl}/{dashboardId}/share";
 
         DisplayResult($"Llamando a: POST {fullUrl}");
 
@@ -207,12 +207,12 @@
             if (response.IsSuccessStatusCode)
             {
                 var parsedJson = JsonSerializer.Deserialize<object>(content);
-                // Si la creaciÃ³n es exitosa, auto-rellena el campo 'slug' para la validaciÃ³n
+                // Si la creación es exitosa, auto-rellena el campo 'slug' para la validación
                 if (parsedJson is JsonElement el && el.TryGetProperty("slug", out var slugElement))
                 {
                     slugToValidate = slugElement.GetString() ?? "";
                 }
-                DisplayResult(new { Message = "Enlace creado con Ã©xito", Url = fullUrl, Response = parsedJson });
+                DisplayResult(new { Message = "Enlace creado con éxito", Url = fullUrl, Response = parsedJson });
             }
             else
             {
@@ -225,7 +225,7 @@
         }
     }
 
-    // --- NUEVA FUNCIÃ“N DE VALIDACIÃ“N ---
+    // --- NUEVA FUNCIÓN DE VALIDACIÓN ---
     private async Task HandleValidatePassword()
     {
         if (string.IsNullOrWhiteSpace(slugToValidate))
@@ -234,7 +234,7 @@
             return;
         }
 
-        // Construye la URL segÃºn tu controlador
+        // Construye la URL según tu controlador
         var fullUrl = $"{ApiBaseUrl}/ValidateShare/{slugToValidate}/validate";
         DisplayResult($"Llamando a: POST {fullUrl}");
 
@@ -246,11 +246,11 @@
 
             if (response.IsSuccessStatusCode)
             {
-                DisplayResult(new { Message = "ValidaciÃ³n Exitosa (ContraseÃ±a Correcta)", Url = fullUrl, Response = parsedJson });
+                DisplayResult(new { Message = "Validación Exitosa (Contraseña Correcta)", Url = fullUrl, Response = parsedJson });
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                DisplayResult(new { Warning = "ValidaciÃ³n Fallida (ContraseÃ±a Incorrecta)", Url = fullUrl, Response = parsedJson });
+                DisplayResult(new { Warning = "Validación Fallida (Contraseña Incorrecta)", Url = fullUrl, Response = parsedJson });
             }
             else
             {
@@ -272,7 +272,7 @@
         });
     }
 
-    // --- DTOs (Basados en tu definiciÃ³n) ---
+    // --- DTOs (Basados en tu definición) ---
     public class ShareRequestDto
     {
         [Required]
@@ -281,7 +281,7 @@
         public string? Password { get; set; }
     }
 
-    // --- NUEVOS DTOS PARA VALIDACIÃ“N ---
+    // --- NUEVOS DTOS PARA VALIDACIÓN ---
     public class ValidateSharePasswordRequestDto
     {
         public string Password { get; set; }

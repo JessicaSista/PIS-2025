@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace OmniMonitor.Shared.Dtos.EM
 {
     public class AlertDto
@@ -11,7 +13,9 @@ namespace OmniMonitor.Shared.Dtos.EM
         public string AlertState { get; set; } = string.Empty;
         public AlertCategoryDto? AlertCategory { get; set; }
     public string AlertData { get; set; } = string.Empty;
+        [JsonPropertyName("creationDate")]
         public DateTime CreatedAt { get; set; }
+        [JsonPropertyName("lastModification")]
         public DateTime ModifiedAt { get; set; }
         public int DeviceType { get; set; }
         public string StreamUrl { get; set; } = string.Empty;

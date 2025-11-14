@@ -1,4 +1,4 @@
-ï»¿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
 using System;
@@ -24,30 +24,21 @@ public interface ISondaIMService
     Task<List<Device>?> GetDeviceOfGroup(int id, string username);
 
     Task<List<DeviceData>?> GetDeviceDataByDate(int deviceId, DateTime dateFrom, DateTime dateTo, string username);
-    //***************************************
-
     //***************DEVICE GROUPS*************
     // GET all device groups
     Task<List<DeviceGroup>> GetAllDeviceGroups(string username);
     
     // GET device group by ID
     Task<DeviceGroup?> GetDeviceGroupById(int id, string username);
-    //*****************************************
-
     //****************SOURCES*****************
     // GET all sources
     Task<List<Source>> GetAllSources(string username);
 
     // GET source by ID
     Task<Source?> GetSourceById(int id, string username);
-    //*****************************************
-
     //****************SENSORS*****************
     Task<List<SensorData>?> GetSensorDataByDate(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username);
     Task<List<SensorData>?> GetSensorDataByDateSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string username);
-    //*****************************************
-
-
     //****************SYSTEM STATUS*****************
     Task<int> GetSSDeviceCount(string username);
     Task<DeviceDataStatusResponse?> GetSSDataStatus(string username);
@@ -74,7 +65,7 @@ public class SondaIMService : ISondaIMService
         string endpoint = _apiConfig.EndpointsIM["Device"]["GetAll"];
         string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
-        // Se actualizÃ³ la URL para usar page=-1 y obtener todos los dispositivos
+        // Se actualizó la URL para usar page=-1 y obtener todos los dispositivos
         string getDataUrl = $"{baseUrl}{endpoint}?page=-1";
 
         var client = _httpClientFactory.CreateClient();
@@ -85,7 +76,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (All Devices): {responseBody}");
 
         // La respuesta ahora es un arreglo directo de dispositivos, por lo que se deserializa a List<Device>
         var devices = JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -117,7 +107,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body: {responseBody}");
 
         var parsed = JsonSerializer.Deserialize<Device>(responseBody, new JsonSerializerOptions
         {
@@ -142,14 +131,13 @@ public class SondaIMService : ISondaIMService
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            return new List<DeviceGroup>(); // devolver lista vacÃ­a si no hay grupos
+            return new List<DeviceGroup>(); // devolver lista vacía si no hay grupos
         }
 
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (DeviceGroups): {responseBody}");
 
         var parsed = JsonSerializer.Deserialize<List<DeviceGroup>>(responseBody, new JsonSerializerOptions
         {
@@ -180,7 +168,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (DeviceGroup {id}): {responseBody}");
 
         var parsed = JsonSerializer.Deserialize<DeviceGroup>(responseBody, new JsonSerializerOptions
         {
@@ -208,7 +195,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (DevicesOfSource): {responseBody}");
 
         // La respuesta ahora es un arreglo directo de dispositivos, por lo que se deserializa a List<Device>
         var devices = JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -234,7 +220,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (GetDeviceOfGroup): {responseBody}");
 
         // La respuesta ahora es un arreglo directo de dispositivos, por lo que se deserializa a List<Device>
         var devices = JsonSerializer.Deserialize<List<Device>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -248,7 +233,7 @@ public class SondaIMService : ISondaIMService
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["DeviceData"];
 
-        // 1. Formatear las fechas al formato especÃ­fico que requiere la API externa
+        // 1. Formatear las fechas al formato específico que requiere la API externa
         string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
         string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
 
@@ -262,7 +247,6 @@ public class SondaIMService : ISondaIMService
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        Console.WriteLine($"URL de la API Externa (GetDeviceDataByDate): {url}");
 
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -292,7 +276,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (Sources): {responseBody}");
 
         var parsed = JsonSerializer.Deserialize<List<Source>>(responseBody, new JsonSerializerOptions
         {
@@ -319,7 +302,6 @@ public class SondaIMService : ISondaIMService
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"Response Body (Source {id}): {responseBody}");
         var parsed = JsonSerializer.Deserialize<Source>(responseBody, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -345,7 +327,6 @@ public class SondaIMService : ISondaIMService
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        Console.WriteLine($"URL GetSensorDataByDate: {url}");
 
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -373,7 +354,6 @@ public class SondaIMService : ISondaIMService
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        Console.WriteLine($"URL GetSensorDataByDate: {url}");
 
         var response = await client.GetAsync(url);
         response.EnsureSuccessStatusCode();
@@ -404,7 +384,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (DeviceCount): {responseBody}");
 
 
         var parsed = JsonSerializer.Deserialize<int>(responseBody);
@@ -433,7 +412,6 @@ public class SondaIMService : ISondaIMService
 
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        Console.WriteLine($"Response Body (DataStatus): {responseBody}");
 
         var parsed = JsonSerializer.Deserialize<DeviceDataStatusResponse>(responseBody, new JsonSerializerOptions
         {

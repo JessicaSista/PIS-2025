@@ -37,10 +37,8 @@ namespace OmniMonitor.Server.Services
 
         public async Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset)
         {
-            Console.WriteLine($"[DEBUG][DatasetAmService] CreateDatasetAMAsync: Username={request.Username}, Nombre={request.Nombre}, Type_Dataset={request.Type_Dataset}, ContentType={request.ContentType}");
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
             {
-                Console.WriteLine("[DEBUG][DatasetAmService] ArgumentException: El nombre de usuario y el nombre del dataset son obligatorios.");
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
             }
 
@@ -49,7 +47,6 @@ namespace OmniMonitor.Server.Services
 
             if (existingDataset != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
             }
 
@@ -76,7 +73,6 @@ namespace OmniMonitor.Server.Services
 
             if (request.Type_Dataset == 1 && request.Grupo_Event_Task_Instance_Ids != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando EventTasks: {string.Join(",", request.Grupo_Event_Task_Instance_Ids)}");
                 newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
                 foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
                 {
@@ -86,18 +82,19 @@ namespace OmniMonitor.Server.Services
                     });
                 }
             }
-            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
+            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null && request.Grupo_Asset_Ids.Any())
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Assets: {string.Join(",", request.Grupo_Asset_Ids)}");
                 newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
                 foreach (var id in request.Grupo_Asset_Ids)
                 {
-                    newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                    }
                 }
             }
             else if (request.Type_Dataset == 3 && request.StockIds != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Stocks: {string.Join(",", request.StockIds)}");
                 newDatasetAM.Grupo_Stock = new List<DatasetStock>();
                 foreach (var stockId in request.StockIds)
                 {
@@ -106,12 +103,10 @@ namespace OmniMonitor.Server.Services
             }
             else
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] No se asignó ninguna relación hija (Type_Dataset={request.Type_Dataset})");
             }
 
             _context.DatasetAM.Add(newDatasetAM);
             await _context.SaveChangesAsync();
-            Console.WriteLine($"[DEBUG][DatasetAmService] DatasetAM guardado. Grupo_Stock count: {newDatasetAM.Grupo_Stock?.Count}");
             return newDatasetAM;
         }
 
@@ -251,7 +246,6 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el DatasetAM con ID {datasetAM.Id_Dataset}.");
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncAM)
-            // para garantizar unicidad global entre todos los módulos
 
             // Actualiza los campos simples
             datasetAM.Nombre = request.Nombre;
@@ -262,8 +256,6 @@ namespace OmniMonitor.Server.Services
             datasetAM.Is_Dataset = request.IsDataset;
             datasetAM.ContentType = request.ContentType;
 
-            // --- Actualizar Grupo_Event_Task_Instance y sus stocks ---
-            // Eliminar los event task instances y stocks existentes
             if (datasetAM.Grupo_Event_Task_Instance != null && datasetAM.Grupo_Event_Task_Instance.Any())
             {
                 foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
@@ -299,8 +291,6 @@ namespace OmniMonitor.Server.Services
                 }
             }
 
-            // --- Actualizar Grupo_Asset ---
-            // Eliminar assets existentes
             if (datasetAM.Grupo_Asset != null && datasetAM.Grupo_Asset.Any())
             {
                 _context.Set<DatasetAsset>().RemoveRange(datasetAM.Grupo_Asset);
@@ -336,7 +326,6 @@ namespace OmniMonitor.Server.Services
             }
 
 
-            // Eliminar stocks asociados a event task instances (solo los que tienen Id > 0)
             if (datasetAM.Grupo_Event_Task_Instance != null)
             {
                 foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
@@ -357,7 +346,6 @@ namespace OmniMonitor.Server.Services
                 }
             }
 
-            // Eliminar assets asociados (solo los que tienen Id > 0)
             if (datasetAM.Grupo_Asset != null && datasetAM.Grupo_Asset.Any())
             {
                 var assetsToRemove = datasetAM.Grupo_Asset.Where(a => a.Grupo_Asset > 0).ToList();
@@ -367,7 +355,6 @@ namespace OmniMonitor.Server.Services
                 }
             }
 
-            // Eliminar el datasetAM
             _context.DatasetAM.Remove(datasetAM);
             await _context.SaveChangesAsync();
         }
@@ -420,7 +407,6 @@ namespace OmniMonitor.Server.Services
             var reducedList = new List<DatasetReducedAMEventsDTO>();
             foreach (var eventItem in events)
             {
-                // Obtener el DTO completo usando el servicio externo
                 var eventTaskInstanceDto = await _sondaAMService.GetEventTaskInstanceById(eventItem.Id_Event_Task_Instance, username);
                 if (eventTaskInstanceDto != null)
                 {
@@ -440,13 +426,10 @@ namespace OmniMonitor.Server.Services
 
         public async Task<DatasetAM> CreateDatasetAMWithFiltersAsync(CreateDatasetAMRequest request, int dataset, List<FilterCondition> filters)
         {
-            // Serializar los filtros a JSON
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
-            Console.WriteLine($"[DEBUG][DatasetAmService] CreateDatasetAMWithFiltersAsync: Username={request.Username}, Nombre={request.Nombre}, Type_Dataset={request.Type_Dataset}, ContentType={request.ContentType}");
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
             {
-                Console.WriteLine("[DEBUG][DatasetAmService] ArgumentException: El nombre de usuario y el nombre del dataset son obligatorios.");
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
             }
 
@@ -455,7 +438,6 @@ namespace OmniMonitor.Server.Services
 
             if (existingDataset != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
             }
 
@@ -483,7 +465,6 @@ namespace OmniMonitor.Server.Services
 
             if (request.Type_Dataset == 1 && request.Grupo_Event_Task_Instance_Ids != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando EventTasks: {string.Join(",", request.Grupo_Event_Task_Instance_Ids)}");
                 newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
                 foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
                 {
@@ -495,7 +476,6 @@ namespace OmniMonitor.Server.Services
             }
             else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Assets: {string.Join(",", request.Grupo_Asset_Ids)}");
                 newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
                 foreach (var id in request.Grupo_Asset_Ids)
                 {
@@ -504,7 +484,6 @@ namespace OmniMonitor.Server.Services
             }
             else if (request.Type_Dataset == 3 && request.StockIds != null)
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] Asignando Stocks: {string.Join(",", request.StockIds)}");
                 newDatasetAM.Grupo_Stock = new List<DatasetStock>();
                 foreach (var stockId in request.StockIds)
                 {
@@ -513,12 +492,10 @@ namespace OmniMonitor.Server.Services
             }
             else
             {
-                Console.WriteLine($"[DEBUG][DatasetAmService] No se asignó ninguna relación hija (Type_Dataset={request.Type_Dataset})");
             }
 
             _context.DatasetAM.Add(newDatasetAM);
             await _context.SaveChangesAsync();
-            Console.WriteLine($"[DEBUG][DatasetAmService] DatasetAM con filtros guardado. Grupo_Stock count: {newDatasetAM.Grupo_Stock?.Count}");
             return newDatasetAM;
         }
 
@@ -533,7 +510,6 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // Serializar los filtros a JSON
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
             // Actualizar campos básicos
@@ -554,12 +530,10 @@ namespace OmniMonitor.Server.Services
                 existingDataset.ContentType = request.ContentType; // 1=device, 2=source, 3=sensor
             }
 
-            // Eliminar relaciones existentes
             _context.DatasetEventTaskInstance.RemoveRange(existingDataset.Grupo_Event_Task_Instance);
             _context.DatasetAsset.RemoveRange(existingDataset.Grupo_Asset);
             _context.DatasetStock.RemoveRange(existingDataset.Grupo_Stock);
 
-            // Limpiar colecciones
             existingDataset.Grupo_Event_Task_Instance.Clear();
             existingDataset.Grupo_Asset.Clear();
             existingDataset.Grupo_Stock.Clear();
