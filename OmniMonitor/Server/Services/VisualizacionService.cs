@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -13,7 +13,6 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Services
 {
-    // --- Interfaz para el servicio de Visualizaciones ---
     public interface IVisualizacionService
     {
     Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
@@ -24,10 +23,8 @@ namespace OmniMonitor.Server.Services
     Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
     Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
     Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req);
-    
     }
 
-    // --- Implementación del servicio ---
     public class VisualizacionService : IVisualizacionService
     {
         private readonly ApplicationDbContext _context;
@@ -40,13 +37,13 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Crea una nueva visualización y asocia los datasets correspondientes.
+        /// Crea una nueva visualizaci�n y asocia los datasets correspondientes.
         /// </summary>
         public async Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request)
         {
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
             {
-                throw new ArgumentException("El nombre de usuario y el nombre de la visualización son obligatorios.");
+                throw new ArgumentException("El nombre de usuario y el nombre de la visualizaci�n son obligatorios.");
             }
 
             var nuevaVisualizacion = new Visualizacion
@@ -59,7 +56,7 @@ namespace OmniMonitor.Server.Services
                 Link = request.Link
             };
 
-            // Añadir los datasets asociados a la visualización
+            // A�adir los datasets asociados a la visualizaci�n
             if (request.Datasets != null && request.Datasets.Any())
             {
                 foreach (var datasetConfig in request.Datasets)
@@ -79,13 +76,13 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Obtiene todas las visualizaciones de un usuario específico.
+        /// Obtiene todas las visualizaciones de un usuario espec�fico.
         /// </summary>
         public async Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username)
         {
             return await _context.Visualizaciones
-            .Include(v => v.GrupoDatasets)           // ← Incluye los GrupoDatasets
-                .ThenInclude(gd => gd.Dataset)       // ← Incluye los Datasets dentro de cada GrupoDataset
+            .Include(v => v.GrupoDatasets)           // ? Incluye los GrupoDatasets
+                .ThenInclude(gd => gd.Dataset)       // ? Incluye los Datasets dentro de cada GrupoDataset
             .Where(v => v.Username == username)
             .OrderByDescending(v => v.IdVisualizacion)
             .ToListAsync();
@@ -122,7 +119,7 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
-        /// Obtiene una visualización por su ID, incluyendo los datasets asociados.
+        /// Obtiene una visualizaci�n por su ID, incluyendo los datasets asociados.
         /// </summary>
         public async Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username)
         {

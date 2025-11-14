@@ -1,4 +1,4 @@
-﻿@page "/sonda-test-kpi5"
+@page "/sonda-test-kpi5"
 @using OmniMonitor.Shared.Dtos
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
@@ -23,7 +23,7 @@
         </div>
 
         <div class="mb-3">
-            <span class="input-group-text">Nueva Métrica:</span>
+            <span class="input-group-text">Nueva M�trica:</span>
             <input type="text" class="form-control" @bind="editMetric" />
         </div>
 
@@ -33,7 +33,7 @@
         </div>
 
         <div class="mb-3">
-            <span class="input-group-text">Nueva Descripción:</span>
+            <span class="input-group-text">Nueva Descripci�n:</span>
             <textarea class="form-control" rows="2" @bind="editDescription"></textarea>
         </div>
 
@@ -103,8 +103,6 @@
 
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-
             var kpiRequest = new KpiRequest
             {
                 Name = string.IsNullOrWhiteSpace(editName) ? null : editName,
@@ -113,21 +111,21 @@
                 Description = string.IsNullOrWhiteSpace(editDescription) ? null : editDescription
             };
 
-            var response = await Http.PatchAsJsonAsync($"api/KPI/{editKpiId}?token={token}", kpiRequest);
+            var response = await Http.PatchAsJsonAsync($"api/KPI/{editKpiId}", kpiRequest);
 
             if (response.IsSuccessStatusCode)
             {
                 var updatedKpi = await response.Content.ReadFromJsonAsync<Kpi>();
-                editResult = $"✅ KPI actualizado: {updatedKpi?.Name} ({updatedKpi?.Metric})";
+                editResult = $"? KPI actualizado: {updatedKpi?.Name} ({updatedKpi?.Metric})";
             }
             else
             {
-                editResult = $"❌ Error al editar KPI: {response.ReasonPhrase}";
+                editResult = $"? Error al editar KPI: {response.ReasonPhrase}";
             }
         }
         catch (Exception ex)
         {
-            editResult = $"⚠️ Error al editar KPI: {ex.Message}";
+            editResult = $"?? Error al editar KPI: {ex.Message}";
         }
         finally
         {
@@ -142,21 +140,20 @@
 
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.DeleteAsync($"api/KPI/{deleteKpiId}?token={token}");
+            var response = await Http.DeleteAsync($"api/KPI/{deleteKpiId}");
 
             if (response.IsSuccessStatusCode)
             {
-                deleteResult = $"🗑️ KPI con ID {deleteKpiId} eliminado correctamente.";
+                deleteResult = $"??? KPI con ID {deleteKpiId} eliminado correctamente.";
             }
             else
             {
-                deleteResult = $"❌ Error al eliminar KPI: {response.ReasonPhrase}";
+                deleteResult = $"? Error al eliminar KPI: {response.ReasonPhrase}";
             }
         }
         catch (Exception ex)
         {
-            deleteResult = $"⚠️ Error al eliminar KPI: {ex.Message}";
+            deleteResult = $"?? Error al eliminar KPI: {ex.Message}";
         }
         finally
         {

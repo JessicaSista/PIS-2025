@@ -1,4 +1,4 @@
-ï»¿@page "/add-sensor-data"
+@page "/add-sensor-data"
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @using System.Net.Http.Json
@@ -12,7 +12,7 @@
     <MudCardContent>
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
-                <MudTextField T="int" Label="Temperatura (Â°C)" Variant="Variant.Outlined" @bind-Value="newReading.Temperatura" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Thermostat" />
+                <MudTextField T="int" Label="Temperatura (°C)" Variant="Variant.Outlined" @bind-Value="newReading.Temperatura" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Thermostat" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField T="int" Label="Humedad (%)" Variant="Variant.Outlined" @bind-Value="newReading.Humedad" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Opacity" />
@@ -33,7 +33,7 @@
                 <MudTextField T="int" Label="Humedad del Suelo (%)" Variant="Variant.Outlined" @bind-Value="newReading.HumedadDelSuelo" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Spa" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField T="int" Label="Temperatura del Suelo (Â°C)" Variant="Variant.Outlined" @bind-Value="newReading.TemperaturaDelSuelo" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AcUnit" />
+                <MudTextField T="int" Label="Temperatura del Suelo (°C)" Variant="Variant.Outlined" @bind-Value="newReading.TemperaturaDelSuelo" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AcUnit" />
             </MudItem>
         </MudGrid>
     </MudCardContent>

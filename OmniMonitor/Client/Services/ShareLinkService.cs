@@ -15,16 +15,9 @@ namespace OmniMonitor.Client.Services
             _localStorage = localStorage;
         }
 
-        private async Task<string> GetTokenAsync()
-        {
-            string? token = await _localStorage.GetItemAsync<string>("authToken");
-            return token ?? string.Empty;
-        }
-
         public async Task<List<ShareResponseDto>> GetShares(int dashboardId)
         {
-            string token = await GetTokenAsync();
-            var url = $"api/Dashboard/getShares/{dashboardId}/share?token={Uri.EscapeDataString(token)}";
+            var url = $"api/Dashboard/getShares/{dashboardId}/share";
             var response = await _http.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
@@ -37,8 +30,7 @@ namespace OmniMonitor.Client.Services
 
         public async Task<ShareResponseDto> CreateShare(int dashboardId, ShareRequestDto request)
         {
-            string token = await GetTokenAsync();
-            var url = $"api/Dashboard/createShare/{dashboardId}/share?token={Uri.EscapeDataString(token)}";
+            var url = $"api/Dashboard/createShare/{dashboardId}/share";
             var response = await _http.PostAsJsonAsync(url, request);
             if (!response.IsSuccessStatusCode)
             {
@@ -52,8 +44,7 @@ namespace OmniMonitor.Client.Services
 
         public async Task<ShareResponseDto?> UpdateShare(string slug, ShareRequestDto request)
         {
-            string token = await GetTokenAsync();
-            var url = $"api/Dashboard/UpdateShare/{slug}?token={Uri.EscapeDataString(token)}";
+            var url = $"api/Dashboard/UpdateShare/{slug}";
             var response = await _http.PutAsJsonAsync(url, request);
             if (!response.IsSuccessStatusCode)
             {
@@ -65,8 +56,7 @@ namespace OmniMonitor.Client.Services
 
         public async Task DeleteShare(string slug)
         {
-            string token = await GetTokenAsync();
-            var url = $"api/Dashboard/DeleteShare/{slug}?token={Uri.EscapeDataString(token)}";
+            var url = $"api/Dashboard/DeleteShare/{slug}";
             var response = await _http.DeleteAsync(url);
             if (!response.IsSuccessStatusCode)
             {

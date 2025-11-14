@@ -126,7 +126,6 @@
         }
     </MudGrid>
 
-    @* Controles de paginación *@
     @if (totalPages > 1)
     {
         <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
@@ -242,7 +241,6 @@
         {
             try
             {
-                // Obtener el usuario actual
                 var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
                 var username = authState.User.Identity?.Name;
                 string token = await LocalStorage.GetItemAsync<string>("authToken");
@@ -255,7 +253,6 @@
 
                 HttpResponseMessage response;
                 
-                // Eliminar según el módulo
                 switch (dataset.Module)
                 {
                     case "Insight Monitor":
@@ -363,7 +360,6 @@
                     hasPreviousPage = paginatedResult.HasPreviousPage;
                     hasNextPage = paginatedResult.HasNextPage;
                     
-                    Console.WriteLine($"DEBUG: Página {currentPage}/{totalPages}, Total: {totalCount}, Mostrando: {filteredDatasets.Count}");
                 }
                 else
                 {

@@ -313,7 +313,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Ocurri� un error durante el seeding de la base de datos.");
+        logger.LogError(ex, "Ocurrió un error durante el seeding de la base de datos.");
     }
 }
 

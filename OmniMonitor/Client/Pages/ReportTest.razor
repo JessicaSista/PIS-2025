@@ -1,4 +1,4 @@
-﻿@page "/report-builder"
+@page "/report-builder"
 @inject HttpClient Http
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @using System.Text.Json
@@ -7,7 +7,7 @@
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8">
         <h1 class="text-4xl font-bold text-gray-800">Panel de Control de Reportes</h1>
-        <p class="text-gray-600 mt-2">Crea Joins, construye reportes y añádeles los joins que necesites.</p>
+        <p class="text-gray-600 mt-2">Crea Joins, construye reportes y adeles los joins que necesites.</p>
     </header>
 
     <!-- Session Token Card -->
@@ -190,7 +190,6 @@
 @code {
     private const string ApiBaseUrl = "api/reports";
 
-    // --- State Variables ---
     private string sessionToken = "";
     private List<CrossModuleJoinDto> joins = new();
     private List<Report> reports = new();
@@ -199,7 +198,6 @@
     private Report? selectedReport;
     private string resultJson = "Los resultados de las operaciones aparecerán aquí...";
 
-    // --- Lifecycle and Data Loading ---
     protected override async Task OnInitializedAsync()
     {
         await LoadTokenFromLocalStorage();
@@ -235,7 +233,7 @@
     {
         try
         {
-            var fetchedReports = await Http.GetFromJsonAsync<List<Report>>($"{ApiBaseUrl}/by-user?token={sessionToken}");
+            var fetchedReports = await Http.GetFromJsonAsync<List<Report>>($"{ApiBaseUrl}/by-user");
             if (fetchedReports != null) reports = fetchedReports;
         }
         catch (Exception ex) { DisplayResult(new { Error = "Error al cargar reportes.", ex.Message }); }
@@ -245,7 +243,7 @@
     {
         try
         {
-            var fetchedJoins = await Http.GetFromJsonAsync<List<CrossModuleJoinDto>>($"{ApiBaseUrl}/joins/by-user?token={sessionToken}");
+            var fetchedJoins = await Http.GetFromJsonAsync<List<CrossModuleJoinDto>>($"{ApiBaseUrl}/joins/by-user");
             if (fetchedJoins != null) joins = fetchedJoins;
         }
         catch (Exception ex) { DisplayResult(new { Error = "Error al cargar joins.", ex.Message }); }
@@ -257,7 +255,7 @@
         if (string.IsNullOrWhiteSpace(sessionToken)) { DisplayResult(new { Error = "Se requiere token." }); return; }
         try
         {
-            var response = await Http.PostAsJsonAsync($"{ApiBaseUrl}/joins?token={sessionToken}", newJoin);
+            var response = await Http.PostAsJsonAsync($"{ApiBaseUrl}/joins", newJoin);
             if (response.IsSuccessStatusCode)
             {
                 var created = await response.Content.ReadFromJsonAsync<CrossModuleJoin>();
@@ -298,15 +296,15 @@
     {
         if (selectedReport == null || string.IsNullOrWhiteSpace(sessionToken))
         {
-            DisplayResult(new { Error = "Por favor, selecciona un reporte y asegúrate de que el token esté cargado." });
+            DisplayResult(new { Error = "Por favor, selecciona un reporte y asegñrate de que el token está cargado." });
             return;
         }
 
-        var joinRequest = new ReportJoinItemDto { CrossModuleJoinId = joinId, ExecutionOrder = 1 }; // Orden simplificado
+        var joinRequest = new ReportJoinItemDto { CrossModuleJoinId = joinId, ExecutionOrder = 1 };
 
         try
         {
-            var response = await Http.PostAsJsonAsync($"{ApiBaseUrl}/{selectedReport.Id}/joins?token={sessionToken}", joinRequest);
+            var response = await Http.PostAsJsonAsync($"{ApiBaseUrl}/{selectedReport.Id}/joins", joinRequest);
             if (response.IsSuccessStatusCode)
             {
                 var link = await response.Content.ReadFromJsonAsync<ReportJoin>();
@@ -319,7 +317,6 @@
 
     private void DisplayResult(object data) => resultJson = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
 
-    // --- DTOs and Enums ---
     public class JoinOperandDto { public ModuleType ModuleType { get; set; } public int DatasetId { get; set; } public EntityName EntityName { get; set; } public string JoinPropertyName { get; set; } = ""; public string JoinPropertyType { get; set; } = "string"; }
     public class CreateJoinRequestDto { public string Name { get; set; } = ""; public JoinType JoinType { get; set; } = JoinType.Inner; public JoinOperandDto LeftOperand { get; set; } = new(); public JoinOperandDto RightOperand { get; set; } = new(); }
     public class CrossModuleJoinDto { public int Id { get; set; } public string Name { get; set; } public JoinType JoinType { get; set; } public JoinOperandDto LeftOperand { get; set; } public JoinOperandDto RightOperand { get; set; } }

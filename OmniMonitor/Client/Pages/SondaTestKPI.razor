@@ -1,4 +1,4 @@
-﻿@page "/sonda-test-kpi"
+@page "/sonda-test-kpi"
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 
@@ -25,7 +25,7 @@
         <div class="card-body">
             <p>@kpi.Description</p>
             <p><b>Unidad:</b> @kpi.Unit</p>
-            <p><b>Módulo:</b> @kpi.SourceModule</p>
+            <p><b>M�dulo:</b> @kpi.SourceModule</p>
             <p><b>DatasetId:</b> @kpi.DatasetId</p>
             <p><b>Color por defecto:</b> <span style="color:@kpi.DefaultColor">@kpi.DefaultColor</span></p>
 

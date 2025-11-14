@@ -718,10 +718,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         selectedTipo = newModule;
         
-        // Limpiar todos los datos y selecciones previas
         ClearAllSelections();
-        
-        // Cargar las listas del nuevo módulo
         switch (newModule)
         {
             case "Insight Monitor":
@@ -811,13 +808,11 @@ else if (selectedTipo == "Insight Monitor")
                         if (!string.IsNullOrEmpty(module))
                         {
                             ModuleHint = module;
-                            Console.WriteLine($"[PERF] Module identified in DB: {module}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[PERF] Error identifying module: {ex.Message}");
                 }
             }
 
@@ -909,8 +904,6 @@ else if (selectedTipo == "Insight Monitor")
                     {
                         selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
                     }
-
-                    // Cargar las listas necesarias en paralelo para mayor velocidad
                     await Task.WhenAll(
                         LoadSourcesAndGroups(),
                         LoadDevices(),
@@ -923,7 +916,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as IM: {ex.Message}");
         }
         return false;
     }
@@ -943,8 +935,6 @@ else if (selectedTipo == "Insight Monitor")
                     addDesc = existenteAM.Descripcion ?? string.Empty;
                     
                     amMode = existenteAM.Type_Dataset;
-
-                    // Cargar solo las listas necesarias para AM
                     await InitializeAMLists();
 
                     if (amMode == 2)
@@ -991,7 +981,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as AM: {ex.Message}");
         }
         return false;
     }
@@ -1011,8 +1000,6 @@ else if (selectedTipo == "Insight Monitor")
                     addDesc = existenteUM.Description ?? string.Empty;
                     
                     selectedZoneId = existenteUM.Id_Zone;
-                    
-                    // Cargar las listas necesarias en paralelo para mayor velocidad
                     var tasksToRun = new List<Task>();
                     tasksToRun.Add(InitializeUMLists());
                     
@@ -1040,7 +1027,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as UM: {ex.Message}");
         }
         return false;
     }
@@ -1049,56 +1035,42 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            Console.WriteLine($"[DEBUG EditarDataset] Token length: {authToken?.Length ?? 0}");
-            Console.WriteLine($"[DEBUG EditarDataset] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
             
             var encodedToken = GetEncodedToken();
             
             var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources");
-            Console.WriteLine($"[DEBUG EditarDataset] Sources response status: {sourcesResponse.StatusCode}");
             
             if (sourcesResponse.IsSuccessStatusCode)
             {
                 sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
-                Console.WriteLine($"[DEBUG EditarDataset] Loaded {sources.Count} sources");
             }
             else
             {
                 var error = await sourcesResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EditarDataset] Sources error: {error}");
                 Snackbar.Add($"Error al cargar fuentes: {error}", Severity.Error);
             }
 
             var groupsResponse = await Http.GetAsync($"api/SondaMain/groups");
-            Console.WriteLine($"[DEBUG EditarDataset] Groups response status: {groupsResponse.StatusCode}");
             
             if (groupsResponse.IsSuccessStatusCode)
             {
                 deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
-                Console.WriteLine($"[DEBUG EditarDataset] Loaded {deviceGroups.Count} groups");
             }
             else
             {
                 var error = await groupsResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EditarDataset] Groups error: {error}");
                 Snackbar.Add($"Error al cargar grupos: {error}", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EditarDataset] Exception in LoadSourcesAndGroups: {ex.Message}");
-            Console.WriteLine($"[DEBUG EditarDataset] Stack trace: {ex.StackTrace}");
             Snackbar.Add($"{Localizer["ErrorCargaFuentes"]} {ex.Message}", Severity.Error);
         }
     }
 
-    // Cuando cambia la fuente seleccionada: limpiar grupo, dispositivos y sensor
     private async Task OnSourceChanged(int? sourceId)
     {
-        // asigno nuevo source
         selectedSourceId = sourceId;
-
-        // limpio todas las dependencias
         selectedGroupId = null;
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
@@ -1115,7 +1087,6 @@ else if (selectedTipo == "Insight Monitor")
         StateHasChanged();
     }
 
-    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
@@ -1166,7 +1137,6 @@ else if (selectedTipo == "Insight Monitor")
                 }
             }
 
-            // INTERSECCIÓN
             if (devicesFromSource != null && devicesFromGroup != null)
             {
                 var deviceIdsFromGroup = new HashSet<int>(devicesFromGroup.Select(d => d.Id));
@@ -1197,8 +1167,6 @@ else if (selectedTipo == "Insight Monitor")
             devices = new List<Device>();
         }
     }
-
-    // Cargar sensores de la fuente seleccionada
     private async Task LoadSensors()
     {
         try
@@ -1348,15 +1316,11 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var encoded = GetEncodedToken();
-
-            // Load Asset Types
             var respTypes = await Http.GetAsync($"api/SondaAM/asset/types");
             if (respTypes.IsSuccessStatusCode)
             {
                 assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
             }
-
-            // Load Task Types
             var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos");
             if (respTaskTypes.IsSuccessStatusCode)
             {
@@ -1572,8 +1536,6 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var encodedToken = GetEncodedToken();
-
-            // Load Zones
             var respZones = await Http.GetAsync($"api/SondaMain/zones");
             if (respZones.IsSuccessStatusCode)
             {
@@ -1730,8 +1692,6 @@ else if (selectedTipo == "Insight Monitor")
                     selectedTipo = "Event Manager";
                     addName = existenteEM.Name ?? string.Empty;
                     addDesc = existenteEM.Description ?? string.Empty;
-
-                    // Load categories first
                     await InitializeEMLists();
 
                     // If there are existing selections, load them
@@ -1767,7 +1727,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as EM: {ex.Message}");
         }
         return false;
     }
@@ -1776,7 +1735,6 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            // Load all events for each category to find which one contains this event
             foreach (var category in categories)
             {
                 await LoadEventsByCategory(category.Id);
@@ -1796,7 +1754,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error identifying category from event: {ex.Message}");
         }
     }
 
@@ -1804,7 +1761,6 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            // Load all alerts for each category to find which one contains this alert
             foreach (var category in categories)
             {
                 await LoadAlertsByCategory(category.Id);
@@ -1818,7 +1774,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error identifying category from alert: {ex.Message}");
         }
     }
 
@@ -1827,31 +1782,22 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var encodedToken = GetEncodedToken();
-            Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
-
-            // Load Categories (backend handles Sonda API pagination limitations)
             var url = $"api/SondaEM/category?page=1&pageSize=1000";
-            Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             
             var respCategories = await Http.GetAsync(url);
-            Console.WriteLine($"[DEBUG EM] Categories response status: {respCategories.StatusCode}");
             
             if (respCategories.IsSuccessStatusCode)
             {
                 categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
-                Console.WriteLine($"[DEBUG EM] Loaded {categories.Count} categories");
             }
             else
             {
                 var error = await respCategories.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EM] Categories error: {error}");
                 ShowError($"Error al cargar categorías: {error}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EM] Exception: {ex.Message}");
-            Console.WriteLine($"[DEBUG EM] Stack trace: {ex.StackTrace}");
             ShowError($"Error cargando Event Manager: {ex.Message}");
         }
     }

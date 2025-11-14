@@ -1,4 +1,4 @@
-Ôªø@page "/report-manager"
+@page "/report-manager"
 @inject HttpClient Http
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @using System.Text.Json
@@ -7,16 +7,16 @@
 <div class="container mx-auto p-4 md:p-8">
     <header class="text-center mb-8">
         <h1 class="text-4xl font-bold text-gray-800">Panel de Pruebas de API de Reportes</h1>
-        <p class="text-gray-600 mt-2">Una p√°gina simple con botones para probar cada endpoint.</p>
+        <p class="text-gray-600 mt-2">Una p·gina simple con botones para probar cada endpoint.</p>
     </header>
 
     <!-- Session Token Card -->
     <div class="card mb-8 max-w-xl mx-auto">
-        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Autenticaci√≥n</h2>
+        <h2 class="text-2xl font-semibold mb-4 text-gray-700">AutenticaciÛn</h2>
         <div class="flex items-end space-x-2">
             <div class="flex-grow">
-                <label for="session-token" class="form-label">Token de Sesi√≥n</label>
-                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="El token se cargar√° aqu√≠..." readonly />
+                <label for="session-token" class="form-label">Token de SesiÛn</label>
+                <InputText @bind-Value="sessionToken" id="session-token" class="form-input font-mono bg-gray-100" placeholder="El token se cargar· aquÌ..." readonly />
             </div>
             <button class="btn btn-secondary" @onclick="LoadTokenFromLocalStorage">Cargar Token</button>
         </div>
@@ -49,7 +49,7 @@
                             <label class="form-label">ID del Reporte</label>
                             <InputNumber @bind-Value="reportIdForAction" class="form-input" />
                         </div>
-                        <button class="btn btn-success" @onclick="HandleCreateAndAddJoinToReport">5. Crear y A√±adir Join de Prueba</button>
+                        <button class="btn btn-success" @onclick="HandleCreateAndAddJoinToReport">5. Crear y AÒadir Join de Prueba</button>
                     </div>
 
                     <div class="flex items-end space-x-2">
@@ -138,7 +138,7 @@
 
     // --- State Variables ---
     private string sessionToken = "";
-    private string resultJson = "Los resultados de las operaciones aparecer√°n aqu√≠...";
+    private string resultJson = "Los resultados de las operaciones aparecer·n aquÌ...";
     private int reportIdForAction;
     private int reportIdToExecute;
 
@@ -167,12 +167,12 @@
             RightOperand = new JoinOperandDto { ModuleType = ModuleType.InsightMonitor, DatasetId = 3, EntityName = EntityName.Device, JoinPropertyName = "Id"}
         };
 
-        await PostRequest($"{ApiBaseUrl}/joins?token={sessionToken}", testJoin, "Join de Prueba Creado");
+        await PostRequest($"{ApiBaseUrl}/joins", testJoin, "Join de Prueba Creado");
     }
 
     private async Task HandleListJoins()
     {
-        await GetRequest($"{ApiBaseUrl}/joins/by-user?token={sessionToken}", "Lista de Joins");
+        await GetRequest($"{ApiBaseUrl}/joins/by-user", "Lista de Joins");
     }
 
     private async Task HandleCreateReport()
@@ -189,14 +189,12 @@
 
     private async Task HandleListReports()
     {
-        await GetRequest($"{ApiBaseUrl}/by-user?token={sessionToken}", "Lista de Reportes");
+        await GetRequest($"{ApiBaseUrl}/by-user", "Lista de Reportes");
     }
-
-    // --- FUNCI√ìN MODIFICADA ---
     private async Task HandleCreateAndAddJoinToReport()
     {
 
-        // Crea un Join de prueba para a√±adirlo
+        // Crea un Join de prueba para aÒadirlo
         var joinToCreateAndAdd = new CreateJoinRequestDto
         {
             Name = $"Join para Reporte {reportIdForAction} - {DateTime.Now.Ticks}",
@@ -205,13 +203,12 @@
             RightOperand = new JoinOperandDto { ModuleType = ModuleType.InsightMonitor, DatasetId = 3, EntityName = EntityName.Device, JoinPropertyName = "Id" }
         };
 
-        // Llama al nuevo endpoint del controlador
-        await PostRequest($"{ApiBaseUrl}/2/joins/create-and-add?token={sessionToken}", joinToCreateAndAdd, $"Nuevo Join a√±adido al Reporte {reportIdForAction}");
+        await PostRequest($"{ApiBaseUrl}/2/joins/create-and-add", joinToCreateAndAdd, $"Nuevo Join aÒadido al Reporte {reportIdForAction}");
     }
 
     private async Task ExecuteReport()
     {
-        await GetRequest($"{ApiBaseUrl}/2/execute?token={sessionToken}", $"Ejecuci√≥n del Reporte {reportIdToExecute}");
+        await GetRequest($"{ApiBaseUrl}/2/execute", $"EjecuciÛn del Reporte {reportIdToExecute}");
     }
 
     // --- Generic API Call Helpers ---
