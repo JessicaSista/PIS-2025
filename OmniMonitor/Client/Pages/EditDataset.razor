@@ -10,6 +10,7 @@
 @inject HttpClient Http
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<Datasets> Localizer
@@ -190,112 +191,58 @@ else if (selectedTipo == "Insight Monitor")
                       Required="true" />
     </MudStack>
 
-    <!-- Toggle de modo: Asset vs Event Task -->
+    <!-- Toggle de modo: Asset, Event Task, Stock -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
-        <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(2)">Asset</MudButton>
-        <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(1)">Event Task</MudButton>
+        <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetAmMode(2)"
+                   Disabled="@isEditingAM">Asset</MudButton>
+        <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetAmMode(1)"
+                   Disabled="@isEditingAM">Event Task</MudButton>
+        <MudButton Variant="@(amMode == 3 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetAmMode(3)"
+                   Disabled="@isEditingAM">Stock</MudButton>
     </MudStack>
 
-    @if (amMode == 2)
+    @if (amMode == 2 || amMode == 1 || amMode == 3)
     {
-        <!-- Asset Manager: AssetType (req) -> Assets (multi, opcional) -->
-        <MudStack Row Spacing="2" Class="mb-4 mx-4">
-            <div style="width: 50%;">
-                <MudSelect T="int?"
-                           Value="@selectedAssetTypeId"
-                           ValueChanged="OnAssetTypeChanged"
-                           Variant="Variant.Outlined"
-                           FullWidth="true"
-                           Clearable
-                           Label="@Localizer["SeleccionarTipoAsset"]"
-                           Class="dark-field"
-                           Required="true">
-                    @foreach (var t in assetTypes)
+        <!-- Sistema de Filtros -->
+        <MudStack Class="mb-4 mx-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            
+            @if (amFilters.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    No hay filtros configurados. Agrega al menos un filtro para actualizar el dataset.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    @foreach (var filter in amFilters)
                     {
-                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
+                        <MudChip T="FilterCondition"
+                                Size="MudBlazor.Size.Small" 
+                                Color="MudBlazor.Color.Primary" 
+                                Variant="Variant.Filled"
+                                OnClose="() => RemoveFilter(filter)"
+                                CloseIcon="@Icons.Material.Filled.Close"
+                                Class="ma-1">
+                            @RenderFilterDisplay(filter)
+                        </MudChip>
                     }
-                </MudSelect>
-            </div>
-            <div style="width: 50%;">
-                <MudSelect T="string"
-                           SelectedValues="selectedAssetIds"
-                           SelectedValuesChanged="OnSelectedAssetsChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           SelectAll="true"
-                           SelectAllText="@Localizer["SeleccionarTodos"]"
-                           Clearable
-                           FullWidth="true"
-                           Disabled="@(!selectedAssetTypeId.HasValue)"
-                           Label="@Localizer["SeleccionarAsset"]"
-                           Class="dark-field"
-                           ToStringFunc="@(id => assets.FirstOrDefault(a => a.Id == id)?.Name ?? id)">
-                    @foreach (var a in assets)
-                    {
-                        <MudSelectItem T="string" Value="@a.Id">@a.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-        </MudStack>
-    }
-    else if (amMode == 1)
-    {
-        <!-- Asset Manager: Event Task flow -->
-        <MudStack Row Spacing="2" Class="mb-4 mx-4">
-            <div style="width: 33.33%;">
-                <MudSelect T="int?"
-                           Value="@selectedTaskTypeId"
-                           ValueChanged="OnTaskTypeChanged"
-                           Variant="Variant.Outlined"
-                           FullWidth="true"
-                           Label="@Localizer["SeleccionarTaskType"]"
-                           Clearable
-                           Class="dark-field"
-                           Required="true">
-                    @foreach (var t in taskTypes)
-                    {
-                        <MudSelectItem Value="@((int?)t.Id)">@t.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-            <div style="width: 33.33%;">
-                <MudSelect T="int"
-                           SelectedValues="selectedEventTaskInstanceIds"
-                           SelectedValuesChanged="OnSelectedEventTaskInstancesChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           SelectAll="true"
-                           SelectAllText="@Localizer["SeleccionarTodos"]"
-                           Clearable
-                           FullWidth="true"
-                           Disabled="@(!selectedTaskTypeId.HasValue)"
-                           Label="@Localizer["SeleccionarEventTaskInstance(s)"]"
-                           Class="dark-field"
-                           ToStringFunc="@(id => GetEventTaskInstanceDisplayName(id))">
-                    @foreach (var e in eventTaskInstances)
-                    {
-                        <MudSelectItem T="int" Value="@e.Id">@GetEventTaskInstanceDisplayName(e.Id)</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-            <div style="width: 33.33%;">
-                <MudSelect T="int"
-                           SelectedValues="selectedStockIds"
-                           SelectedValuesChanged="OnSelectedStocksChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           Clearable
-                           FullWidth="true"
-                           Disabled="@(!EnableStocksSelect)"
-                           Label="@Localizer["SeleccionarStock"]"
-                           Class="dark-field"
-                           ToStringFunc="@(id => stocks.FirstOrDefault(s => s.Id == id)?.Name ?? id.ToString())">
-                    @foreach (var s in stocks)
-                    {
-                        <MudSelectItem T="int" Value="@s.Id">@s.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
+                </MudPaper>
+            }
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                      Variant="Variant.Outlined" 
+                      Color="MudBlazor.Color.Primary"
+                      OnClick="OpenFilterModal">
+                Agregar Filtro
+            </MudButton>
         </MudStack>
     }
 
@@ -338,70 +285,56 @@ else if (selectedTipo == "Insight Monitor")
                       Required="true" />
     </MudStack>
 
-    <!-- Tres selects: Zona, Eventos y Noticias -->
-    <MudStack Row Spacing="2" Class="mb-4 mx-4">
-        <!-- Zona -->
-        <div style="width: 33.33%;">
-            <MudSelect T="int?"
-                       Value="@selectedZoneId"
-                       ValueChanged="OnZoneChanged"
-                       Variant="Variant.Outlined"
-                       FullWidth="true"
-                       Clearable
-                       Label="@Localizer["SeleccionarZona"]"
-                       Class="dark-field"
-                       Required="true">
-                @foreach (var zone in zones)
-                {
-                    <MudSelectItem Value="@((int?)zone.Id)">@zone.Name</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
-
-        <!-- Eventos -->
-        <div style="width: 33.33%;">
-            <MudSelect T="int"
-                       SelectedValues="selectedEventIds"
-                       SelectedValuesChanged="OnSelectedEventsChanged"
-                       Variant="Variant.Outlined"
-                       MultiSelection="true"
-                       SelectAll="true"
-                       SelectAllText="@Localizer["SeleccionarTodos"]"
-                       Clearable
-                       FullWidth="true"
-                       Disabled="@(!selectedZoneId.HasValue)"
-                       Label="@Localizer["SeleccionarEvento"]"
-                       Class="dark-field"
-                       ToStringFunc="@(id => events.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
-                @foreach (var evt in events)
-                {
-                    <MudSelectItem T="int" Value="@evt.Id">@evt.Name</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
-
-        <!-- Noticias -->
-        <div style="width: 33.33%;">
-            <MudSelect T="int"
-                       SelectedValues="selectedNewsIds"
-                       SelectedValuesChanged="OnSelectedNewsChanged"
-                       Variant="Variant.Outlined"
-                       MultiSelection="true"
-                       SelectAll="true"
-                       SelectAllText="@Localizer["SeleccionarTodos"]"
-                       Clearable
-                       FullWidth="true"
-                       Disabled="@(!selectedZoneId.HasValue)"
-                       Label="@Localizer["SeleccionarNoticia"]"
-                       Class="dark-field"
-                       ToStringFunc="@(id => newsList.FirstOrDefault(n => n.Id == id)?.Title ?? id.ToString())">
-                @foreach (var news in newsList)
-                {
-                    <MudSelectItem T="int" Value="@news.Id">@news.Title</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
+    <!-- Toggle de modo: Eventos, Noticias -->
+    <MudStack Row Spacing="2" Class="mb-1 mx-4">
+        <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetUmMode(1)"
+                   Disabled="@isEditingUM">Eventos</MudButton>
+        <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetUmMode(2)"
+                   Disabled="@isEditingUM">Noticias</MudButton>
     </MudStack>
+
+    @if (umMode == 1 || umMode == 2)
+    {
+        <!-- Sistema de Filtros -->
+        <MudStack Class="mb-4 mx-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            
+            @if (umFilters.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    No hay filtros configurados. Agrega al menos un filtro para actualizar el dataset.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    @foreach (var filter in umFilters)
+                    {
+                        <MudChip T="FilterCondition"
+                                Size="MudBlazor.Size.Small" 
+                                Color="MudBlazor.Color.Primary" 
+                                Variant="Variant.Filled"
+                                OnClose="() => RemoveUmFilter(filter)"
+                                CloseIcon="@Icons.Material.Filled.Close"
+                                Class="ma-1">
+                            @RenderFilterDisplay(filter)
+                        </MudChip>
+                    }
+                </MudPaper>
+            }
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                      Variant="Variant.Outlined" 
+                      Color="MudBlazor.Color.Primary"
+                      OnClick="OpenUmFilterModal">
+                Agregar Filtro
+            </MudButton>
+        </MudStack>
+    }
 
     <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
         <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
@@ -442,92 +375,60 @@ else if (selectedTipo == "Insight Monitor")
                       Required="true" />
     </MudStack>
 
-    <!-- Cuatro selects: Categoria, Eventos, Alertas y Extensiones -->
-    <MudStack Row Spacing="2" Class="mb-4 mx-4">
-        <!-- Categoria -->
-        <div style="width: 25%;">
-            <MudSelect T="int?"
-                       Value="@selectedCategoryId"
-                       ValueChanged="OnCategoryChanged"
-                       Variant="Variant.Outlined"
-                       FullWidth="true"
-                       Clearable
-                       Label="@Localizer["SeleccionarCategoria"]"
-                       Class="dark-field"
-                       Required="true">
-                @foreach (var category in categories)
-                {
-                    <MudSelectItem Value="@((int?)category.Id)">@category.Name</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
-
-        <!-- Eventos -->
-        <div style="width: 25%;">
-            <MudSelect T="int"
-                       SelectedValues="selectedEventEMIds"
-                       SelectedValuesChanged="OnSelectedEventEMsChanged"
-                       Variant="Variant.Outlined"
-                       MultiSelection="true"
-                       SelectAll="true"
-                       SelectAllText="@Localizer["SeleccionarTodos"]"
-                       Clearable
-                       FullWidth="true"
-                       Disabled="@(!selectedCategoryId.HasValue)"
-                       Label="@Localizer["SeleccionarEvento"]"
-                       Class="dark-field"
-                       ToStringFunc="@(id => eventsEM.FirstOrDefault(e => e.Id == id)?.Name ?? id.ToString())">
-                @foreach (var evt in eventsEM)
-                {
-                    <MudSelectItem T="int" Value="@evt.Id">@evt.Name</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
-
-        <!-- Alertas -->
-        <div style="width: 25%;">
-            <MudSelect T="int"
-                       SelectedValues="selectedAlertIds"
-                       SelectedValuesChanged="OnSelectedAlertsChanged"
-                       Variant="Variant.Outlined"
-                       MultiSelection="true"
-                       SelectAll="true"
-                       SelectAllText="@Localizer["SeleccionarTodas"]"
-                       Clearable
-                       FullWidth="true"
-                       Disabled="@(!selectedCategoryId.HasValue)"
-                       Label="@Localizer["SeleccionarAlerta"]"
-                       Class="dark-field"
-                       ToStringFunc="@(id => GetAlertDisplayName(id))">
-                @foreach (var alert in alertsEM)
-                {
-                    <MudSelectItem T="int" Value="@alert.AlertId">@GetAlertDisplayName(alert.AlertId)</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
-
-        <!-- Extensiones -->
-        <div style="width: 25%;">
-            <MudSelect T="int"
-                       SelectedValues="selectedExtensionIds"
-                       SelectedValuesChanged="OnSelectedExtensionsChanged"
-                       Variant="Variant.Outlined"
-                       MultiSelection="true"
-                       SelectAll="true"
-                       SelectAllText="@Localizer["SeleccionarTodas"]"
-                       Clearable
-                       FullWidth="true"
-                       Disabled="@(!EnableExtensionsSelect)"
-                       Label="@Localizer["SeleccionarExtension"]"
-                       Class="dark-field"
-                       ToStringFunc="@(id => GetExtensionDisplayName(id))">
-                @foreach (var ext in extensions)
-                {
-                    <MudSelectItem T="int" Value="@ext.Id">@GetExtensionDisplayName(ext.Id)</MudSelectItem>
-                }
-            </MudSelect>
-        </div>
+    <!-- Toggle de modo: Alertas, Eventos, Extensiones -->
+    <MudStack Row Spacing="2" Class="mb-1 mx-4">
+        <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetEmMode(1)"
+                   Disabled="@isEditingEM">Alertas</MudButton>
+        <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetEmMode(2)"
+                   Disabled="@isEditingEM">Eventos</MudButton>
+        <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetEmMode(3)"
+                   Disabled="@isEditingEM">Extensiones</MudButton>
     </MudStack>
+
+    @if (emMode == 1 || emMode == 2 || emMode == 3)
+    {
+        <!-- Sistema de Filtros -->
+        <MudStack Class="mb-4 mx-4">
+            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            
+            @if (emFilters.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-3">
+                    No hay filtros configurados. Agrega al menos un filtro para actualizar el dataset.
+                </MudAlert>
+            }
+            else
+            {
+                <MudPaper Elevation="1" Class="pa-3 mb-3">
+                    @foreach (var filter in emFilters)
+                    {
+                        <MudChip T="FilterCondition"
+                                Size="MudBlazor.Size.Small" 
+                                Color="MudBlazor.Color.Primary" 
+                                Variant="Variant.Filled"
+                                OnClose="() => RemoveEmFilter(filter)"
+                                CloseIcon="@Icons.Material.Filled.Close"
+                                Class="ma-1">
+                            @RenderFilterDisplay(filter)
+                        </MudChip>
+                    }
+                </MudPaper>
+            }
+
+            <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                      Variant="Variant.Outlined" 
+                      Color="MudBlazor.Color.Primary"
+                      OnClick="OpenEmFilterModal">
+                Agregar Filtro
+            </MudButton>
+        </MudStack>
+    }
 
     <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
         <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
@@ -575,8 +476,9 @@ else if (selectedTipo == "Insight Monitor")
     private string authToken = string.Empty;
     private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
 
-    // amMode: 1 = Event Task, 2 = Asset
+    // amMode: 1 = Event Task, 2 = Asset, 3 = Stock
     private int amMode = 2;
+    private bool isEditingAM = false; // Indica si estamos editando un dataset AM (para bloquear cambio de modo)
 
     // Asset flow
     private List<AssetTypeDto> assetTypes = new();
@@ -591,24 +493,28 @@ else if (selectedTipo == "Insight Monitor")
     private HashSet<int> selectedEventTaskInstanceIds = new();
     private List<EventTaskInstanceStockDto> stocks = new();
     private HashSet<int> selectedStockIds = new();
+    
+    // Filtros para AM
+    private List<FilterCondition> amFilters = new();
+    private List<PropiedadEntidadDto> availableAttributes = new();
 
     // UM UI State
-    private List<Zone> zones = new();
-    private int? selectedZoneId = null;
-    private List<Event> events = new();
-    private HashSet<int> selectedEventIds = new();
-    private List<News> newsList = new();
-    private HashSet<int> selectedNewsIds = new();
+    // umMode: 1 = Eventos, 2 = Noticias
+    private int umMode = 1;
+    private bool isEditingUM = false; // Indica si estamos editando un dataset UM (para bloquear cambio de modo)
+    
+    // Filtros para UM
+    private List<FilterCondition> umFilters = new();
+    private List<PropiedadEntidadDto> umAvailableAttributes = new();
 
     // EM UI State
-    private List<CategoryDto> categories = new();
-    private int? selectedCategoryId = null;
-    private List<EventDto> eventsEM = new();
-    private HashSet<int> selectedEventEMIds = new();
-    private List<AlertDto> alertsEM = new();
-    private HashSet<int> selectedAlertIds = new();
-    private List<ExtensionDtoDup> extensions = new();
-    private HashSet<int> selectedExtensionIds = new();
+    // emMode: 1 = Alertas, 2 = Eventos, 3 = Extensiones
+    private int emMode = 1;
+    private bool isEditingEM = false; // Indica si estamos editando un dataset EM (para bloquear cambio de modo)
+    
+    // Filtros para EM
+    private List<FilterCondition> emFilters = new();
+    private List<PropiedadEntidadDto> emAvailableAttributes = new();
 
     private bool EnableStocksSelect => selectedEventTaskInstanceIds.Count == 1;
 
@@ -617,7 +523,8 @@ else if (selectedTipo == "Insight Monitor")
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            return selectedZoneId.HasValue && (selectedEventIds.Count > 0 || selectedNewsIds.Count > 0);
+            // Requiere al menos un filtro
+            return umFilters.Count > 0;
         }
     }
     
@@ -627,41 +534,11 @@ else if (selectedTipo == "Insight Monitor")
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            if (amMode == 2)
-            {
-                return selectedAssetTypeId.HasValue;
-            }
-            // Event Task
-            return selectedTaskTypeId.HasValue;
+            // Requiere al menos un filtro
+            return amFilters.Count > 0;
         }
     }
 
-    private bool EnableExtensionsSelect => selectedEventEMIds.Count == 1;
-
-    private string GetExtensionDisplayName(int extensionId)
-    {
-        var ext = extensions.FirstOrDefault(e => e.Id == extensionId);
-        if (ext == null) return extensionId.ToString();
-        
-        if (!string.IsNullOrWhiteSpace(ext.WorkZoneName))
-            return $"#{ext.Id} {ext.WorkZoneName}";
-        
-        if (!string.IsNullOrWhiteSpace(ext.EventName))
-            return $"#{ext.Id} {ext.EventName}";
-        
-        return $"#{ext.Id}";
-    }
-
-    private string GetAlertDisplayName(int alertId)
-    {
-        var alert = alertsEM.FirstOrDefault(a => a.AlertId == alertId);
-        if (alert == null) return alertId.ToString();
-        
-        if (!string.IsNullOrWhiteSpace(alert.AlertName))
-            return $"#{alert.AlertId} {alert.AlertName}";
-        
-        return $"#{alert.AlertId}";
-    }
 
     private string GetEventTaskInstanceDisplayName(int instanceId)
     {
@@ -682,7 +559,8 @@ else if (selectedTipo == "Insight Monitor")
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            return selectedCategoryId.HasValue && (selectedEventEMIds.Count > 0 || selectedAlertIds.Count > 0);
+            // Requiere al menos un filtro
+            return emFilters.Count > 0;
         }
     }
 
@@ -763,22 +641,16 @@ else if (selectedTipo == "Insight Monitor")
         stocks.Clear();
         
         // Clear Urban Monitor
-        selectedZoneId = null;
-        selectedEventIds.Clear();
-        selectedNewsIds.Clear();
-        zones.Clear();
-        events.Clear();
-        newsList.Clear();
+        umMode = 1;
+        umFilters.Clear();
+        umAvailableAttributes.Clear();
+        isEditingUM = false;
         
         // Clear Event Manager
-        selectedCategoryId = null;
-        selectedEventEMIds.Clear();
-        selectedAlertIds.Clear();
-        selectedExtensionIds.Clear();
-        categories.Clear();
-        eventsEM.Clear();
-        alertsEM.Clear();
-        extensions.Clear();
+        emMode = 1;
+        emFilters.Clear();
+        emAvailableAttributes.Clear();
+        isEditingEM = false;
     }
 
     private async Task LoadDataset()
@@ -935,45 +807,30 @@ else if (selectedTipo == "Insight Monitor")
                     addDesc = existenteAM.Descripcion ?? string.Empty;
                     
                     amMode = existenteAM.Type_Dataset;
-                    await InitializeAMLists();
+                    isEditingAM = true; // Bloquear cambio de modo al editar
 
-                    if (amMode == 2)
+                    // Cargar filtros si existen
+                    if (!string.IsNullOrEmpty(existenteAM.Filters))
                     {
-                        selectedAssetTypeId = existenteAM.Id_Asset_Type;
-                        if (selectedAssetTypeId.HasValue)
+                        try
                         {
-                            await LoadAssetsByType(selectedAssetTypeId.Value);
+                            amFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteAM.Filters) ?? new List<FilterCondition>();
                         }
-                        
-                        if (existenteAM.Grupo_Asset != null && existenteAM.Grupo_Asset.Any())
+                        catch (Exception ex)
                         {
-                            selectedAssetIds = new HashSet<string>(existenteAM.Grupo_Asset.Select(da => da.Id_Asset));
+                            amFilters = new List<FilterCondition>();
                         }
                     }
-                    else if (amMode == 1)
+                    else
                     {
-                        selectedTaskTypeId = existenteAM.Id_Event_Task;
-                        if (selectedTaskTypeId.HasValue)
-                        {
-                            await LoadEventTaskInstancesByType(selectedTaskTypeId.Value);
-                        }
-                        
-                        if (existenteAM.Grupo_Event_Task_Instance != null && existenteAM.Grupo_Event_Task_Instance.Any())
-                        {
-                            selectedEventTaskInstanceIds = new HashSet<int>(existenteAM.Grupo_Event_Task_Instance.Select(det => det.Id_Event_Task_Instance));
-                            
-                            if (EnableStocksSelect)
-                            {
-                                await LoadStocksForEventTaskInstance(selectedEventTaskInstanceIds.First());
-                                
-                                var firstInstance = existenteAM.Grupo_Event_Task_Instance.First();
-                                if (firstInstance.Grupo_Stock != null && firstInstance.Grupo_Stock.Any())
-                                {
-                                    selectedStockIds = new HashSet<int>(firstInstance.Grupo_Stock.Select(ds => ds.Id_Stock));
-                                }
-                            }
-                        }
+                        amFilters = new List<FilterCondition>();
                     }
+
+                    // Cargar solo las listas necesarias para AM
+                    await InitializeAMLists();
+                    
+                    // Cargar atributos disponibles para que los filtros se puedan mostrar correctamente
+                    await LoadAvailableAttributes();
                     
                     return true;
                 }
@@ -999,27 +856,42 @@ else if (selectedTipo == "Insight Monitor")
                     addName = existenteUM.Name ?? string.Empty;
                     addDesc = existenteUM.Description ?? string.Empty;
                     
-                    selectedZoneId = existenteUM.Id_Zone;
-                    var tasksToRun = new List<Task>();
-                    tasksToRun.Add(InitializeUMLists());
-                    
-                    if (selectedZoneId.HasValue)
+                    // Determinar el modo basado en ContentType
+                    if (existenteUM.ContentType == "1") // Eventos
                     {
-                        tasksToRun.Add(LoadEventsByZone(selectedZoneId.Value));
-                        tasksToRun.Add(LoadNewsByZone(selectedZoneId.Value));
+                        umMode = 1;
+                    }
+                    else if (existenteUM.ContentType == "2") // Noticias
+                    {
+                        umMode = 2;
+                    }
+                    else
+                    {
+                        umMode = 1; // Default
                     }
                     
-                    await Task.WhenAll(tasksToRun);
+                    isEditingUM = true; // Bloquear cambio de modo al editar
                     
-                    if (existenteUM.DatasetEvents != null && existenteUM.DatasetEvents.Any())
+                    // Cargar filtros si existen
+                    if (!string.IsNullOrEmpty(existenteUM.Filters))
                     {
-                        selectedEventIds = new HashSet<int>(existenteUM.DatasetEvents.Select(de => de.Id_event));
+                        try
+                        {
+                            umFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteUM.Filters) ?? new List<FilterCondition>();
+                        }
+                        catch (Exception ex)
+                        {
+                            umFilters = new List<FilterCondition>();
+                        }
+                    }
+                    else
+                    {
+                        umFilters = new List<FilterCondition>();
                     }
                     
-                    if (existenteUM.DatasetNews != null && existenteUM.DatasetNews.Any())
-                    {
-                        selectedNewsIds = new HashSet<int>(existenteUM.DatasetNews.Select(dn => dn.Id_news));
-                    }
+                    // Cargar atributos disponibles
+                    await InitializeUMLists();
+                    await LoadUmAvailableAttributes();
                     
                     return true;
                 }
@@ -1035,7 +907,6 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            
             var encodedToken = GetEncodedToken();
             
             var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources");
@@ -1290,27 +1161,185 @@ else if (selectedTipo == "Insight Monitor")
 
     // ====== Asset Manager Methods (kept from HEAD, token usage updated to develop logic) ======
 
-    private void SetAmMode(int mode)
+    private async Task SetAmMode(int mode)
     {
+        // No permitir cambiar el modo si estamos editando
+        if (isEditingAM) return;
+        
         if (amMode == mode) return;
         amMode = mode;
-        // Reset selections when switching modes
-        if (amMode == 2)
+        // Reset filtros y atributos cuando cambia el modo
+        amFilters.Clear();
+        availableAttributes.Clear();
+        
+        // Cargar atributos disponibles para la entidad seleccionada
+        await LoadAvailableAttributes();
+        
+        StateHasChanged();
+    }
+    
+    private async Task LoadAvailableAttributes()
+    {
+        try
         {
-            selectedTaskTypeId = null;
-            selectedEventTaskInstanceIds.Clear();
-            selectedStockIds.Clear();
-            stocks.Clear();
+            var entidadId = amMode switch
+            {
+                1 => 1, // EventTaskInstance
+                2 => 2, // Asset
+                3 => 3, // Stock
+                _ => 2
+            };
+            
+            var url = $"api/DatasetFilter/FiltrarPorModuloYEntidad?modulo=AM&entidadId={entidadId}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                availableAttributes = await response.Content.ReadFromJsonAsync<List<PropiedadEntidadDto>>() ?? new List<PropiedadEntidadDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando atributos: {ex.Message}");
+            availableAttributes = new List<PropiedadEntidadDto>();
+        }
+    }
+    
+    private async Task OpenFilterModal()
+    {
+        if (availableAttributes.Count == 0)
+        {
+            await LoadAvailableAttributes();
+        }
+        
+        var parameters = new DialogParameters<FilterModal>
+        {
+            { x => x.AvailableAttributes, availableAttributes },
+            { x => x.Modulo, "AM" },
+            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } },
+            { x => x.Token, authToken }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FilterCondition filter)
+        {
+            amFilters.Add(filter);
+            StateHasChanged();
+        }
+    }
+    
+    private void RemoveFilter(FilterCondition filter)
+    {
+        amFilters.Remove(filter);
+        StateHasChanged();
+    }
+    
+    private string GetFilterTypeDisplayName(FilterType type)
+    {
+        return type switch
+        {
+            FilterType.Equals => "=",
+            FilterType.NotEquals => "≠",
+            FilterType.GreaterThan => ">",
+            FilterType.LessThan => "<",
+            FilterType.Contains => "contiene",
+            FilterType.StartsWith => "comienza con",
+            FilterType.EndsWith => "termina con",
+            FilterType.In => "en",
+            FilterType.Between => "entre",
+            _ => type.ToString()
+        };
+    }
+    
+    private string GetFilterValueDisplay(FilterCondition filter)
+    {
+        if (filter.Condition == null)
+            return "";
+            
+        if (filter.Type == FilterType.Between)
+        {
+            // Manejar array de fechas o números
+            if (filter.Condition is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var arr = je.EnumerateArray().ToArray();
+                if (arr.Length >= 2)
+                {
+                    var from = arr[0].GetRawText().Trim('"');
+                    var to = arr[1].GetRawText().Trim('"');
+                    // Intentar parsear como fecha
+                    if (DateTime.TryParse(from, out var fromDate) && DateTime.TryParse(to, out var toDate))
+                    {
+                        return $"{fromDate:dd/MM/yyyy} y {toDate:dd/MM/yyyy}";
+                    }
+                    return $"{from} y {to}";
+                }
+            }
+            else if (filter.Condition is Array arr && arr.Length >= 2)
+            {
+                var from = arr.GetValue(0);
+                var to = arr.GetValue(1);
+                if (from is DateTime fromDate && to is DateTime toDate)
+                {
+                    return $"{fromDate:dd/MM/yyyy} y {toDate:dd/MM/yyyy}";
+                }
+                return $"{from} y {to}";
+            }
+            else if (filter.Condition is IEnumerable<object> enumerable)
+            {
+                var list = enumerable.ToList();
+                if (list.Count >= 2)
+                {
+                    var from = list[0];
+                    var to = list[1];
+                    if (from is DateTime fromDate && to is DateTime toDate)
+                    {
+                        return $"{fromDate:dd/MM/yyyy} y {toDate:dd/MM/yyyy}";
+                    }
+                    return $"{from} y {to}";
+                }
+            }
+            return filter.Condition.ToString() ?? "";
+        }
+        else if (filter.Type == FilterType.In)
+        {
+            if (filter.Condition is List<object> list)
+            {
+                return $"({string.Join(", ", list)})";
+            }
+            return filter.Condition.ToString() ?? "";
         }
         else
         {
-            selectedAssetTypeId = null;
-            selectedAssetIds.Clear();
-            assets.Clear();
+            // Para fechas individuales, formatear correctamente
+            if (filter.ValueType == FilterValueType.Date && filter.Condition is DateTime dt)
+            {
+                return dt.ToString("dd/MM/yyyy");
+            }
+            return filter.Condition.ToString() ?? "";
         }
-        StateHasChanged();
     }
-
+    
+    private RenderFragment RenderFilterDisplay(FilterCondition filter) => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.OpenElement(1, "strong");
+        builder.AddContent(2, filter.AttributeName);
+        builder.CloseElement();
+        builder.AddContent(3, " ");
+        builder.AddContent(4, GetFilterTypeDisplayName(filter.Type));
+        builder.AddContent(5, " ");
+        builder.AddContent(6, GetFilterValueDisplay(filter));
+        builder.CloseElement();
+    };
+    
     private async Task InitializeAMLists()
     {
         try
@@ -1470,23 +1499,38 @@ else if (selectedTipo == "Insight Monitor")
                 ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
+            if (amFilters.Count == 0)
+            {
+                ShowError("Debe agregar al menos un filtro para actualizar el dataset.");
+                return;
+            }
 
-            var request = new CreateDatasetAMRequest
+            var contentType = amMode switch
+            {
+                1 => "1", // EventTask
+                2 => "2", // Asset
+                3 => "3", // Stock
+                _ => "2"
+            };
+
+            var datasetRequest = new CreateDatasetAMRequest
             {
                 Username = username,
                 Nombre = addName,
                 Descripcion = addDesc,
                 IsDataset = "S",
-                ContentType = "0",
-                Type_Dataset = amMode,
-                Id_Event_Task = amMode == 1 ? selectedTaskTypeId : null,
-                Id_Asset_Type = amMode == 2 ? selectedAssetTypeId : null,
-                Grupo_Event_Task_Instance_Ids = amMode == 1 && selectedEventTaskInstanceIds.Any() ? selectedEventTaskInstanceIds.ToList() : null,
-                Grupo_Asset_Ids = amMode == 2 && selectedAssetIds.Any() ? selectedAssetIds.ToList() : null,
-                StockIds = amMode == 1 && EnableStocksSelect && selectedStockIds.Any() ? selectedStockIds.ToList() : null
+                ContentType = contentType,
+                Type_Dataset = amMode
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/{id}", request);
+            var filteredRequest = new CreateDatasetAMFilteredRequest
+            {
+                DatasetRequest = datasetRequest,
+                Token = authToken,
+                Filters = amFilters
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetAM/with-filters/{id}", filteredRequest);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetAM>();
@@ -1533,90 +1577,87 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task InitializeUMLists()
     {
-        try
-        {
-            var encodedToken = GetEncodedToken();
-            var respZones = await Http.GetAsync($"api/SondaMain/zones");
-            if (respZones.IsSuccessStatusCode)
-            {
-                zones = await respZones.Content.ReadFromJsonAsync<List<Zone>>() ?? new List<Zone>();
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowError($"Error cargando Urban Monitor: {ex.Message}");
-        }
+        // Ya no necesitamos cargar zonas, eventos o noticias
     }
 
-    private async Task OnZoneChanged(int? zoneId)
+    private async Task SetUmMode(int mode)
     {
-        selectedZoneId = zoneId;
-        selectedEventIds.Clear();
-        selectedNewsIds.Clear();
-        events.Clear();
-        newsList.Clear();
-
-        if (selectedZoneId.HasValue)
-        {
-            await LoadEventsByZone(selectedZoneId.Value);
-            await LoadNewsByZone(selectedZoneId.Value);
-        }
-
+        // No permitir cambiar el modo si estamos editando
+        if (isEditingUM) return;
+        
+        if (umMode == mode) return;
+        umMode = mode;
+        // Reset filtros y atributos cuando cambia el modo
+        umFilters.Clear();
+        umAvailableAttributes.Clear();
+        
+        // Cargar atributos disponibles para la entidad seleccionada
+        await LoadUmAvailableAttributes();
+        
         StateHasChanged();
     }
-
-    private Task OnSelectedEventsChanged(IEnumerable<int> ids)
-    {
-        selectedEventIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
-        return Task.CompletedTask;
-    }
-
-    private Task OnSelectedNewsChanged(IEnumerable<int> ids)
-    {
-        selectedNewsIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
-        return Task.CompletedTask;
-    }
-
-    private async Task LoadEventsByZone(int zoneId)
+    
+    private async Task LoadUmAvailableAttributes()
     {
         try
         {
-            var url = $"api/SondaMain/zones/{zoneId}/events";
-            var resp = await Http.GetAsync(url);
-            if (resp.IsSuccessStatusCode)
+            var entidadId = umMode switch
             {
-                events = await resp.Content.ReadFromJsonAsync<List<Event>>() ?? new List<Event>();
-            }
-            else
+                1 => 1, // Eventos
+                2 => 2, // Noticias
+                _ => 1
+            };
+            
+            var url = $"api/DatasetFilter/FiltrarPorModuloYEntidad?modulo=UM&entidadId={entidadId}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
             {
-                events = new List<Event>();
+                umAvailableAttributes = await response.Content.ReadFromJsonAsync<List<PropiedadEntidadDto>>() ?? new List<PropiedadEntidadDto>();
             }
         }
         catch (Exception ex)
         {
-            ShowError($"Error cargando eventos: {ex.Message}");
+            ShowError($"Error cargando atributos: {ex.Message}");
+            umAvailableAttributes = new List<PropiedadEntidadDto>();
         }
     }
-
-    private async Task LoadNewsByZone(int zoneId)
+    
+    private async Task OpenUmFilterModal()
     {
-        try
+        if (umAvailableAttributes.Count == 0)
         {
-            var url = $"api/SondaMain/zones/{zoneId}/news";
-            var resp = await Http.GetAsync(url);
-            if (resp.IsSuccessStatusCode)
-            {
-                newsList = await resp.Content.ReadFromJsonAsync<List<News>>() ?? new List<News>();
-            }
-            else
-            {
-                newsList = new List<News>();
-            }
+            await LoadUmAvailableAttributes();
         }
-        catch (Exception ex)
+        
+        var parameters = new DialogParameters<FilterModal>
         {
-            ShowError($"Error cargando noticias: {ex.Message}");
+            { x => x.AvailableAttributes, umAvailableAttributes },
+            { x => x.Modulo, "UM" },
+            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } },
+            { x => x.Token, authToken }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FilterCondition filter)
+        {
+            umFilters.Add(filter);
+            StateHasChanged();
         }
+    }
+    
+    private void RemoveUmFilter(FilterCondition filter)
+    {
+        umFilters.Remove(filter);
+        StateHasChanged();
     }
 
     private async Task GuardarCambiosUM()
@@ -1640,25 +1681,36 @@ else if (selectedTipo == "Insight Monitor")
                 ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (!selectedZoneId.HasValue)
+            if (umFilters.Count == 0)
             {
-                ShowError("Debe seleccionar una zona");
+                ShowError("Debe agregar al menos un filtro para actualizar el dataset.");
                 return;
             }
 
-            var request = new CreateDatasetUMRequest
+            var contentType = umMode switch
+            {
+                1 => "1", // Eventos
+                2 => "2", // Noticias
+                _ => "1"
+            };
+
+            var datasetRequest = new CreateDatasetUMRequest
             {
                 Username = username,
                 Name = addName,
                 Description = addDesc,
                 IsDataset = "S",
-                ContentType = "0",
-                ZoneId = selectedZoneId,
-                EventIds = selectedEventIds.Any() ? selectedEventIds.ToList() : null,
-                NewsIds = selectedNewsIds.Any() ? selectedNewsIds.ToList() : null
+                ContentType = contentType
             };
 
-            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/{id}", request);
+            var filteredRequest = new CreateDatasetUMFilteredRequest
+            {
+                DatasetRequest = datasetRequest,
+                Token = authToken,
+                Filters = umFilters
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetUM/with-filters/{id}", filteredRequest);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetUM>();
@@ -1692,34 +1744,47 @@ else if (selectedTipo == "Insight Monitor")
                     selectedTipo = "Event Manager";
                     addName = existenteEM.Name ?? string.Empty;
                     addDesc = existenteEM.Description ?? string.Empty;
-                    await InitializeEMLists();
-
-                    // If there are existing selections, load them
-                    if (existenteEM.DatasetEvents != null && existenteEM.DatasetEvents.Any())
+                    
+                    // Determinar el modo basado en ContentType
+                    if (existenteEM.ContentType == "1") // Alertas
                     {
-                        selectedEventEMIds = new HashSet<int>(existenteEM.DatasetEvents.Select(de => de.Id_event));
-                        
-                        // Try to identify category from first event
-                        var firstEventId = existenteEM.DatasetEvents.First().Id_event;
-                        await TryIdentifyCategoryFromEvent(firstEventId);
+                        emMode = 1;
                     }
-
-                    if (existenteEM.DatasetAlerts != null && existenteEM.DatasetAlerts.Any())
+                    else if (existenteEM.ContentType == "2") // Eventos
                     {
-                        selectedAlertIds = new HashSet<int>(existenteEM.DatasetAlerts.Select(da => da.Id_alert));
-                        
-                        // If category not identified from event, try from alert
-                        if (!selectedCategoryId.HasValue)
+                        emMode = 2;
+                    }
+                    else if (existenteEM.ContentType == "3") // Extensiones
+                    {
+                        emMode = 3;
+                    }
+                    else
+                    {
+                        emMode = 1; // Default
+                    }
+                    
+                    isEditingEM = true; // Bloquear cambio de modo al editar
+                    
+                    // Cargar filtros si existen
+                    if (!string.IsNullOrEmpty(existenteEM.Filters))
+                    {
+                        try
                         {
-                            var firstAlertId = existenteEM.DatasetAlerts.First().Id_alert;
-                            await TryIdentifyCategoryFromAlert(firstAlertId);
+                            emFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteEM.Filters) ?? new List<FilterCondition>();
+                        }
+                        catch (Exception ex)
+                        {
+                            emFilters = new List<FilterCondition>();
                         }
                     }
-
-                    if (existenteEM.DatasetExtensions != null && existenteEM.DatasetExtensions.Any())
+                    else
                     {
-                        selectedExtensionIds = new HashSet<int>(existenteEM.DatasetExtensions.Select(de => de.Id_extension));
+                        emFilters = new List<FilterCondition>();
                     }
+                    
+                    // Cargar atributos disponibles
+                    await InitializeEMLists();
+                    await LoadEmAvailableAttributes();
 
                     return true;
                 }
@@ -1731,184 +1796,90 @@ else if (selectedTipo == "Insight Monitor")
         return false;
     }
 
-    private async Task TryIdentifyCategoryFromEvent(int eventId)
-    {
-        try
-        {
-            foreach (var category in categories)
-            {
-                await LoadEventsByCategory(category.Id);
-                if (eventsEM.Any(e => e.Id == eventId))
-                {
-                    selectedCategoryId = category.Id;
-                    await LoadAlertsByCategory(category.Id);
-                    
-                    // If only one event selected, load extensions
-                    if (selectedEventEMIds.Count == 1)
-                    {
-                        await LoadExtensionsByEvent(selectedEventEMIds.First());
-                    }
-                    break;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-        }
-    }
-
-    private async Task TryIdentifyCategoryFromAlert(int alertId)
-    {
-        try
-        {
-            foreach (var category in categories)
-            {
-                await LoadAlertsByCategory(category.Id);
-                if (alertsEM.Any(a => a.AlertId == alertId))
-                {
-                    selectedCategoryId = category.Id;
-                    await LoadEventsByCategory(category.Id);
-                    break;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-        }
-    }
-
     private async Task InitializeEMLists()
     {
-        try
-        {
-            var encodedToken = GetEncodedToken();
-            var url = $"api/SondaEM/category?page=1&pageSize=1000";
-            
-            var respCategories = await Http.GetAsync(url);
-            
-            if (respCategories.IsSuccessStatusCode)
-            {
-                categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
-            }
-            else
-            {
-                var error = await respCategories.Content.ReadAsStringAsync();
-                ShowError($"Error al cargar categorías: {error}");
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowError($"Error cargando Event Manager: {ex.Message}");
-        }
+        // Ya no necesitamos cargar categorías, eventos, alertas o extensiones
     }
 
-    private async Task OnCategoryChanged(int? categoryId)
+    private async Task SetEmMode(int mode)
     {
-        selectedCategoryId = categoryId;
-        selectedEventEMIds.Clear();
-        selectedAlertIds.Clear();
-        selectedExtensionIds.Clear();
-        eventsEM.Clear();
-        alertsEM.Clear();
-        extensions.Clear();
-
-        if (selectedCategoryId.HasValue)
-        {
-            await LoadEventsByCategory(selectedCategoryId.Value);
-            await LoadAlertsByCategory(selectedCategoryId.Value);
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task OnSelectedEventEMsChanged(IEnumerable<int> ids)
-    {
-        selectedEventEMIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
-        selectedExtensionIds.Clear();
-        extensions.Clear();
+        // No permitir cambiar el modo si estamos editando
+        if (isEditingEM) return;
         
-        if (EnableExtensionsSelect)
-        {            
-            var onlyId = selectedEventEMIds.First();
-            await LoadExtensionsByEvent(onlyId);
-        }
+        if (emMode == mode) return;
+        emMode = mode;
+        // Reset filtros y atributos cuando cambia el modo
+        emFilters.Clear();
+        emAvailableAttributes.Clear();
+        
+        // Cargar atributos disponibles para la entidad seleccionada
+        await LoadEmAvailableAttributes();
         
         StateHasChanged();
     }
-
-    private Task OnSelectedAlertsChanged(IEnumerable<int> ids)
-    {
-        selectedAlertIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
-        return Task.CompletedTask;
-    }
-
-    private Task OnSelectedExtensionsChanged(IEnumerable<int> ids)
-    {
-        selectedExtensionIds = ids != null ? new HashSet<int>(ids) : new HashSet<int>();
-        return Task.CompletedTask;
-    }
-
-    private async Task LoadEventsByCategory(int categoryId)
+    
+    private async Task LoadEmAvailableAttributes()
     {
         try
         {
-            var url = $"api/SondaEM/Category/event?categoryid={categoryId}&page=1&pageSize=1000";
-            var resp = await Http.GetAsync(url);
-            if (resp.IsSuccessStatusCode)
+            var entidadId = emMode switch
             {
-                eventsEM = await resp.Content.ReadFromJsonAsync<List<EventDto>>() ?? new List<EventDto>();
-            }
-            else
+                1 => 1, // Alertas
+                2 => 2, // Eventos
+                3 => 3, // Extensiones
+                _ => 1
+            };
+            
+            var url = $"api/DatasetFilter/FiltrarPorModuloYEntidad?modulo=EM&entidadId={entidadId}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
             {
-                eventsEM = new List<EventDto>();
+                emAvailableAttributes = await response.Content.ReadFromJsonAsync<List<PropiedadEntidadDto>>() ?? new List<PropiedadEntidadDto>();
             }
         }
         catch (Exception ex)
         {
-            ShowError($"Error cargando eventos: {ex.Message}");
+            ShowError($"Error cargando atributos: {ex.Message}");
+            emAvailableAttributes = new List<PropiedadEntidadDto>();
         }
     }
-
-    private async Task LoadAlertsByCategory(int categoryId)
+    
+    private async Task OpenEmFilterModal()
     {
-        try
+        if (emAvailableAttributes.Count == 0)
         {
-            var url = $"api/SondaEM/Category/alert?categoryid={categoryId}&page=1&pageSize=1000";
-            var resp = await Http.GetAsync(url);
-            if (resp.IsSuccessStatusCode)
-            {
-                alertsEM = await resp.Content.ReadFromJsonAsync<List<AlertDto>>() ?? new List<AlertDto>();
-            }
-            else
-            {
-                alertsEM = new List<AlertDto>();
-            }
+            await LoadEmAvailableAttributes();
         }
-        catch (Exception ex)
+        
+        var parameters = new DialogParameters<FilterModal>
         {
-            ShowError($"Error cargando alertas: {ex.Message}");
+            { x => x.AvailableAttributes, emAvailableAttributes },
+            { x => x.Modulo, "EM" },
+            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } },
+            { x => x.Token, authToken }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FilterCondition filter)
+        {
+            emFilters.Add(filter);
+            StateHasChanged();
         }
     }
-
-    private async Task LoadExtensionsByEvent(int eventId)
+    
+    private void RemoveEmFilter(FilterCondition filter)
     {
-        try
-        {
-            var url = $"api/SondaEM/Event/{eventId}/extensions";
-            var resp = await Http.GetAsync(url);
-            if (resp.IsSuccessStatusCode)
-            {
-                extensions = await resp.Content.ReadFromJsonAsync<List<ExtensionDtoDup>>() ?? new List<ExtensionDtoDup>();
-            }
-            else
-            {
-                extensions = new List<ExtensionDtoDup>();
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowError($"Error cargando extensiones: {ex.Message}");
-        }
+        emFilters.Remove(filter);
+        StateHasChanged();
     }
 
     private async Task GuardarCambiosEM()
@@ -1932,25 +1903,37 @@ else if (selectedTipo == "Insight Monitor")
                 ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (!selectedCategoryId.HasValue)
+            if (emFilters.Count == 0)
             {
-                ShowError("Debe seleccionar una categoria");
+                ShowError("Debe agregar al menos un filtro para actualizar el dataset.");
                 return;
             }
 
-            var request = new CreateDatasetEMRequest
+            var contentType = emMode switch
+            {
+                1 => "1", // Alertas
+                2 => "2", // Eventos
+                3 => "3", // Extensiones
+                _ => "1"
+            };
+
+            var datasetRequest = new CreateDatasetEMRequest
             {
                 Username = username,
                 Name = addName,
                 Description = addDesc,
                 IsDataset = "S",
-                ContentType = "0",
-                CategoryIds = selectedCategoryId.HasValue ? new List<int> { selectedCategoryId.Value } : null,
-                EventIds = selectedEventEMIds.Any() ? selectedEventEMIds.ToList() : null,
-                AlertIds = selectedAlertIds.Any() ? selectedAlertIds.ToList() : null,
-                ExtensionIds = selectedExtensionIds.Any() ? selectedExtensionIds.ToList() : null
+                ContentType = contentType
             };
-            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/{id}", request);
+
+            var filteredRequest = new CreateDatasetEMFilteredRequest
+            {
+                DatasetRequest = datasetRequest,
+                Token = authToken,
+                Filters = emFilters
+            };
+
+            var resp = await Http.PutAsJsonAsync($"api/DatasetEM/with-filters/{id}", filteredRequest);
             if (resp.IsSuccessStatusCode)
             {
                 var updated = await resp.Content.ReadFromJsonAsync<DatasetEM>();

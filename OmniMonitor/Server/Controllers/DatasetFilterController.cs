@@ -10,14 +10,6 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
 {
-    // Usar los tipos definidos en ApiDataService
-
-    public class PropiedadEntidadDto
-    {
-        public string Nombre { get; set; } = string.Empty;
-    public FilterValueType Tipo { get; set; }
-    }
-
     [ApiController]
     [Route("api/[controller]")]
     public class DatasetFilterController : ControllerBase

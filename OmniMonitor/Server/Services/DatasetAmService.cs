@@ -82,12 +82,15 @@ namespace OmniMonitor.Server.Services
                     });
                 }
             }
-            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null)
+            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null && request.Grupo_Asset_Ids.Any())
             {
                 newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
                 foreach (var id in request.Grupo_Asset_Ids)
                 {
-                    newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                    if (!string.IsNullOrEmpty(id))
+                    {
+                        newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
+                    }
                 }
             }
             else if (request.Type_Dataset == 3 && request.StockIds != null)

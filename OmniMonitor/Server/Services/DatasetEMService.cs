@@ -201,7 +201,8 @@ namespace OmniMonitor.Server.Services
             _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;
+            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;*/
+            
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
