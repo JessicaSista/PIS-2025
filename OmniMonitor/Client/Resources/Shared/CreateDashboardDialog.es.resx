@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -123,8 +123,14 @@
   <data name="Description" xml:space="preserve">
     <value>Descripción</value>
   </data>
+  <data name="DescriptionPlaceholder" xml:space="preserve">
+    <value>Descripción opcional (máx. 500)</value>
+  </data>
   <data name="Name" xml:space="preserve">
     <value>Nombre</value>
+  </data>
+  <data name="NamePlaceholder" xml:space="preserve">
+    <value>Ingresa un nombre (requerido, máx. 100)</value>
   </data>
   <data name="Save" xml:space="preserve">
     <value>Guardar</value>
