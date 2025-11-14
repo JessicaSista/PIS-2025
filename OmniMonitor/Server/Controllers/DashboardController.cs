@@ -232,6 +232,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="400">Lista de IDs inválida.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPost("validate-cards")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
@@ -436,6 +437,7 @@ namespace OmniMonitor.Server.Controllers
         /// Busca dashboards por fragmento de texto en nombre o descripción.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         public async Task<IActionResult> SearchDashboards([FromQuery] string query)

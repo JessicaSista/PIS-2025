@@ -81,6 +81,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todas las visualizaciones de un usuario específico con paginación.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
         [HttpGet("GetAllVisualizacionesPaginated")]
         [ProducesResponseType(typeof(PaginatedVisualizacionDto), 200)]
         [ProducesResponseType(400)]

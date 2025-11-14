@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -421,8 +422,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDataset")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<Datasets>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -444,8 +445,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets de todos los módulos en formato unificado desde la tabla general.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDto")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetDto>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -554,8 +555,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Devuelve todos los datasets en formato DatasetDtoGenerico.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllGenericDatasetDtos")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetDtoGenerico>), 200)]
         [ProducesResponseType(500)]
     public async Task<ActionResult<List<DatasetDtoGenerico>>> GetAllGenericDatasetDtos([FromQuery] string? search = null)
@@ -669,8 +670,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets de todos los módulos con paginación.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetsDtoPaginated")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(PaginatedDatasetDto), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
