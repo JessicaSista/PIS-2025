@@ -1,0 +1,427 @@
+@using OmniMonitor.Shared.Dtos
+@using MudBlazor
+@using Blazored.LocalStorage
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+
+<MudDialog>
+    <DialogContent>
+        <MudContainer Style="max-width: 600px;">
+            <MudText Typo="Typo.h6" Class="mb-4">Crear Filtro</MudText>
+
+            <!-- Select de Atributo -->
+            <MudSelect T="string"
+                       Value="@selectedAttribute"
+                       ValueChanged="@OnAttributeChanged"
+                       Label="Atributo"
+                       Variant="Variant.Outlined"
+                       Required="true"
+                       Class="mb-3 dark-field">
+                @foreach (var attr in availableAttributes)
+                {
+                    <MudSelectItem Value="@attr.Nombre">@attr.Nombre (@GetTypeDisplayName(attr.Tipo))</MudSelectItem>
+                }
+            </MudSelect>
+
+            @if (!string.IsNullOrEmpty(selectedAttribute))
+            {
+                <!-- Select de Tipo de Filtro -->
+                <MudSelect T="FilterType"
+                           @bind-Value="selectedFilterType"
+                           Label="Tipo de Filtro"
+                           Variant="Variant.Outlined"
+                           Required="true"
+                           Class="mb-3 dark-field">
+                    @foreach (var filterType in GetAvailableFilterTypes(GetCurrentValueType()))
+                    {
+                        <MudSelectItem Value="@filterType">@GetFilterTypeDisplayName(filterType)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <!-- Campo de Valor según el tipo -->
+                @if (selectedFilterType != FilterType.Between)
+                {
+                    @if (GetCurrentValueType() == FilterValueType.String)
+                    {
+                        <MudTextField @bind-Value="stringValue"
+                                     Label="Valor"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Class="mb-3 dark-field" />
+                    }
+                    else if (GetCurrentValueType() == FilterValueType.Number)
+                    {
+                        <MudNumericField T="double?" 
+                                         @bind-Value="numberValue"
+                                         Label="Valor"
+                                         Variant="Variant.Outlined"
+                                         Required="true"
+                                         Class="mb-3 dark-field" />
+                    }
+                    else if (GetCurrentValueType() == FilterValueType.Date)
+                    {
+                        <MudDatePicker @bind-Date="dateValue"
+                                      Label="Valor"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      Class="mb-3 dark-field" />
+                    }
+                    else if (GetCurrentValueType() == FilterValueType.Enum)
+                    {
+                        <MudSelect T="string"
+                                   @bind-Value="enumValue"
+                                   Label="Valor"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Class="mb-3 dark-field"
+                                   Disabled="@(enumOptions.Count == 0)">
+                            @if (enumOptions.Count == 0)
+                            {
+                                <MudSelectItem Value="@((string?)null)" Disabled="true">Cargando valores...</MudSelectItem>
+                            }
+                            else
+                            {
+                                @foreach (var option in enumOptions)
+                                {
+                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                    }
+                    else if (GetCurrentValueType() == FilterValueType.Boolean)
+                    {
+                        <MudSelect T="bool?"
+                                   @bind-Value="boolValue"
+                                   Label="Valor"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Class="mb-3 dark-field">
+                            <MudSelectItem Value="@((bool?)true)">Verdadero</MudSelectItem>
+                            <MudSelectItem Value="@((bool?)false)">Falso</MudSelectItem>
+                        </MudSelect>
+                    }
+                }
+                else
+                {
+                    <!-- Between requiere dos valores -->
+                    @if (GetCurrentValueType() == FilterValueType.Number)
+                    {
+                        <MudNumericField T="double?" 
+                                         @bind-Value="numberValueFrom"
+                                         Label="Valor Desde"
+                                         Variant="Variant.Outlined"
+                                         Required="true"
+                                         Class="mb-3 dark-field" />
+                        <MudNumericField T="double?" 
+                                         @bind-Value="numberValueTo"
+                                         Label="Valor Hasta"
+                                         Variant="Variant.Outlined"
+                                         Required="true"
+                                         Class="mb-3 dark-field" />
+                    }
+                    else if (GetCurrentValueType() == FilterValueType.Date)
+                    {
+                        <MudDatePicker @bind-Date="dateValueFrom"
+                                      Label="Valor Desde"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      Class="mb-3 dark-field" />
+                        <MudDatePicker @bind-Date="dateValueTo"
+                                      Label="Valor Hasta"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      Class="mb-3 dark-field" />
+                    }
+                }
+
+                <!-- Para In, permitir múltiples valores -->
+                @if (selectedFilterType == FilterType.In)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">Valores (separados por coma):</MudText>
+                    @if (GetCurrentValueType() == FilterValueType.String || GetCurrentValueType() == FilterValueType.Enum)
+                    {
+                        <MudTextField @bind-Value="inValuesString"
+                                     Label="Valores"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     HelperText="Ejemplo: valor1, valor2, valor3"
+                                     Class="mb-3 dark-field" />
+                    }
+                    else if (GetCurrentValueType() == FilterValueType.Number)
+                    {
+                        <MudTextField @bind-Value="inValuesString"
+                                     Label="Valores"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     HelperText="Ejemplo: 1, 2, 3"
+                                     Class="mb-3 dark-field" />
+                    }
+                }
+            }
+        </MudContainer>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(!CanSave)">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    
+    [Parameter] public List<PropiedadEntidadDto> AvailableAttributes { get; set; } = new();
+    [Parameter] public string Modulo { get; set; } = string.Empty;
+    [Parameter] public int EntidadId { get; set; }
+    [Parameter] public string Token { get; set; } = string.Empty;
+
+    private List<PropiedadEntidadDto> availableAttributes = new();
+    private string selectedAttribute = string.Empty;
+    private FilterType selectedFilterType = FilterType.Equals;
+    private string stringValue = string.Empty;
+    private double? numberValue;
+    private DateTime? dateValue;
+    private string enumValue = string.Empty;
+    private bool? boolValue;
+    private double? numberValueFrom;
+    private double? numberValueTo;
+    private DateTime? dateValueFrom;
+    private DateTime? dateValueTo;
+    private string inValuesString = string.Empty;
+    private List<string> enumOptions = new();
+
+    protected override void OnParametersSet()
+    {
+        availableAttributes = AvailableAttributes;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (availableAttributes.Any() && !string.IsNullOrEmpty(selectedAttribute))
+        {
+            var attr = availableAttributes.FirstOrDefault(a => a.Nombre == selectedAttribute);
+            if (attr?.Tipo == FilterValueType.Enum)
+            {
+                await LoadEnumOptions();
+            }
+        }
+    }
+
+    private async Task LoadEnumOptions()
+    {
+        if (string.IsNullOrEmpty(selectedAttribute) || string.IsNullOrEmpty(Token))
+            return;
+
+        try
+        {
+            var url = $"api/DatasetFilter/GetAtributoValores?modulo={Uri.EscapeDataString(Modulo)}&entidadId={EntidadId}&atributo={Uri.EscapeDataString(selectedAttribute)}&token={Uri.EscapeDataString(Token)}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                var values = await response.Content.ReadFromJsonAsync<List<string>>();
+                enumOptions = values?.Select(v => v?.ToString() ?? string.Empty).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToList() ?? new List<string>();
+            }
+        }
+        catch (Exception ex)
+        {
+            enumOptions = new List<string>();
+        }
+    }
+
+    private async Task OnAttributeChanged(string newAttribute)
+    {
+        selectedAttribute = newAttribute;
+        ClearValues();
+        
+        var attr = availableAttributes.FirstOrDefault(a => a.Nombre == selectedAttribute);
+        if (attr != null)
+        {
+            // Establecer el primer tipo de filtro disponible según el tipo de atributo
+            var availableTypes = GetAvailableFilterTypes(attr.Tipo);
+            if (availableTypes.Any())
+            {
+                selectedFilterType = availableTypes.First();
+            }
+            
+            if (attr.Tipo == FilterValueType.Enum)
+            {
+                await LoadEnumOptions();
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void ClearValues()
+    {
+        stringValue = string.Empty;
+        numberValue = null;
+        dateValue = null;
+        enumValue = string.Empty;
+        boolValue = null;
+        numberValueFrom = null;
+        numberValueTo = null;
+        dateValueFrom = null;
+        dateValueTo = null;
+        inValuesString = string.Empty;
+    }
+
+    private List<FilterType> GetAvailableFilterTypes(FilterValueType valueType)
+    {
+        return valueType switch
+        {
+            FilterValueType.String => new List<FilterType> { FilterType.Equals, FilterType.Contains },
+            FilterValueType.Number => new List<FilterType> { FilterType.Equals, FilterType.GreaterThan, FilterType.LessThan, FilterType.NotEquals },
+            FilterValueType.Date => new List<FilterType> { FilterType.Between },
+            FilterValueType.Enum => new List<FilterType> { FilterType.In },
+            FilterValueType.Boolean => new List<FilterType> { FilterType.Equals, FilterType.NotEquals },
+            _ => new List<FilterType> { FilterType.Equals }
+        };
+    }
+
+    private string GetFilterTypeDisplayName(FilterType type)
+    {
+        return type switch
+        {
+            FilterType.Equals => "Igual a",
+            FilterType.NotEquals => "Diferente de",
+            FilterType.GreaterThan => "Mayor que",
+            FilterType.LessThan => "Menor que",
+            FilterType.Contains => "Contiene",
+            FilterType.StartsWith => "Comienza con",
+            FilterType.EndsWith => "Termina con",
+            FilterType.In => "En (lista)",
+            FilterType.Between => "Entre",
+            _ => type.ToString()
+        };
+    }
+
+    private string GetTypeDisplayName(FilterValueType type)
+    {
+        return type switch
+        {
+            FilterValueType.String => "Texto",
+            FilterValueType.Number => "Número",
+            FilterValueType.Date => "Fecha",
+            FilterValueType.Enum => "Enum",
+            FilterValueType.Boolean => "Booleano",
+            _ => type.ToString()
+        };
+    }
+
+    private FilterValueType GetCurrentValueType()
+    {
+        if (string.IsNullOrEmpty(selectedAttribute))
+            return FilterValueType.String;
+        
+        var currentAttr = availableAttributes.FirstOrDefault(a => a.Nombre == selectedAttribute);
+        return currentAttr?.Tipo ?? FilterValueType.String;
+    }
+
+    private bool CanSave
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(selectedAttribute))
+                return false;
+
+            var attr = availableAttributes.FirstOrDefault(a => a.Nombre == selectedAttribute);
+            if (attr == null)
+                return false;
+
+            var valueType = attr.Tipo;
+
+            if (selectedFilterType == FilterType.Between)
+            {
+                if (valueType == FilterValueType.Number)
+                    return numberValueFrom.HasValue && numberValueTo.HasValue;
+                if (valueType == FilterValueType.Date)
+                    return dateValueFrom.HasValue && dateValueTo.HasValue;
+                return false;
+            }
+
+            if (selectedFilterType == FilterType.In)
+            {
+                return !string.IsNullOrWhiteSpace(inValuesString);
+            }
+
+            return valueType switch
+            {
+                FilterValueType.String => !string.IsNullOrWhiteSpace(stringValue),
+                FilterValueType.Number => numberValue.HasValue,
+                FilterValueType.Date => dateValue.HasValue,
+                FilterValueType.Enum => !string.IsNullOrWhiteSpace(enumValue),
+                FilterValueType.Boolean => boolValue.HasValue,
+                _ => false
+            };
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Save()
+    {
+        if (!CanSave)
+            return;
+
+        var attr = availableAttributes.FirstOrDefault(a => a.Nombre == selectedAttribute);
+        if (attr == null)
+            return;
+
+        object conditionValue;
+
+        if (selectedFilterType == FilterType.Between)
+        {
+            if (attr.Tipo == FilterValueType.Number)
+            {
+                conditionValue = new[] { numberValueFrom!.Value, numberValueTo!.Value };
+            }
+            else // Date
+            {
+                conditionValue = new[] { dateValueFrom!.Value, dateValueTo!.Value };
+            }
+        }
+        else if (selectedFilterType == FilterType.In)
+        {
+            var values = inValuesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(v => v.Trim())
+                .ToList();
+            
+            if (attr.Tipo == FilterValueType.Number)
+            {
+                conditionValue = values.Select(v => double.TryParse(v, out var num) ? num : (double?)null)
+                    .Where(v => v.HasValue)
+                    .Select(v => v!.Value)
+                    .ToList();
+            }
+            else
+            {
+                conditionValue = values;
+            }
+        }
+        else
+        {
+            conditionValue = attr.Tipo switch
+            {
+                FilterValueType.String => stringValue,
+                FilterValueType.Number => numberValue!.Value,
+                FilterValueType.Date => dateValue!.Value,
+                FilterValueType.Enum => enumValue,
+                FilterValueType.Boolean => boolValue!.Value,
+                _ => stringValue
+            };
+        }
+
+        var filter = new FilterCondition
+        {
+            AttributeName = selectedAttribute,
+            Type = selectedFilterType,
+            Condition = conditionValue,
+            ValueType = attr.Tipo
+        };
+
+        MudDialog.Close(DialogResult.Ok(filter));
+    }
+}
+

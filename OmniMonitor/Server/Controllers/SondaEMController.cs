@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Shared.Dtos.EM;
 
 namespace OmniMonitor.Server.Controllers
@@ -20,8 +21,8 @@ namespace OmniMonitor.Server.Controllers
             _sondaAuthService = sondaAuthService;
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("event/{eventId}")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(EventDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -44,8 +45,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("alert/{alertId}")]
+        [RequirePermission("Alerts.View")]
         [ProducesResponseType(typeof(AlertDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -68,8 +69,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("alert")]
+        [RequirePermission("Alerts.View")]
         [ProducesResponseType(typeof(List<AlertDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<AlertDto>>> GetAlerts(
@@ -100,8 +101,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("alert/stored")]
+        [RequirePermission("Alerts.View")]
         [ProducesResponseType(typeof(List<AlertDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<AlertDto>>> GetStoredAlerts(
@@ -131,8 +132,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("event/events")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<EventDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<EventDto>>> GetEvents(
@@ -158,8 +159,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventtype/eventtypes")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<EventTypeDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<EventTypeDto>>> GetEventTypes()
@@ -181,12 +182,12 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("extensions/{extensionId}")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(ExtensionDtoDup), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<ExtensionDtoDup>> GetExtensionById(int extensionId, [FromQuery] string token)
+        public async Task<ActionResult<ExtensionDtoDup>> GetExtensionById(int extensionId)
         {
             try
             {
@@ -205,8 +206,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("extensions")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<ExtensionDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<ExtensionDto>>> GetExtensions(
@@ -237,8 +238,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("extensions/{extensionId}/attachedItems")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<AttachmentDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -261,8 +262,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Event/{eventId}/extensions")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<ExtensionDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<ExtensionDto>>> GetextensionsByEventId(
@@ -285,8 +286,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("category")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<CategoryDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<EventDto>>> GetCategory(
@@ -307,8 +308,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Category/alert")]
+        [RequirePermission("Alerts.View")]
         [ProducesResponseType(typeof(List<AlertDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<AlertDto>>> GetAlertsCategory(
@@ -335,8 +336,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Category/event")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<EventDto>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<EventDto>>> GetEventsByIdCategory(
@@ -344,8 +345,7 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? page,
             [FromQuery] int? pageSize,
             [FromQuery] string? query,
-            [FromQuery] string? sort,
-            [FromQuery] string token)
+            [FromQuery] string? sort)
         {
             try
             {
@@ -359,8 +359,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("Category/{categoryId}")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(CategoryDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

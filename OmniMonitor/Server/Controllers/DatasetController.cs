@@ -72,8 +72,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("user")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetIM>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets([FromQuery] string? search = null)
@@ -105,8 +105,8 @@ namespace OmniMonitor.Server.Controllers
         /// Identifica rápidamente a qué módulo pertenece un dataset.
         /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetModule")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -133,8 +133,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDataset")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -157,6 +157,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("GetDatasetSinToken")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]
@@ -182,8 +183,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -202,14 +203,10 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
                 await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.InsightMonitor, existingDataset.DatasetId);
 
                 // Actualizar la tabla específica del módulo
                 DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request);
-                
-                // Luego actualizar la tabla general
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
@@ -231,8 +228,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("DeleteDataset")]
+        [RequirePermission("Datasets.Delete")]
         [ProducesResponseType(204)] // No Content
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -259,8 +256,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetSensorType")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -278,12 +275,10 @@ namespace OmniMonitor.Server.Controllers
 
                 if (dataset.Id_Source == null || string.IsNullOrEmpty(dataset.SensorName))
                 {
-                    Console.WriteLine($"[TRACE] Dataset sin Source o SensorName");
                     return BadRequest("El dataset no contiene información suficiente (Source o SensorName).");
                 }
 
                 Source? source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
-                Console.WriteLine($"[TRACE] Source encontrado: {source?.Id}");
                 if (source == null)
                 {
                     return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
@@ -293,11 +288,9 @@ namespace OmniMonitor.Server.Controllers
                 {
                     foreach (Device dev in source.Devices)
                     {
-                        Console.WriteLine($"[TRACE] Device: {dev.Id}, Name: {dev.Name}");
                         Device? fullDevice = await _sondaIMService.GetDeviceById(dev.Id, username);
                         if (fullDevice == null)
                         {
-                            Console.WriteLine($"[TRACE] No se pudo obtener el device completo para ID {dev.Id}");
                             continue;
                         }
 
@@ -316,7 +309,6 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] {ex.Message}");
                 return StatusCode(500, $"Error interno al obtener el tipo del sensor: {ex.Message}");
             }
         }

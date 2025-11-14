@@ -11,7 +11,7 @@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@* @inject IStringLocalizer<Visualizations> Localizer *@
+
 
 
 <MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
@@ -85,7 +85,7 @@
                 }
                 @if (ShowLastUpdatedInfo)
                 {
-                    @*<MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>*@
+                    
                 }
             </MudCardActions>
         
@@ -180,7 +180,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
         }
     }
 
@@ -301,13 +300,11 @@
                                         }
                                         catch (Exception ex)
                                         {
-                                            Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
                                 }
                             }
                         }
@@ -332,7 +329,6 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
             if(tmpDataDatasets.Any())
@@ -377,7 +373,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error procesando visualización {visualization.IdVisualizacion}: {ex.Message}");
         }
     }
 
@@ -444,7 +439,6 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
             }
         }
 

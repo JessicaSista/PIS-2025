@@ -40,6 +40,8 @@ namespace OmniMonitor.Server.Services
         Task<ValidateSharePasswordResponseDto> ValidatePasswordAsync(string slug, string password);
         Task<ShareResponseDto?> UpdateShareLinkAsync(string slug, ShareRequestDto request, string username);
         Task<bool> DeleteShareLinkAsync(string slug, string username);
+        Task<int> GetDashboardsCount(string username, string? query);
+        Task<List<DashboardSummaryResponse>> GetAllDashboardsPaginatedAsync(string username, string? query, int page = 1, int pageSize = 9);
     }   
 
     /// <summary>
@@ -182,7 +184,8 @@ namespace OmniMonitor.Server.Services
                         Nombre = gv.Visualizacion.Nombre,
                         FechaDesde = gv.Visualizacion.FechaDesde,
                         FechaHasta = gv.Visualizacion.FechaHasta,
-                        JsonDesign = gv.Visualizacion.JsonDesign
+                        JsonDesign = gv.Visualizacion.JsonDesign,
+                        Link = gv.Visualizacion.Link
                     } : null,
                     Kpi = (gv.TipoCard == 2 && gv.Kpi != null) ? new KpiInfo
                     {
@@ -235,7 +238,8 @@ namespace OmniMonitor.Server.Services
                         Nombre = gv.Visualizacion.Nombre,
                         FechaDesde = gv.Visualizacion.FechaDesde,
                         FechaHasta = gv.Visualizacion.FechaHasta,
-                        JsonDesign = gv.Visualizacion.JsonDesign
+                        JsonDesign = gv.Visualizacion.JsonDesign,
+                        Link = gv.Visualizacion.Link
                     } : null,
                     Kpi = (gv.TipoCard == 2 && gv.Kpi != null) ? new KpiInfo
                     {
@@ -277,6 +281,51 @@ namespace OmniMonitor.Server.Services
                 })
                 .OrderByDescending(d => d.FechaModificacion)
                 .ToListAsync();
+        }
+
+        public async Task<List<DashboardSummaryResponse>> GetAllDashboardsPaginatedAsync(string username, string? query, int page = 1, int pageSize = 9)
+        {
+            var dashboardsQuery = _context.Dashboards
+                .Where(d => d.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                dashboardsQuery = dashboardsQuery.Where(d =>
+                    (d.Nombre != null && d.Nombre.ToLower().Contains(loweredQuery)) ||
+                    (d.Descripcion != null && d.Descripcion.ToLower().Contains(loweredQuery)));
+            }
+
+            return await dashboardsQuery
+                .OrderByDescending(d => d.FechaModificacion)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(d => new DashboardSummaryResponse
+                {
+                    IdDashboard = d.IdDashboard,
+                    Username = d.Username,
+                    Nombre = d.Nombre,
+                    Descripcion = d.Descripcion,
+                    FechaCreacion = d.FechaCreacion,
+                    FechaModificacion = d.FechaModificacion,
+                    CantidadTarjetas = d.GrupoVisualizaciones.Count
+                })
+                .ToListAsync();
+        }
+
+        public async Task<int> GetDashboardsCount(string username, string? query)
+        {
+            var dashboardsQuery = _context.Dashboards
+                .Where(d => d.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                dashboardsQuery = dashboardsQuery.Where(d =>
+                    (d.Nombre != null && d.Nombre.ToLower().Contains(loweredQuery)) ||
+                    (d.Descripcion != null && d.Descripcion.ToLower().Contains(loweredQuery)));
+            }
+            return await dashboardsQuery.CountAsync();
         }
 
         /// <summary>
@@ -350,9 +399,7 @@ namespace OmniMonitor.Server.Services
             if (dashboard == null)
                 return false;
 
-            // Eliminar los GrupoVisualizaciones asociados
             _context.GrupoVisualizaciones.RemoveRange(dashboard.GrupoVisualizaciones);
-            // Eliminar el dashboard
             _context.Dashboards.Remove(dashboard);
 
             await _context.SaveChangesAsync();
@@ -662,7 +709,6 @@ namespace OmniMonitor.Server.Services
 
         public async Task<ShareResponseDto> CreateShareLinkAsync(int dashboardId, ShareRequestDto request, string username)
         {
-            // 1. Validar que el dashboard existe y pertenece al usuario
             var dashboard = await _context.Dashboards
                 .AsNoTracking()
                 .FirstOrDefaultAsync(d => d.IdDashboard == dashboardId && d.Username == username);

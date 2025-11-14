@@ -1,11 +1,11 @@
-ï»¿@page "/dataset-test"
+@page "/dataset-test"
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @using System.Net.Http.Json
 @using System.Text.Json
 
-<PageTitle>PÃ¡gina de Prueba de Datasets</PageTitle>
+<PageTitle>Página de Prueba de Datasets</PageTitle>
 
 <MudText Typo="Typo.h4" GutterBottom="true">Panel de Prueba de Datasets</MudText>
 
@@ -30,10 +30,10 @@
                 {
                     <MudTextField @bind-Value="createRequest.Name" Label="Nombre del Dataset" Variant="Variant.Outlined" Margin="Margin.Dense" />
                     <MudTextField @bind-Value="createRequest.Username" Label="Nombre de Usuario" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                    <MudTextField @bind-Value="createRequest.Description" Label="DescripciÃ³n" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3" />
+                    <MudTextField @bind-Value="createRequest.Description" Label="Descripción" Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3" />
 
                     <MudDivider Class="my-4" />
-                    <MudText Typo="Typo.subtitle1">Filtros (para carga dinÃ¡mica)</MudText>
+                    <MudText Typo="Typo.subtitle1">Filtros (para carga dinámica)</MudText>
 
                     @if (allSources.Any())
                     {
@@ -66,9 +66,9 @@
                     }
                     
                     <MudDivider Class="my-4" />
-                    <MudText Typo="Typo.subtitle1">Dispositivos (selecciÃ³n explÃ­cita)</MudText>
+                    <MudText Typo="Typo.subtitle1">Dispositivos (selección explícita)</MudText>
                     
-                    <!-- Indicador de diagnÃ³stico para la carga de dispositivos -->
+                    <!-- Indicador de diagnóstico para la carga de dispositivos -->
                     <MudText Class="mb-2"><b>Dispositivos cargados: @allDevices.Count</b></MudText>
 
                     @if (allDevices.Any())
@@ -86,7 +86,7 @@
                     }
 
                     <MudSwitch T="bool" @bind-Checked="@isFormalDataset" Color="MudBlazor.Color.Primary" Class="mt-4">
-                        Â¿Es un Dataset Formal? (Si estÃ¡ apagado, es interno 'N')
+                        ¿Es un Dataset Formal? (Si está apagado, es interno 'N')
                     </MudSwitch>
                 }
             </MudCardContent>
@@ -155,7 +155,7 @@
                 <MudCardContent>
                     <MudText><b>ID:</b> @selectedDataset.Id</MudText>
                     <MudText><b>Usuario:</b> @selectedDataset.Username</MudText>
-                    <MudText><b>DescripciÃ³n:</b> @selectedDataset.Description</MudText>
+                    <MudText><b>Descripción:</b> @selectedDataset.Description</MudText>
                     <MudText><b>Filtros:</b> SourceID: @selectedDataset.Id_Source, GroupID: @selectedDataset.Id_Group, Sensor: @selectedDataset.SensorName</MudText>
                     <MudDivider Class="my-2" />
                     <MudText Typo="Typo.subtitle1"><b>Dispositivos Encontrados:</b></MudText>
@@ -170,7 +170,7 @@
                     }
                     else
                     {
-                        <MudText Color="MudBlazor.Color.Warning">No se encontraron dispositivos para este dataset (o no se seleccionÃ³ ninguno).</MudText>
+                        <MudText Color="MudBlazor.Color.Warning">No se encontraron dispositivos para este dataset (o no se seleccionó ninguno).</MudText>
                     }
                 </MudCardContent>
             </MudCard>
@@ -241,9 +241,8 @@
             if (response.IsSuccessStatusCode)
             {
                 var jsonString = await response.Content.ReadAsStringAsync();
-                // --- PASO DE DIAGNÃ“STICO ---
-                // ImprimirÃ¡ el JSON en la consola del navegador (F12)
-                Console.WriteLine($"Respuesta JSON de {url}:\n{jsonString}");
+                // --- PASO DE DIAGNÓSTICO ---
+                // Imprimirá el JSON en la consola del navegador (F12)
                 
                 return JsonSerializer.Deserialize<T>(jsonString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
@@ -256,7 +255,7 @@
         }
         catch(JsonException jsonEx)
         {
-            Snackbar.Add($"Error de deserializaciÃ³n de JSON: {jsonEx.Message}", Severity.Error);
+            Snackbar.Add($"Error de deserialización de JSON: {jsonEx.Message}", Severity.Error);
             return default;
         }
         catch (Exception ex)
@@ -275,7 +274,7 @@
 
         if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add("Dataset creado con Ã©xito!", Severity.Success);
+            Snackbar.Add("Dataset creado con éxito!", Severity.Success);
             createRequest = new(); // Limpiar formulario
             selectedDeviceIds = new List<int>();
             await LoadUserDatasets(); // Recargar la lista
@@ -297,7 +296,7 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error al procesar la respuesta de datasets: {ex.Message}", Severity.Error);
-            userDatasets = new List<DatasetIM>(); // Asignar lista vacÃ­a en caso de error para evitar que la tabla desaparezca
+            userDatasets = new List<DatasetIM>(); // Asignar lista vacía en caso de error para evitar que la tabla desaparezca
         }
         finally
         {

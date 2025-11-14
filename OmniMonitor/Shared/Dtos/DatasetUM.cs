@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -37,6 +38,14 @@ namespace OmniMonitor.Shared.Dtos
         // IDs para la búsqueda dinámica cuando no se seleccionan explícitamente
         public int? Id_Zone { get; set; }
         public int DatasetId { get; set; }  // Clave foránea
+        
+        /// <summary>
+        /// Filtros aplicados almacenados como JSON. 
+        /// Contiene un array de FilterCondition serializados.
+        /// </summary>
+        [Column(TypeName = "nvarchar(max)")]
+        public string? Filters { get; set; }
+
         [ForeignKey(nameof(DatasetId))]
         public virtual Datasets Datasets { get; set; } = null!;
 

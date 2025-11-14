@@ -1,4 +1,4 @@
-Ôªø@using ApexCharts
+@using ApexCharts
 @using MudBlazor.Extensions
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
@@ -11,7 +11,7 @@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@* @inject IStringLocalizer<Visualizations> Localizer *@
+
 
 
 <MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
@@ -99,7 +99,7 @@
                 }
                 @if (ShowLastUpdatedInfo)
                 {
-                    @*<MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>*@
+                    
                 }
             </MudCardActions>
         
@@ -112,7 +112,7 @@
 
     [Parameter] public Visualizacion? Visualization { get; set; }
 
-    // Para recargar la gr√°fica desde el exterior
+    // Para recargar la gr·fica desde el exterior
     [Parameter]
     public int ChartReloadKey
     {
@@ -177,10 +177,9 @@
         try
         {
             if (VisualizationId != 0)
-            {   
-                string token = await LocalStorage.GetItemAsync<string>("authToken");
+            {
 
-                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}&token={token}");
+                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -210,7 +209,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
         }
     }
 
@@ -222,7 +220,6 @@
         var allData = new List<object>();
         try
         {
-            // string token = await LocalStorage.GetItemAsync<string>("authToken");
             DateTime dateFrom = _visualization.FechaDesde;
             DateTime dateTo = _visualization.FechaHasta;
 
@@ -326,13 +323,11 @@
                                         }
                                         catch (Exception ex)
                                         {
-                                            Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
                                 }
                             }
                         }
@@ -349,7 +344,7 @@
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
-                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data", req);
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync("api/Visualizacion/visualization-data", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
                         
                         tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
@@ -357,7 +352,6 @@
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
             if(tmpDataDatasets.Any())
@@ -402,7 +396,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error procesando visualizaci√≥n {_visualization.IdVisualizacion}: {ex.Message}");
         }
     }
 
@@ -469,7 +462,6 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
             }
         }
 
@@ -501,7 +493,7 @@
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
         DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
-        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualizaci√≥n", parameters, options);
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar VisualizaciÛn", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -510,7 +502,7 @@
             await RetrieveData();
             StateHasChanged();
             _chartKey++;
-            Snackbar.Add("Visualizaci√≥n actualizada", Severity.Success);
+            Snackbar.Add("VisualizaciÛn actualizada", Severity.Success);
         }
     }
 
@@ -518,8 +510,7 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}?token={token}");
+            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}");
             if(response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Visualizacion eliminada", Severity.Success);

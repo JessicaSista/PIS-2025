@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Shared.Dtos;
 
@@ -73,8 +74,6 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a list of all reports for a specific user.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.View")]
         [HttpGet("by-user")]
         [ProducesResponseType(typeof(List<Report>), 200)]
         public async Task<IActionResult> GetAllReportsByUsername()
@@ -82,6 +81,33 @@ namespace OmniMonitor.Server.Controllers
             var username = User.Identity?.Name;
             List<Report> reports = await _reportService.GetAllReportsByUsernameAsync(username);
             return Ok(reports);
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
+        [HttpGet("GetAllReportsPaginated")]
+        public async Task<ActionResult<object>> GetAllReportsPaginated(int page = 1, int pageSize = 10, string? query = null)
+        {
+            var username = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(username))
+                return BadRequest("Usuario no encontrado.");
+
+            if (page <= 0 || pageSize <= 0)
+                return BadRequest("La página y el tamaño deben ser mayores a 0.");
+
+            var reports = await _reportService.GetAllReportsPaginatedAsync(username, page, pageSize, query);
+            var totalCount = await _reportService.GetReportsCountAsync(username, query);
+            int totalPages = (int)System.Math.Ceiling(totalCount / (double)pageSize);
+
+            return Ok(new {
+                Items = reports,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = totalPages,
+                HasPreviousPage = page > 1,
+                HasNextPage = page < totalPages
+            });
         }
 
         /// <summary>
@@ -166,7 +192,28 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
+        [RequirePermission("Reports.Execute")]
+        [HttpPost("joins/{joinId}/executefiltered")]
+        [ProducesResponseType(typeof(List<dynamic>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> ExecuteJoinWithFilters(int joinId, [FromBody] JoinFiltersConfig? filters = null)
+        {
+            try
+            {
+                List<dynamic> results = await _joinConfigService.ExecuteJoinWithFiltersAsync(joinId, filters);
+                return Ok(results);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception)
+            {
+                // Log exception ex
+                return StatusCode(500, "An error occurred while executing the join.");
+            }
+        }
+
         [HttpPut("UpdateReport")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
@@ -181,7 +228,18 @@ namespace OmniMonitor.Server.Controllers
                     return Unauthorized(new { message = "Token inválido." });
                 }
 
-                Report? updatedReport = await _reportService.UpdateReportAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config);
+                string? jsonFilters = null;
+                if (updateRequest.Filters != null)
+                {
+                    var serializerOptions = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        Converters = { new JsonStringEnumConverter() }
+                    };
+                    jsonFilters = JsonSerializer.Serialize(updateRequest.Filters, serializerOptions);
+                }
+
+                Report? updatedReport = await _reportService.UpdateReportWithFiltersAsync(id, updateRequest.Name, updateRequest.Description, username, updateRequest.JSON_config, jsonFilters);
 
                 if (updatedReport == null)
                 {
@@ -230,8 +288,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
         [HttpDelete("RemoveJoinFromReport")]
         [ProducesResponseType(204)] // No Content (éxito)
         [ProducesResponseType(404)] // Not Found
@@ -261,8 +317,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Export")]
         [HttpGet("{id}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]

@@ -19,4 +19,6 @@ public class CreateReportRequestDto
 
     [Required]
     public string JSON_config { get; set; } = string.Empty;
+    
+    public string? JSON_filters { get; set; }
 }

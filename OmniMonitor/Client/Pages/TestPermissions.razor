@@ -162,7 +162,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error cargando permisos del usuario: {ex.Message}");
         }
         finally
         {
@@ -179,7 +178,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error verificando permiso {permissionName}: {ex.Message}");
             permissionResults[permissionName] = false;
         }
     }
@@ -193,7 +191,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error verificando rol {roleName}: {ex.Message}");
             roleResults[roleName] = false;
         }
     }

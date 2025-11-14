@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
 
@@ -21,8 +22,8 @@ namespace OmniMonitor.Server.Controllers
             _sondaAuthService = sondaAuthService;
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/assetsBasicData")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<AssetDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -49,8 +50,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/assets")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<AssetDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -79,8 +80,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("stock/{stockId}")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(StockDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -103,12 +104,12 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("bundle")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<BundleDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<BundleDto>> GetStockParametersByBundleId([FromQuery] int bundleId, [FromQuery] string token)
+        public async Task<ActionResult<BundleDto>> GetStockParametersByBundleId([FromQuery] int bundleId)
         {
             try
             {
@@ -128,8 +129,8 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Ejemplo: Obtener un asset por ID
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/{id}")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(AssetDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -152,8 +153,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("stock")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<StockDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -181,8 +182,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("relation/asset/{assetId}")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<RelatedAssetDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -208,8 +209,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("bundle/bundles")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<BundleDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -261,8 +262,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }*/
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstance/{eventTaskInstanceId}")]
+        [RequirePermission("Tasks.View")]
         [ProducesResponseType(typeof(EventTaskInstanceDto), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -285,8 +286,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstances")]
+        [RequirePermission("Tasks.View")]
         [ProducesResponseType(typeof(List<EventTaskInstanceDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -320,8 +321,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstance/actions/{taskInstanceId}")]
+        [RequirePermission("Tasks.View")]
         [ProducesResponseType(typeof(List<EventTaskActionDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -344,8 +345,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("eventTaskInstance/stock/{taskInstanceId}")]
+        [RequirePermission("Tasks.View")]
         [ProducesResponseType(typeof(List<EventTaskInstanceStockDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -372,6 +373,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
         /// </summary>
         [HttpGet("typeDtos")]
+        [RequirePermission("Tasks.View")]
         public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos()
         {
             var username = User.Identity?.Name;
@@ -379,8 +381,8 @@ namespace OmniMonitor.Server.Controllers
             return Ok(typeDtos);
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("asset/types")]
+        [RequirePermission("Assets.View")]
         [ProducesResponseType(typeof(List<AssetTypeDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

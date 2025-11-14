@@ -1,4 +1,4 @@
-﻿@using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Shared.Dtos
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
 @using System.Text.Json
@@ -157,8 +157,7 @@
                     }
                 }
 
-                /* --- importante: mostramos atributos para TODOS los módulos que NO sean Insight Monitor,
-                incluyendo AM/EM/UM — esto reemplaza el antiguo 'else if' que ocultaba la UI cuando había métricas */
+               
                 @if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     <!-- Non-IM modules: Type buttons + Atributo + Valor -->
@@ -199,7 +198,7 @@
                         }
                         else
                         {
-                            <MudSelectItem T="string" Disabled="true">—</MudSelectItem>
+                            <MudSelectItem T="string" Disabled="true">-</MudSelectItem>
                         }
                     </MudSelect>
 
@@ -368,7 +367,7 @@
     private List<string> _kpiTypes = new() { "lastValue", "average", "min", "max" };
     private List<string> _countPercentTypes = new() { "count", "percentage" };
 
-    // helper: el módulo acepta las métricas count/percentage
+    // helper: el modulo acepta las metricas count/percentage
     private bool ModuleUsesCountPercentage =>
         !string.IsNullOrWhiteSpace(_selectedModuleName) &&
         (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase)
@@ -407,15 +406,7 @@
 
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrWhiteSpace(token))
-            {
-                _serverError = "Token no encontrado";
-                _datasetItems = new List<DatasetItem>();
-                return;
-            }
-
-            var url = $"api/DatasetUM/GetAllDatasetsDto?token={Uri.EscapeDataString(token)}";
+            var url = "api/DatasetUM/GetAllDatasetsDto";
 
             var response = await Http.GetAsync(url);
 
@@ -567,8 +558,7 @@
     {
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Dataset/GetSensorType?datasetId={datasetId}&token={Uri.EscapeDataString(token)}");
+            var response = await Http.GetAsync($"api/Dataset/GetSensorType?datasetId={datasetId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -584,7 +574,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error getting dataset type {datasetId}: {ex.Message}");
             _isNumericDataset = false;
         }
     }
@@ -635,7 +624,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading field types: {ex.Message}");
             _attributes = new();
         }
         StateHasChanged();
@@ -664,17 +652,15 @@
 
         try
         {
-            var token = await LocalStorage.GetItemAsync<string>("authToken");
             // si _selectedType es null, mandar 0 por seguridad (o podrías requerir que el usuario elija tipo)
             var choice = _selectedType ?? 0;
 
-            var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}&token={Uri.EscapeDataString(token ?? "")}";
+            var url = $"api/Kpi/field-values?datasetId={_selectedDatasetId}&modulo={Uri.EscapeDataString(moduleCode)}&campo={Uri.EscapeDataString(_selectedAtributo)}&choice={choice}";
 
             var resp = await Http.GetAsync(url);
             if (resp.IsSuccessStatusCode)
             {
                 _attributeValues = await resp.Content.ReadFromJsonAsync<List<string>>() ?? new();
-                Console.WriteLine(_attributeValues);
             }
             else
             {
@@ -683,7 +669,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error fetching field values: {ex.Message}");
             _attributeValues = new();
         }
 
@@ -696,7 +681,7 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
-    
+    // 4) IsFormValid actualizado: exigir metrica para esos modulos
     private bool IsFormValid
     {
         get
@@ -704,12 +689,12 @@
             if (_selectedDatasetId == 0) return false;
             if (string.IsNullOrWhiteSpace(_name)) return false;
 
-            // Si el módulo usa métricas (IM o AM/EM/UM con count/percentage) exigir métrica
+            // Si el modulo usa metricas (IM o AM/EM/UM con count/percentage) exigir metrica
             if (ModuleHasMetric)
             {
                 if (string.IsNullOrWhiteSpace(_metric)) return false;
 
-                // Para IM, las métricas average/min/max requieren date range
+                // Para IM, las metricas average/min/max requieren date range
                 if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
                 {
                     if ((_metric == "average" || _metric == "min" || _metric == "max"))
@@ -719,7 +704,7 @@
                 }
             }
 
-            // Para todos los módulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
+            // Para todos los modulos que NO sean Insight Monitor, exigir Type/Atributo si aplica
             if (!string.IsNullOrEmpty(_selectedModuleName) && !string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
             {
                 if (!_selectedType.HasValue) return false;
@@ -782,7 +767,6 @@
             }
         }
 
-        // prepare extraInfo
         object? extraInfoObj = null;
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
@@ -805,7 +789,7 @@
             Description = _description?.Trim(),
             DatasetId = _selectedDatasetId,
             Unit = "x",
-            // 4) Metric: enviarla si el módulo soporta métricas (IM o AM/EM/UM)
+            // 4) Metric: enviarla si el modulo soporta metricas (IM o AM/EM/UM)
             Metric = ModuleHasMetric ? _metric : null,
             // Multiplier only if numeric
             Multiplier = _isNumericDataset ? (double?)_multiplier : null,
@@ -883,7 +867,7 @@
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.PostAsJsonAsync($"api/Kpi", request);
+            var response = await Http.PostAsJsonAsync("api/Kpi", request);
 
             if (response.IsSuccessStatusCode)
             {

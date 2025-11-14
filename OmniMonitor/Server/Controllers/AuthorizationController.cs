@@ -28,6 +28,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los roles disponibles.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("roles")]
         [RequirePermission("System.ViewRoles")]
         public async Task<ActionResult<List<Role>>> GetRoles()
@@ -40,6 +41,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los permisos disponibles.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("permissions")]
         [RequirePermission("System.ViewPermissions")]
         public async Task<ActionResult<List<Permission>>> GetPermissions()
@@ -52,6 +54,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene los roles de un usuario específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("users/{userId}/roles")]
         [RequirePermission("Users.View")]
         public async Task<ActionResult<List<string>>> GetUserRoles(int userId)
@@ -64,6 +67,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene los permisos de un usuario específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("users/{userId}/permissions")]
         [RequirePermission("Users.View")]
         public async Task<ActionResult<List<Permission>>> GetUserPermissions(int userId)
@@ -76,6 +80,7 @@ namespace OmniMonitor.Server.Controllers
         /// Verifica si un usuario tiene un permiso específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("users/{userId}/has-permission")]
         [RequirePermission("Users.View")]
         public async Task<ActionResult<bool>> HasPermission(int userId, [FromQuery] string permissionName)
@@ -88,6 +93,7 @@ namespace OmniMonitor.Server.Controllers
         /// Verifica si un usuario tiene un rol específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("users/{userId}/has-role")]
         [RequirePermission("Users.View")]
         public async Task<ActionResult<bool>> HasRole(int userId, [FromQuery] string roleName)
@@ -100,6 +106,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene los permisos de un rol específico.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("roles/{roleName}/permissions")]
         [RequirePermission("System.ViewPermissions")]
         public async Task<ActionResult<List<Permission>>> GetRolePermissions(string roleName)
