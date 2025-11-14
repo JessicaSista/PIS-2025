@@ -1,8 +1,14 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Reflection.Metadata;
+
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Server.Attributes;
+using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
@@ -14,12 +20,15 @@ namespace OmniMonitor.Server.Controllers
         private readonly IReportService _reportService;
         private readonly IJoinConfigurationService _joinConfigService;
         private readonly ISondaAuthService _sondaAuthService;
+        private readonly IMailService _mailService;
 
-        public ReportsController(IReportService reportService, IJoinConfigurationService joinConfigService, ISondaAuthService sondaAuthService)
+        public ReportsController(IReportService reportService, IJoinConfigurationService joinConfigService, ISondaAuthService sondaAuthService, IMailService mailService)
         {
             _reportService = reportService;
             _joinConfigService = joinConfigService;
             _sondaAuthService = sondaAuthService;
+            _mailService = mailService;
+            
         }
 
         // ===============================================
@@ -289,5 +298,196 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, new { message = "Ocurrió un error interno al ejecutar el reporte.", details = ex.Message });
             }
         }
+
+
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Create")]
+        [HttpPost("scheduled-reports")]
+        [ProducesResponseType(typeof(ScheduledReportResponse), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> CreateScheduledReport([FromBody] ScheduledReportRequest dto)
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return Unauthorized(new { message = "Invalid token." });
+
+
+                var response = await _reportService.CreateScheduledReportAsync(dto, username);
+
+                return Ok(response);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Internal error while creating scheduled report.",
+                    details = ex.Message
+                });
+            }
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
+        [HttpGet("scheduled-reports")]
+        [ProducesResponseType(typeof(List<ScheduledReportResponse>), 200)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetScheduledReports()
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return Unauthorized(new { message = "Invalid token." });
+
+                var dtoList = await _reportService.GetScheduledReportsByUserAsync(username);
+
+                return Ok(dtoList);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Internal error while retrieving scheduled reports.",
+                    details = ex.Message
+                });
+            }
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.View")]
+        [HttpGet("scheduled-reports/{id}")]
+        [ProducesResponseType(typeof(ScheduledReportResponse), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> GetScheduledReportById(int id)
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return Unauthorized(new { message = "Invalid token." });
+
+                var dto = await _reportService.GetScheduledReportByIdAsync(id, username);
+                if (dto == null)
+                    return NotFound(new { message = "Scheduled report not found." });
+
+                return Ok(dto);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Internal error while retrieving scheduled report.",
+                    details = ex.Message
+                });
+            }
+        }
+
+        [HttpDelete("scheduled-reports/{id}")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(400)]
+        public async Task<IActionResult> DeleteScheduledReport(int id)
+        {
+            try
+            {
+                await _reportService.DeleteScheduledReportAsync(id);
+                return Ok(new { message = $"Programación {id} eliminada correctamente." });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error eliminando programación.", details = ex.Message });
+            }
+        }
+
+        [HttpGet("run-scheduled")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> RunScheduledReports()
+        {
+            try
+            {
+                // Ejecuta todas las programaciones activas que deban enviarse
+                await _reportService.ProcessScheduledReportsAsync();
+
+                return Ok(new { message = "Proceso de programaciones ejecutado correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Error ejecutando programaciones.",
+                    details = ex.Message
+                });
+            }
+        }
+
+
+
+
+        [HttpGet("send-test")]
+        public async Task<IActionResult> SendTestEmail()
+        {
+            await _mailService.SendEmailAsync(
+                new() { "elbrunoconde@gmail.com" },
+                "Test desde OmniMonitor",
+                "Hola! Este es un test del MailService."
+            );
+
+            return Ok("Correo enviado con éxito 🚀");
+        }
+
+        [HttpGet("send-test-pdf")]
+        public async Task<IActionResult> SendTestEmailPDF()
+        {
+            try
+            {
+                using var ms = new MemoryStream();
+                var doc = new iTextSharp.text.Document(PageSize.A4);
+                PdfWriter.GetInstance(doc, ms);
+                doc.Open();
+                doc.Add(new Paragraph("📊 Reporte de prueba - OmniMonitor"));
+                doc.Add(new Paragraph("Este PDF fue generado automáticamente desde el endpoint GET."));
+                doc.Add(new Paragraph($"Fecha: {DateTime.Now}"));
+                doc.Close();
+
+                var pdfBytes = ms.ToArray();
+
+                var recipients = new List<string> { "elbrunoconde@gmail.com" };
+                var subject = "Reporte de prueba (GET)";
+                var message = "Hola! Este es un correo de prueba con un PDF adjunto válido.";
+
+                await _mailService.SendEmailAsync(
+                    recipients,
+                    subject,
+                    message,
+                    pdfAttachment: pdfBytes,
+                    pdfName: "reporte_prueba.pdf"
+                );
+
+                return Ok("Correo enviado correctamente ✅");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error al enviar correo: {ex.Message}");
+            }
+        }
+
+
+
+
+
     }
+
 }

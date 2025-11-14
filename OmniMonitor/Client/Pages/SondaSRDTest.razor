@@ -1,0 +1,54 @@
+﻿@page "/delete-scheduled-report"
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<h3>Eliminar Programación de Reporte</h3>
+
+@if (!string.IsNullOrEmpty(StatusMessage))
+{
+    <div class="alert alert-info">@StatusMessage</div>
+}
+
+<div class="mb-3">
+    <label>Id de la programación:</label>
+    <InputNumber @bind-Value="ReportIdToDelete" class="form-control" />
+</div>
+
+<button class="btn btn-danger" @onclick="HandleDelete">Eliminar</button>
+
+@code {
+    private int ReportIdToDelete;
+    private string StatusMessage;
+
+    private async Task HandleDelete()
+    {
+        if (ReportIdToDelete <= 0)
+        {
+            StatusMessage = "Ingresa un Id válido.";
+            return;
+        }
+
+        try
+        {
+            var response = await Http.DeleteAsync($"api/Reports/scheduled-reports/{ReportIdToDelete}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                StatusMessage = $"Programación con Id {ReportIdToDelete} eliminada correctamente.";
+                ReportIdToDelete = 0;
+            }
+            else
+            {
+                var error = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>();
+                if (error != null && error.ContainsKey("message"))
+                    StatusMessage = $"Error: {error["message"]}";
+                else
+                    StatusMessage = "Error desconocido al eliminar la programación.";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error inesperado: {ex.Message}";
+        }
+    }
+}
