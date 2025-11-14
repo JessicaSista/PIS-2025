@@ -108,7 +108,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<BundleDto>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<BundleDto>> GetStockParametersByBundleId([FromQuery] int bundleId, [FromQuery] string token)
+        public async Task<ActionResult<BundleDto>> GetStockParametersByBundleId([FromQuery] int bundleId)
         {
             try
             {
@@ -371,6 +371,7 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene una lista de TaskTypeDto únicos de todas las instancias de tareas para el usuario y password dados.
         /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("typeDtos")]
         public async Task<ActionResult<List<TaskTypeDto>>> GetTypeDtos()
         {
