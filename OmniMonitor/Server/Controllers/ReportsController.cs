@@ -88,7 +88,7 @@ namespace OmniMonitor.Server.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Reports.View")]
         [HttpGet("GetAllReportsPaginated")]
-        public async Task<ActionResult<object>> GetAllReportsPaginated(int page = 1, int pageSize = 10, string? query = null)
+        public async Task<ActionResult<PaginatedReportDto>> GetAllReportsPaginated(int page = 1, int pageSize = 10, string? query = null)
         {
             var username = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(username))
@@ -101,14 +101,15 @@ namespace OmniMonitor.Server.Controllers
             var totalCount = await _reportService.GetReportsCountAsync(username, query);
             int totalPages = (int)System.Math.Ceiling(totalCount / (double)pageSize);
 
-            return Ok(new {
+            return Ok(new PaginatedReportDto
+            {
                 Items = reports,
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
                 TotalPages = totalPages,
                 HasPreviousPage = page > 1,
-                HasNextPage = page < totalPages
+                HasNextPage = page < totalPages,
             });
         }
 
