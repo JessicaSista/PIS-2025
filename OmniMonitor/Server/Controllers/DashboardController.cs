@@ -195,7 +195,7 @@ namespace OmniMonitor.Server.Controllers
                 List<DashboardSummaryResponse> paginatedItems = await _dashboardService.GetAllDashboardsPaginatedAsync(username, query, page, pageSize);
 
                 // Calcular totales
-                int totalCount = allDashboards.Count;
+                int totalCount = await _dashboardService.GetDashboardsCount(username, query);
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
                 // Validar página
