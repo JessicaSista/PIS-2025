@@ -613,7 +613,47 @@
             
         if (filter.Type == FilterType.Between)
         {
-            return $"{filter.Condition}";
+            // Manejar array de fechas o números
+            if (filter.Condition is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var arr = je.EnumerateArray().ToArray();
+                if (arr.Length >= 2)
+                {
+                    var from = arr[0].GetRawText().Trim('"');
+                    var to = arr[1].GetRawText().Trim('"');
+                    // Intentar parsear como fecha
+                    if (DateTime.TryParse(from, out var fromDate) && DateTime.TryParse(to, out var toDate))
+                    {
+                        return $"{fromDate:dd/MM/yyyy} y {toDate:dd/MM/yyyy}";
+                    }
+                    return $"{from} y {to}";
+                }
+            }
+            else if (filter.Condition is Array arr && arr.Length >= 2)
+            {
+                var from = arr.GetValue(0);
+                var to = arr.GetValue(1);
+                if (from is DateTime fromDate && to is DateTime toDate)
+                {
+                    return $"{fromDate:dd/MM/yyyy} y {toDate:dd/MM/yyyy}";
+                }
+                return $"{from} y {to}";
+            }
+            else if (filter.Condition is IEnumerable<object> enumerable)
+            {
+                var list = enumerable.ToList();
+                if (list.Count >= 2)
+                {
+                    var from = list[0];
+                    var to = list[1];
+                    if (from is DateTime fromDate && to is DateTime toDate)
+                    {
+                        return $"{fromDate:dd/MM/yyyy} y {toDate:dd/MM/yyyy}";
+                    }
+                    return $"{from} y {to}";
+                }
+            }
+            return filter.Condition.ToString() ?? "";
         }
         else if (filter.Type == FilterType.In)
         {
@@ -625,6 +665,11 @@
         }
         else
         {
+            // Para fechas individuales, formatear correctamente
+            if (filter.ValueType == FilterValueType.Date && filter.Condition is DateTime dt)
+            {
+                return dt.ToString("dd/MM/yyyy");
+            }
             return filter.Condition.ToString() ?? "";
         }
     }

@@ -563,9 +563,36 @@ public class ApiDataService : IApiDataService
             case FilterValueType.Date:
                 if (filter.Type == FilterType.Between && filter.Condition is IEnumerable<object> range && range.Count() == 2)
                 {
-                    var dateVal = value is DateTime dt ? dt : DateTime.Parse(value.ToString());
-                    var start = range.ElementAt(0) is DateTime d1 ? d1 : DateTime.Parse(range.ElementAt(0).ToString());
-                    var end = range.ElementAt(1) is DateTime d2 ? d2 : DateTime.Parse(range.ElementAt(1).ToString());
+                    DateTime dateVal;
+                    if (value is DateTime dt)
+                        dateVal = dt;
+                    else
+                    {
+                        var dateStr = value?.ToString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                            return false;
+                    }
+                    
+                    DateTime start;
+                    if (range.ElementAt(0) is DateTime d1)
+                        start = d1;
+                    else
+                    {
+                        var startStr = range.ElementAt(0)?.ToString();
+                        if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                            return false;
+                    }
+                    
+                    DateTime end;
+                    if (range.ElementAt(1) is DateTime d2)
+                        end = d2;
+                    else
+                    {
+                        var endStr = range.ElementAt(1)?.ToString();
+                        if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                            return false;
+                    }
+                    
                     return dateVal >= start && dateVal <= end;
                 }
                 return false;
@@ -707,6 +734,31 @@ public class ApiDataService : IApiDataService
                     matchesAll = false;
                     break;
                 }
+                
+                // Validación adicional para fechas: si es DateTime? null o DateTime default, no procesar
+                if (filter.ValueType == FilterValueType.Date)
+                {
+                    var valueType = value.GetType();
+                    if (valueType == typeof(DateTime))
+                    {
+                        var dt = (DateTime)value;
+                        if (dt == default(DateTime))
+                        {
+                            matchesAll = false;
+                            break;
+                        }
+                    }
+                    else if (valueType == typeof(DateTime?) || (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(Nullable<>) && valueType.GetGenericArguments()[0] == typeof(DateTime)))
+                    {
+                        var dtn = (DateTime?)value;
+                        if (!dtn.HasValue)
+                        {
+                            matchesAll = false;
+                            break;
+                        }
+                    }
+                }
+                
                 Console.WriteLine($"[DEBUG] Filtrando '{filter.AttributeName}': valor='{value}' (tipo={value?.GetType().Name}), condición='{filter.Condition}' (tipo={filter.Condition?.GetType().Name}), tipoFiltro={filter.Type}, tipoValor={filter.ValueType}");
                 if (!MatchesFilterStatic(value, filter))
                 {
@@ -724,6 +776,28 @@ public class ApiDataService : IApiDataService
     private static bool MatchesFilterStatic(object value, FilterCondition filter)
     {
         if (value == null) return false;
+        
+        // Si el valor es DateTime y es default (MinValue), tratarlo como null para filtros de fecha
+        if (filter.ValueType == FilterValueType.Date)
+        {
+            if (value is DateTime dt)
+            {
+                if (dt == default(DateTime))
+                    return false;
+            }
+            else
+            {
+                // Verificar si es un tipo nullable de DateTime
+                var type = value.GetType();
+                if (type == typeof(DateTime?) || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && type.GetGenericArguments()[0] == typeof(DateTime)))
+                {
+                    var nullableValue = (DateTime?)value;
+                    if (!nullableValue.HasValue)
+                        return false;
+                }
+            }
+        }
+        
     Console.WriteLine($"[DEBUG] MatchesFilterStatic: value='{value}' (tipo={value?.GetType().Name}), condición='{filter.Condition}' (tipo={filter.Condition?.GetType().Name}), tipoFiltro={filter.Type}, tipoValor={filter.ValueType}");
         switch (filter.ValueType)
         {
@@ -735,31 +809,200 @@ public class ApiDataService : IApiDataService
                     if (filter.Condition is System.Text.Json.JsonElement jeArr && jeArr.ValueKind == System.Text.Json.JsonValueKind.Array)
                     {
                         var arr = jeArr.EnumerateArray().ToArray();
-                        start = DateTime.Parse(arr[0].GetString() ?? "");
-                        end = DateTime.Parse(arr[1].GetString() ?? "");
+                        if (arr.Length < 2)
+                            return false;
+                        
+                        // Intentar parsear como DateTime directamente
+                        if (arr[0].ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var startStr = arr[0].GetString();
+                            if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                                return false;
+                        }
+                        else
+                        {
+                            // Intentar deserializar como DateTime
+                            try
+                            {
+                                start = System.Text.Json.JsonSerializer.Deserialize<DateTime>(arr[0].GetRawText());
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        }
+                        
+                        if (arr[1].ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var endStr = arr[1].GetString();
+                            if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                                return false;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                end = System.Text.Json.JsonSerializer.Deserialize<DateTime>(arr[1].GetRawText());
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    else if (filter.Condition is DateTime[] dateArray && dateArray.Length == 2)
+                    {
+                        start = dateArray[0];
+                        end = dateArray[1];
                     }
                     else if (filter.Condition is IEnumerable<object> range && range.Count() == 2)
                     {
-                        start = range.ElementAt(0) is DateTime d1 ? d1 : DateTime.Parse(range.ElementAt(0).ToString());
-                        end = range.ElementAt(1) is DateTime d2 ? d2 : DateTime.Parse(range.ElementAt(1).ToString());
+                        var first = range.ElementAt(0);
+                        var second = range.ElementAt(1);
+                        
+                        if (first is DateTime d1)
+                            start = d1;
+                        else if (first is System.Text.Json.JsonElement je1)
+                        {
+                            if (je1.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var startStr = je1.GetString();
+                                if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                                    return false;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    start = System.Text.Json.JsonSerializer.Deserialize<DateTime>(je1.GetRawText());
+                                }
+                                catch
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (!DateTime.TryParse(first?.ToString(), out start))
+                            return false;
+                        
+                        if (second is DateTime d2)
+                            end = d2;
+                        else if (second is System.Text.Json.JsonElement je2)
+                        {
+                            if (je2.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var endStr = je2.GetString();
+                                if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                                    return false;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    end = System.Text.Json.JsonSerializer.Deserialize<DateTime>(je2.GetRawText());
+                                }
+                                catch
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (!DateTime.TryParse(second?.ToString(), out end))
+                            return false;
                     }
                     else
                     {
                         var arr = filter.Condition as object[];
-                        start = DateTime.Parse(arr?[0]?.ToString() ?? "");
-                        end = DateTime.Parse(arr?[1]?.ToString() ?? "");
+                        if (arr == null || arr.Length < 2)
+                            return false;
+                        
+                        var startStr = arr[0]?.ToString();
+                        var endStr = arr[1]?.ToString();
+                        if (string.IsNullOrWhiteSpace(startStr) || string.IsNullOrWhiteSpace(endStr))
+                            return false;
+                        if (!DateTime.TryParse(startStr, out start) || !DateTime.TryParse(endStr, out end))
+                            return false;
                     }
-                    var dateVal = value is DateTime dtv ? dtv : DateTime.Parse(value.ToString());
+                    
+                    // Manejar el valor de fecha que puede venir como DateTime, string, o JsonElement
+                    DateTime dateVal;
+                    if (value is DateTime dtv)
+                    {
+                        dateVal = dtv;
+                    }
+                    else if (value is System.Text.Json.JsonElement jeValue)
+                    {
+                        if (jeValue.ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var dateStr = jeValue.GetString();
+                            if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                                return false;
+                        }
+                        else
+                        {
+                            var dateStr = jeValue.GetRawText().Trim('"');
+                            if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                                return false;
+                        }
+                    }
+                    else
+                    {
+                        var dateStr = value?.ToString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                            return false;
+                    }
+                    
                     return dateVal >= start && dateVal <= end;
                 }
+                
+                // Parsear la condición de fecha
                 if (filter.Condition is System.Text.Json.JsonElement jeDate && jeDate.ValueKind == System.Text.Json.JsonValueKind.String)
-                    condDate = DateTime.Parse(jeDate.GetString() ?? "");
+                {
+                    var condDateStr = jeDate.GetString();
+                    if (string.IsNullOrWhiteSpace(condDateStr) || !DateTime.TryParse(condDateStr, out condDate))
+                        return false;
+                }
                 else if (filter.Condition is DateTime dt)
+                {
                     condDate = dt;
+                }
                 else
-                    condDate = DateTime.Parse(filter.Condition?.ToString() ?? "");
+                {
+                    var condDateStr2 = filter.Condition?.ToString();
+                    if (string.IsNullOrWhiteSpace(condDateStr2) || !DateTime.TryParse(condDateStr2, out condDate))
+                        return false;
+                }
+                    
+                // Manejar el valor de fecha que puede venir como DateTime, string, o JsonElement
+                DateTime dateValue;
+                if (value is DateTime dv)
+                {
+                    dateValue = dv;
+                }
+                else if (value is System.Text.Json.JsonElement jeValueDate)
+                {
+                    if (jeValueDate.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var dateStr = jeValueDate.GetString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                            return false;
+                    }
+                    else
+                    {
+                        var dateStr = jeValueDate.GetRawText().Trim('"');
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                            return false;
+                    }
+                }
+                else
+                {
+                    var dateStr = value?.ToString();
+                    if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                        return false;
+                }
+                
                 if (filter.Type == FilterType.Equals)
-                    return value is DateTime dv && dv == condDate;
+                    return dateValue == condDate;
                 return false;
             case FilterValueType.Number:
                 double condNum;

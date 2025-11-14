@@ -343,6 +343,13 @@ namespace OmniMonitor.Server.Services
 
         private static string GetContentType(CreateDatasetUMRequest r)
         {
+            // Si ContentType ya está establecido (sistema de filtros), usarlo directamente
+            if (!string.IsNullOrEmpty(r.ContentType) && r.ContentType != "0")
+            {
+                return r.ContentType;
+            }
+            
+            // Lógica antigua para compatibilidad
             if (r.IsDataset == "S") return "0";
             if (r.EventIds?.Any() == true) return "1";
             if (r.NewsIds?.Any() == true) return "2";
