@@ -596,10 +596,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         selectedTipo = newModule;
         
-        // Limpiar todos los datos y selecciones previas
         ClearAllSelections();
-        
-        // Cargar las listas del nuevo módulo
         switch (newModule)
         {
             case "Insight Monitor":
@@ -779,8 +776,6 @@ else if (selectedTipo == "Insight Monitor")
                     {
                         selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
                     }
-
-                    // Cargar las listas necesarias en paralelo para mayor velocidad
                     await Task.WhenAll(
                         LoadSourcesAndGroups(),
                         LoadDevices(),
@@ -836,44 +831,6 @@ else if (selectedTipo == "Insight Monitor")
                     
                     // Cargar atributos disponibles para que los filtros se puedan mostrar correctamente
                     await LoadAvailableAttributes();
-
-                    if (amMode == 2)
-                    {
-                        selectedAssetTypeId = existenteAM.Id_Asset_Type;
-                        if (selectedAssetTypeId.HasValue)
-                        {
-                            await LoadAssetsByType(selectedAssetTypeId.Value);
-                        }
-                        
-                        if (existenteAM.Grupo_Asset != null && existenteAM.Grupo_Asset.Any())
-                        {
-                            selectedAssetIds = new HashSet<string>(existenteAM.Grupo_Asset.Select(da => da.Id_Asset));
-                        }
-                    }
-                    else if (amMode == 1)
-                    {
-                        selectedTaskTypeId = existenteAM.Id_Event_Task;
-                        if (selectedTaskTypeId.HasValue)
-                        {
-                            await LoadEventTaskInstancesByType(selectedTaskTypeId.Value);
-                        }
-                        
-                        if (existenteAM.Grupo_Event_Task_Instance != null && existenteAM.Grupo_Event_Task_Instance.Any())
-                        {
-                            selectedEventTaskInstanceIds = new HashSet<int>(existenteAM.Grupo_Event_Task_Instance.Select(det => det.Id_Event_Task_Instance));
-                            
-                            if (EnableStocksSelect)
-                            {
-                                await LoadStocksForEventTaskInstance(selectedEventTaskInstanceIds.First());
-                                
-                                var firstInstance = existenteAM.Grupo_Event_Task_Instance.First();
-                                if (firstInstance.Grupo_Stock != null && firstInstance.Grupo_Stock.Any())
-                                {
-                                    selectedStockIds = new HashSet<int>(firstInstance.Grupo_Stock.Select(ds => ds.Id_Stock));
-                                }
-                            }
-                        }
-                    }
                     
                     return true;
                 }
@@ -982,13 +939,9 @@ else if (selectedTipo == "Insight Monitor")
         }
     }
 
-    // Cuando cambia la fuente seleccionada: limpiar grupo, dispositivos y sensor
     private async Task OnSourceChanged(int? sourceId)
     {
-        // asigno nuevo source
         selectedSourceId = sourceId;
-
-        // limpio todas las dependencias
         selectedGroupId = null;
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
@@ -1005,7 +958,6 @@ else if (selectedTipo == "Insight Monitor")
         StateHasChanged();
     }
 
-    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
@@ -1056,7 +1008,6 @@ else if (selectedTipo == "Insight Monitor")
                 }
             }
 
-            // INTERSECCIÓN
             if (devicesFromSource != null && devicesFromGroup != null)
             {
                 var deviceIdsFromGroup = new HashSet<int>(devicesFromGroup.Select(d => d.Id));
@@ -1087,8 +1038,6 @@ else if (selectedTipo == "Insight Monitor")
             devices = new List<Device>();
         }
     }
-
-    // Cargar sensores de la fuente seleccionada
     private async Task LoadSensors()
     {
         try
@@ -1396,15 +1345,11 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var encoded = GetEncodedToken();
-
-            // Load Asset Types
             var respTypes = await Http.GetAsync($"api/SondaAM/asset/types");
             if (respTypes.IsSuccessStatusCode)
             {
                 assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
             }
-
-            // Load Task Types
             var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos");
             if (respTaskTypes.IsSuccessStatusCode)
             {
@@ -1850,7 +1795,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         return false;
     }
-
 
     private async Task InitializeEMLists()
     {

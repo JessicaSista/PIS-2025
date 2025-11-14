@@ -1,4 +1,4 @@
-﻿@page "/fetchdata"
+@page "/fetchdata"
 @using OmniMonitor.Shared;
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
@@ -31,7 +31,7 @@
         try
         {
             TableData<WeatherForecast> tableData = new() { Items = [], TotalItems = 0 };
-            // IMPORTANTE: Paginado local en el client (considerar paginado en el server según el caso)
+            // IMPORTANTE: Paginado local en el client (considerar paginado en el server seg�n el caso)
             WeatherForecast[]? forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast", cancellationToken);
             tableData.Items = forecasts?.Take(tableState.PageSize).Skip(tableState.Page) ?? [];
             tableData.TotalItems = forecasts?.Count() ?? 0;

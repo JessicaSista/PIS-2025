@@ -186,7 +186,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(ExtensionDtoDup), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<ExtensionDtoDup>> GetExtensionById(int extensionId, [FromQuery] string token)
+        public async Task<ActionResult<ExtensionDtoDup>> GetExtensionById(int extensionId)
         {
             try
             {
@@ -344,8 +344,7 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] int? page,
             [FromQuery] int? pageSize,
             [FromQuery] string? query,
-            [FromQuery] string? sort,
-            [FromQuery] string token)
+            [FromQuery] string? sort)
         {
             try
             {

@@ -289,15 +289,11 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-
-                // Obtener el dataset existente para obtener el DatasetId
                 DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, request.Username);
                 if (existingDataset == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
                 await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
 
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
@@ -354,30 +350,22 @@ namespace OmniMonitor.Server.Controllers
                     if (req.ContentType == "2") // News
                     {
                         var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
-                        Console.WriteLine($"[DEBUG] Total news antes de filtrar: {allNews.Count}");
                         var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
-                        Console.WriteLine($"[DEBUG] Total news filtrados: {filtrados.Count}");
                         foreach (var news in filtrados)
                         {
-                            Console.WriteLine($"[DEBUG] News filtrado: Id={news.Id}, Title={news.Title}");
                         }
                         filteredIds = filtrados.Select(n => (int)n.Id).ToList();
                         req.NewsIds = filteredIds;
-                        Console.WriteLine($"[DEBUG] IDs agregados a request.NewsIds: {string.Join(",", req.NewsIds)}");
                     }
                     else if (req.ContentType == "1") // Eventos
                     {
                         IEnumerable<object> eventos = (await _sondaUMService.GetAllEvents(username)).Cast<object>();
-                        Console.WriteLine($"[DEBUG] Total eventos antes de filtrar: {eventos.Count()}");
                         var filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
-                        Console.WriteLine($"[DEBUG] Total eventos filtrados: {filtrados.Count}");
                         foreach (var ev in filtrados)
                         {
-                            Console.WriteLine($"[DEBUG] Evento filtrado: Id={ev.Id}, Name={ev.Name}");
                         }
                         filteredIds = filtrados.Select(e => (int)e.Id).ToList();
                         req.EventIds = filteredIds;
-                        Console.WriteLine($"[DEBUG] IDs agregados a request.EventIds: {string.Join(",", req.EventIds)}");
                     }
                     else
                     {
@@ -470,8 +458,6 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDto>();
-
-                // Obtener datasets IM
                 var datasetsIM = await _context.Datasets
                     .Include(d => d.DatasetIM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor)
@@ -491,8 +477,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Obtener datasets UM
                 var datasetsUM = await _context.Datasets
                     .Include(d => d.DatasetUM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor)
@@ -512,8 +496,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Obtener datasets AM
                 var datasetsAM = await _context.Datasets
                     .Include(d => d.DatasetAM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager)
@@ -533,8 +515,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Obtener datasets EM
                 var datasetsEM = await _context.Datasets
                     .Include(d => d.DatasetEM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager)
@@ -554,8 +534,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Aplicar filtro de búsqueda si existe
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     string normalizedSearch = NormalizeText(search);
@@ -584,8 +562,6 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
 
                 var datasetDtos = new List<DatasetDtoGenerico>();
-
-                // Obtener datasets IM
                 var datasetsIM = await _context.Datasets
                     .Include(d => d.DatasetIM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.InsightMonitor)
@@ -606,8 +582,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Obtener datasets UM
                 var datasetsUM = await _context.Datasets
                     .Include(d => d.DatasetUM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.UrbanMonitor)
@@ -628,8 +602,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Obtener datasets AM
                 var datasetsAM = await _context.Datasets
                     .Include(d => d.DatasetAM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.AssetManager)
@@ -650,8 +622,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Obtener datasets EM
                 var datasetsEM = await _context.Datasets
                     .Include(d => d.DatasetEM)
                     .Where(d => d.Username == username && d.TipoDataset == ModuleType.EventManager)
@@ -672,8 +642,6 @@ namespace OmniMonitor.Server.Controllers
                         });
                     }
                 }
-
-                // Aplicar filtro de búsqueda si existe
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     string normalizedSearch = NormalizeText(search);

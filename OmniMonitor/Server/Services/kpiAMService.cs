@@ -29,7 +29,6 @@ namespace OmniMonitor.Server.Services
             _datasetAmService = datasetAmService;
 
         }
-                // Obtiene el valor de un campo de DatasetReducedAMDTO por nombre usando reflexión
         private string? GetAssetFieldValue(object asset, string fieldName)
         {
             var prop = asset.GetType().GetProperty(fieldName);
@@ -81,16 +80,17 @@ namespace OmniMonitor.Server.Services
             var estadoNecesario = kpi.ExtraInfo ?? "";
             var atributo = kpi.Atributo ?? "";
                 int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int countFinal = (int)(count * (kpi.Multiplier ?? 1));
             string color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color = GetColorForValue(kpi.ColorRanges, count, kpi.DefaultColor);
+                color = GetColorForValue(kpi.ColorRanges, countFinal, kpi.DefaultColor);
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "count",
-                Value = count,
+                Value = countFinal,
                 Unit = null,
                 ActualColor = color
             };
@@ -103,16 +103,17 @@ namespace OmniMonitor.Server.Services
                 int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
             double porcentaje = (items.Count > 0) ? (double)count / items.Count * 100.0 : 0.0;
             double porcentajeFormateado = Math.Round(porcentaje, 2);
+            double porcentajeFinal = Math.Round(porcentajeFormateado * (kpi.Multiplier ?? 1), 2);
             string color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color = GetColorForValue(kpi.ColorRanges, porcentajeFormateado, kpi.DefaultColor);
+                color = GetColorForValue(kpi.ColorRanges, porcentajeFinal, kpi.DefaultColor);
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "average",
-                Value = porcentajeFormateado,
+                Value = porcentajeFinal,
                 Unit = "%",
                 ActualColor = color
             };
@@ -144,16 +145,17 @@ namespace OmniMonitor.Server.Services
                 };
             }
             int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            int countFinal = (int)(count * (kpi.Multiplier ?? 1));
             string color2 = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color2 = GetColorForValue(kpi.ColorRanges, count, kpi.DefaultColor);
+                color2 = GetColorForValue(kpi.ColorRanges, countFinal, kpi.DefaultColor);
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "state",
-                Value = count,
+                Value = countFinal,
                 Unit = null,
                 ActualColor = color2
             };
@@ -168,25 +170,19 @@ namespace OmniMonitor.Server.Services
                 var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson, options);
                 if (ranges == null)
                 {
-                    Console.WriteLine($"[DEBUG] ColorRanges nulo. Usando color por defecto: {defaultColor}");
                     return defaultColor;
                 }
 
-                Console.WriteLine($"[DEBUG] Buscando color para valor: {value}. Rango JSON: {colorRangesJson}");
                 foreach (var range in ranges)
                 {
-                    Console.WriteLine($"[DEBUG] Rango: min={range.min}, max={range.max}, color={range.color}");
                     if (value >= range.min && value <= range.max)
                     {
-                        Console.WriteLine($"[DEBUG] Valor {value} está en el rango [{range.min}, {range.max}]. Color seleccionado: {range.color}");
                         return range.color;
                     }
                 }
-                Console.WriteLine($"[DEBUG] Ningún rango coincide para valor {value}. Usando color por defecto: {defaultColor}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DEBUG] Error al deserializar ColorRanges o calcular color: {ex.Message}. Usando color por defecto: {defaultColor}");
                 return defaultColor;
             }
             return defaultColor;

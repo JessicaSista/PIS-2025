@@ -687,12 +687,10 @@
         builder.CloseElement();
     };
     
-    //Cargar sources y groups desde la API
     private async Task LoadSourcesAndGroups()
     {
         try
         {
-            // Codificar el token para URL por si tiene caracteres especiales
             var encodedToken = GetEncodedToken();
 
             var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources");
@@ -724,13 +722,9 @@
         }
     }
 
-    // Cuando cambia la fuente seleccionada: limpiar grupo, dispositivos y sensor
     private async Task OnSourceChanged(int? sourceId)
     {
-        // asigno nuevo source
         selectedSourceId = sourceId;
-
-        // limpio todas las dependencias
         selectedGroupId = null;
         selectedDeviceIds.Clear();
         selectedSensor = string.Empty;
@@ -769,17 +763,13 @@
         }
     }
 
-
     private string GetEventTaskInstanceDisplayName(int instanceId)
     {
         var instance = eventTaskInstances.FirstOrDefault(e => e.Id == instanceId);
         if (instance == null) return instanceId.ToString();
-
-        // Show ID and subject
         if (!string.IsNullOrWhiteSpace(instance.Subject))
             return $"#{instance.Id} {instance.Subject}";
 
-        // Fallback to EventTaskDto subject if instance subject is empty
         if (instance.EventTaskDto != null && !string.IsNullOrWhiteSpace(instance.EventTaskDto.Subject))
             return $"#{instance.Id} {instance.EventTaskDto.Subject}";
 
@@ -801,15 +791,11 @@
         try
         {
             var encodedToken = GetEncodedToken();
-
-            // Load Asset Types
             var respTypes = await Http.GetAsync($"api/SondaAM/asset/types");
             if (respTypes.IsSuccessStatusCode)
             {
                 assetTypes = await respTypes.Content.ReadFromJsonAsync<List<AssetTypeDto>>() ?? new List<AssetTypeDto>();
             }
-
-            // Load Task Types
             var respTaskTypes = await Http.GetAsync($"api/SondaAM/typeDtos");
             if (respTaskTypes.IsSuccessStatusCode)
             {
@@ -925,7 +911,6 @@
             if (resp.IsSuccessStatusCode)
             {
                 var stocksDto = await resp.Content.ReadFromJsonAsync<List<EventTaskInstanceStockDto>>() ?? new List<EventTaskInstanceStockDto>();
-                // Map to simple Stock list
                 stocks = stocksDto;
             }
             else
@@ -1012,7 +997,6 @@
         }
     }
 
-    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;
@@ -1045,15 +1029,12 @@
         selectedSensor = sensor ?? string.Empty;
         return Task.CompletedTask;
     }
-    // Cargar devices con intersección de filtros
     private async Task LoadDevices()
     {
         try
         {
             List<Device>? devicesFromSource = null;
             List<Device>? devicesFromGroup = null;
-
-            // Si hay source seleccionado, obtener sus devices
             if (selectedSourceId.HasValue)
             {
                 var sourceResponse = await Http.GetAsync($"api/SondaMain/devices/source/{selectedSourceId.Value}");
@@ -1062,8 +1043,6 @@
                     devicesFromSource = await sourceResponse.Content.ReadFromJsonAsync<List<Device>>();
                 }
             }
-
-            // Si hay group seleccionado, obtener sus devices
             if (selectedGroupId.HasValue)
             {
                 var groupResponse = await Http.GetAsync($"api/SondaMain/devices/group/{selectedGroupId.Value}");
@@ -1089,7 +1068,6 @@
             }
             else
             {
-                // Si no hay filtros, mostrar todos los devices
                 var allDevicesResponse = await Http.GetAsync($"api/SondaMain/devices");
                 if (allDevicesResponse.IsSuccessStatusCode)
                 {
@@ -1105,8 +1083,6 @@
             devices = new List<Device>();
         }
     }
-
-    // Cargar sensores de la fuente seleccionada o dispositivos seleccionados
     private async Task LoadSensors()
     {
         try
@@ -1129,7 +1105,6 @@
                 }
                 else
                 {
-                    // Si no hay dispositivos seleccionados, obtener todos los sensores de la fuente
                     var sensorsResponse = await Http.GetAsync($"api/SondaMain/sensors/source/{selectedSourceId.Value}");
                     if (sensorsResponse.IsSuccessStatusCode)
                     {

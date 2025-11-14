@@ -57,7 +57,7 @@
                     Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
                     Class="pa-0">
                 <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
-                    @* <MudIcon Icon="@GetIcon(chartType)" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/> *@
+                    
                     <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@kpi.Name</MudText>
                 </MudStack>
             </MudButton>
@@ -136,9 +136,7 @@
         {
             try
             {
-                string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
+                HttpResponseMessage? response = await Http.GetAsync("api/Visualizacion/GetAllVisualizaciones");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -151,7 +149,6 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
             }
         }
     }
@@ -162,7 +159,7 @@
         {
             string token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
+            HttpResponseMessage? response = await Http.GetAsync("api/Visualizacion/GetAllVisualizaciones");
 
             if (response.IsSuccessStatusCode)
             {
@@ -173,7 +170,7 @@
                 }
             }
 
-            HttpResponseMessage? kpiResponse = await Http.GetAsync($"api/KPI/kpis?token={token}");
+            HttpResponseMessage? kpiResponse = await Http.GetAsync("api/KPI/kpis");
             if (kpiResponse.IsSuccessStatusCode)
             {
                 var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<List<KpiResponse>>();
@@ -185,7 +182,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
         }
     }
 
@@ -242,14 +238,11 @@
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"ERROR parseando JsonDesign: {ex.Message}");
                         }
                     }
 
-                    System.String token = await LocalStorage.GetItemAsync<string>("authToken");
-
                     HttpResponseMessage? response = await Http.GetAsync(
-                        $"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}"
+                        $"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}"
                     );
                     
                     
@@ -265,7 +258,7 @@
                                 {                                    
                                     try
                                     {
-                                        string sensorUrl = $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}";
+                                        string sensorUrl = $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}";
                                         HttpResponseMessage? sensorDataResponse = await Http.GetAsync(sensorUrl);
 
                                         if (sensorDataResponse.IsSuccessStatusCode)
@@ -303,33 +296,27 @@
                                         else
                                         {
                                             System.String errorContent = await sensorDataResponse.Content.ReadAsStringAsync();
-                                            Console.WriteLine($"Contenido del error: {errorContent}");
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"ERROR cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
                                     }
                                 }
                             }
                             else
                             {
-                                Console.WriteLine($"WARNING: Dataset {grupoDataset.Dataset.Id} no tiene devices asociados");
                             }
                         }
                         else
                         {
-                            Console.WriteLine($"ERROR: Dataset deserializado es NULL");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"ERROR obteniendo dataset {grupoDataset.Dataset.Id}: {response.StatusCode}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERROR procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
             // Ordenar por timestamp
@@ -347,12 +334,10 @@
             }
             else
             {
-                Console.WriteLine("WARNING: No se cargaron datos para esta visualización");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ERROR cargando datos de visualización {visualization.IdVisualizacion}: {ex.Message}");
         }
 
         return allData;

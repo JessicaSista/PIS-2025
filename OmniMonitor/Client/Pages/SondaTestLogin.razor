@@ -1,4 +1,4 @@
-﻿@page "/sonda-test-login"
+@page "/sonda-test-login"
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @using System.Net.Http.Json
@@ -45,7 +45,7 @@
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
-            errorLogin = "Debe ingresar usuario y contraseña.";
+            errorLogin = "Debe ingresar usuario y contrase�a.";
             return;
         }
 

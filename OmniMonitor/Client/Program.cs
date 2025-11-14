@@ -15,7 +15,6 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 
-// --- ADD THE HTTPCLIENT FACTORY CONFIGURATION ---
 
 // 1. Register the AuthHeaderHandler from the Canvas
 builder.Services.AddScoped<AuthHeaderHandler>();
@@ -36,7 +35,6 @@ builder.Services.Configure<JsonSerializerOptions>("HttpClientJsonOptions", optio
     options.Converters.Add(new JsonStringEnumConverter());
 });
 
-// --- END OF HTTPCLIENT CONFIGURATION ---
 
 
 builder.Services.AddMudServices();

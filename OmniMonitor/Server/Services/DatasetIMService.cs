@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
-// Se asume que existe un servicio y DTOs para interactuar con la API de Sonda
 using OmniMonitor.Server.Services;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,6 @@ using System.Threading.Tasks;
 
 namespace OmniMonitor.Server.Services
 {
-    // --- Interfaz para el servicio ---
     public interface IDatasetService
     {
         Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset);
@@ -22,7 +20,6 @@ namespace OmniMonitor.Server.Services
         Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username);
     }
 
-    // --- Implementación del servicio ---
     public class DatasetIMService : IDatasetService
     {
         private readonly ApplicationDbContext _context;
@@ -135,11 +132,8 @@ namespace OmniMonitor.Server.Services
                     return null;
                 }
 
-                // --- LÓGICA MODIFICADA: Búsqueda dinámica optimizada ---
                 List<Device>? devicesFromSource = null;
                 List<Device>? devicesFromGroup = null;
-
-                // 1. Obtener las listas de dispositivos de la API según los filtros proporcionados.
                 if (dataset.Id_Source.HasValue)
                 {
                     devicesFromSource = await _sondaIMService.GetDeviceOfSource(dataset.Id_Source.Value, user.UserName);
@@ -231,7 +225,6 @@ namespace OmniMonitor.Server.Services
             }
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncIM)
-            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos
             dataset.Name = request.Name;
@@ -249,7 +242,6 @@ namespace OmniMonitor.Server.Services
             _context.Entry(dataset).Property(d => d.SensorName).IsModified = true;
 
             // Actualizar la lista de devices
-            // Solo eliminar los devices que ya están guardados en la BD (con ID > 0)
             var existingDevicesToRemove = dataset.DatasetDevices
                 .Where(dd => dd.Id > 0)
                 .ToList();
@@ -259,7 +251,6 @@ namespace OmniMonitor.Server.Services
                 _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
             }
 
-            // Limpiar toda la colección
             dataset.DatasetDevices.Clear();
 
             // Agregar los nuevos devices si existen
@@ -295,7 +286,6 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
             }
 
-            // Solo eliminar las relaciones DatasetDevice que ya están en la BD (con ID > 0)
             var existingDevicesToRemove = dataset.DatasetDevices
                 .Where(dd => dd.Id > 0)
                 .ToList();
@@ -305,7 +295,6 @@ namespace OmniMonitor.Server.Services
                 _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
             }
 
-            // Eliminar el dataset
             _context.DatasetsIM.Remove(dataset);
             await _context.SaveChangesAsync();
         }

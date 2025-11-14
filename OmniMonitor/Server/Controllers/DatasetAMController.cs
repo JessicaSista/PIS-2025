@@ -92,10 +92,8 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // Asset
                 {
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
-                    Console.WriteLine($"[CREATE AM DATASET] Total Assets obtenidos: {allAssets.Count()}");
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
-                    Console.WriteLine($"[CREATE AM DATASET] Assets después de filtrar: {filtrados.Count()}");
                     
                     if (!filtrados.Any())
                     {
@@ -128,10 +126,8 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
-                    Console.WriteLine($"[CREATE AM DATASET] Total EventTasks obtenidos: {allEventTasks.Count()}");
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
-                    Console.WriteLine($"[CREATE AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
                     
                     if (!filtrados.Any())
                     {
@@ -143,10 +139,8 @@ namespace OmniMonitor.Server.Controllers
                 else if (req.ContentType == "3") // Stock
                 {
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
-                    Console.WriteLine($"[CREATE AM DATASET] Total Stocks obtenidos: {allStocks.Count()}");
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
-                    Console.WriteLine($"[CREATE AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
                     
                     if (!filtrados.Any())
                     {
@@ -174,12 +168,10 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                Console.WriteLine($"[DEBUG] InvalidOperationException: {ex.Message}");
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DEBUG] Exception: {ex.Message}");
                 return StatusCode(500, $"Error interno al crear el DatasetAM filtrado: {ex.Message}");
             }
         }
@@ -215,10 +207,8 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // Asset
                 {
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
-                    Console.WriteLine($"[EDIT AM DATASET] Total Assets obtenidos: {allAssets.Count()}");
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
-                    Console.WriteLine($"[EDIT AM DATASET] Assets después de filtrar: {filtrados.Count()}");
                     
                     if (!filtrados.Any())
                     {
@@ -246,10 +236,8 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
-                    Console.WriteLine($"[EDIT AM DATASET] Total EventTasks obtenidos: {allEventTasks.Count()}");
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
-                    Console.WriteLine($"[EDIT AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
                     
                     if (!filtrados.Any())
                     {
@@ -398,8 +386,6 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {request.Username}.");
                 }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
                 await _datasetUMService.ValidateDatasetNameAsync(request.Nombre, request.Username, ModuleType.AssetManager, existingDataset.DatasetId);
 
                 // Llamar al servicio que incluye la validación de nombres únicos

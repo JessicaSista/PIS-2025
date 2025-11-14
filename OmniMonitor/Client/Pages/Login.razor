@@ -1,4 +1,4 @@
-Ôªø@page "/login"
+@page "/login"
 @layout LoginLayout
 @using Microsoft.Extensions.Localization
 @using OmniMonitor.Client.Auth
@@ -156,16 +156,16 @@
                     // 1. Almacenar el token
                     await LocalStorage.SetItemAsync("authToken", loginResponse.Token);
 
-                    // 2. Notificar al proveedor de autenticaci√≥n
+                    // 2. Notificar al proveedor de autenticaciÛn
                     await ((ApiAuthenticationStateProvider)AuthStateProvider).NotifyUserAuthentication(loginResponse.Token);
 
-                    // 3. Navegar a la p√°gina principal con recarga forzada para aplicar el estado de autenticaci√≥n
+                    // 3. Navegar a la p·gina principal con recarga forzada para aplicar el estado de autenticaciÛn
                     NavManager.NavigateTo("/", replace: true);
                 }
             }
             else
             {
-                // Manejo de errores de autenticaci√≥n del servidor
+                // Manejo de errores de autenticaciÛn del servidor
                 errorMessage = @Localizer["AuthenticationError"];
                 Snackbar.Add(errorMessage, Severity.Error);
             }

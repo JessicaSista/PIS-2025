@@ -1,4 +1,4 @@
-﻿using Blazored.LocalStorage;
+using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
 using System;
 using System.Collections.Generic;
@@ -7,20 +7,17 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection; // Para IServiceProvider, aunque usaremos IHttpClientFactory
+using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http;
-using Microsoft.Extensions.Http; // Para IHttpClientFactory
+using Microsoft.Extensions.Http;
 
 namespace OmniMonitor.Client.Auth
 {
     public class ApiAuthenticationStateProvider : AuthenticationStateProvider
     {
         private readonly ILocalStorageService _localStorage;
-        // 💡 CAMBIO: Usamos la Factoría para crear clientes, rompiendo el ciclo de dependencia.
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly JwtSecurityTokenHandler _tokenHandler = new();
-
-        // El HttpClient ya no es un campo privado directo, se obtiene bajo demanda.
 
         public ApiAuthenticationStateProvider(ILocalStorageService localStorage, IHttpClientFactory httpClientFactory)
         {
@@ -28,11 +25,8 @@ namespace OmniMonitor.Client.Auth
             _httpClientFactory = httpClientFactory;
         }
 
-        // Método auxiliar para obtener el HttpClient, usando el cliente nombrado "API"
         private HttpClient GetHttpClient()
         {
-            // Usamos la factoría para crear una instancia del cliente "API".
-            // Esto evita que el DI intente resolver el cliente durante la inicialización del proveedor.
             return _httpClientFactory.CreateClient("API");
         }
 
@@ -44,19 +38,14 @@ namespace OmniMonitor.Client.Auth
             {
                 var token = await _localStorage.GetItemAsync<string>("authToken");
 
-
-                // Si no hay token
                 if (string.IsNullOrWhiteSpace(token))
                 {
                     httpClient.DefaultRequestHeaders.Authorization = null;
-                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Anonymous user
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
-                // Si hay token lo parseamos
                 var jsonToken = _tokenHandler.ReadToken(token) as JwtSecurityToken;
 
-
-                // Si el jsonToken es null o ha expirado
                 if (jsonToken == null || jsonToken.ValidTo < DateTime.UtcNow)
                 {
                     await _localStorage.RemoveItemAsync("authToken");
@@ -64,15 +53,11 @@ namespace OmniMonitor.Client.Auth
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
-                // The JWT token uses short claim type names (e.g., "nameid"),
-                // but Blazor's authorization components expect the standard long names
-                // (e.g., "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier").
-                // We manually map them here to ensure compatibility.
+                // Map JWT short claim names to Blazor's expected long names
                 var claims = new List<Claim>();
                 foreach (var claim in jsonToken.Claims)
                 {
                     var newClaim = claim;
-                    // Map the short claim types to the standard ClaimTypes constants
                     switch (claim.Type)
                     {
                         case "nameid":
@@ -97,7 +82,7 @@ namespace OmniMonitor.Client.Auth
             {
                 await _localStorage.RemoveItemAsync("authToken");
                 httpClient.DefaultRequestHeaders.Authorization = null;
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())); // Error state
+                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
         }
 
