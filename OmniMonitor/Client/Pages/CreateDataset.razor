@@ -748,7 +748,6 @@
         if (!string.IsNullOrWhiteSpace(instance.Subject))
             return $"#{instance.Id} {instance.Subject}";
 
-        // Fallback to EventTaskDto subject if instance subject is empty
         if (instance.EventTaskDto != null && !string.IsNullOrWhiteSpace(instance.EventTaskDto.Subject))
             return $"#{instance.Id} {instance.EventTaskDto.Subject}";
 
@@ -960,7 +959,6 @@
         }
     }
 
-    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;

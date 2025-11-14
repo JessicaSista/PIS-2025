@@ -718,7 +718,6 @@ else if (selectedTipo == "Insight Monitor")
     {
         selectedTipo = newModule;
         
-        // Limpiar todos los datos y selecciones previas
         ClearAllSelections();
         switch (newModule)
         {
@@ -1088,7 +1087,6 @@ else if (selectedTipo == "Insight Monitor")
         StateHasChanged();
     }
 
-    // Cuando cambia el grupo seleccionado: limpiar dispositivos y sensor
     private async Task OnGroupChanged(int? groupId)
     {
         selectedGroupId = groupId;

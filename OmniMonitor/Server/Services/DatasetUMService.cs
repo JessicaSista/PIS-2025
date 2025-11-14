@@ -63,7 +63,6 @@ namespace OmniMonitor.Server.Services
 
         public async Task<DatasetUM> CreateDatasetUMWithFiltersAsync(CreateDatasetUMRequest request, int dataset, List<FilterCondition> filters)
         {
-            // Serializar los filtros a JSON
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
             
             var newDataset = new DatasetUM
@@ -240,7 +239,6 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncUM)
-            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos básicos
             existingDataset.Name = request.Name;
@@ -249,11 +247,9 @@ namespace OmniMonitor.Server.Services
             existingDataset.ContentType = GetContentType(request);
             existingDataset.Id_Zone = request.ZoneId;
 
-            // Eliminar relaciones existentes (si no tienes Cascade Delete, si lo tienes puedes solo limpiar)
             _context.DatasetEvents.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetNews.RemoveRange(existingDataset.DatasetNews);
 
-            // Limpiar colecciones
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetNews.Clear();
 
@@ -274,7 +270,6 @@ namespace OmniMonitor.Server.Services
             if (existingDataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
-            // Serializar los filtros a JSON
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
             // Actualizar campos básicos
@@ -285,16 +280,13 @@ namespace OmniMonitor.Server.Services
             existingDataset.Id_Zone = request.ZoneId;
             existingDataset.Filters = filtersJson; // Actualizar los filtros
 
-            // Eliminar relaciones existentes
             _context.DatasetEvents.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetNews.RemoveRange(existingDataset.DatasetNews);
 
-            // Limpiar colecciones
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetNews.Clear();
 
             // Agregar nuevas relaciones
-            Console.WriteLine($"[DEBUG][UpdateDatasetUMWithFiltersAsync] Antes de UpdateRelationsFromRequest - EventIds: {request.EventIds?.Count ?? 0}, NewsIds: {request.NewsIds?.Count ?? 0}");
             UpdateRelationsFromRequest(existingDataset, request);
 
             await _context.SaveChangesAsync();
@@ -314,24 +306,18 @@ namespace OmniMonitor.Server.Services
         }
         private static void UpdateRelationsFromRequest(DatasetUM dataset, CreateDatasetUMRequest request)
         {
-            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] EventIds recibidos: {request.EventIds?.Count ?? 0}");
-            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] NewsIds recibidos: {request.NewsIds?.Count ?? 0}");
             
             if (request.EventIds?.Any() == true)
             {
-                Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] EventIds: [{string.Join(",", request.EventIds)}]");
             }
             
             if (request.NewsIds?.Any() == true)
             {
-                Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] NewsIds: [{string.Join(",", request.NewsIds)}]");
             }
             
             dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEvent { Id_event = id }).ToList() ?? new();
             dataset.DatasetNews = request.NewsIds?.Select(id => new DatasetNews { Id_news = id }).ToList() ?? new();
             
-            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] DatasetEvents creados: {dataset.DatasetEvents.Count}");
-            Console.WriteLine($"[DEBUG][UpdateRelationsFromRequest] DatasetNews creados: {dataset.DatasetNews.Count}");
         }
 
         private static string GetContentType(CreateDatasetUMRequest r)

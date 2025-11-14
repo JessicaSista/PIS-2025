@@ -50,10 +50,10 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest("Token invï¿½lido.");
                 }
 
-                // Crear KPI usando el servicio, pasándole el username
+                // Crear KPI usando el servicio, pasï¿½ndole el username
                 Kpi newKpi = await _kpiService.CreateKpiAsync(request, username);
 
                 return Ok(newKpi);
@@ -95,14 +95,14 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest("Token invï¿½lido.");
                 }
 
                 // Buscar KPI en la base de datos
                 KpiResponse kpi = await _kpiService.CalculateKpiValueAsync(id, username);
                 if (kpi == null)
                 {
-                    return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                    return NotFound($"No se encontrï¿½ el KPI con ID {id} para el usuario {username}.");
                 }
 
                 return Ok(kpi);
@@ -126,7 +126,7 @@ namespace OmniMonitor.Server.Controllers
                 KpiResponse kpi = await _kpiService.CalculateKpiValueAsyncSinToken(id);
                 if (kpi == null)
                 {
-                    return NotFound($"No se encontró el KPI con ID {id}");
+                    return NotFound($"No se encontrï¿½ el KPI con ID {id}");
                 }
 
                 return Ok(kpi);
@@ -151,7 +151,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;                  
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest("Token invï¿½lido.");
                 }
 
                 await _kpiService.DeleteKpiAsync(id, username);
@@ -232,7 +232,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest("Token invï¿½lido.");
                 }
 
                 List<KpiResponse> kpis = await _kpiService.CalculateAllKpisForUserAsync(username);
@@ -256,13 +256,13 @@ namespace OmniMonitor.Server.Controllers
             {
                 if (string.IsNullOrWhiteSpace(module))
                 {
-                    return BadRequest("Debe especificarse el módulo.");
+                    return BadRequest("Debe especificarse el mï¿½dulo.");
                 }
 
                 List<MetricInfo> metrics = await _kpiService.GetMetricInfoListAsync(module.ToUpperInvariant());
                 if (metrics == null || metrics.Count == 0)
                 {
-                    return NotFound($"No se encontraron métricas para el módulo {module}.");
+                    return NotFound($"No se encontraron mï¿½tricas para el mï¿½dulo {module}.");
                 }
 
                 return Ok(metrics);
@@ -270,7 +270,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetMetricInfoByModule: unexpected error for module={Module}", module);
-                return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
+                return StatusCode(500, $"Error interno al obtener mï¿½tricas: {ex.Message}");
             }
         }
 
@@ -286,7 +286,7 @@ namespace OmniMonitor.Server.Controllers
                 string password = "admin";
                 int deviceId = 52726;
 
-                DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
+                DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 dï¿½a
                 DateTime dateTo = DateTime.UtcNow;               // ahora
 
                 var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
@@ -314,7 +314,7 @@ namespace OmniMonitor.Server.Controllers
                 Description = "Average temperature of last hour",
                 SourceModule = "UM",
                 DatasetId = 101,
-                Unit = "°C",
+                Unit = "ï¿½C",
                 Metric = "Average",
                 Multiplier = 1.0,
                 DefaultColor = "#00FF00"
@@ -339,7 +339,7 @@ namespace OmniMonitor.Server.Controllers
             return Ok(response);
         }
 
-        // Devuelve los tipos de campos posibles para un KPI según el módulo
+        // Devuelve los tipos de campos posibles para un KPI segï¿½n el mï¿½dulo
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("field-types")]
         [ProducesResponseType(typeof(List<string>), 200)]
@@ -347,7 +347,7 @@ namespace OmniMonitor.Server.Controllers
         public ActionResult<List<string>> GetKpiFieldTypes([FromQuery] string modulo, [FromQuery] int choice)
         {
             if (string.IsNullOrWhiteSpace(modulo))
-                return BadRequest("Debe especificar el módulo.");
+                return BadRequest("Debe especificar el mï¿½dulo.");
 
             List<string> fieldTypes = new List<string>();
             switch (modulo.ToLower())
@@ -361,7 +361,6 @@ namespace OmniMonitor.Server.Controllers
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.ReducedStockDatasetAM).GetProperties().Select(p => p.Name).ToList();
                     break;
                 case "em":
-                    // Puedes elegir el DTO según el tipo de dato que quieras mostrar
                     if (choice == 1)
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO).GetProperties().Select(p => p.Name).ToList();
                     else if (choice == 2)
@@ -379,7 +378,7 @@ namespace OmniMonitor.Server.Controllers
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventUMDTO).GetProperties().Select(p => p.Name).ToList();
                     break;
                 default:
-                    fieldTypes.Add("Tipo de módulo no soportado");
+                    fieldTypes.Add("Tipo de mï¿½dulo no soportado");
                     break;
             }
             return Ok(fieldTypes);
@@ -425,7 +424,7 @@ namespace OmniMonitor.Server.Controllers
             [FromQuery] string campo,
             [FromQuery] int choice)
         {
-            // Log: llegada de la petición
+            // Log: llegada de la peticiï¿½n
             _logger.LogInformation("GET field-values called. datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
 
             try
@@ -433,13 +432,13 @@ namespace OmniMonitor.Server.Controllers
                 if (datasetId <= 0)
                 {
                     _logger.LogWarning("GetFieldValues: invalid datasetId {DatasetId}", datasetId);
-                    return BadRequest("Debe especificar un ID de dataset válido.");
+                    return BadRequest("Debe especificar un ID de dataset vï¿½lido.");
                 }
 
                 if (string.IsNullOrWhiteSpace(modulo))
                 {
                     _logger.LogWarning("GetFieldValues: missing modulo");
-                    return BadRequest("Debe especificar el módulo.");
+                    return BadRequest("Debe especificar el mï¿½dulo.");
                 }
 
                 if (string.IsNullOrWhiteSpace(campo))
@@ -453,7 +452,7 @@ namespace OmniMonitor.Server.Controllers
                 if (string.IsNullOrEmpty(username))
                 {
                     _logger.LogWarning("GetFieldValues: invalid token");
-                    return BadRequest("Token inválido.");
+                    return BadRequest("Token invï¿½lido.");
                 }
 
                 List<string> fieldValues = await _kpiService.GetFieldValuesAsync(datasetId, modulo, campo, choice, username);
@@ -461,13 +460,13 @@ namespace OmniMonitor.Server.Controllers
                 if (fieldValues == null || !fieldValues.Any())
                 {
                     _logger.LogInformation("GetFieldValues: no values found for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
-                    return Ok(new List<string>()); // Retornar lista vacía en lugar de NotFound
+                    return Ok(new List<string>()); // Retornar lista vacï¿½a en lugar de NotFound
                 }
 
                 // Log: mostrar resumen de la respuesta
                 if (fieldValues.Count <= 20)
                 {
-                    // para respuestas pequeñas loguea el contenido
+                    // para respuestas pequeï¿½as loguea el contenido
                     _logger.LogInformation("GetFieldValues: returning {Count} values: {Values}", fieldValues.Count, string.Join(", ", fieldValues));
                 }
                 else

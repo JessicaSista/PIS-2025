@@ -334,7 +334,6 @@ public class SondaEMService : ISondaEMService
         string username)
     {
         // NOTE: Similar to Categories, the Sonda API's events endpoint may not support pagination
-        // Testing shows it works better without page/pageSize parameters
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Event"]["GetEvents"];
         

@@ -1667,7 +1667,6 @@
         }
     }
 
-    // --- Generar JSON de configuración ---
     private async Task GenerarJsonConfig()
     {
         try
@@ -2022,7 +2021,6 @@
 
     private void UpdateJoinFields(JoinDto join)
     {
-        // Limpiar los campos de unión al cambiar el dataset
         if (string.IsNullOrEmpty(join.LeftDataset) || string.IsNullOrEmpty(join.RightDataset))
         {
             join.LeftField = string.Empty; // Use empty string instead of null

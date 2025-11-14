@@ -228,7 +228,6 @@ namespace OmniMonitor.Server.Controllers
                     return Unauthorized(new { message = "Token inválido." });
                 }
 
-                // Serializar filtros a JSON si existen
                 string? jsonFilters = null;
                 if (updateRequest.Filters != null)
                 {

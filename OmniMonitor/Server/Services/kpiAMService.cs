@@ -29,7 +29,6 @@ namespace OmniMonitor.Server.Services
             _datasetAmService = datasetAmService;
 
         }
-                // Obtiene el valor de un campo de DatasetReducedAMDTO por nombre usando reflexión
         private string? GetAssetFieldValue(object asset, string fieldName)
         {
             var prop = asset.GetType().GetProperty(fieldName);

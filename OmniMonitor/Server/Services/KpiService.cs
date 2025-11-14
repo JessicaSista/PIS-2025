@@ -265,7 +265,6 @@ namespace OmniMonitor.Server.Services
                 }
             }
 
-            // --- APLICAR CAMBIOS (sólo si vinieron valores válidos; strings se trimmed)
             if (request.Name != null) existingKpi.Name = request.Name.Trim();
             if (request.Description != null) existingKpi.Description = request.Description.Trim();
             if (request.SourceModule != null) existingKpi.SourceModule = request.SourceModule.Trim();
@@ -414,7 +413,6 @@ namespace OmniMonitor.Server.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error calculando KPI {kpi.Id}: {ex.Message}");
                 }
             }
 
@@ -493,16 +491,12 @@ namespace OmniMonitor.Server.Services
                     }
                 }
                 // Imprimir la lista enviada
-                Console.WriteLine("Lista de EventTaskInstanceDto enviada a CalculateAmKpiAsync:");
                 foreach (var et in eventTasks)
                 {
-                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(et));
                 }*/
                 var eventTasks = await _datasetAmService.GetReducedEventsByDatasetIdAsync(kpi.DatasetId, username);
                 var result = await _kpiAMService.CalculateAmKpiAsync(kpi, username, eventTasks);
                 // Imprimir el resultado devuelto
-                Console.WriteLine("Resultado devuelto por CalculateAmKpiAsync:");
-                Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(result));
                 return result;
             } else if (kpi.Type == 3) // Stock
             {
@@ -510,14 +504,11 @@ namespace OmniMonitor.Server.Services
                         var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
                         if (datasetAM.Grupo_Stock != null)
                         {
-                            Console.WriteLine($"Grupo_Stock count: {datasetAM.Grupo_Stock.Count}");
                             foreach (var dsStock in datasetAM.Grupo_Stock)
                             {
-                                Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
                                 var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
                                 if (stockDto != null)
                                 {
-                                    Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
                                     stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
                                     {
                                         Nombre = stockDto.Name,
@@ -531,7 +522,6 @@ namespace OmniMonitor.Server.Services
                                 }
                                 else
                                 {
-                                    Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
                                 }
                             }
                         }
@@ -542,7 +532,6 @@ namespace OmniMonitor.Server.Services
                         } else {
                             
                             var aux = ExtractFieldValuesFromLists(stockData, kpi.Atributo);
-                            Console.WriteLine($"Valores extraídos para atributo '{kpi.Atributo}': [{string.Join(", ", aux)}]");
                             switch (kpi.Metric.ToLower())
                             {
                                 case "count":
@@ -554,11 +543,9 @@ namespace OmniMonitor.Server.Services
                                         if (!string.IsNullOrEmpty(kpi.ColorRanges))
                                         {
                                             color = GetColorForValue(kpi.ColorRanges, sumaFinal, kpi.DefaultColor);
-                                            Console.WriteLine($"[DEBUG] Calculando color para KPI {kpi.Id}: valor={sumaFinal}, color={color}, rangos={kpi.ColorRanges}");
                                         }
                                         else
                                         {
-                                            Console.WriteLine($"[DEBUG] Usando color por defecto para KPI {kpi.Id}: valor={sumaFinal}, color={color}");
                                         }
                                         return new KpiResponse
                                         {
@@ -584,11 +571,9 @@ namespace OmniMonitor.Server.Services
                                         if (!string.IsNullOrEmpty(kpi.ColorRanges))
                                         {
                                             color = GetColorForValue(kpi.ColorRanges, promedioFinal, kpi.DefaultColor);
-                                            Console.WriteLine($"[DEBUG] Calculando color para KPI {kpi.Id}: valor={promedioFinal}, color={color}, rangos={kpi.ColorRanges}");
                                         }
                                         else
                                         {
-                                            Console.WriteLine($"[DEBUG] Usando color por defecto para KPI {kpi.Id}: valor={promedioFinal}, color={color}");
                                         }
                                         return new KpiResponse
                                         {
@@ -856,7 +841,6 @@ namespace OmniMonitor.Server.Services
                         break;
 
                     default:
-                        Console.WriteLine($"Tipo de sensor desconocido: {type}");
                         break;
                 }
             }
@@ -1411,25 +1395,19 @@ namespace OmniMonitor.Server.Services
                 var ranges = System.Text.Json.JsonSerializer.Deserialize<List<ColorRange>>(colorRangesJson, options);
                 if (ranges == null)
                 {
-                    Console.WriteLine($"[DEBUG] ColorRanges nulo. Usando color por defecto: {defaultColor}");
                     return defaultColor;
                 }
 
-                Console.WriteLine($"[DEBUG] Buscando color para valor: {value}. Rango JSON: {colorRangesJson}");
                 foreach (var range in ranges)
                 {
-                    Console.WriteLine($"[DEBUG] Rango: min={range.min}, max={range.max}, color={range.color}");
                     if (value >= range.min && value <= range.max)
                     {
-                        Console.WriteLine($"[DEBUG] Valor {value} está en el rango [{range.min}, {range.max}]. Color seleccionado: {range.color}");
                         return range.color;
                     }
                 }
-                Console.WriteLine($"[DEBUG] Ningún rango coincide para valor {value}. Usando color por defecto: {defaultColor}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DEBUG] Error al deserializar ColorRanges o calcular color: {ex.Message}. Usando color por defecto: {defaultColor}");
                 return defaultColor;
             }
             return defaultColor;
@@ -1508,19 +1486,15 @@ namespace OmniMonitor.Server.Services
                         var stockData = new List<OmniMonitor.Shared.Dtos.ReducedStockDatasetAM>();
                         if (datasetAM.Grupo_Event_Task_Instance != null)
                         {
-                            Console.WriteLine($"EventTaskInstances count: {datasetAM.Grupo_Event_Task_Instance.Count}");
                             foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
                             {
                                 if (eventTaskInstance.Grupo_Stock != null)
                                 {
-                                    Console.WriteLine($"  Grupo_Stock count: {eventTaskInstance.Grupo_Stock.Count}");
                                     foreach (var dsStock in eventTaskInstance.Grupo_Stock)
                                     {
-                                        Console.WriteLine($"    DatasetStock Id_Stock: {dsStock.Id_Stock}");
                                         var stockDto = await _sondaAMService.GetStockById(dsStock.Id_Stock, username);
                                         if (stockDto != null)
                                         {
-                                            Console.WriteLine($"      StockDto Nombre: {stockDto.Name}");
                                             stockData.Add(new OmniMonitor.Shared.Dtos.ReducedStockDatasetAM
                                             {
                                                 Nombre = stockDto.Name,
@@ -1534,7 +1508,6 @@ namespace OmniMonitor.Server.Services
                                         }
                                         else
                                         {
-                                            Console.WriteLine($"      StockDto not found for Id_Stock: {dsStock.Id_Stock}");
                                         }
                                     }
                                 }
@@ -1542,10 +1515,8 @@ namespace OmniMonitor.Server.Services
                         }
                         
                         
-                        Console.WriteLine($"StockData count: {stockData.Count}");
                         foreach (var s in stockData)
                         {
-                            Console.WriteLine($"Stock Nombre: {s.Nombre}");
                         }
                         fieldValues = await _kpiAMService.GetFieldValuesAsync(stockData, campo);
                     }

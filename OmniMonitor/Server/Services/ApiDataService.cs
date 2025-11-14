@@ -522,7 +522,6 @@ public class ApiDataService : IApiDataService
         }
     }
 
-    // Usar los tipos desde Shared.Dtos
     
 
     /// <summary>
@@ -703,14 +702,11 @@ public class ApiDataService : IApiDataService
                 value = actual;
                 if (value == null)
                 {
-                    Console.WriteLine($"[DEBUG] No se encontró la propiedad compuesta '{filter.AttributeName}' en el objeto. Claves disponibles: {string.Join(", ", dict.Keys)}");
                     matchesAll = false;
                     break;
                 }
-                Console.WriteLine($"[DEBUG] Filtrando '{filter.AttributeName}': valor='{value}' (tipo={value?.GetType().Name}), condición='{filter.Condition}' (tipo={filter.Condition?.GetType().Name}), tipoFiltro={filter.Type}, tipoValor={filter.ValueType}");
                 if (!MatchesFilterStatic(value, filter))
                 {
-                    Console.WriteLine($"[DEBUG] No matchea el filtro para '{filter.AttributeName}'");
                     matchesAll = false;
                     break;
                 }
@@ -724,7 +720,6 @@ public class ApiDataService : IApiDataService
     private static bool MatchesFilterStatic(object value, FilterCondition filter)
     {
         if (value == null) return false;
-    Console.WriteLine($"[DEBUG] MatchesFilterStatic: value='{value}' (tipo={value?.GetType().Name}), condición='{filter.Condition}' (tipo={filter.Condition?.GetType().Name}), tipoFiltro={filter.Type}, tipoValor={filter.ValueType}");
         switch (filter.ValueType)
         {
             case FilterValueType.Date:
@@ -804,7 +799,6 @@ public class ApiDataService : IApiDataService
                 }
             case FilterValueType.Enum:
                 // Si el valor es objeto y el filtro es compuesto, busca la propiedad indicada
-                Console.WriteLine($"[DEBUG] Enum: valor para comparación='{value}' tipo={value?.GetType().Name}");
                 
                 // Si value es una colección (como List<string> de nombres de categorías)
                 if (value is System.Collections.IEnumerable enumerable && !(value is string))
@@ -833,11 +827,9 @@ public class ApiDataService : IApiDataService
                         {
                             if (item?.ToString() != null && conditionValues.Contains(item.ToString()))
                             {
-                                Console.WriteLine($"[DEBUG] Enum/In/Collection: Match encontrado: '{item}' está en [{string.Join(", ", conditionValues)}]");
                                 return true;
                             }
                         }
-                        Console.WriteLine($"[DEBUG] Enum/In/Collection: No match, ningún valor de la colección está en [{string.Join(", ", conditionValues)}]");
                         return false;
                     }
                 }
@@ -865,9 +857,7 @@ public class ApiDataService : IApiDataService
                     {
                         valores.Add(s);
                     }
-                    Console.WriteLine($"[DEBUG] Enum/In: valor final para comparación='{value?.ToString()}', valores comparados=[{string.Join(", ", valores)}]");
                     bool resultado = valores.Contains(value?.ToString());
-                    Console.WriteLine($"[DEBUG] Enum/In: resultado comparación={resultado}");
                     return resultado;
                 }
                 // Manejar Equals para enums

@@ -190,7 +190,6 @@
 @code {
     private const string ApiBaseUrl = "api/reports";
 
-    // --- State Variables ---
     private string sessionToken = "";
     private List<CrossModuleJoinDto> joins = new();
     private List<Report> reports = new();
@@ -199,7 +198,6 @@
     private Report? selectedReport;
     private string resultJson = "Los resultados de las operaciones aparecerán aquí...";
 
-    // --- Lifecycle and Data Loading ---
     protected override async Task OnInitializedAsync()
     {
         await LoadTokenFromLocalStorage();
@@ -319,7 +317,6 @@
 
     private void DisplayResult(object data) => resultJson = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
 
-    // --- DTOs and Enums ---
     public class JoinOperandDto { public ModuleType ModuleType { get; set; } public int DatasetId { get; set; } public EntityName EntityName { get; set; } public string JoinPropertyName { get; set; } = ""; public string JoinPropertyType { get; set; } = "string"; }
     public class CreateJoinRequestDto { public string Name { get; set; } = ""; public JoinType JoinType { get; set; } = JoinType.Inner; public JoinOperandDto LeftOperand { get; set; } = new(); public JoinOperandDto RightOperand { get; set; } = new(); }
     public class CrossModuleJoinDto { public int Id { get; set; } public string Name { get; set; } public JoinType JoinType { get; set; } public JoinOperandDto LeftOperand { get; set; } public JoinOperandDto RightOperand { get; set; } }

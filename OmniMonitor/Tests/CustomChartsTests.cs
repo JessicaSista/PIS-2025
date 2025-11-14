@@ -542,7 +542,6 @@ public class CustomChartsTests
 
     private ChartListResult GetChartsPaginated(ChartListRequest request)
     {
-        // Simular datos de prueba
         var allCharts = new List<Chart>
         {
             new Chart { Id = 1, Title = "Sales Report", SourceType = "dataset", UpdatedAt = DateTime.UtcNow.AddDays(-1) },

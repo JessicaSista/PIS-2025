@@ -399,9 +399,7 @@ namespace OmniMonitor.Server.Services
             if (dashboard == null)
                 return false;
 
-            // Eliminar los GrupoVisualizaciones asociados
             _context.GrupoVisualizaciones.RemoveRange(dashboard.GrupoVisualizaciones);
-            // Eliminar el dashboard
             _context.Dashboards.Remove(dashboard);
 
             await _context.SaveChangesAsync();

@@ -89,7 +89,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        // ---------------- DEVICE GROUPS ----------------
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("groups")]
         [ProducesResponseType(typeof(List<DeviceGroup>), 200)]
