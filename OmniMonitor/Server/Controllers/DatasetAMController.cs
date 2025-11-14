@@ -211,8 +211,7 @@ namespace OmniMonitor.Server.Controllers
 
                 var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
 
-                // Filtrado para EventTask, Asset o Stock
-                List<int> filteredIds = new List<int>();
+                // Validar filtros ANTES de actualizar el dataset
                 if (req.ContentType == "2") // Asset
                 {
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
@@ -221,9 +220,27 @@ namespace OmniMonitor.Server.Controllers
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
                     Console.WriteLine($"[EDIT AM DATASET] Assets después de filtrar: {filtrados.Count()}");
                     
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún asset. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.Grupo_Asset_Ids == null) req.Grupo_Asset_Ids = new List<string>();
                     req.Grupo_Asset_Ids.Clear();
-                    req.Grupo_Asset_Ids.AddRange(filtrados.Select(a => a.Id != null ? a.Id.ToString() : string.Empty).OfType<string>().ToList());
+                    
+                    var assetIds = new List<string>();
+                    foreach (var asset in filtrados)
+                    {
+                        if (asset.Id != null)
+                        {
+                            var idStr = asset.Id.ToString();
+                            if (!string.IsNullOrEmpty(idStr))
+                            {
+                                assetIds.Add(idStr);
+                            }
+                        }
+                    }
+                    req.Grupo_Asset_Ids = assetIds;
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
@@ -233,6 +250,11 @@ namespace OmniMonitor.Server.Controllers
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
                     Console.WriteLine($"[EDIT AM DATASET] EventTasks después de filtrar: {filtrados.Count()}");
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede actualizarse sin resultados.");
+                    }
                     
                     if (req.Grupo_Event_Task_Instance_Ids == null) req.Grupo_Event_Task_Instance_Ids = new List<int>();
                     req.Grupo_Event_Task_Instance_Ids.Clear();
@@ -245,6 +267,11 @@ namespace OmniMonitor.Server.Controllers
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
                     Console.WriteLine($"[EDIT AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún Stock. El dataset no puede actualizarse sin resultados.");
+                    }
                     
                     if (req.StockIds == null) req.StockIds = new List<int>();
                     req.StockIds.Clear();

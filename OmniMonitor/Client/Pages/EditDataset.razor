@@ -193,9 +193,18 @@ else if (selectedTipo == "Insight Monitor")
 
     <!-- Toggle de modo: Asset, Event Task, Stock -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
-        <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(2)">Asset</MudButton>
-        <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(1)">Event Task</MudButton>
-        <MudButton Variant="@(amMode == 3 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetAmMode(3)">Stock</MudButton>
+        <MudButton Variant="@(amMode == 2 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetAmMode(2)"
+                   Disabled="@isEditingAM">Asset</MudButton>
+        <MudButton Variant="@(amMode == 1 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetAmMode(1)"
+                   Disabled="@isEditingAM">Event Task</MudButton>
+        <MudButton Variant="@(amMode == 3 ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetAmMode(3)"
+                   Disabled="@isEditingAM">Stock</MudButton>
     </MudStack>
 
     @if (amMode == 2 || amMode == 1 || amMode == 3)
@@ -513,8 +522,9 @@ else if (selectedTipo == "Insight Monitor")
     private string authToken = string.Empty;
     private string GetEncodedToken() => Uri.EscapeDataString(authToken ?? "");
 
-    // amMode: 1 = Event Task, 2 = Asset
+    // amMode: 1 = Event Task, 2 = Asset, 3 = Stock
     private int amMode = 2;
+    private bool isEditingAM = false; // Indica si estamos editando un dataset AM (para bloquear cambio de modo)
 
     // Asset flow
     private List<AssetTypeDto> assetTypes = new();
@@ -881,9 +891,32 @@ else if (selectedTipo == "Insight Monitor")
                     addDesc = existenteAM.Descripcion ?? string.Empty;
                     
                     amMode = existenteAM.Type_Dataset;
+                    isEditingAM = true; // Bloquear cambio de modo al editar
+
+                    // Cargar filtros si existen
+                    if (!string.IsNullOrEmpty(existenteAM.Filters))
+                    {
+                        try
+                        {
+                            amFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteAM.Filters) ?? new List<FilterCondition>();
+                            Console.WriteLine($"[EDIT DATASET] Filtros cargados: {amFilters.Count}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[EDIT DATASET] Error deserializando filtros: {ex.Message}");
+                            amFilters = new List<FilterCondition>();
+                        }
+                    }
+                    else
+                    {
+                        amFilters = new List<FilterCondition>();
+                    }
 
                     // Cargar solo las listas necesarias para AM
                     await InitializeAMLists();
+                    
+                    // Cargar atributos disponibles para que los filtros se puedan mostrar correctamente
+                    await LoadAvailableAttributes();
 
                     if (amMode == 2)
                     {
@@ -1262,6 +1295,9 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task SetAmMode(int mode)
     {
+        // No permitir cambiar el modo si estamos editando
+        if (isEditingAM) return;
+        
         if (amMode == mode) return;
         amMode = mode;
         // Reset filtros y atributos cuando cambia el modo
