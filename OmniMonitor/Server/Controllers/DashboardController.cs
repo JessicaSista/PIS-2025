@@ -304,6 +304,7 @@ namespace OmniMonitor.Server.Controllers
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPost("{id}/card")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -499,7 +500,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpGet("getShare/{slug}")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(404)]
@@ -520,7 +520,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpPost("ValidateShare/{slug}/validate")]
         [ProducesResponseType(typeof(ValidateSharePasswordResponseDto), 200)]
         [ProducesResponseType(401)]
