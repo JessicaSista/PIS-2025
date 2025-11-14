@@ -255,4 +255,7 @@
   <data name="KpiUpdatedSuccess" xml:space="preserve">
     <value>KPI updated successfully.</value>
   </data>
+  <data name="ErrorLoadingPreview" xml:space="preserve">
+    <value>Error loading preview: {0}</value>
+  </data>
 </root>

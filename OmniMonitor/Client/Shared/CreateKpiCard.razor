@@ -313,6 +313,8 @@
     private int _selectedDatasetId;
     private string? _selectedDatasetModule;
 
+    private KpiRequest request;
+
     private bool _isNumericDataset = false;
 
     // module detection
@@ -694,7 +696,7 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
-    // 4) IsFormValid actualizado: exigir métrica para esos módulos
+    
     private bool IsFormValid
     {
         get
@@ -791,14 +793,13 @@
         }
         else
         {
-            // for non-IM modules we store selected attribute value in extraInfo (optional)
             if (!string.IsNullOrWhiteSpace(_selectedAttributeValue))
                 extraInfoObj = _selectedAttributeValue;
             else
                 extraInfoObj = new { };
         }
 
-        var request = new KpiRequest
+        request = new KpiRequest
         {
             Name = _name.Trim(),
             Description = _description?.Trim(),
@@ -817,11 +818,72 @@
             Atributo = !string.IsNullOrWhiteSpace(_selectedAtributo) ? _selectedAtributo : null,
             Type = _selectedType
         };
+
         _isSubmitting = true;
+
+        try
+        {
+            // Funcion vacía para el callback
+            Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+            var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                receiver: this,
+                callback: emptyHandler
+            );
+
+            DialogParameters parameters = new DialogParameters
+            {
+                ["VisualizationType"] = 2,
+                ["OnVisualizationCreated"] = emptyEventCallback,
+                ["KpiData"] = new KpiResponse
+                {
+                    Name = request.Name,
+                    Description = request.Description,
+                    ActualColor = request.DefaultColor,
+                    Unit = request.Unit,
+                }
+            };
+
+
+            DialogOptions options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                "Preview",
+                parameters,
+                options
+            );
+            DialogResult? dialogResult = await dialog.Result;
+
+            if (!dialogResult.Canceled)
+            {
+                SubmitKpi();
+            }
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("No se pudo cargar la previsualización: " + ex.Message, Severity.Error);
+        }
+        
+    }
+
+    private Task EmptyVisualizationCreatedCallback((int id, int type) result)
+    {
+        // Esta función no hace nada, solo satisface la firma.
+        // Opcionalmente: Console.WriteLine($"Visualization Created: ID={id}, Type={type}");
+        return Task.CompletedTask;
+    }
+
+    private async Task SubmitKpi()
+    {
         try
         {
             var token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.PostAsJsonAsync($"api/Kpi?token={Uri.EscapeDataString(token ?? "")}", request);
+            var response = await Http.PostAsJsonAsync($"api/Kpi", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -850,11 +912,6 @@
         {
             _serverError = Localizer["ServerConnectionError", ex.Message];
             Snackbar.Add(_serverError, Severity.Error);
-        }
-        finally
-        {
-            _isSubmitting = false;
-            StateHasChanged();
         }
     }
 
