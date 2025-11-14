@@ -33,8 +33,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo dataset EM.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
+        [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(403)]
@@ -79,8 +79,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
+        [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -169,8 +169,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{datasetId}")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -264,8 +264,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasets")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -286,8 +286,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{datasetId}")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -313,9 +313,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset EM existente.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
-        //[RequirePermission("Crear Datasets EM")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -349,8 +348,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset EM.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{datasetId}")]
+        [RequirePermission("Datasets.Delete")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -32,8 +33,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Crea un nuevo DatasetAM.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost]
+        [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetAM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -67,8 +68,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
                 /// <summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
+        [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetAM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -176,8 +177,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{id}")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -291,8 +292,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los DatasetAM para un usuario específico.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasetAMs")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetAM>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<DatasetAM>>> GetAllDatasetAMs()
@@ -312,8 +313,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un DatasetAM específico por su ID y nombre de usuario (con lógica dinámica).
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetAMById")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -339,8 +340,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un DatasetAM específico por su ID y nombre de usuario para edición (SIN lógica dinámica).
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetAMByIdForEdit")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -366,8 +367,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un DatasetAM existente.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{id}")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetAM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -411,8 +412,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un DatasetAM y todas sus relaciones hijas.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{id}")]
+        [RequirePermission("Datasets.Delete")]
         [ProducesResponseType(204)] // No Content
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]

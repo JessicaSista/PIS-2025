@@ -126,6 +126,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Visualizations.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Edit")));
     options.AddPolicy("Visualizations.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Delete")));
 
+    // Módulo KPIs
+    options.AddPolicy("Kpis.View", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.View")));
+    options.AddPolicy("Kpis.Create", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.Create")));
+    options.AddPolicy("Kpis.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.Edit")));
+    options.AddPolicy("Kpis.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.Delete")));
+
     // Módulo Reports
     options.AddPolicy("Reports.View", policy => policy.Requirements.Add(new PermissionRequirement("Reports.View")));
     options.AddPolicy("Reports.Create", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Create")));
