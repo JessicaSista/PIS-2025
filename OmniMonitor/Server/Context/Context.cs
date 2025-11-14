@@ -36,6 +36,10 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
 
+        public DbSet<DatasetSource> DatasetSources { get; set; }
+
+        public DbSet<DatasetSensor> DatasetSensors { get; set; }
+
         public DbSet<DatasetUM> DatasetsUM { get; set; }
 
         public DbSet<DatasetEvent> DatasetEvents { get; set; }
