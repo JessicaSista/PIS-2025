@@ -231,13 +231,22 @@
     private async Task OnAttributeChanged(string newAttribute)
     {
         selectedAttribute = newAttribute;
-        selectedFilterType = FilterType.Equals;
         ClearValues();
         
         var attr = availableAttributes.FirstOrDefault(a => a.Nombre == selectedAttribute);
-        if (attr?.Tipo == FilterValueType.Enum)
+        if (attr != null)
         {
-            await LoadEnumOptions();
+            // Establecer el primer tipo de filtro disponible según el tipo de atributo
+            var availableTypes = GetAvailableFilterTypes(attr.Tipo);
+            if (availableTypes.Any())
+            {
+                selectedFilterType = availableTypes.First();
+            }
+            
+            if (attr.Tipo == FilterValueType.Enum)
+            {
+                await LoadEnumOptions();
+            }
         }
         StateHasChanged();
     }
@@ -260,10 +269,10 @@
     {
         return valueType switch
         {
-            FilterValueType.String => new List<FilterType> { FilterType.Equals, FilterType.NotEquals, FilterType.Contains, FilterType.StartsWith, FilterType.EndsWith, FilterType.In },
-            FilterValueType.Number => new List<FilterType> { FilterType.Equals, FilterType.NotEquals, FilterType.GreaterThan, FilterType.LessThan, FilterType.Between, FilterType.In },
-            FilterValueType.Date => new List<FilterType> { FilterType.Equals, FilterType.NotEquals, FilterType.GreaterThan, FilterType.LessThan, FilterType.Between },
-            FilterValueType.Enum => new List<FilterType> { FilterType.Equals, FilterType.NotEquals, FilterType.In },
+            FilterValueType.String => new List<FilterType> { FilterType.Equals, FilterType.Contains },
+            FilterValueType.Number => new List<FilterType> { FilterType.Equals, FilterType.GreaterThan, FilterType.LessThan, FilterType.NotEquals },
+            FilterValueType.Date => new List<FilterType> { FilterType.Between },
+            FilterValueType.Enum => new List<FilterType> { FilterType.In },
             FilterValueType.Boolean => new List<FilterType> { FilterType.Equals, FilterType.NotEquals },
             _ => new List<FilterType> { FilterType.Equals }
         };
