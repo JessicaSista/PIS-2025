@@ -174,9 +174,8 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}&token={token}");
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -212,7 +211,6 @@
         var allData = new List<object>();
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
             DateTime dateFrom = _visualization.FechaDesde;
             DateTime dateTo = _visualization.FechaHasta;
 
@@ -264,7 +262,7 @@
                     }
                     if(module.Equals("Insight Monitor"))
                     {
-                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={idInModule}&token={token}");
+                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={idInModule}");
 
                         if (datasetResponse.IsSuccessStatusCode)
                         {
@@ -279,7 +277,7 @@
                                         try
                                         {
                                             var sensorDataResponse = await Http.GetAsync(
-                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
+                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
                                             );
 
                                             if (sensorDataResponse.IsSuccessStatusCode)
@@ -339,7 +337,7 @@
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
-                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data?token={token}", req);
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
                         
                         tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
@@ -508,8 +506,7 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}?token={token}");
+            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}");
             if(response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Visualizacion eliminada", Severity.Success);
