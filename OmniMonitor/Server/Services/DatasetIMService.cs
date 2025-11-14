@@ -383,21 +383,42 @@ namespace OmniMonitor.Server.Services
             // Limpiar todas las relaciones existentes
             ClearExistingRelations(dataset);
 
-            // Si es un dataset no formal con filtros, procesar y persistir elementos filtrados
-            if (request.IsDataset == "N" && ((request.Filters != null && request.Filters.Any()) || !string.IsNullOrEmpty(request.JsonFilters)))
+            // Lógica de actualización según el tipo de dataset
+            if (request.IsDataset == "S")
             {
-                await ProcessFilteredRelationsForUpdate(dataset, request);
-            }
-            // Si es un dataset formal o tiene DeviceIds específicos, agregar devices
-            else if (request.DeviceIds != null)
-            {
-                foreach (var deviceId in request.DeviceIds)
+                // Dataset formal: agregar DeviceIds específicos si existen
+                // (La lógica dinámica de Source/Group se aplica en GetDatasetIMByIdAsync)
+                if (request.DeviceIds != null && request.DeviceIds.Any())
                 {
-                    dataset.DatasetDevices.Add(new DatasetDevice 
-                    { 
-                        DatasetId = dataset.Id,
-                        Id_device = deviceId,
-                    });
+                    foreach (var deviceId in request.DeviceIds)
+                    {
+                        dataset.DatasetDevices.Add(new DatasetDevice 
+                        { 
+                            DatasetId = dataset.Id,
+                            Id_device = deviceId,
+                        });
+                    }
+                }
+            }
+            else if (request.IsDataset == "N")
+            {
+                // Dataset no formal: verificar si tiene filtros o DeviceIds específicos
+                if ((request.Filters != null && request.Filters.Any()) || !string.IsNullOrEmpty(request.JsonFilters))
+                {
+                    // Procesar y persistir elementos filtrados
+                    await ProcessFilteredRelationsForUpdate(dataset, request);
+                }
+                else if (request.DeviceIds != null && request.DeviceIds.Any())
+                {
+                    // Agregar devices específicos para dataset no formal sin filtros
+                    foreach (var deviceId in request.DeviceIds)
+                    {
+                        dataset.DatasetDevices.Add(new DatasetDevice 
+                        { 
+                            DatasetId = dataset.Id,
+                            Id_device = deviceId,
+                        });
+                    }
                 }
             }
 
