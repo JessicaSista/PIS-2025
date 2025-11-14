@@ -26,15 +26,17 @@ namespace OmniMonitor.Server.Controllers
     private readonly ISondaUMService _sondaUMService;
     private readonly ISondaAMService _sondaAMService;
     private readonly ISondaEMService _sondaEMService;
+    private readonly ISondaIMService _sondaIMService;
     private readonly ISondaAuthService _sondaAuthService;
 
 
-        public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaAuthService sondaAuthService)
+        public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
         {
             _context = context;
             _sondaUMService = sondaUMService;
             _sondaAMService = sondaAMService;
             _sondaEMService = sondaEMService;
+            _sondaIMService = sondaIMService;
             _sondaAuthService = sondaAuthService;
         }
 
@@ -161,6 +163,54 @@ namespace OmniMonitor.Server.Controllers
                             break;
                     }
                     break;
+                case "IM":
+                    switch (entidadId)
+                    {
+                        case 1: // Device
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LayerId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Latitude", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Longitude", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "XCoordinate", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "YCoordinate", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Source.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "IsActive", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SectorId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TenantId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Groups.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastDataReceived", Tipo = FilterValueType.Date });
+                            break;
+                        case 2: // Source
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Description", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Type", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TimeTolerance", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TimeRange", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Icon", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "IsActive", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TenantId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataAlert", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataSleepByDevice", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataInterval", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "OutputId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Devices.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
+                            break;
+                        case 3: // Sensor
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "DisplayName", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Type", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Integration", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastUpdate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastValue", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastPersisted", Tipo = FilterValueType.Date });
+                            break;
+                    }
+                    break;
             }
 
             return Ok(resultado);
@@ -222,6 +272,25 @@ namespace OmniMonitor.Server.Controllers
                         entidades = await _sondaEMService.GetEvents(null, null, null, null, username);
                     else if (entidadId == 3)
                         entidades = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
+                    else
+                        entidadValida = false;
+                    break;
+                case "IM":
+                    if (entidadId == 1) // Device
+                        entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    else if (entidadId == 2) // Source
+                        entidades = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                    else if (entidadId == 3) // Sensor (extraído de los devices)
+                    {
+                        var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        var sensors = devices
+                            .Where(d => d.Sensors != null)
+                            .SelectMany(d => d.Sensors!)
+                            .GroupBy(s => s.Name)
+                            .Select(g => g.First())
+                            .ToList();
+                        entidades = sensors;
+                    }
                     else
                         entidadValida = false;
                     break;
@@ -341,6 +410,25 @@ namespace OmniMonitor.Server.Controllers
                     entidades = await _sondaEMService.GetEvents(null, null, null, null, username);
                 else if (request.EntidadId == 3)
                     entidades = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
+                else
+                    entidadValida = false;
+                break;
+            case "IM":
+                if (request.EntidadId == 1) // Device
+                    entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                else if (request.EntidadId == 2) // Source
+                    entidades = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                else if (request.EntidadId == 3) // Sensor (extraído de los devices)
+                {
+                    var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    var sensors = devices
+                        .Where(d => d.Sensors != null)
+                        .SelectMany(d => d.Sensors!)
+                        .GroupBy(s => s.Name)
+                        .Select(g => g.First())
+                        .ToList();
+                    entidades = sensors;
+                }
                 else
                     entidadValida = false;
                 break;

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
@@ -66,6 +67,58 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Crea un nuevo dataset no formal aplicando filtros y persistiendo los elementos filtrados.
+        /// </summary>
+        [RequirePermission("Datasets.Create")]
+        [HttpPost("filtered")]
+        [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
+        [ProducesResponseType(400)] // Bad Request
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetIM>> CreateFilteredDataset([FromBody] CreateDatasetIMRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                if (request.IsDataset == "S")
+                {
+                    return BadRequest("Este endpoint es solo para datasets no formales (IsDataset = 'N'). Use el endpoint regular para datasets formales.");
+                }
+
+                if (request.Filters == null || !request.Filters.Any())
+                {
+                    return BadRequest("Los filtros son obligatorios para datasets filtrados.");
+                }
+
+                // Convertir la lista de filtros a JSON
+                request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+
+                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+                DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id);
+                await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
+
+                // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
+                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al crear el dataset filtrado: {ex.Message}");
             }
         }
 
@@ -202,6 +255,12 @@ namespace OmniMonitor.Server.Controllers
                 if (existingDataset == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                }
+
+                // Si es un dataset no formal y tiene filtros, convertir a JSON
+                if (request.IsDataset == "N" && request.Filters != null && request.Filters.Any())
+                {
+                    request.JsonFilters = JsonSerializer.Serialize(request.Filters);
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla

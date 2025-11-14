@@ -6,6 +6,8 @@ using OmniMonitor.Server.Services;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text.Json;
+using System.Linq;
 
 namespace OmniMonitor.Server.Services
 {
@@ -13,6 +15,7 @@ namespace OmniMonitor.Server.Services
     public interface IDatasetService
     {
         Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset);
+        Task<DatasetIM> CreateDatasetIMFilteredAsync(CreateDatasetIMRequest request, int dataset);
         Task<List<DatasetIM>> GetAllDatasetsIMAsync(string username);
         Task<DatasetIM?> GetDatasetIMByIdAsync(int datasetId, string username);
         Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username);
@@ -101,6 +104,134 @@ namespace OmniMonitor.Server.Services
         }
 
         /// <summary>
+        /// Crea un nuevo dataset no formal aplicando filtros JSON y persistiendo los elementos filtrados.
+        /// </summary>
+        public async Task<DatasetIM> CreateDatasetIMFilteredAsync(CreateDatasetIMRequest request, int dataset)
+        {
+            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Name))
+            {
+                throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
+            }
+
+            if (request.IsDataset == "S")
+            {
+                throw new ArgumentException("Este método es solo para datasets no formales (IsDataset = 'N').");
+            }
+
+            if (request.Filters == null || !request.Filters.Any())
+            {
+                throw new ArgumentException("Los filtros son obligatorios para datasets filtrados.");
+            }
+
+            // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
+            var existingDataset = await _context.DatasetsIM
+                .FirstOrDefaultAsync(d => d.Username == request.Username && d.Name == request.Name);
+            
+            if (existingDataset != null)
+            {
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{request.Username}'.");
+            }
+
+            var newDataset = new DatasetIM
+            {
+                Username = request.Username,
+                Name = request.Name,
+                Description = request.Description,
+                Is_Dataset = "N", // Siempre no formal
+                JsonFilters = request.JsonFilters, // Ya viene serializado desde el controller
+                ContentType = request.ContentType,
+                DatasetId = dataset
+            };
+
+            // Usar directamente los filtros de la request
+            var filters = request.Filters;
+
+            // Traer todos los elementos, filtrar y persistir según el ContentType
+            switch (request.ContentType)
+            {
+                case "1": // Device
+                    await ProcessAndPersistDevices(newDataset, filters, request.Username);
+                    break;
+                case "2": // Source
+                    await ProcessAndPersistSources(newDataset, filters, request.Username);
+                    break;
+                case "3": // Sensor
+                    await ProcessAndPersistSensors(newDataset, filters, request.Username);
+                    break;
+                default:
+                    throw new ArgumentException("ContentType no válido para datasets filtrados.");
+            }
+
+            _context.DatasetsIM.Add(newDataset);
+            await _context.SaveChangesAsync();
+
+            return newDataset;
+        }
+
+        private async Task ProcessAndPersistDevices(DatasetIM dataset, List<FilterCondition> filters, string username)
+        {
+            // 1. Traer todos los devices
+            var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+            
+            // 2. Aplicar filtros
+            var filteredDevices = ApiDataService.StaticFilterObjects(allDevices, filters);
+            
+            // 3. Persistir devices filtrados
+            foreach (var deviceObj in filteredDevices)
+            {
+                if (deviceObj is Device device)
+                {
+                    dataset.DatasetDevices.Add(new DatasetDevice { Id_device = device.Id });
+                }
+            }
+        }
+
+        private async Task ProcessAndPersistSources(DatasetIM dataset, List<FilterCondition> filters, string username)
+        {
+            // 1. Traer todas las sources
+            var allSources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+            
+            // 2. Aplicar filtros
+            var filteredSources = ApiDataService.StaticFilterObjects(allSources, filters);
+            
+            // 3. Persistir sources filtradas
+            foreach (var sourceObj in filteredSources)
+            {
+                if (sourceObj is Source source)
+                {
+                    dataset.DatasetSources.Add(new DatasetSource { Id_source = source.Id });
+                }
+            }
+        }
+
+        private async Task ProcessAndPersistSensors(DatasetIM dataset, List<FilterCondition> filters, string username)
+        {
+            // 1. Traer todos los devices y extraer sensores únicos
+            var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+            var allSensors = allDevices
+                .Where(d => d.Sensors != null)
+                .SelectMany(d => d.Sensors!)
+                .GroupBy(s => s.Name)
+                .Select(g => g.First())
+                .ToList();
+            
+            // 2. Aplicar filtros
+            var filteredSensors = ApiDataService.StaticFilterObjects(allSensors, filters);
+            
+            // 3. Persistir sensors filtrados
+            foreach (var sensorObj in filteredSensors)
+            {
+                if (sensorObj is Sensor sensor && !string.IsNullOrEmpty(sensor.Name))
+                {
+                    dataset.DatasetSensors.Add(new DatasetSensor 
+                    { 
+                        SensorName = sensor.Name,
+                    });
+                }
+            }
+        }
+
+        /// <summary>
         /// Obtiene todos los datasets de un usuario específico.
         /// </summary>
         public async Task<List<DatasetIM>> GetAllDatasetsIMAsync(string username)
@@ -117,6 +248,8 @@ namespace OmniMonitor.Server.Services
         {
             var dataset = await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
+                .Include(d => d.DatasetSources)
+                .Include(d => d.DatasetSensors)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
@@ -206,6 +339,8 @@ namespace OmniMonitor.Server.Services
         {
             return await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
+                .Include(d => d.DatasetSources)
+                .Include(d => d.DatasetSensors)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
         }
 
@@ -213,6 +348,8 @@ namespace OmniMonitor.Server.Services
         {
             return await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
+                .Include(d => d.DatasetSources)
+                .Include(d => d.DatasetSensors)
                 .FirstOrDefaultAsync(d => d.Id == datasetId);
         }
 
@@ -241,29 +378,25 @@ namespace OmniMonitor.Server.Services
             dataset.SensorName = request.SensorName;
             dataset.Is_Dataset = request.IsDataset;
             dataset.ContentType = request.ContentType;
+            dataset.JsonFilters = request.JsonFilters;
 
             // Marcar explícitamente los campos nullable como modificados
             // para asegurar que EF detecte cuando se setean a null
             _context.Entry(dataset).Property(d => d.Id_Source).IsModified = true;
             _context.Entry(dataset).Property(d => d.Id_Group).IsModified = true;
             _context.Entry(dataset).Property(d => d.SensorName).IsModified = true;
+            _context.Entry(dataset).Property(d => d.JsonFilters).IsModified = true;
 
-            // Actualizar la lista de devices
-            // Solo eliminar los devices que ya están guardados en la BD (con ID > 0)
-            var existingDevicesToRemove = dataset.DatasetDevices
-                .Where(dd => dd.Id > 0)
-                .ToList();
+            // Limpiar todas las relaciones existentes
+            ClearExistingRelations(dataset);
 
-            if (existingDevicesToRemove.Any())
+            // Si es un dataset no formal con filtros, procesar y persistir elementos filtrados
+            if (request.IsDataset == "N" && ((request.Filters != null && request.Filters.Any()) || !string.IsNullOrEmpty(request.JsonFilters)))
             {
-                _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
+                await ProcessFilteredRelationsForUpdate(dataset, request);
             }
-
-            // Limpiar toda la colección
-            dataset.DatasetDevices.Clear();
-
-            // Agregar los nuevos devices si existen
-            if (request.DeviceIds != null)
+            // Si es un dataset formal o tiene DeviceIds específicos, agregar devices
+            else if (request.DeviceIds != null)
             {
                 foreach (var deviceId in request.DeviceIds)
                 {
@@ -281,6 +414,79 @@ namespace OmniMonitor.Server.Services
             return dataset;
         }
 
+        private void ClearExistingRelations(DatasetIM dataset)
+        {
+            // Eliminar devices existentes
+            var existingDevicesToRemove = dataset.DatasetDevices
+                .Where(dd => dd.Id > 0)
+                .ToList();
+            if (existingDevicesToRemove.Any())
+            {
+                _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
+            }
+            dataset.DatasetDevices.Clear();
+
+            // Eliminar sources existentes
+            var existingSourcesToRemove = dataset.DatasetSources
+                .Where(ds => ds.Id > 0)
+                .ToList();
+            if (existingSourcesToRemove.Any())
+            {
+                _context.DatasetSources.RemoveRange(existingSourcesToRemove);
+            }
+            dataset.DatasetSources.Clear();
+
+            // Eliminar sensors existentes
+            var existingSensorsToRemove = dataset.DatasetSensors
+                .Where(ds => ds.Id > 0)
+                .ToList();
+            if (existingSensorsToRemove.Any())
+            {
+                _context.DatasetSensors.RemoveRange(existingSensorsToRemove);
+            }
+            dataset.DatasetSensors.Clear();
+        }
+
+        private async Task ProcessFilteredRelationsForUpdate(DatasetIM dataset, CreateDatasetIMRequest request)
+        {
+            try
+            {
+                // Usar directamente los filtros de la request si están disponibles
+                var filters = request.Filters;
+                if (filters == null || !filters.Any())
+                {
+                    // Fallback: intentar deserializar desde JsonFilters si no hay filtros directos
+                    if (!string.IsNullOrEmpty(request.JsonFilters))
+                    {
+                        filters = JsonSerializer.Deserialize<List<FilterCondition>>(request.JsonFilters);
+                    }
+                    
+                    if (filters == null || !filters.Any())
+                    {
+                        return;
+                    }
+                }
+
+                // Procesar según el ContentType
+                switch (request.ContentType)
+                {
+                    case "1": // Device
+                        await ProcessAndPersistDevices(dataset, filters, request.Username);
+                        break;
+                    case "2": // Source
+                        await ProcessAndPersistSources(dataset, filters, request.Username);
+                        break;
+                    case "3": // Sensor
+                        await ProcessAndPersistSensors(dataset, filters, request.Username);
+                        break;
+                }
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Error deserializando filtros JSON en actualización: {ex.Message}");
+            }
+        }
+
         /// <summary>
         /// Elimina un dataset y sus relaciones con devices.
         /// </summary>
@@ -288,6 +494,8 @@ namespace OmniMonitor.Server.Services
         {
             var dataset = await _context.DatasetsIM
                 .Include(d => d.DatasetDevices)
+                .Include(d => d.DatasetSources)
+                .Include(d => d.DatasetSensors)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
@@ -295,7 +503,7 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
             }
 
-            // Solo eliminar las relaciones DatasetDevice que ya están en la BD (con ID > 0)
+            // Eliminar las relaciones DatasetDevice que ya están en la BD (con ID > 0)
             var existingDevicesToRemove = dataset.DatasetDevices
                 .Where(dd => dd.Id > 0)
                 .ToList();
@@ -303,6 +511,26 @@ namespace OmniMonitor.Server.Services
             if (existingDevicesToRemove.Any())
             {
                 _context.DatasetDevices.RemoveRange(existingDevicesToRemove);
+            }
+
+            // Eliminar las relaciones DatasetSource que ya están en la BD (con ID > 0)
+            var existingSourcesToRemove = dataset.DatasetSources
+                .Where(ds => ds.Id > 0)
+                .ToList();
+
+            if (existingSourcesToRemove.Any())
+            {
+                _context.DatasetSources.RemoveRange(existingSourcesToRemove);
+            }
+
+            // Eliminar las relaciones DatasetSensor que ya están en la BD (con ID > 0)
+            var existingSensorsToRemove = dataset.DatasetSensors
+                .Where(ds => ds.Id > 0)
+                .ToList();
+
+            if (existingSensorsToRemove.Any())
+            {
+                _context.DatasetSensors.RemoveRange(existingSensorsToRemove);
             }
 
             // Eliminar el dataset

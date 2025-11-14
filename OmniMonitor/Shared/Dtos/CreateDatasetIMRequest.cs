@@ -28,5 +28,11 @@ namespace OmniMonitor.Shared.Dtos
         public int? GroupId { get; set; }
         public string? SensorName { get; set; }
         public List<int>? DeviceIds { get; set; }
+        
+        // Lista de filtros para datasets no formales
+        public List<FilterCondition>? Filters { get; set; }
+        
+        // Campo interno para JsonFilters (se setea en el controller)
+        public string? JsonFilters { get; set; }
     }
 }
