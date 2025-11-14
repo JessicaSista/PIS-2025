@@ -386,6 +386,35 @@ namespace OmniMonitor.Server.Controllers
             return Ok(fieldTypes);
         }
 
+        /// <summary>
+        /// Obtiene todos los KPIs de un usuario con paginación, devolviendo solo nombre y descripción.
+        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpGet("GetAllKpiDtoPaginated")]
+        [ProducesResponseType(typeof(KpiSimplePaginatedResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<KpiSimplePaginatedResponse>> GetAllKpiDtoPaginated(int page = 1, int pageSize = 10, string? query = null)
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
+                
+                if (page <= 0 || pageSize <= 0)
+                    return BadRequest("La página y el tamaño deben ser mayores a 0.");
+                
+                var response = await _kpiService.GetAllKpisPaginatedAsync(username, page, pageSize, query);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener KPIs paginados para el usuario");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("field-values")]
         [ProducesResponseType(typeof(List<string>), 200)]
