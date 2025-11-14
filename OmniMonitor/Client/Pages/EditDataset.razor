@@ -759,13 +759,11 @@ else if (selectedTipo == "Insight Monitor")
                         if (!string.IsNullOrEmpty(module))
                         {
                             ModuleHint = module;
-                            Console.WriteLine($"[PERF] Module identified in DB: {module}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[PERF] Error identifying module: {ex.Message}");
                 }
             }
 
@@ -871,7 +869,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as IM: {ex.Message}");
         }
         return false;
     }
@@ -899,11 +896,9 @@ else if (selectedTipo == "Insight Monitor")
                         try
                         {
                             amFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteAM.Filters) ?? new List<FilterCondition>();
-                            Console.WriteLine($"[EDIT DATASET] Filtros cargados: {amFilters.Count}");
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"[EDIT DATASET] Error deserializando filtros: {ex.Message}");
                             amFilters = new List<FilterCondition>();
                         }
                     }
@@ -962,7 +957,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as AM: {ex.Message}");
         }
         return false;
     }
@@ -1011,7 +1005,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as UM: {ex.Message}");
         }
         return false;
     }
@@ -1020,45 +1013,34 @@ else if (selectedTipo == "Insight Monitor")
     {
         try
         {
-            Console.WriteLine($"[DEBUG EditarDataset] Token length: {authToken?.Length ?? 0}");
-            Console.WriteLine($"[DEBUG EditarDataset] Token (first 50 chars): {authToken?.Substring(0, Math.Min(50, authToken?.Length ?? 0))}...");
-            
             var encodedToken = GetEncodedToken();
             
             var sourcesResponse = await Http.GetAsync($"api/SondaMain/sources");
-            Console.WriteLine($"[DEBUG EditarDataset] Sources response status: {sourcesResponse.StatusCode}");
             
             if (sourcesResponse.IsSuccessStatusCode)
             {
                 sources = await sourcesResponse.Content.ReadFromJsonAsync<List<Source>>() ?? new List<Source>();
-                Console.WriteLine($"[DEBUG EditarDataset] Loaded {sources.Count} sources");
             }
             else
             {
                 var error = await sourcesResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EditarDataset] Sources error: {error}");
                 Snackbar.Add($"Error al cargar fuentes: {error}", Severity.Error);
             }
 
             var groupsResponse = await Http.GetAsync($"api/SondaMain/groups");
-            Console.WriteLine($"[DEBUG EditarDataset] Groups response status: {groupsResponse.StatusCode}");
             
             if (groupsResponse.IsSuccessStatusCode)
             {
                 deviceGroups = await groupsResponse.Content.ReadFromJsonAsync<List<DeviceGroup>>() ?? new List<DeviceGroup>();
-                Console.WriteLine($"[DEBUG EditarDataset] Loaded {deviceGroups.Count} groups");
             }
             else
             {
                 var error = await groupsResponse.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EditarDataset] Groups error: {error}");
                 Snackbar.Add($"Error al cargar grupos: {error}", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EditarDataset] Exception in LoadSourcesAndGroups: {ex.Message}");
-            Console.WriteLine($"[DEBUG EditarDataset] Stack trace: {ex.StackTrace}");
             Snackbar.Add($"{Localizer["ErrorCargaFuentes"]} {ex.Message}", Severity.Error);
         }
     }
@@ -1853,7 +1835,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error loading as EM: {ex.Message}");
         }
         return false;
     }
@@ -1882,7 +1863,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error identifying category from event: {ex.Message}");
         }
     }
 
@@ -1904,7 +1884,6 @@ else if (selectedTipo == "Insight Monitor")
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error identifying category from alert: {ex.Message}");
         }
     }
 
@@ -1913,31 +1892,24 @@ else if (selectedTipo == "Insight Monitor")
         try
         {
             var encodedToken = GetEncodedToken();
-            Console.WriteLine($"[DEBUG EM] Token encoded: {encodedToken?.Substring(0, Math.Min(50, encodedToken?.Length ?? 0))}");
 
             // Load Categories (backend handles Sonda API pagination limitations)
             var url = $"api/SondaEM/category?page=1&pageSize=1000";
-            Console.WriteLine($"[DEBUG EM] Calling categories endpoint: {url}");
             
             var respCategories = await Http.GetAsync(url);
-            Console.WriteLine($"[DEBUG EM] Categories response status: {respCategories.StatusCode}");
             
             if (respCategories.IsSuccessStatusCode)
             {
                 categories = await respCategories.Content.ReadFromJsonAsync<List<CategoryDto>>() ?? new List<CategoryDto>();
-                Console.WriteLine($"[DEBUG EM] Loaded {categories.Count} categories");
             }
             else
             {
                 var error = await respCategories.Content.ReadAsStringAsync();
-                Console.WriteLine($"[DEBUG EM] Categories error: {error}");
                 ShowError($"Error al cargar categorías: {error}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG EM] Exception: {ex.Message}");
-            Console.WriteLine($"[DEBUG EM] Stack trace: {ex.StackTrace}");
             ShowError($"Error cargando Event Manager: {ex.Message}");
         }
     }

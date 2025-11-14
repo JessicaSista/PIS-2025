@@ -99,14 +99,17 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
-                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-
-                // Filtrado para Alert, Event, Extension, Category
+                // Validar filtros ANTES de crear el dataset general
                 if (req.ContentType == "1") // Alert
                 {
                     var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
                     req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
@@ -115,6 +118,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
                     req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
@@ -123,6 +132,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
                     req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
@@ -131,6 +146,10 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest("ContentType inválido o no soportado");
                 }
+
+                // Crear el dataset general SOLO después de validar los filtros
+                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
+                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
 
                 DatasetEM newDatasetEM = await _datasetEMService.CreateDatasetEMWithFiltersAsync(req, newDataset.Id, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncEM(newDataset.Id, requestDataset, newDatasetEM);
@@ -176,11 +195,17 @@ namespace OmniMonitor.Server.Controllers
                 await _datasetUMService.ValidateDatasetNameAsync(req.Name, req.Username, ModuleType.EventManager, existingDataset.DatasetId);
                 var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
 
-                // Filtrado para Alert, Event, Extension, Category
+                // Validar filtros ANTES de actualizar el dataset
                 if (req.ContentType == "1") // Alert
                 {
                     var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
                     req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
@@ -189,6 +214,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
                     req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
@@ -197,6 +228,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
                     req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
