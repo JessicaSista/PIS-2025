@@ -37,12 +37,13 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         public async Task<IActionResult> CreateReport([FromBody] CreateReportRequestDto request)
         {
+            var username = User.Identity?.Name;
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            Report createdReport = await _reportService.CreateReportAsync(request);
+            Report createdReport = await _reportService.CreateReportAsync(request, username);
             return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
         }
 

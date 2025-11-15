@@ -12,10 +12,6 @@ namespace OmniMonitor.Shared.Dtos
         [MaxLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres")]
         public string Nombre { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "El nombre de usuario es obligatorio")]
-        [MaxLength(256, ErrorMessage = "El nombre de usuario no puede exceder los 256 caracteres")]
-        public string Username { get; set; } = string.Empty;
-
         [MaxLength(500, ErrorMessage = "La descripción no puede exceder los 500 caracteres")]
         public string? Descripcion { get; set; }
 

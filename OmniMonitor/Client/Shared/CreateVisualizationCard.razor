@@ -292,7 +292,6 @@
             CreateVisualizacionRequest request = new CreateVisualizacionRequest
             {
                 Nombre = _visualizationName,
-                Username = username,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {

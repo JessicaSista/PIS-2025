@@ -7,7 +7,6 @@ namespace OmniMonitor.Server.Services
 {
     public interface IDatasetUMService
     {
-        Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request, int dataset);
         Task<DatasetUM> CreateDatasetUMWithFiltersAsync(CreateDatasetUMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetUM>> GetAllDatasetsUMAsync(string username);
         Task<DatasetUM?> GetDatasetUMByIdAsync(int datasetId, string username);
