@@ -18,8 +18,6 @@ namespace OmniMonitor.Server.Context
 
         // Add this line inside your ApplicationDbContext.cs
 
-        // Entidades del sistema de roles y permisos
-        // public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
 
         public DbSet<Role> Roles { get; set; }
@@ -36,6 +34,10 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
 
+        public DbSet<DatasetSource> DatasetSources { get; set; }
+
+        public DbSet<DatasetSensor> DatasetSensors { get; set; }
+
         public DbSet<DatasetUM> DatasetsUM { get; set; }
 
         public DbSet<DatasetEvent> DatasetEvents { get; set; }
@@ -50,8 +52,6 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetExtension> DatasetExtensions { get; set; }
 
-        public DbSet<DatasetCategory> DatasetCategory { get; set; }
-
         public DbSet<Visualizacion> Visualizaciones { get; set; }
 
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
@@ -59,10 +59,6 @@ namespace OmniMonitor.Server.Context
         public DbSet<DashboardDto> Dashboards { get; set; }
 
         public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
-
-        public DbSet<DatasetsOfReports> DatasetsOfReports { get; set; }
-
-        public DbSet<DatasetReports> DatasetReports { get; set; }
 
         public DbSet<DatasetAM> DatasetAM { get; set; }
 
@@ -189,7 +185,13 @@ namespace OmniMonitor.Server.Context
                 new Permission { Id = 44, Module = "System", Action = "ManagePermissions", Name = "System.ManagePermissions", Description = "Gestionar permisos" },
                 new Permission { Id = 45, Module = "System", Action = "ViewLogs", Name = "System.ViewLogs", Description = "Ver logs del sistema" },
                 new Permission { Id = 46, Module = "System", Action = "ViewSettings", Name = "System.ViewSettings", Description = "Ver configuración del sistema" },
-                new Permission { Id = 47, Module = "System", Action = "ManageSettings", Name = "System.ManageSettings", Description = "Gestionar configuración del sistema" }
+                new Permission { Id = 47, Module = "System", Action = "ManageSettings", Name = "System.ManageSettings", Description = "Gestionar configuración del sistema" },
+
+                // Módulo KPIs
+                new Permission { Id = 48, Module = "Kpis", Action = "View", Name = "Kpis.View", Description = "Ver KPIs" },
+                new Permission { Id = 49, Module = "Kpis", Action = "Create", Name = "Kpis.Create", Description = "Crear KPIs" },
+                new Permission { Id = 50, Module = "Kpis", Action = "Edit", Name = "Kpis.Edit", Description = "Editar KPIs" },
+                new Permission { Id = 51, Module = "Kpis", Action = "Delete", Name = "Kpis.Delete", Description = "Eliminar KPIs" }
             };
 
             builder.Entity<Permission>().HasData(permissions);
@@ -223,23 +225,6 @@ namespace OmniMonitor.Server.Context
                       .WithMany()
                       .HasForeignKey(rj => rj.CrossModuleJoinId);
             });
-
-            builder.Entity<DatasetReports>(entity =>
-            {
-                entity.HasKey(dr => new { dr.ReportId, dr.DatasetsOfReportsId });
-
-                entity.HasOne(dr => dr.Report)
-                      .WithMany(r => r.DatasetsReports)
-                      .HasForeignKey(dr => dr.ReportId);
-
-                entity.HasOne(dr => dr.DatasetsOfReports)
-                      .WithMany()
-                      .HasForeignKey(dr => dr.DatasetsOfReportsId);
-            });
-
-            builder.Entity<DatasetsOfReports>()
-                .Property(dor => dor.ModuleType)
-                .HasConversion<string>();
         }
 
         private static void ConfigureCrossModuleJoins(ModelBuilder builder)

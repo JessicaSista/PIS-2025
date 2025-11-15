@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,12 +35,13 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                Visualizacion nuevaVisualizacion = await _visualizacionService.CreateVisualizacionAsync(request);
+                Visualizacion nuevaVisualizacion = await _visualizacionService.CreateVisualizacionAsync(request, username);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
                 return CreatedAtAction(nameof(GetVisualizacionById), new { idVisualizacion = nuevaVisualizacion.IdVisualizacion, username = nuevaVisualizacion.Username }, nuevaVisualizacion);
@@ -81,6 +82,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todas las visualizaciones de un usuario específico con paginación.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
         [HttpGet("GetAllVisualizacionesPaginated")]
         [ProducesResponseType(typeof(PaginatedVisualizacionDto), 200)]
         [ProducesResponseType(400)]
@@ -151,6 +153,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
 
+        [AllowAnonymous]
         [HttpGet("GetVisualizacionByIdSinToken")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(404)]
@@ -325,6 +328,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
         [HttpPost("visualization-data")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]
@@ -346,6 +350,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("visualization-dataSinToken")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]

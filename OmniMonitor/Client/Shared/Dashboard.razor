@@ -56,6 +56,7 @@
     [Parameter] public List<(System.Int32, System.Int32, System.Int32, System.Int32, System.Int32, System.Int32)> CardsData { get; set; } = new List<(System.Int32, System.Int32, System.Int32, System.Int32, System.Int32, System.Int32)>();
     
     [Parameter] public EventCallback<(int Id, int Type)> OnVisualizationCreated { get; set; }
+    [Parameter] public List<(int,int)> UsedVisualizations { get; set; } = new List<(int,int)>();
     [Parameter] public EventCallback<(int,int,int,int,int,int)> UpdateCardSize { get; set; }
     [Parameter] public EventCallback<(int,int)> RemoveCard { get; set; }
 
@@ -89,8 +90,8 @@
     private async Task OpenDialogCreateCard()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters { ["dashboardId"] = dashboardId, ["OnVisualizationCreated"] = OnVisualizationCreated };
-        IDialogReference? dialog = await DialogService.ShowAsync<AddVisualizationDashboard>("Agregar visualizacion", parameters, options);
+        DialogParameters parameters = new DialogParameters { ["dashboardId"] = dashboardId, ["OnVisualizationCreated"] = OnVisualizationCreated, ["UsedVisualizations"] = UsedVisualizations };
+        IDialogReference? dialog = await DialogService.ShowAsync<AddVisualizationDashboard>(Localizer["AgregarVisualizacion"], parameters, options);
         DialogResult? result = await dialog.Result;
     }
 }

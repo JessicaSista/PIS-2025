@@ -31,10 +31,20 @@ namespace OmniMonitor.Shared.Dtos
         // Relación con los devices seleccionados explícitamente
         public virtual ICollection<DatasetDevice> DatasetDevices { get; set; } = new List<DatasetDevice>();
 
+        // Relación con los sources seleccionados por filtros
+        public virtual ICollection<DatasetSource> DatasetSources { get; set; } = new List<DatasetSource>();
+
+        // Relación con los sensors seleccionados por filtros
+        public virtual ICollection<DatasetSensor> DatasetSensors { get; set; } = new List<DatasetSensor>();
+
         // IDs para la búsqueda dinámica de devices cuando no se seleccionan explícitamente
         public int? Id_Source { get; set; }
         public int? Id_Group { get; set; }
         public string? SensorName { get; set; }
+        
+        // Campo para almacenar filtros como JSON para datasets no formales
+        public string? JsonFilters { get; set; }
+        
         public int DatasetId { get; set; }  // Clave foránea
         [ForeignKey(nameof(DatasetId))]
         public virtual Datasets Datasets { get; set; } = null!;

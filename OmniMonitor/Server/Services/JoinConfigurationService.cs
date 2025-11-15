@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using System.Dynamic;
@@ -30,7 +30,6 @@ public class JoinConfigurationService : IJoinConfigurationService
 
     public async Task<CrossModuleJoin> CreateJoinAsync(CreateJoinRequestDto request, string username)
     {
-        // 1. Map DTOs to the database entities for Operands
         var leftOperand = new JoinOperand
         {
             ModuleType = request.LeftOperand.ModuleType,
@@ -57,8 +56,6 @@ public class JoinConfigurationService : IJoinConfigurationService
         // 4. Create the main CrossModuleJoin entity
         var joinDefinition = new CrossModuleJoin
         {
-            Name = request.Name,
-            Description = request.Description,
             Username = username,
             JoinType = request.JoinType,
             LeftOperandId = leftOperand.Id,
@@ -137,7 +134,6 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
         var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
-        //
         List<dynamic> nestedResults;
 
         var leftList = processedLeftQuery.ToDynamicList();
@@ -190,38 +186,29 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         // 2. Obtener datos y aplicar filtros si se proporcionan
         var leftData = await _apiDataService.GetDataForOperand(joinConfig.LeftOperand, joinConfig.Username);
-        Console.WriteLine($"[DEBUG] Left data before filtering: {leftData?.Count()} records");
         
         // Aplicar filtros al operando izquierdo si existen
         if (filters?.LeftOperandFilters?.Filters != null && filters.LeftOperandFilters.Filters.Any())
         {
-            Console.WriteLine($"[DEBUG] Applying {filters.LeftOperandFilters.Filters.Count} left filters");
             foreach (var f in filters.LeftOperandFilters.Filters)
             {
-                Console.WriteLine($"[DEBUG] ExecuteJoinWithFiltersAsync: Left filter -> Attribute='{f.AttributeName}', Type={f.Type}, ValueType={f.ValueType}, Condition={f.Condition}");
             }
             leftData = ApiDataService.StaticFilterObjects(leftData, filters.LeftOperandFilters.Filters);
-            Console.WriteLine($"[DEBUG] Left data after filtering: {leftData?.Count()} records");
         }
 
         var rightData = await _apiDataService.GetDataForOperand(joinConfig.RightOperand, joinConfig.Username);
-        Console.WriteLine($"[DEBUG] Right data before filtering: {rightData?.Count()} records");
         
         // Aplicar filtros al operando derecho si existen
         if (filters?.RightOperandFilters?.Filters != null && filters.RightOperandFilters.Filters.Any())
         {
-            Console.WriteLine($"[DEBUG] Applying {filters.RightOperandFilters.Filters.Count} right filters");
             foreach (var f in filters.RightOperandFilters.Filters)
             {
-                Console.WriteLine($"[DEBUG] ExecuteJoinWithFiltersAsync: Right filter -> Attribute='{f.AttributeName}', Type={f.Type}, ValueType={f.ValueType}, Condition={f.Condition}");
             }
             rightData = ApiDataService.StaticFilterObjects(rightData, filters.RightOperandFilters.Filters);
-            Console.WriteLine($"[DEBUG] Right data after filtering: {rightData?.Count()} records");
         }
 
         if (leftData == null || rightData == null)
         {
-            Console.WriteLine("[DEBUG] One of the datasets is null, returning empty list");
             return new List<dynamic>(); // Return empty if any data source fails
         }
 
@@ -242,7 +229,7 @@ public class JoinConfigurationService : IJoinConfigurationService
             throw new InvalidOperationException(
                 $"Incompatibilidad de tipos para el Join. La propiedad izquierda '{leftJoinKey}' es de tipo '{leftJoinType}', " +
                 $"pero la propiedad derecha '{rightJoinKey}' es de tipo '{rightJoinType}'. " +
-                "Por favor, asegúrate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
+                "Por favor, asegÃºrate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
             );
         }
 
@@ -280,12 +267,10 @@ public class JoinConfigurationService : IJoinConfigurationService
                 break;
 
             default:
-                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no está soportado.");
+                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no estÃ¡ soportado.");
         }
 
-        Console.WriteLine($"[DEBUG] Join completed. Nested results: {nestedResults?.Count} records");
         var finalResults = FlattenJoinResults(nestedResults, joinConfig);
-        Console.WriteLine($"[DEBUG] Final flattened results: {finalResults?.Count} records");
         return finalResults;
     }
 
@@ -299,8 +284,6 @@ public class JoinConfigurationService : IJoinConfigurationService
         .Select(j => new CrossModuleJoinDto
         {
             Id = j.Id,
-            Name = j.Name,
-            Description = j.Description,
             JoinType = j.JoinType,
             LeftOperand = new JoinOperandDto
             {

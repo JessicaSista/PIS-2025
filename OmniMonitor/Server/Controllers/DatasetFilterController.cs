@@ -2,22 +2,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Server.Attributes;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using OmniMonitor.Shared.Dtos;
-
 
 namespace OmniMonitor.Server.Controllers
 {
-    // Usar los tipos definidos en ApiDataService
-
-    public class PropiedadEntidadDto
-    {
-        public string Nombre { get; set; } = string.Empty;
-    public FilterValueType Tipo { get; set; }
-    }
-
     [ApiController]
     [Route("api/[controller]")]
     public class DatasetFilterController : ControllerBase
@@ -26,19 +18,22 @@ namespace OmniMonitor.Server.Controllers
     private readonly ISondaUMService _sondaUMService;
     private readonly ISondaAMService _sondaAMService;
     private readonly ISondaEMService _sondaEMService;
+    private readonly ISondaIMService _sondaIMService;
     private readonly ISondaAuthService _sondaAuthService;
 
 
-        public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaAuthService sondaAuthService)
+        public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
         {
             _context = context;
             _sondaUMService = sondaUMService;
             _sondaAMService = sondaAMService;
             _sondaEMService = sondaEMService;
+            _sondaIMService = sondaIMService;
             _sondaAuthService = sondaAuthService;
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("FiltrarPorModuloYEntidad")]
         public async Task<ActionResult<List<PropiedadEntidadDto>>> FiltrarPorModuloYEntidad(string modulo, int entidadId)
         {
@@ -114,7 +109,6 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "BundleId", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Supervisor.Name", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
-                            //faltarian categories y tambien los Dtos compuestos
                             break;
                     }
                     break;
@@ -161,6 +155,54 @@ namespace OmniMonitor.Server.Controllers
                             break;
                     }
                     break;
+                case "IM":
+                    switch (entidadId)
+                    {
+                        case 1: // Device
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LayerId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Latitude", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Longitude", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "XCoordinate", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "YCoordinate", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SourceId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Source.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "IsActive", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "SectorId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TenantId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Groups.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastDataReceived", Tipo = FilterValueType.Date });
+                            break;
+                        case 2: // Source
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Description", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Type", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TimeTolerance", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TimeRange", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Icon", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "IsActive", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "TenantId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataAlert", Tipo = FilterValueType.Boolean });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataSleepByDevice", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataInterval", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "OutputId", Tipo = FilterValueType.Number });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Devices.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
+                            break;
+                        case 3: // Sensor
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "DisplayName", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Type", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Integration", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastUpdate", Tipo = FilterValueType.Date });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastValue", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "LastPersisted", Tipo = FilterValueType.Date });
+                            break;
+                    }
+                    break;
             }
 
             return Ok(resultado);
@@ -168,10 +210,10 @@ namespace OmniMonitor.Server.Controllers
 
     
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("GetAtributoValores")]
         public async Task<ActionResult<List<string>>> GetAtributoValores(string modulo, int entidadId, string atributo)
         {
-            // DEBUG: Loguear los datos crudos de entidades para EM eventos
             
             // Get username from JWT
             var username = User.Identity?.Name;
@@ -225,6 +267,25 @@ namespace OmniMonitor.Server.Controllers
                     else
                         entidadValida = false;
                     break;
+                case "IM":
+                    if (entidadId == 1) // Device
+                        entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    else if (entidadId == 2) // Source
+                        entidades = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                    else if (entidadId == 3) // Sensor (extraído de los devices)
+                    {
+                        var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        var sensors = devices
+                            .Where(d => d.Sensors != null)
+                            .SelectMany(d => d.Sensors!)
+                            .GroupBy(s => s.Name)
+                            .Select(g => g.First())
+                            .ToList();
+                        entidades = sensors;
+                    }
+                    else
+                        entidadValida = false;
+                    break;
                 default:
                     moduloValido = false;
                     break;
@@ -244,17 +305,14 @@ namespace OmniMonitor.Server.Controllers
                     var categorias = categoriasProp?.GetValue(entidad) as IEnumerable<object>;
                     if (categorias != null)
                     {
-                        Console.WriteLine($"Evento: {entidad.GetType().GetProperty("Id")?.GetValue(entidad)}");
                         foreach (var cat in categorias)
                         {
                             var id = cat.GetType().GetProperty("Id")?.GetValue(cat);
                             var name = cat.GetType().GetProperty("Name")?.GetValue(cat);
-                            Console.WriteLine($"  Categoria: Id={id}, Name={name}");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Evento: {entidad.GetType().GetProperty("Id")?.GetValue(entidad)} no tiene categorias");
                     }
                 }
             }
@@ -299,10 +357,9 @@ namespace OmniMonitor.Server.Controllers
             return Ok(valores.Distinct().ToList());
         }
 
-            // DTO para la petición de filtrado
-    // Usar FiltrarDatosRequest desde Shared.Dtos
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission("Datasets.View")]
     [HttpPost("FiltrarDatos")]
     public async Task<ActionResult<List<object>>> FiltrarDatos([FromBody] OmniMonitor.Shared.Dtos.FiltrarDatosRequest request)
     {
@@ -344,6 +401,25 @@ namespace OmniMonitor.Server.Controllers
                 else
                     entidadValida = false;
                 break;
+            case "IM":
+                if (request.EntidadId == 1) // Device
+                    entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                else if (request.EntidadId == 2) // Source
+                    entidades = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                else if (request.EntidadId == 3) // Sensor (extraído de los devices)
+                {
+                    var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    var sensors = devices
+                        .Where(d => d.Sensors != null)
+                        .SelectMany(d => d.Sensors!)
+                        .GroupBy(s => s.Name)
+                        .Select(g => g.First())
+                        .ToList();
+                    entidades = sensors;
+                }
+                else
+                    entidadValida = false;
+                break;
             default:
                 moduloValido = false;
                 break;
@@ -354,32 +430,24 @@ namespace OmniMonitor.Server.Controllers
         if (!entidadValida)
             return BadRequest("Entidad no definida para el módulo seleccionado");
 
-        // DEBUG: Mostrar filtros recibidos
-        Console.WriteLine($"[DEBUG] Filtros recibidos: {request.Filtros.Count}");
         foreach (var filtro in request.Filtros)
         {
-            Console.WriteLine($"[DEBUG] Filtro: AttributeName={filtro.AttributeName}, Type={filtro.Type}, ValueType={filtro.ValueType}, Condition={filtro.Condition}");
         }
 
-        // DEBUG: Mostrar propiedades de los objetos antes de filtrar
         int idx = 0;
         foreach (var entidad in entidades)
         {
-            Console.WriteLine($"[DEBUG] Entidad #{idx}: Tipo={entidad.GetType().Name}");
             foreach (var prop in entidad.GetType().GetProperties())
             {
                 var val = prop.GetValue(entidad);
-                Console.WriteLine($"    Propiedad: {prop.Name} = {val}");
             }
             idx++;
         }
 
         // Filtrar usando ApiDataService.FilterObjects
         var filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filtros);
-        Console.WriteLine($"[DEBUG] Total objetos filtrados: {filtrados.Count}");
         foreach (var obj in filtrados)
         {
-            Console.WriteLine($"[DEBUG] Filtrado: Tipo={obj.GetType().Name}");
         }
         return Ok(filtrados);
     }

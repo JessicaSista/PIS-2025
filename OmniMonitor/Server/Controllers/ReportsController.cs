@@ -37,12 +37,13 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         public async Task<IActionResult> CreateReport([FromBody] CreateReportRequestDto request)
         {
+            var username = User.Identity?.Name;
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            Report createdReport = await _reportService.CreateReportAsync(request);
+            Report createdReport = await _reportService.CreateReportAsync(request, username);
             return CreatedAtAction(nameof(GetReportById), new { id = createdReport.Id }, createdReport);
         }
 
@@ -74,8 +75,6 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Gets a list of all reports for a specific user.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.View")]
         [HttpGet("by-user")]
         [ProducesResponseType(typeof(List<Report>), 200)]
         public async Task<IActionResult> GetAllReportsByUsername()
@@ -216,8 +215,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
         [HttpPut("UpdateReport")]
         [ProducesResponseType(typeof(Report), 200)]
         [ProducesResponseType(404)] // Not Found
@@ -232,7 +229,6 @@ namespace OmniMonitor.Server.Controllers
                     return Unauthorized(new { message = "Token inválido." });
                 }
 
-                // Serializar filtros a JSON si existen
                 string? jsonFilters = null;
                 if (updateRequest.Filters != null)
                 {
@@ -293,8 +289,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Edit")]
         [HttpDelete("RemoveJoinFromReport")]
         [ProducesResponseType(204)] // No Content (éxito)
         [ProducesResponseType(404)] // Not Found
@@ -324,8 +318,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Export")]
         [HttpGet("{id}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]

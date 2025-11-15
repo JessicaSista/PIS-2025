@@ -86,7 +86,6 @@ public class SondaAMService : ISondaAMService
         }
 
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
-        // Console.WriteLine($"SONDA API TOKEN: {token}");
         string getDataUrl = baseUrl + endpoint + "?assetId=" + id;
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -109,7 +108,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        // Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         // Puedes revisar el log de consola para ver el JSON exacto que devuelve la API
         return JsonSerializer.Deserialize<AssetDto>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
     }
@@ -143,7 +141,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
@@ -183,7 +180,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
             return new List<StockDto>();
 
@@ -232,7 +228,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
 
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
             throw new Exception("La respuesta de la API es nula, vacía o no es un JSON válido.");
@@ -282,7 +277,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             throw new Exception("La respuesta de la API está vacía.");
@@ -356,7 +350,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
@@ -400,7 +393,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
         {
             throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
@@ -447,7 +439,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             // No hay relaciones, pero el asset existe
@@ -525,7 +516,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
         {
             throw new Exception("La respuesta de la API está vacía.");
@@ -582,7 +572,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
             throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
         var apiResponse = JsonSerializer.Deserialize<OmniMonitor.Server.Models.AssetApiResponse>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -613,7 +602,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody) || !responseBody.TrimStart().StartsWith("{"))
             return null;
         return System.Text.Json.JsonSerializer.Deserialize<EventTaskInstanceDto>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -654,7 +642,6 @@ public class SondaAMService : ISondaAMService
             throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         response.EnsureSuccessStatusCode();
         if (string.IsNullOrWhiteSpace(responseBody))
             throw new Exception("La respuesta de la API está vacía.");
@@ -705,7 +692,6 @@ public class SondaAMService : ISondaAMService
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
             throw new Exception("La respuesta de la API está vacía.");
 
@@ -738,7 +724,6 @@ public class SondaAMService : ISondaAMService
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
-            Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
             if (string.IsNullOrWhiteSpace(responseBody))
                 throw new Exception("La respuesta de la API está vacía.");
 
@@ -746,7 +731,6 @@ public class SondaAMService : ISondaAMService
             return stocks ?? new List<EventTaskInstanceStockDto>();
         }
 
-        // Devuelve una lista de IDs de los typeDto de cada EventTaskInstanceDto de la lista
 public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string username)
 {
     var eventTaskInstances = await GetEventTaskInstances(
@@ -802,7 +786,6 @@ public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(strin
         if (typeDto != null)
             typeDtos.Add(typeDto);
     }
-    // Devuelve solo los typeDto únicos por Id
     return typeDtos.GroupBy(t => t.Id).Select(g => g.First()).ToList();
 }
 
@@ -828,7 +811,6 @@ public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
-        Console.WriteLine("SONDA API RAW RESPONSE: " + responseBody);
         if (string.IsNullOrWhiteSpace(responseBody))
             return new List<AssetTypeDto>();
 

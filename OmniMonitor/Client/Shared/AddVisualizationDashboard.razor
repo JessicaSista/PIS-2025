@@ -7,12 +7,14 @@
 @inject HttpClient Http
 @inject IDialogService DialogService
 @inject ILocalStorageService LocalStorage
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<AddVisualizationDashboard> Localizer
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
             <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
-            Nueva Visualizacion
+            @Localizer["NuevaVisualizacionTitulo"]
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -23,15 +25,29 @@
                 Color="MudBlazor.Color.Inherit"
                 Size="MudBlazor.Size.Large"
                 Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)">
-        Nueva visualización
+        @Localizer["NuevaVisualizacionBoton"]
     </MudButton>
 
     <MudDivider DividerType="MudBlazor.DividerType.Middle" Class="mt-5 mb-6" />
 
-    <MudText Typo="MudBlazor.Typo.h6" Class="mb-2" Style="color: var(--text-primary);">Visualizaciones existentes</MudText>
+    <MudText Typo="MudBlazor.Typo.h6" Class="mb-2" Style="color: var(--text-primary);">@Localizer["VisualizacionesExistentes"]</MudText>
 
+    @{
+        var availableVisualizations = _visualizations.Where(v => !UsedVisualizations.Contains((v.IdVisualizacion,1))).ToList();
+        var availableKpis = _kpiResponses.Where(k => !UsedVisualizations.Contains((k.Id,2))).ToList();
+    }
+
+    @if (!availableVisualizations.Any() && !availableKpis.Any())
+    {
+        <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
+            <MudText Typo="MudBlazor.Typo.body2" Class="mt-2" Style="color: var(--text-primary); opacity: 0.8;">@Localizer["NoVisualizacionesDisponibles"]</MudText>
+        </MudStack>
+    }
+
+    @if (availableVisualizations.Any())
+    {
     <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
-        @foreach(Visualizacion visualization in _visualizations){
+        @foreach(Visualizacion visualization in availableVisualizations){
             JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString();
             <MudButton FullWidth="true"
@@ -46,9 +62,12 @@
             </MudButton>
         }
     </MudStack>
+    }
 
+    @if (availableKpis.Any())
+    {
     <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
-        @foreach(KpiResponse kpi in _kpiResponses){
+        @foreach(KpiResponse kpi in availableKpis){
             @* JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
             <MudButton FullWidth="true"
@@ -57,12 +76,13 @@
                     Style="@($"background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
                     Class="pa-0">
                 <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
-                    @* <MudIcon Icon="@GetIcon(chartType)" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/> *@
+                    
                     <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@kpi.Name</MudText>
                 </MudStack>
             </MudButton>
         }
     </MudStack>
+    }
 </DialogContent>
 </MudDialog>
 
@@ -71,6 +91,7 @@
     [CascadingParameter]  private IMudDialogInstance MudDialog { get; set; }
 
     [Parameter] [Required] public System.Int32 dashboardId {get; set;}
+    [Parameter] public List<(int,int)> UsedVisualizations { get; set; } = new List<(int,int)>();
 
     [Parameter] public EventCallback<(int,int)> OnVisualizationCreated { get; set; }
 
@@ -108,7 +129,7 @@
             };
 
             IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
-                "Preview", 
+                Localizer["PreviewTitulo"], 
                 parameters, 
                 options
             );
@@ -122,23 +143,21 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add("No se pudo cargar la previsualización: " + ex.Message, Severity.Error);
+            Snackbar.Add(Localizer["ErrorCargarPreview"] + ": " + ex.Message, Severity.Error);
         }
     }
 
     private async Task OpenCreateVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
+        IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["CrearVisualizacionTitulo"], options);
         DialogResult? result = await dialog.Result;
         
         if (!result.Canceled)
         {
             try
             {
-                string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
+                HttpResponseMessage? response = await Http.GetAsync("api/Visualizacion/GetAllVisualizaciones");
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -151,7 +170,6 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
             }
         }
     }
@@ -162,7 +180,7 @@
         {
             string token = await LocalStorage.GetItemAsync<string>("authToken");
 
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones?token=" + token);
+            HttpResponseMessage? response = await Http.GetAsync("api/Visualizacion/GetAllVisualizaciones");
 
             if (response.IsSuccessStatusCode)
             {
@@ -173,7 +191,7 @@
                 }
             }
 
-            HttpResponseMessage? kpiResponse = await Http.GetAsync($"api/KPI/kpis?token={token}");
+            HttpResponseMessage? kpiResponse = await Http.GetAsync("api/KPI/kpis");
             if (kpiResponse.IsSuccessStatusCode)
             {
                 var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<List<KpiResponse>>();
@@ -185,7 +203,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error inicializando visualizaciones: {ex.Message}");
         }
     }
 
@@ -242,14 +259,11 @@
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"ERROR parseando JsonDesign: {ex.Message}");
                         }
                     }
 
-                    System.String token = await LocalStorage.GetItemAsync<string>("authToken");
-
                     HttpResponseMessage? response = await Http.GetAsync(
-                        $"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}&token={token}"
+                        $"api/Dataset/GetDataset?datasetId={grupoDataset.Dataset.Id}"
                     );
                     
                     
@@ -265,7 +279,7 @@
                                 {                                    
                                     try
                                     {
-                                        string sensorUrl = $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}";
+                                        string sensorUrl = $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}";
                                         HttpResponseMessage? sensorDataResponse = await Http.GetAsync(sensorUrl);
 
                                         if (sensorDataResponse.IsSuccessStatusCode)
@@ -303,33 +317,27 @@
                                         else
                                         {
                                             System.String errorContent = await sensorDataResponse.Content.ReadAsStringAsync();
-                                            Console.WriteLine($"Contenido del error: {errorContent}");
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"ERROR cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
                                     }
                                 }
                             }
                             else
                             {
-                                Console.WriteLine($"WARNING: Dataset {grupoDataset.Dataset.Id} no tiene devices asociados");
                             }
                         }
                         else
                         {
-                            Console.WriteLine($"ERROR: Dataset deserializado es NULL");
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"ERROR obteniendo dataset {grupoDataset.Dataset.Id}: {response.StatusCode}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"ERROR procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
             // Ordenar por timestamp
@@ -347,12 +355,10 @@
             }
             else
             {
-                Console.WriteLine("WARNING: No se cargaron datos para esta visualización");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"ERROR cargando datos de visualización {visualization.IdVisualizacion}: {ex.Message}");
         }
 
         return allData;

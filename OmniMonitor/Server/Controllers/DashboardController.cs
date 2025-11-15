@@ -44,17 +44,13 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                if (string.IsNullOrWhiteSpace(request.Username))
-                {
-                    return BadRequest("El nombre de usuario es requerido.");
-                }
-
-                DashboardResponse nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, request.Username);
+                DashboardResponse nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, username);
                 return CreatedAtAction(
                     nameof(GetDashboard),
                     new { id = nuevoDashboard.IdDashboard, username = nuevoDashboard.Username },
@@ -108,6 +104,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("GetDashboardSinToken")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
@@ -231,6 +228,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="400">Lista de IDs inválida.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPost("validate-cards")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
@@ -303,6 +301,7 @@ namespace OmniMonitor.Server.Controllers
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPost("{id}/card")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -434,6 +433,7 @@ namespace OmniMonitor.Server.Controllers
         /// Busca dashboards por fragmento de texto en nombre o descripción.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         public async Task<IActionResult> SearchDashboards([FromQuery] string query)
@@ -498,7 +498,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpGet("getShare/{slug}")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(404)]
@@ -519,7 +518,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpPost("ValidateShare/{slug}/validate")]
         [ProducesResponseType(typeof(ValidateSharePasswordResponseDto), 200)]
         [ProducesResponseType(401)]

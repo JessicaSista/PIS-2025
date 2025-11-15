@@ -30,57 +30,8 @@ namespace OmniMonitor.Server.Controllers
             _context = context;
         }
 
-        /// <summary>
-        /// Crea un nuevo dataset EM.
-        /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPost]
-        [ProducesResponseType(typeof(DatasetEM), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> CreateDataset([FromBody] CreateDatasetEMRequest request)
-        {
-            try
-            {
-                if (request == null)
-                {
-                    return BadRequest("El cuerpo de la petición no puede estar vacío.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.Name))
-                {
-                    return BadRequest("El nombre del dataset es requerido.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.Username))
-                {
-                    return BadRequest("El nombre de usuario es requerido.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.IsDataset))
-                {
-                    return BadRequest("El tipo de dataset es requerido.");
-                }
-
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
-                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetEM createdDataset = await _datasetEMService.CreateDatasetEMAsync(request, dataset.Id);
-                await _datasetUMService.UpdateDatasetAsyncEM(dataset.Id, requestDataset, createdDataset);
-                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = createdDataset.Id, username = createdDataset.Username }, createdDataset);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
-            }
-        }
-
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
+        [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -99,14 +50,17 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest(ModelState);
                 }
-                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
-                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-
-                // Filtrado para Alert, Event, Extension, Category
+                // Validar filtros ANTES de crear el dataset general
                 if (req.ContentType == "1") // Alert
                 {
                     var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
                     req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
@@ -115,6 +69,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
                     req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
@@ -123,6 +83,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede crearse sin resultados.");
+                    }
+                    
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
                     req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
@@ -131,6 +97,10 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return BadRequest("ContentType inválido o no soportado");
                 }
+
+                // Crear el dataset general SOLO después de validar los filtros
+                var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
+                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
 
                 DatasetEM newDatasetEM = await _datasetEMService.CreateDatasetEMWithFiltersAsync(req, newDataset.Id, request.Filters);
                 await _datasetUMService.UpdateDatasetAsyncEM(newDataset.Id, requestDataset, newDatasetEM);
@@ -150,8 +120,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("with-filters/{datasetId}")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -176,11 +146,17 @@ namespace OmniMonitor.Server.Controllers
                 await _datasetUMService.ValidateDatasetNameAsync(req.Name, req.Username, ModuleType.EventManager, existingDataset.DatasetId);
                 var requestDataset = new CreateDatasetRequest(req.Name, req.Username, ModuleType.EventManager);
 
-                // Filtrado para Alert, Event, Extension, Category
+                // Validar filtros ANTES de actualizar el dataset
                 if (req.ContentType == "1") // Alert
                 {
                     var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
                     req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
@@ -189,6 +165,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
                     req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
@@ -197,6 +179,12 @@ namespace OmniMonitor.Server.Controllers
                 {
                     var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
                     var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                    
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede actualizarse sin resultados.");
+                    }
+                    
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
                     req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
@@ -227,8 +215,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los datasets EM de un usuario.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllDatasets")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetEM>), 200)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
@@ -249,8 +237,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset EM por su ID y nombre de usuario.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{datasetId}")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(DatasetEM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -274,49 +262,10 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
-        /// Actualiza un dataset EM existente.
-        /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPut("{datasetId}")]
-        //[RequirePermission("Crear Datasets EM")]
-        [ProducesResponseType(typeof(DatasetEM), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetEMRequest request)
-        {
-            try
-            {
-                // Obtener el dataset existente para obtener el DatasetId
-                DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, request.Username);
-                if (existingDataset == null)
-                {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
-                }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.EventManager, existingDataset.DatasetId);
-
-                DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, request);
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
-                Datasets dataset = await _datasetUMService.UpdateDatasetAsyncEM(updatedDataset.DatasetId, requestDataset, updatedDataset);
-                return Ok(updatedDataset);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Error interno al actualizar el dataset: {ex.Message}" });
-            }
-        }
-
-        /// <summary>
         /// Elimina un dataset EM.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{datasetId}")]
+        [RequirePermission("Datasets.Delete")]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
