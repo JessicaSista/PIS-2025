@@ -7,6 +7,7 @@ using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Shared.Dtos.EM;
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -103,44 +104,86 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "1") // Alert
                 {
                     var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
-                    var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allAlerts.Cast<object>();
                     }
                     
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
-                    req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
+                    req.AlertIds.AddRange(filtrados
+                        .OfType<AlertDto>()
+                        .Select(a => a.AlertId != null ? (int)a.AlertId : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else if (req.ContentType == "2") // Event
                 {
                     var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
-                    var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allEvents.Cast<object>();
                     }
                     
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
-                    req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
+                    req.EventIds.AddRange(filtrados
+                        .OfType<EventDto>()
+                        .Select(e => e.Id != null ? (int)e.Id : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else if (req.ContentType == "3") // Extension
                 {
                     var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
-                    var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allExtensions.Cast<object>();
                     }
                     
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
-                    req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
+                    req.ExtensionIds.AddRange(filtrados
+                        .OfType<ExtensionDto>()
+                        .Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else
                 {
@@ -199,44 +242,86 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "1") // Alert
                 {
                     var allAlerts = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
-                    var filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allAlerts.Cast<object>();
                     }
                     
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
-                    req.AlertIds.AddRange(filtrados.Select(a => a.AlertId != null ? (int)a.AlertId : 0).OfType<int>().ToList());
+                    req.AlertIds.AddRange(filtrados
+                        .OfType<AlertDto>()
+                        .Select(a => a.AlertId != null ? (int)a.AlertId : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else if (req.ContentType == "2") // Event
                 {
                     var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
-                    var filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allEvents.Cast<object>();
                     }
                     
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
-                    req.EventIds.AddRange(filtrados.Select(e => e.Id != null ? (int)e.Id : 0).OfType<int>().ToList());
+                    req.EventIds.AddRange(filtrados
+                        .OfType<EventDto>()
+                        .Select(e => e.Id != null ? (int)e.Id : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else if (req.ContentType == "3") // Extension
                 {
                     var allExtensions = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
-                    var filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allExtensions.Cast<object>();
                     }
                     
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
-                    req.ExtensionIds.AddRange(filtrados.Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0).OfType<int>().ToList());
+                    req.ExtensionIds.AddRange(filtrados
+                        .OfType<ExtensionDto>()
+                        .Select(e => e.ExtensionId != null ? (int)e.ExtensionId : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else
                 {

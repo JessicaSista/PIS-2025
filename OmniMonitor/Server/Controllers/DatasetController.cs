@@ -92,9 +92,10 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("Este endpoint es solo para datasets no formales (IsDataset = 'N'). Use el endpoint regular para datasets formales.");
                 }
 
-                if (request.Filters == null || !request.Filters.Any())
+                // Permitir datasets sin filtros (se crearán vacíos)
+                if (request.Filters == null)
                 {
-                    return BadRequest("Los filtros son obligatorios para datasets filtrados.");
+                    request.Filters = new List<FilterCondition>();
                 }
 
                 var username = User.Identity?.Name;
@@ -163,15 +164,25 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("ContentType inválido o no soportado");
                 }
 
-                var filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filters);
-                
-                if (!filtrados.Any())
+                // Si hay filtros, aplicarlos y validar que haya resultados
+                // Si no hay filtros, incluir todo (no filtrar)
+                IEnumerable<object> filtrados;
+                if (request.Filters != null && request.Filters.Any())
                 {
-                    return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede crearse sin resultados.");
+                    filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filters);
+                    // Si hay filtros pero no hay resultados, no crear el dataset
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede crearse sin resultados.");
+                    }
+                    request.JsonFilters = JsonSerializer.Serialize(request.Filters);
                 }
-
-                // Convertir la lista de filtros a JSON
-                request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                else
+                {
+                    // Sin filtros: incluir todo
+                    filtrados = entidades;
+                    request.JsonFilters = "[]";
+                }
 
                 // Crear el dataset general
                 var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
@@ -364,10 +375,88 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
                 }
 
-                // Si es un dataset no formal y tiene filtros, convertir a JSON
+                // Si es un dataset no formal y tiene filtros, validar que encuentren resultados
                 if (request.IsDataset == "N" && request.Filters != null && request.Filters.Any())
                 {
-                    request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                    // Validar filtros ANTES de actualizar
+                    var username = User.Identity?.Name;
+                    if (string.IsNullOrWhiteSpace(username))
+                        return BadRequest("Usuario no encontrado.");
+
+                    IEnumerable<object> entidades = Enumerable.Empty<object>();
+                    string entidadNombre = "";
+                    
+                    if (request.ContentType == "1") // Device
+                    {
+                        entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        entidadNombre = "dispositivo";
+                    }
+                    else if (request.ContentType == "2") // Source
+                    {
+                        var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                        
+                        // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
+                        bool needsDevices = request.Filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
+                        bool needsSensors = request.Filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
+                        
+                        if (needsDevices || needsSensors)
+                        {
+                            foreach (var source in sources)
+                            {
+                                if (source != null)
+                                {
+                                    var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
+                                    source.Devices = devices;
+                                    
+                                    if (needsSensors && devices.Any())
+                                    {
+                                        var sensors = devices
+                                            .Where(d => d.Sensors != null)
+                                            .SelectMany(d => d.Sensors!)
+                                            .DistinctBy(s => s.Name)
+                                            .ToList();
+                                        source.Sensors = sensors;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        entidades = sources;
+                        entidadNombre = "fuente";
+                    }
+                    else if (request.ContentType == "3") // Sensor
+                    {
+                        var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        var allSensors = allDevices
+                            .Where(d => d.Sensors != null)
+                            .SelectMany(d => d.Sensors!)
+                            .GroupBy(s => s.Name)
+                            .Select(g => g.First())
+                            .Cast<object>()
+                            .ToList();
+                        entidades = allSensors;
+                        entidadNombre = "sensor";
+                    }
+
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
+                    {
+                        filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filters);
+                        // Si hay filtros pero no hay resultados, no actualizar el dataset
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede actualizarse sin resultados.");
+                        }
+                        request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = entidades;
+                        request.JsonFilters = "[]";
+                    }
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla

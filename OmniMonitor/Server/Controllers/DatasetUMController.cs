@@ -94,26 +94,46 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // News
                 {
                     var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
-                    var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allNews.Cast<object>();
                     }
                     
-                    req.NewsIds = filtrados.Select(n => (int)n.Id).ToList();
+                    req.NewsIds = filtrados.OfType<News>().Select(n => (int)n.Id).ToList();
                 }
                 else if (req.ContentType == "1") // Eventos
                 {
                     IEnumerable<object> eventos = (await _sondaUMService.GetAllEvents(username)).Cast<object>();
-                    var filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = eventos;
                     }
                     
-                    req.EventIds = filtrados.Select(e => (int)e.Id).ToList();
+                    req.EventIds = filtrados.OfType<Event>().Select(e => (int)e.Id).ToList();
                 }
                 else
                 {
@@ -228,26 +248,46 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // News
                 {
                     var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
-                    var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allNews.Cast<object>();
                     }
                     
-                    req.NewsIds = filtrados.Select(n => (int)n.Id).ToList();
+                    req.NewsIds = filtrados.OfType<News>().Select(n => (int)n.Id).ToList();
                 }
                 else if (req.ContentType == "1") // Eventos
                 {
                     IEnumerable<object> eventos = (await _sondaUMService.GetAllEvents(username)).Cast<object>();
-                    var filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(eventos, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = eventos;
                     }
                     
-                    req.EventIds = filtrados.Select(e => (int)e.Id).ToList();
+                    req.EventIds = filtrados.OfType<Event>().Select(e => (int)e.Id).ToList();
                 }
                 else
                 {

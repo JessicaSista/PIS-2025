@@ -115,9 +115,10 @@ namespace OmniMonitor.Server.Services
                 throw new ArgumentException("Este método es solo para datasets no formales (IsDataset = 'N').");
             }
 
-            if (request.Filters == null || !request.Filters.Any())
+            // Permitir datasets sin filtros (se crearán vacíos)
+            if (request.Filters == null)
             {
-                throw new ArgumentException("Los filtros son obligatorios para datasets filtrados.");
+                request.Filters = new List<FilterCondition>();
             }
 
             // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
@@ -177,13 +178,20 @@ namespace OmniMonitor.Server.Services
             // 1. Traer todos los devices
             var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
             
-            // 2. Aplicar filtros
-            var filteredDevices = ApiDataService.StaticFilterObjects(allDevices, filters);
-            
-            // Validar que haya resultados
-            if (!filteredDevices.Any())
+            // 2. Aplicar filtros (si hay filtros) o incluir todo (si no hay filtros)
+            IEnumerable<object> filteredDevices;
+            if (filters != null && filters.Any())
             {
-                throw new InvalidOperationException("El filtro no encontró ningún dispositivo. El dataset no puede crearse sin resultados.");
+                filteredDevices = ApiDataService.StaticFilterObjects(allDevices, filters);
+                if (!filteredDevices.Any())
+                {
+                    throw new InvalidOperationException("El filtro no encontró ningún dispositivo. El dataset no puede crearse sin resultados.");
+                }
+            }
+            else
+            {
+                // Sin filtros: incluir todo
+                filteredDevices = allDevices;
             }
             
             // 3. Persistir devices filtrados
@@ -229,13 +237,20 @@ namespace OmniMonitor.Server.Services
                 }
             }
             
-            // 2. Aplicar filtros
-            var filteredSources = ApiDataService.StaticFilterObjects(allSources, filters);
-            
-            // Validar que haya resultados
-            if (!filteredSources.Any())
+            // 2. Aplicar filtros (si hay filtros) o incluir todo (si no hay filtros)
+            IEnumerable<object> filteredSources;
+            if (filters != null && filters.Any())
             {
-                throw new InvalidOperationException("El filtro no encontró ninguna fuente. El dataset no puede crearse sin resultados.");
+                filteredSources = ApiDataService.StaticFilterObjects(allSources, filters);
+                if (!filteredSources.Any())
+                {
+                    throw new InvalidOperationException("El filtro no encontró ninguna fuente. El dataset no puede crearse sin resultados.");
+                }
+            }
+            else
+            {
+                // Sin filtros: incluir todo
+                filteredSources = allSources;
             }
             
             // 3. Persistir sources filtradas
@@ -259,13 +274,20 @@ namespace OmniMonitor.Server.Services
                 .Select(g => g.First())
                 .ToList();
             
-            // 2. Aplicar filtros
-            var filteredSensors = ApiDataService.StaticFilterObjects(allSensors, filters);
-            
-            // Validar que haya resultados
-            if (!filteredSensors.Any())
+            // 2. Aplicar filtros (si hay filtros) o incluir todo (si no hay filtros)
+            IEnumerable<object> filteredSensors;
+            if (filters != null && filters.Any())
             {
-                throw new InvalidOperationException("El filtro no encontró ningún sensor. El dataset no puede crearse sin resultados.");
+                filteredSensors = ApiDataService.StaticFilterObjects(allSensors, filters);
+                if (!filteredSensors.Any())
+                {
+                    throw new InvalidOperationException("El filtro no encontró ningún sensor. El dataset no puede crearse sin resultados.");
+                }
+            }
+            else
+            {
+                // Sin filtros: incluir todo
+                filteredSensors = allSensors;
             }
             
             // 3. Persistir sensors filtrados
