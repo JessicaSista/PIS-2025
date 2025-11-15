@@ -33,5 +33,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("subscriptions")]
         public List<AssetTypeSubscriptionDto>? Subscriptions { get; set; } // nullable
+
+        public override string ToString() => Name;
     }
 }
