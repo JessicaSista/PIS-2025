@@ -83,13 +83,61 @@
                 </MudItem>
             }
         }
+        @if (_totalPages > 1)
+        {
+            <MudItem lg="12" md="12" xs="12">
+                <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
+                                   Disabled="@(!_hasPreviousPage)"
+                                   OnClick="@(() => GoToPage(1))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                   Disabled="@(!_hasPreviousPage)"
+                                   OnClick="@(() => GoToPage(_currentPage - 1))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+
+                    <MudText Typo="Typo.body2" Class="mx-3">
+                        @Localizer["Página"] @_currentPage @Localizer["de"] @_totalPages
+                    </MudText>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                   Disabled="@(!_hasNextPage)"
+                                   OnClick="@(() => GoToPage(_currentPage + 1))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
+                                   Disabled="@(!_hasNextPage)"
+                                   OnClick="@(() => GoToPage(_totalPages))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+                </MudStack>
+
+                <MudStack Row Justify="Justify.Center" Class="mb-4">
+                    <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                        @Localizer["Mostrando"] @_reportes.Count @Localizer["de"] @_totalCount
+                    </MudText>
+                </MudStack>
+            </MudItem>
+        }
     </MudGrid>
+
 </MudContainer>
 
 @code {
     private string _searchText = "";
     private List<ReporteDto> _reportes = new();
     private bool _isLoading = true;
+
+    private int _currentPage = 1;
+    private int _pageSize = 3;
+    private int _totalPages = 0;
+    private int _totalCount = 0;
+    private bool _hasPreviousPage = false;
+    private bool _hasNextPage = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -267,6 +315,10 @@
             if (response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
+                if(_reportes.Count == 1 && _currentPage > 1)
+                {
+                    _currentPage--;
+                }
                 await CargarReportes();
                 await GuardarReportes();
             }
@@ -296,7 +348,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al guardar reportes: {ex.Message}");
         }
     }
 
@@ -317,24 +368,27 @@
                 return;
             }
 
-            string? token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrEmpty(token))
-            {
-                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
-                return;
-            }
-
-            var response = await Http.GetAsync($"api/reports/by-user");
+            var response = await Http.GetAsync($"/api/reports/GetAllReportsPaginated?page={_currentPage}&pageSize={_pageSize}");
 
             if (response.IsSuccessStatusCode)
             {
-                var reportsFromApi = await response.Content.ReadFromJsonAsync<List<Report>>();
-                _reportes = reportsFromApi?.Select(d => new ReporteDto
+                var result = await response.Content.ReadFromJsonAsync<PaginatedReportDto>();
+                if(result != null)
                 {
-                    Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description ?? string.Empty
-                }).ToList() ?? new List<ReporteDto>();
+                    _totalCount = result.TotalCount;
+                    _totalPages = result.TotalPages;
+                    _currentPage = result.Page;
+                    _hasPreviousPage = result.HasPreviousPage;
+                    _hasNextPage = result.HasNextPage;
+
+                    _reportes = result.Items.Select(d => new ReporteDto
+                        {
+                            Id = d.Id,
+                            Nombre = d.Name,
+                            Descripcion = d.Description ?? string.Empty
+                        }).ToList() ?? new List<ReporteDto>();
+                }
+
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -345,13 +399,11 @@
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Snackbar.Add($"Error al cargar los reportes: {response.StatusCode}", Severity.Error);
-                Console.WriteLine($"Error al cargar reportes: {errorContent}");
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error al cargar los reportes: {ex.Message}", Severity.Error);
-            Console.WriteLine($"Excepción al cargar reportes: {ex}");
             _reportes = new List<ReporteDto>();
         }
         finally
@@ -388,7 +440,6 @@
             var result = await dialog.Result;
             if (result == null)
             {
-                Console.WriteLine("[WARN] El diálogo de creación retornó un resultado nulo");
                 return;
             }
 
@@ -403,24 +454,28 @@
                     }
                     catch (Exception loadEx)
                     {
-                        Console.WriteLine($"[ERROR] Error al cargar reportes: {loadEx.Message}");
                         NavigationManager.NavigateTo($"editarReporte/{reportId}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[ERROR] El diálogo se cerró con un tipo de dato inesperado: {result.Data?.GetType().Name ?? "null"}");
                     await CargarReportes();
                 }
             }
             else
             {
-                Console.WriteLine("[INFO] El usuario canceló la creación del reporte");
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error al crear el reporte: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _totalPages) return;
+        _currentPage = page;
+        await CargarReportes();
     }
 }

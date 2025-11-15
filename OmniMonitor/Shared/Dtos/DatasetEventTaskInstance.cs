@@ -8,9 +8,9 @@ namespace OmniMonitor.Shared.Dtos
         [Key]
         public int Id { get; set; }
 
-    public int DatasetAMId { get; set; }
-    [ForeignKey("DatasetAMId")]
-    public virtual DatasetAM DatasetAM { get; set; }
+        public int DatasetAMId { get; set; }
+        [ForeignKey("DatasetAMId")]
+        public virtual DatasetAM DatasetAM { get; set; }
 
         [Required]
         public int Id_Event_Task_Instance { get; set; }

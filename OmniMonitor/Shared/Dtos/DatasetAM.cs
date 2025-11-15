@@ -33,7 +33,6 @@ namespace OmniMonitor.Shared.Dtos
 
         public int? Id_Event_Task { get; set; }
 
-        // Referencia a un datasetEvent (EventTaskInstanceDto)
         public ICollection<DatasetEventTaskInstance> Grupo_Event_Task_Instance { get; set; } = new List<DatasetEventTaskInstance>();
 
         public int? Id_Asset_Type { get; set; }

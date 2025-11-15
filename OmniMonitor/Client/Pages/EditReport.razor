@@ -322,7 +322,6 @@
 
                 if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Cargar detalles del dataset IM (opcional) para soporte de columnas/joins
                     var token = await LocalStorage.GetItemAsync<string>("authToken");
                     var responseDataset = !string.IsNullOrEmpty(token)
                         ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}")
@@ -519,8 +518,6 @@
             }
 
             await LoadAvailableJoinsAsync(token);
-
-            // Cargar detalles del reporte (nombre/descripcion)
             var reportResp = await Http.GetAsync($"api/reports/{ReportId}");
             if (reportResp.IsSuccessStatusCode)
             {
@@ -533,8 +530,6 @@
             }
 
             var aggregatedDatasets = new List<DatasetDto>();
-
-            // Cargar datasets de Insight Monitor
             try
             {
                 var responseIM = await Http.GetAsync($"api/Dataset/user");
@@ -559,8 +554,6 @@
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets IM");
                 Snackbar.Add(Localizer["InsightDatasetsLoadError"], Severity.Warning);
             }
-
-            // Cargar datasets de Asset Manager
             try
             {
                 var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs");
@@ -585,8 +578,6 @@
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets AM");
                 Snackbar.Add(Localizer["AssetDatasetsLoadError"], Severity.Warning);
             }
-
-            // Cargar datasets de Urban Monitor
             try
             {
                 var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets");
@@ -611,8 +602,6 @@
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets UM");
                 Snackbar.Add(Localizer["UrbanDatasetsLoadError"], Severity.Warning);
             }
-
-            // Cargar datasets de Event Manager
             try
             {
                 var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets");
@@ -2394,7 +2383,6 @@
             isSaving = true;
             StateHasChanged();
 
-            Console.WriteLine($"UpdateReport JSON_config payload: {json}");
 
             UpdateReportRequestDto updateRequest = new UpdateReportRequestDto
                 {
@@ -2619,7 +2607,6 @@
 
     private void UpdateJoinFields(JoinDto join)
     {
-        // Limpiar los campos de unión al cambiar el dataset
         if (string.IsNullOrEmpty(join.LeftDataset) || string.IsNullOrEmpty(join.RightDataset))
         {
             join.LeftField = string.Empty; // Use empty string instead of null

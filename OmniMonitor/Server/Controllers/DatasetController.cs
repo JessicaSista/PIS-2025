@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
@@ -42,14 +43,15 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetIM newDataset = await _datasetService.CreateDatasetIMAsync(request, dataset.Id);
+                DatasetIM newDataset = await _datasetService.CreateDatasetIMAsync(request, dataset.Id, username);
                 await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
@@ -70,10 +72,63 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
+        /// Crea un nuevo dataset no formal aplicando filtros y persistiendo los elementos filtrados.
+        /// </summary>
+        [RequirePermission("Datasets.Create")]
+        [HttpPost("filtered")]
+        [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
+        [ProducesResponseType(400)] // Bad Request
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<DatasetIM>> CreateFilteredDataset([FromBody] CreateDatasetIMRequest request)
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                if (request.IsDataset == "S")
+                {
+                    return BadRequest("Este endpoint es solo para datasets no formales (IsDataset = 'N'). Use el endpoint regular para datasets formales.");
+                }
+
+                if (request.Filters == null || !request.Filters.Any())
+                {
+                    return BadRequest("Los filtros son obligatorios para datasets filtrados.");
+                }
+
+                // Convertir la lista de filtros a JSON
+                request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
+                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+                DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id, username);
+                await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
+
+                // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
+                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al crear el dataset filtrado: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("user")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetIM>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets([FromQuery] string? search = null)
@@ -105,8 +160,8 @@ namespace OmniMonitor.Server.Controllers
         /// Identifica rápidamente a qué módulo pertenece un dataset.
         /// Retorna: "Insight Monitor", "Asset Manager", "Urban Monitor", o null si no se encuentra.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDatasetModule")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -133,8 +188,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDataset")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -183,35 +238,41 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPut("{datasetId}")]
+        [RequirePermission("Datasets.Edit")]
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetIMRequest request)
         {
+            Console.WriteLine("dsadas");
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, request.Username);
+                DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (existingDataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                }
+
+                // Si es un dataset no formal y tiene filtros, convertir a JSON
+                if (request.IsDataset == "N" && request.Filters != null && request.Filters.Any())
+                {
+                    request.JsonFilters = JsonSerializer.Serialize(request.Filters);
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.InsightMonitor, existingDataset.DatasetId);
+                await _datasetUMService.ValidateDatasetNameAsync(request.Name, username, ModuleType.InsightMonitor, existingDataset.DatasetId);
 
                 // Actualizar la tabla específica del módulo
-                DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request);
-                
-                // Luego actualizar la tabla general
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request, username);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }
@@ -232,8 +293,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Elimina un dataset.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("DeleteDataset")]
+        [RequirePermission("Datasets.Delete")]
         [ProducesResponseType(204)] // No Content
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -260,8 +321,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetSensorType")]
+        [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -279,12 +340,10 @@ namespace OmniMonitor.Server.Controllers
 
                 if (dataset.Id_Source == null || string.IsNullOrEmpty(dataset.SensorName))
                 {
-                    Console.WriteLine($"[TRACE] Dataset sin Source o SensorName");
                     return BadRequest("El dataset no contiene información suficiente (Source o SensorName).");
                 }
 
                 Source? source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
-                Console.WriteLine($"[TRACE] Source encontrado: {source?.Id}");
                 if (source == null)
                 {
                     return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
@@ -294,11 +353,9 @@ namespace OmniMonitor.Server.Controllers
                 {
                     foreach (Device dev in source.Devices)
                     {
-                        Console.WriteLine($"[TRACE] Device: {dev.Id}, Name: {dev.Name}");
                         Device? fullDevice = await _sondaIMService.GetDeviceById(dev.Id, username);
                         if (fullDevice == null)
                         {
-                            Console.WriteLine($"[TRACE] No se pudo obtener el device completo para ID {dev.Id}");
                             continue;
                         }
 
@@ -317,7 +374,6 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ERROR] {ex.Message}");
                 return StatusCode(500, $"Error interno al obtener el tipo del sensor: {ex.Message}");
             }
         }

@@ -184,7 +184,6 @@
             {
                 Name = trimmedName,
                 Description = trimmedDescription,
-                Username = Username,
                 JSON_config = "{}"
             };
 
@@ -199,7 +198,6 @@
             {
                 var error = await response.Content.ReadAsStringAsync();
                 Snackbar.Add($"Error al crear el reporte: {response.StatusCode}", Severity.Error);
-                Console.WriteLine($"[CreateReportDialog] Error al crear reporte: {error}");
             }
         }
         finally

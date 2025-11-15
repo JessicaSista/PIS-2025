@@ -1,4 +1,4 @@
-﻿@using ApexCharts
+@using ApexCharts
 @using MudBlazor.Extensions
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
@@ -9,9 +9,10 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject HttpClient Http
+@inject IStringLocalizer<ChartViewer> Localizer
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@* @inject IStringLocalizer<Visualizations> Localizer *@
+
 
 
 <MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
@@ -40,10 +41,10 @@
                     {
                         <MudMenu Icon="@Icons.Material.Filled.MoreVert">
                             <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
-                                <MudText Typo="Typo.body2">Editar</MudText>
+                        <MudText Typo="Typo.body2">@Localizer["Edit"]</MudText>
                             </MudMenuItem>
                             <MudMenuItem OnClick="@(() => DeleteVisualization())">
-                                <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>Eliminar</MudText>
+                        <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>@Localizer["Delete"]</MudText>
                             </MudMenuItem>
                         </MudMenu>
                     }
@@ -71,7 +72,7 @@
                     }
                     else
                     {
-                        <MudText>No se encontraron datos</MudText>
+                        <MudText>@Localizer["NoDataFound"]</MudText>
                     }
                 }
                 else{
@@ -80,11 +81,11 @@
                             @if (_retrievingData)
                             {
                                 <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
-                                <MudText Class="ms-2">Cargando...</MudText>
+                        <MudText Class="ms-2">@Localizer["Loading"].</MudText>
                             }
                             else
                             {
-                                <MudText>Cargar Datos</MudText>
+                        <MudText>@Localizer["LoadData"]</MudText>
                             }
                         </MudButton>
                     </MudContainer>
@@ -99,7 +100,7 @@
                 }
                 @if (ShowLastUpdatedInfo)
                 {
-                    @*<MudText Typo="Typo.caption">Actualizado: @DateTime.Now.ToString("g")</MudText>*@
+                    
                 }
             </MudCardActions>
         
@@ -132,9 +133,9 @@
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
     [Parameter] public bool showCustomizationIcon {get; set;} = false;
     [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
+    [Parameter] public Visualizacion visualization { get; set; } = null;
 
-    // Local Variables
-    private Visualizacion _visualization {get; set;}
+
     private bool _dataRetrieved = false;
     private bool _retrievingData = false;
     private string _authenticatedUser = string.Empty;
@@ -174,33 +175,30 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}&token={token}");
-
-            if (response.IsSuccessStatusCode)
+            if (visualization == null)
             {
-                Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
-                _visualization = cardVisualization;
-                if (cardVisualization != null)
+                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _title = cardVisualization.Nombre;
-
-                    JsonDocument design = JsonDocument.Parse(cardVisualization.JsonDesign);
-                    _chartType = design.RootElement.GetProperty("ChartType").ToString();
-                    _seriesType = MapSeriesType(_chartType);
-
-                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+                    Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                    visualization = cardVisualization;
                 }
             }
-            if(retrieveOnInitialized)
+            _title = visualization.Nombre;
+
+            JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+            _chartType = design.RootElement.GetProperty("ChartType").ToString();
+            _seriesType = MapSeriesType(_chartType);
+
+            _datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+            if (retrieveOnInitialized)
             {
                 await RetrieveData();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error recargando visualizaciones: {ex.Message}");
         }
     }
 
@@ -212,23 +210,22 @@
         var allData = new List<object>();
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            DateTime dateFrom = _visualization.FechaDesde;
-            DateTime dateTo = _visualization.FechaHasta;
+            DateTime dateFrom = visualization.FechaDesde;
+            DateTime dateTo = visualization.FechaHasta;
 
             List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
 
-            foreach (var grupoDataset in _visualization.GrupoDatasets)
+            foreach (var grupoDataset in visualization.GrupoDatasets)
             {
                 try
                 {
                     decimal multiplier = 1;
-                    System.String color = "#00FFE7";
-                    System.String attribute = String.Empty;
-                    System.String module = String.Empty;
-                    System.String entity = String.Empty;
-                    System.String displayName = String.Empty;
-                    System.Int32 idInModule = 0;
+                    string color = "#00FFE7";
+                    string attribute = String.Empty;
+                    string module = String.Empty;
+                    string entity = String.Empty;
+                    string displayName = String.Empty;
+                    int idInModule = 0;
 
                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
                     {
@@ -264,7 +261,7 @@
                     }
                     if(module.Equals("Insight Monitor"))
                     {
-                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={idInModule}&token={token}");
+                        HttpResponseMessage? datasetResponse = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={idInModule}");
 
                         if (datasetResponse.IsSuccessStatusCode)
                         {
@@ -279,7 +276,7 @@
                                         try
                                         {
                                             var sensorDataResponse = await Http.GetAsync(
-                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}&token={token}"
+                                                $"api/SondaMain/sensors/data?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
                                             );
 
                                             if (sensorDataResponse.IsSuccessStatusCode)
@@ -316,13 +313,11 @@
                                         }
                                         catch (Exception ex)
                                         {
-                                            Console.WriteLine($"Error cargando sensor {dataset.SensorName} del device {datasetDevice.Id_device}: {ex.Message}");
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    Console.WriteLine("Comportamiento indefinido por el momento, no hay devices asociados al dataset");
                                 }
                             }
                         }
@@ -339,15 +334,14 @@
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
-                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data?token={token}", req);
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                        
+
                         tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error procesando dataset {grupoDataset.Dataset.Id}: {ex.Message}");
                 }
             }
             if(tmpDataDatasets.Any())
@@ -392,7 +386,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error procesando visualización {_visualization.IdVisualizacion}: {ex.Message}");
         }
     }
 
@@ -459,7 +452,6 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error procesando punto de dataset: {ex.Message}");
             }
         }
 
@@ -490,12 +482,13 @@
     private async Task OpenEditVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
+        DialogParameters parameters = new DialogParameters{["currVisualization"] = visualization,};
         IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
         {
+            visualization = null;
             await DownloadVisualization();
             await RetrieveData();
             StateHasChanged();
@@ -508,12 +501,11 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}?token={token}");
+            HttpResponseMessage? response = await Http.DeleteAsync($"api/Visualizacion/{VisualizationId}");
             if(response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Visualizacion eliminada", Severity.Success);
-                await OnDeleted.InvokeAsync(_visualization == null ? VisualizationId : _visualization.IdVisualizacion);
+                await OnDeleted.InvokeAsync(visualization == null ? VisualizationId : visualization.IdVisualizacion);
             }
             else
             {

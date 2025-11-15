@@ -23,8 +23,6 @@ namespace OmniMonitor.Shared.Dtos
         public SourceDto? Source { get; set; }
 
 
-        //[JsonPropertyName("fieldDtos")]
-        //public List<AssetTypeFieldDto>? FieldDtos { get; set; } // nullable
 
         [JsonPropertyName("bundleIds")]
         public List<int>? BundleIds { get; set; }
@@ -35,5 +33,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("subscriptions")]
         public List<AssetTypeSubscriptionDto>? Subscriptions { get; set; } // nullable
+
+        public override string ToString() => Name;
     }
 }

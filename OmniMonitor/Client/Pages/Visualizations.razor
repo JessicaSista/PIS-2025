@@ -112,7 +112,7 @@
                 </MudItem>
             }
             *@
-}
+        }
         else if (_kpis != null && _kpis.Any())
         {
             @foreach (var kpi in _kpis
@@ -168,21 +168,61 @@
         }
         else if (_charts != null && _charts.Any())
         {
-            @foreach (var (chartId, chartName) in _charts
+            @foreach (Visualizacion visualization in _charts
                     .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
                     v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
             {
 
-                <MudItem xs="12" sm="12" md="6" lg="4" @key="@($"V{chartId}_1")" Class="@(_activeTabIndex != 1 ? "d-none" : "")">
+                <MudItem xs="12" sm="12" md="6" lg="4" @key="@($"V{visualization.IdVisualizacion}_1")" Class="@(_activeTabIndex != 1 ? "d-none" : "")">
                     <MudPaper Class="pa-4" Style="background-color: var(--card);">
                         <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
-                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" VisualizationId="@chartId" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true"/>
+                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" visualization=@visualization VisualizationId="@visualization.IdVisualizacion" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
 
                         </MudCard>
                     </MudPaper>
                 </MudItem>
 
+            }
+            @if (_totalPages > 1)
+            {
+                <MudItem lg="12" md="12" xs="12">
+                    <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
+                        <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
+                                       Disabled="@(!_hasPreviousPage)"
+                                       OnClick="@(() => GoToPage(1))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                       Disabled="@(!_hasPreviousPage)"
+                                       OnClick="@(() => GoToPage(_currentPage - 1))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+
+                        <MudText Typo="Typo.body2" Class="mx-3">
+                            @Localizer["Página"] @_currentPage @Localizer["de"] @_totalPages
+                        </MudText>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                       Disabled="@(!_hasNextPage)"
+                                       OnClick="@(() => GoToPage(_currentPage + 1))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
+                                       Disabled="@(!_hasNextPage)"
+                                       OnClick="@(() => GoToPage(_totalPages))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+                    </MudStack>
+
+                    <MudStack Row Justify="Justify.Center" Class="mb-4">
+                        <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                            @Localizer["Mostrando"] @_charts.Count @Localizer["de"] @_totalCount
+                        </MudText>
+                    </MudStack>
+                </MudItem>
             }
         }
         else
@@ -202,11 +242,18 @@
 
 @code {
     private string _searchQuery = "";
-    private List<(int Id, string Nombre)> _charts = new();
+    private List<Visualizacion> _charts = new();
     private List<KpiResponse> _kpis = new();
     private bool _isLoadingKpis = false;
     private bool _isLoadingCharts = false;
     private int _activeTabIndex = 1;
+
+    private int _currentPage = 1;
+    private int _pageSize = 9;
+    private int _totalPages = 0;
+    private int _totalCount = 0;
+    private bool _hasPreviousPage = false;
+    private bool _hasNextPage = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -235,48 +282,26 @@
         }
     }
 
-
     private async Task CargarKpisAsync()
     {
         try
         {
             _isLoadingKpis = true;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var url = $"api/KPI/kpis";
+            var url = "api/KPI/kpis";
 
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
                 var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
                 _kpis = kpisFromApi ?? new();
-                //BORRAR
-                // resumen
-                var total = _kpis.Count;
-                var missingDefault = _kpis.Where(k => string.IsNullOrWhiteSpace(k.ActualColor)).ToList();
-                Console.WriteLine($"Kpis total: {total}, sin DefaultColor: {missingDefault.Count}");
-
-                // detallar los que faltan
-                foreach (var m in missingDefault)
-                {
-                    Console.WriteLine($"Missing DefaultColor -> Id: {m.Id}, Name: {m.Name}");
-                }
-
-                // opcional: ver el JSON crudo (útil para ver si backend envía la propiedad)
-                var raw = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("Raw response JSON:");
-                Console.WriteLine(raw);
-                //BORRAR
             }
             else
             {
                 _kpis = new();
-                var txt = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error cargando KPIs: {response.StatusCode} - {txt}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
             _kpis = new();
         }
         finally
@@ -285,23 +310,29 @@
         }
     }
 
-
     private async Task CargarChartsAsync()
     {
         try
         {
             _isLoadingCharts = true;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var response = await Http.GetAsync($"api/Visualizacion/GetAllVisualizaciones");
+            var response = await Http.GetAsync($"/api/Visualizacion/GetAllVisualizacionesPaginated?page={_currentPage}&pageSize={_pageSize}");
             if (response.IsSuccessStatusCode)
             {
-                var chartsFromApi = await response.Content.ReadFromJsonAsync<List<Visualizacion>>();
-                _charts = chartsFromApi?.Select(v => (v.IdVisualizacion, v.Nombre)).ToList() ?? new();
+                var result = await response.Content.ReadFromJsonAsync<PaginatedVisualizacionDto>();
+                if (result != null)
+                {
+                    _totalCount = result.TotalCount;
+                    _totalPages = result.TotalPages;
+                    _currentPage = result.Page;
+                    _hasPreviousPage = result.HasPreviousPage;
+                    _hasNextPage = result.HasNextPage;
+
+                    _charts = result.Items;
+                }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
             _charts = new();
         }
         finally
@@ -326,7 +357,6 @@
             StateHasChanged();
         }
     }
-
 
     private string GetSearchPlaceholder()
     {
@@ -357,7 +387,7 @@
                 Nav.NavigateTo($"/visualizaciones");
 
                 DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-                DialogParameters parameters = new DialogParameters{["restore"] = true, ["NewDatasetId"] = newDatasetId, ["NewDatasetModule"] = newDatasetModule};
+                DialogParameters parameters = new DialogParameters { ["restore"] = true, ["NewDatasetId"] = newDatasetId, ["NewDatasetModule"] = newDatasetModule };
                 IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
                 DialogResult? result = await dialog.Result;
 
@@ -389,7 +419,6 @@
         StateHasChanged();
     }
 
-
     private static Dictionary<string, string> ParseQueryString(string? query)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -414,7 +443,6 @@
 
     private async Task EditarKpi(KpiResponse kpi)
     {
-        Console.WriteLine($"Editar KPI: {kpi.Id} - {kpi.Name}");
 
         var parameters = new DialogParameters
         {
@@ -448,8 +476,6 @@
 
     }
 
-
-
     private async Task ConfirmEliminarKpi(KpiResponse kpi)
     {
         if (kpi is null) return;
@@ -477,7 +503,6 @@
 
         StateHasChanged();
     }
-
 
     private async Task EliminarKpiAsync(int kpiId)
     {
@@ -519,9 +544,20 @@
         }
     }
 
-    private Task OnVisualizationDeleted(System.Int32 deletedId){
-        _charts.RemoveAll(c => c.Id == deletedId);
-        return Task.CompletedTask;
+    private async Task OnVisualizationDeleted(System.Int32 deletedId)
+    {
+        _charts.RemoveAll(c => c.IdVisualizacion == deletedId);
+        if(_charts.Count == 0 && _hasPreviousPage)
+        {
+            _currentPage--;
+        }
+        await CargarChartsAsync();
     }
 
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _totalPages) return;
+        _currentPage = page;
+        await CargarChartsAsync();
+    }
 }

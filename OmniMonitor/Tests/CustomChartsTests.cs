@@ -542,15 +542,12 @@ public class CustomChartsTests
 
     private ChartListResult GetChartsPaginated(ChartListRequest request)
     {
-        // Simular datos de prueba
         var allCharts = new List<Chart>
         {
             new Chart { Id = 1, Title = "Sales Report", SourceType = "dataset", UpdatedAt = DateTime.UtcNow.AddDays(-1) },
             new Chart { Id = 2, Title = "Device Status", SourceType = "module", Module = "IM", UpdatedAt = DateTime.UtcNow.AddDays(-2) },
             new Chart { Id = 3, Title = "Sales Analysis", SourceType = "dataset", UpdatedAt = DateTime.UtcNow.AddDays(-3) }
         };
-
-        // Aplicar filtros
         var filteredCharts = allCharts.AsEnumerable();
 
         if (!string.IsNullOrEmpty(request.SearchTitle))

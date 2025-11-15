@@ -1,4 +1,4 @@
-﻿@using MudBlazor
+@using MudBlazor
 @using Blazored.LocalStorage
 @using OmniMonitor.Shared.Dtos
 @using Microsoft.Extensions.Localization
@@ -25,7 +25,7 @@
             </MudTooltip>
 
             <!-- Value -->
-            @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "—")
+            @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "�")
             {
                 <MudText Typo="Typo.body2"
                          Style="color: var(--card-text-secondary); font-weight: bold;">
@@ -74,8 +74,7 @@
     {
         if (KpiId != 0)
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            string requestUri = $"api/KPI/{KpiId}?token={token}";
+            string requestUri = $"api/KPI/{KpiId}";
 
             try
             {
@@ -93,14 +92,12 @@
                 {
                     // Manejar errores (400, 404, etc.)
                     string errorContent = await response.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Error al obtener KPI {KpiId}. Código: {response.StatusCode}. Mensaje: {errorContent}");
                     // Snackbar.Add($"Error: {errorContent}", Severity.Error);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error interno al llamar al endpoint de KPI: {ex.Message}");
-                // Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
+                // Snackbar.Add("Error de conexi�n al obtener KPI.", Severity.Error);
             }
         }
     }
