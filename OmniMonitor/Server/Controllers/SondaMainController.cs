@@ -348,11 +348,12 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<SensorData>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<SensorData>>> GetSensorDataSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo)
+        public async Task<ActionResult<List<SensorData>>> GetSensorDataSinToken(int deviceId, string sensorName, DateTime dateFrom, DateTime dateTo, string? username = null)
         {
             try
             {
-                List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDateSinToken(deviceId, sensorName, dateFrom, dateTo, "visitante");
+                string effectiveUsername = string.IsNullOrWhiteSpace(username) ? "visitante" : username;
+                List<SensorData>? sensorData = await _sondaIMApiService.GetSensorDataByDateSinToken(deviceId, sensorName, dateFrom, dateTo, effectiveUsername);
                 if (sensorData == null || sensorData.Count == 0)
                 {
                     return NotFound($"No se encontraron datos para el sensor '{sensorName}' del dispositivo {deviceId} en el rango de fechas especificado.");
