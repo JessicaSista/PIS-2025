@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
 using Azure.Core;
+using Azure.Identity;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +14,9 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Services
 {
-    // --- Interfaz para el servicio de Visualizaciones ---
     public interface IVisualizacionService
     {
-    Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
+    Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request, string username);
     Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
     Task<List<Visualizacion>> GetAllVisualizacionesPaginatedAsync(string username, int page, int pageSize, string? query = null);
     Task<int> GetVisualizacionesCountAsync(string username, string? query = null);
@@ -24,10 +24,8 @@ namespace OmniMonitor.Server.Services
     Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
     Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
     Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req);
-    
     }
 
-    // --- Implementación del servicio ---
     public class VisualizacionService : IVisualizacionService
     {
         private readonly ApplicationDbContext _context;
@@ -42,9 +40,9 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Crea una nueva visualización y asocia los datasets correspondientes.
         /// </summary>
-        public async Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request)
+        public async Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request, string username)
         {
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
+            if (string.IsNullOrEmpty(request.Nombre))
             {
                 throw new ArgumentException("El nombre de usuario y el nombre de la visualización son obligatorios.");
             }
@@ -52,7 +50,7 @@ namespace OmniMonitor.Server.Services
             var nuevaVisualizacion = new Visualizacion
             {
                 Nombre = request.Nombre,
-                Username = request.Username,
+                Username = username,
                 FechaDesde = request.FechaDesde,
                 FechaHasta = request.FechaHasta,
                 JsonDesign = request.JsonDiseñoGeneral,
@@ -84,8 +82,8 @@ namespace OmniMonitor.Server.Services
         public async Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username)
         {
             return await _context.Visualizaciones
-            .Include(v => v.GrupoDatasets)           // ← Incluye los GrupoDatasets
-                .ThenInclude(gd => gd.Dataset)       // ← Incluye los Datasets dentro de cada GrupoDataset
+            .Include(v => v.GrupoDatasets)           // ? Incluye los GrupoDatasets
+                .ThenInclude(gd => gd.Dataset)       // ? Incluye los Datasets dentro de cada GrupoDataset
             .Where(v => v.Username == username)
             .OrderByDescending(v => v.IdVisualizacion)
             .ToListAsync();

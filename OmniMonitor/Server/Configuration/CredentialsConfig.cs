@@ -1,4 +1,4 @@
-﻿namespace OmniMonitor.Server.Configuration
+namespace OmniMonitor.Server.Configuration
 {
 
     /// <summary>

@@ -348,7 +348,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al guardar reportes: {ex.Message}");
         }
     }
 
@@ -400,13 +399,11 @@
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Snackbar.Add($"Error al cargar los reportes: {response.StatusCode}", Severity.Error);
-                Console.WriteLine($"Error al cargar reportes: {errorContent}");
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error al cargar los reportes: {ex.Message}", Severity.Error);
-            Console.WriteLine($"Excepción al cargar reportes: {ex}");
             _reportes = new List<ReporteDto>();
         }
         finally
@@ -443,7 +440,6 @@
             var result = await dialog.Result;
             if (result == null)
             {
-                Console.WriteLine("[WARN] El diálogo de creación retornó un resultado nulo");
                 return;
             }
 
@@ -458,19 +454,16 @@
                     }
                     catch (Exception loadEx)
                     {
-                        Console.WriteLine($"[ERROR] Error al cargar reportes: {loadEx.Message}");
                         NavigationManager.NavigateTo($"editarReporte/{reportId}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"[ERROR] El diálogo se cerró con un tipo de dato inesperado: {result.Data?.GetType().Name ?? "null"}");
                     await CargarReportes();
                 }
             }
             else
             {
-                Console.WriteLine("[INFO] El usuario canceló la creación del reporte");
             }
         }
         catch (Exception ex)

@@ -30,11 +30,7 @@ namespace OmniMonitor.Shared.Dtos
         [JsonPropertyName("fieldValues")]
         public List<FieldValue>? FieldValues { get; set; }
 
-        //[JsonPropertyName("extraInfoDtos")]
-        //public List<ExtraInfo>? ExtraInfoDtos { get; set; }
 
-        //[JsonPropertyName("extraInfoDtosRemoved")]
-        //public List<ExtraInfo>? ExtraInfoDtosRemoved { get; set; }
 
         [JsonPropertyName("approvalState")]
         public string? ApprovalState { get; set; }

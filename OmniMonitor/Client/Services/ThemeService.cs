@@ -1,4 +1,4 @@
-﻿using Blazored.LocalStorage;
+using Blazored.LocalStorage;
 using MudBlazor;
 using System;
 using System.Threading.Tasks;
@@ -112,7 +112,7 @@ namespace OmniMonitor.Client.Services
 
         public string CurrentThemeVariables => (CurrentMode==ThemeMode.Dark) ? _darkModeVars : _lightModeVars;
 
-        // Evento específico para el cambio de Tema
+        // Evento espec�fico para el cambio de Tema
         public event Action? OnThemeChange;
 
         
@@ -178,7 +178,6 @@ namespace OmniMonitor.Client.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error al cargar el tema desde LocalStorage: {ex.Message}");
                 CurrentMode = ThemeMode.Dark;
             }
 

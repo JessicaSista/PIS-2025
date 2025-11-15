@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -253,17 +253,7 @@ public class ApiDataService : IApiDataService
                             }
                         }
                         return resultingExtension;
-                    case EntityName.Categoria:
-                        var resultingCategorias = new List<dynamic>();
-                        foreach (var datasetCategoria in datasetEM.DatasetCategory)
-                        {
-                            var category = await _sondaEMService.GetCategoryById(datasetCategoria.Id_Category, username);
-                            if (category != null)
-                            {
-                                resultingCategorias.Add(category);
-                            }
-                        }
-                        return resultingCategorias;
+
                     default:
                         throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");
                 }
@@ -499,20 +489,6 @@ public class ApiDataService : IApiDataService
 
                         return publicExtensions;
 
-                    case EntityName.Categoria:
-                        if (datasetEM.DatasetCategory == null || !datasetEM.DatasetCategory.Any())
-                            return Enumerable.Empty<dynamic>();
-
-                        var publicCategories = new List<dynamic>();
-                        foreach (var datasetCategory in datasetEM.DatasetCategory)
-                        {
-                            var category = await _sondaEMService.GetCategoryById(datasetCategory.Id_Category, PublicUsername);
-                            if (category != null)
-                                publicCategories.Add(category);
-                        }
-
-                        return publicCategories;
-
                     default:
                         throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");
                 }
@@ -522,7 +498,6 @@ public class ApiDataService : IApiDataService
         }
     }
 
-    // Usar los tipos desde Shared.Dtos
     
 
     /// <summary>
@@ -563,9 +538,36 @@ public class ApiDataService : IApiDataService
             case FilterValueType.Date:
                 if (filter.Type == FilterType.Between && filter.Condition is IEnumerable<object> range && range.Count() == 2)
                 {
-                    var dateVal = value is DateTime dt ? dt : DateTime.Parse(value.ToString());
-                    var start = range.ElementAt(0) is DateTime d1 ? d1 : DateTime.Parse(range.ElementAt(0).ToString());
-                    var end = range.ElementAt(1) is DateTime d2 ? d2 : DateTime.Parse(range.ElementAt(1).ToString());
+                    DateTime dateVal;
+                    if (value is DateTime dt)
+                        dateVal = dt;
+                    else
+                    {
+                        var dateStr = value?.ToString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                            return false;
+                    }
+                    
+                    DateTime start;
+                    if (range.ElementAt(0) is DateTime d1)
+                        start = d1;
+                    else
+                    {
+                        var startStr = range.ElementAt(0)?.ToString();
+                        if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                            return false;
+                    }
+                    
+                    DateTime end;
+                    if (range.ElementAt(1) is DateTime d2)
+                        end = d2;
+                    else
+                    {
+                        var endStr = range.ElementAt(1)?.ToString();
+                        if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                            return false;
+                    }
+                    
                     return dateVal >= start && dateVal <= end;
                 }
                 return false;
@@ -703,14 +705,36 @@ public class ApiDataService : IApiDataService
                 value = actual;
                 if (value == null)
                 {
-                    Console.WriteLine($"[DEBUG] No se encontró la propiedad compuesta '{filter.AttributeName}' en el objeto. Claves disponibles: {string.Join(", ", dict.Keys)}");
                     matchesAll = false;
                     break;
                 }
-                Console.WriteLine($"[DEBUG] Filtrando '{filter.AttributeName}': valor='{value}' (tipo={value?.GetType().Name}), condición='{filter.Condition}' (tipo={filter.Condition?.GetType().Name}), tipoFiltro={filter.Type}, tipoValor={filter.ValueType}");
+                
+                // Validación adicional para fechas: si es DateTime? null o DateTime default, no procesar
+                if (filter.ValueType == FilterValueType.Date)
+                {
+                    var valueType = value.GetType();
+                    if (valueType == typeof(DateTime))
+                    {
+                        var dt = (DateTime)value;
+                        if (dt == default(DateTime))
+                        {
+                            matchesAll = false;
+                            break;
+                        }
+                    }
+                    else if (valueType == typeof(DateTime?) || (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(Nullable<>) && valueType.GetGenericArguments()[0] == typeof(DateTime)))
+                    {
+                        var dtn = (DateTime?)value;
+                        if (!dtn.HasValue)
+                        {
+                            matchesAll = false;
+                            break;
+                        }
+                    }
+                }
+                
                 if (!MatchesFilterStatic(value, filter))
                 {
-                    Console.WriteLine($"[DEBUG] No matchea el filtro para '{filter.AttributeName}'");
                     matchesAll = false;
                     break;
                 }
@@ -724,7 +748,28 @@ public class ApiDataService : IApiDataService
     private static bool MatchesFilterStatic(object value, FilterCondition filter)
     {
         if (value == null) return false;
-    Console.WriteLine($"[DEBUG] MatchesFilterStatic: value='{value}' (tipo={value?.GetType().Name}), condición='{filter.Condition}' (tipo={filter.Condition?.GetType().Name}), tipoFiltro={filter.Type}, tipoValor={filter.ValueType}");
+        
+        // Si el valor es DateTime y es default (MinValue), tratarlo como null para filtros de fecha
+        if (filter.ValueType == FilterValueType.Date)
+        {
+            if (value is DateTime dt)
+            {
+                if (dt == default(DateTime))
+                    return false;
+            }
+            else
+            {
+                // Verificar si es un tipo nullable de DateTime
+                var type = value.GetType();
+                if (type == typeof(DateTime?) || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && type.GetGenericArguments()[0] == typeof(DateTime)))
+                {
+                    var nullableValue = (DateTime?)value;
+                    if (!nullableValue.HasValue)
+                        return false;
+                }
+            }
+        }
+        
         switch (filter.ValueType)
         {
             case FilterValueType.Date:
@@ -735,31 +780,200 @@ public class ApiDataService : IApiDataService
                     if (filter.Condition is System.Text.Json.JsonElement jeArr && jeArr.ValueKind == System.Text.Json.JsonValueKind.Array)
                     {
                         var arr = jeArr.EnumerateArray().ToArray();
-                        start = DateTime.Parse(arr[0].GetString() ?? "");
-                        end = DateTime.Parse(arr[1].GetString() ?? "");
+                        if (arr.Length < 2)
+                            return false;
+                        
+                        // Intentar parsear como DateTime directamente
+                        if (arr[0].ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var startStr = arr[0].GetString();
+                            if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                                return false;
+                        }
+                        else
+                        {
+                            // Intentar deserializar como DateTime
+                            try
+                            {
+                                start = System.Text.Json.JsonSerializer.Deserialize<DateTime>(arr[0].GetRawText());
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        }
+                        
+                        if (arr[1].ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var endStr = arr[1].GetString();
+                            if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                                return false;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                end = System.Text.Json.JsonSerializer.Deserialize<DateTime>(arr[1].GetRawText());
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    else if (filter.Condition is DateTime[] dateArray && dateArray.Length == 2)
+                    {
+                        start = dateArray[0];
+                        end = dateArray[1];
                     }
                     else if (filter.Condition is IEnumerable<object> range && range.Count() == 2)
                     {
-                        start = range.ElementAt(0) is DateTime d1 ? d1 : DateTime.Parse(range.ElementAt(0).ToString());
-                        end = range.ElementAt(1) is DateTime d2 ? d2 : DateTime.Parse(range.ElementAt(1).ToString());
+                        var first = range.ElementAt(0);
+                        var second = range.ElementAt(1);
+                        
+                        if (first is DateTime d1)
+                            start = d1;
+                        else if (first is System.Text.Json.JsonElement je1)
+                        {
+                            if (je1.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var startStr = je1.GetString();
+                                if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                                    return false;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    start = System.Text.Json.JsonSerializer.Deserialize<DateTime>(je1.GetRawText());
+                                }
+                                catch
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (!DateTime.TryParse(first?.ToString(), out start))
+                            return false;
+                        
+                        if (second is DateTime d2)
+                            end = d2;
+                        else if (second is System.Text.Json.JsonElement je2)
+                        {
+                            if (je2.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var endStr = je2.GetString();
+                                if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                                    return false;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    end = System.Text.Json.JsonSerializer.Deserialize<DateTime>(je2.GetRawText());
+                                }
+                                catch
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (!DateTime.TryParse(second?.ToString(), out end))
+                            return false;
                     }
                     else
                     {
                         var arr = filter.Condition as object[];
-                        start = DateTime.Parse(arr?[0]?.ToString() ?? "");
-                        end = DateTime.Parse(arr?[1]?.ToString() ?? "");
+                        if (arr == null || arr.Length < 2)
+                            return false;
+                        
+                        var startStr = arr[0]?.ToString();
+                        var endStr = arr[1]?.ToString();
+                        if (string.IsNullOrWhiteSpace(startStr) || string.IsNullOrWhiteSpace(endStr))
+                            return false;
+                        if (!DateTime.TryParse(startStr, out start) || !DateTime.TryParse(endStr, out end))
+                            return false;
                     }
-                    var dateVal = value is DateTime dtv ? dtv : DateTime.Parse(value.ToString());
+                    
+                    // Manejar el valor de fecha que puede venir como DateTime, string, o JsonElement
+                    DateTime dateVal;
+                    if (value is DateTime dtv)
+                    {
+                        dateVal = dtv;
+                    }
+                    else if (value is System.Text.Json.JsonElement jeValue)
+                    {
+                        if (jeValue.ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var dateStr = jeValue.GetString();
+                            if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                                return false;
+                        }
+                        else
+                        {
+                            var dateStr = jeValue.GetRawText().Trim('"');
+                            if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                                return false;
+                        }
+                    }
+                    else
+                    {
+                        var dateStr = value?.ToString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                            return false;
+                    }
+                    
                     return dateVal >= start && dateVal <= end;
                 }
+                
+                // Parsear la condición de fecha
                 if (filter.Condition is System.Text.Json.JsonElement jeDate && jeDate.ValueKind == System.Text.Json.JsonValueKind.String)
-                    condDate = DateTime.Parse(jeDate.GetString() ?? "");
+                {
+                    var condDateStr = jeDate.GetString();
+                    if (string.IsNullOrWhiteSpace(condDateStr) || !DateTime.TryParse(condDateStr, out condDate))
+                        return false;
+                }
                 else if (filter.Condition is DateTime dt)
+                {
                     condDate = dt;
+                }
                 else
-                    condDate = DateTime.Parse(filter.Condition?.ToString() ?? "");
+                {
+                    var condDateStr2 = filter.Condition?.ToString();
+                    if (string.IsNullOrWhiteSpace(condDateStr2) || !DateTime.TryParse(condDateStr2, out condDate))
+                        return false;
+                }
+                    
+                // Manejar el valor de fecha que puede venir como DateTime, string, o JsonElement
+                DateTime dateValue;
+                if (value is DateTime dv)
+                {
+                    dateValue = dv;
+                }
+                else if (value is System.Text.Json.JsonElement jeValueDate)
+                {
+                    if (jeValueDate.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var dateStr = jeValueDate.GetString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                            return false;
+                    }
+                    else
+                    {
+                        var dateStr = jeValueDate.GetRawText().Trim('"');
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                            return false;
+                    }
+                }
+                else
+                {
+                    var dateStr = value?.ToString();
+                    if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                        return false;
+                }
+                
                 if (filter.Type == FilterType.Equals)
-                    return value is DateTime dv && dv == condDate;
+                    return dateValue == condDate;
                 return false;
             case FilterValueType.Number:
                 double condNum;
@@ -784,27 +998,56 @@ public class ApiDataService : IApiDataService
                         return false;
                 }
             case FilterValueType.String:
-                string condStr = filter.Condition is string str ? str
-                    : filter.Condition is System.Text.Json.JsonElement je ? je.GetString()
-                    : filter.Condition?.ToString() ?? "";
+                string condStr = "";
+                if (filter.Condition is string str)
+                {
+                    condStr = str;
+                }
+                else if (filter.Condition is System.Text.Json.JsonElement je)
+                {
+                    // Intentar obtener como string primero
+                    if (je.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        condStr = je.GetString() ?? "";
+                    }
+                    else if (je.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    {
+                        // Si es un número, convertirlo a string
+                        condStr = je.GetRawText(); // Obtiene el valor como string sin comillas
+                    }
+                    else
+                    {
+                        // Si no es string ni número, convertir a string
+                        condStr = je.GetRawText();
+                    }
+                }
+                else
+                {
+                    condStr = filter.Condition?.ToString() ?? "";
+                }
+                
+                // Convertir el valor a string para comparar
+                string valueStr = value?.ToString() ?? "";
+                
+                Console.WriteLine($"[DEBUG] String filter comparison: valueStr='{valueStr}', condStr='{condStr}', match={valueStr == condStr}");
+                
                 switch (filter.Type)
                 {
                     case FilterType.Equals:
-                        return value is string sv && sv == condStr;
+                        return valueStr == condStr;
                     case FilterType.NotEquals:
-                        return value is string snv && snv != condStr;
+                        return valueStr != condStr;
                     case FilterType.Contains:
-                        return value is string sc && sc.Contains(condStr);
+                        return valueStr.Contains(condStr, StringComparison.OrdinalIgnoreCase);
                     case FilterType.StartsWith:
-                        return value is string ss && ss.StartsWith(condStr);
+                        return valueStr.StartsWith(condStr, StringComparison.OrdinalIgnoreCase);
                     case FilterType.EndsWith:
-                        return value is string se && se.EndsWith(condStr);
+                        return valueStr.EndsWith(condStr, StringComparison.OrdinalIgnoreCase);
                     default:
                         return false;
                 }
             case FilterValueType.Enum:
                 // Si el valor es objeto y el filtro es compuesto, busca la propiedad indicada
-                Console.WriteLine($"[DEBUG] Enum: valor para comparación='{value}' tipo={value?.GetType().Name}");
                 
                 // Si value es una colección (como List<string> de nombres de categorías)
                 if (value is System.Collections.IEnumerable enumerable && !(value is string))
@@ -828,16 +1071,21 @@ public class ApiDataService : IApiDataService
                                 conditionValues.Add(item?.ToString() ?? "");
                         }
                         
+                        // Normalizar valores de condición para comparación Unicode
+                        var normalizedConditionValues = conditionValues.Select(v => v.Normalize(System.Text.NormalizationForm.FormC)).ToList();
+                        
                         // Verificar si algún valor de la colección está en la condición
                         foreach (var item in enumerable)
                         {
-                            if (item?.ToString() != null && conditionValues.Contains(item.ToString()))
+                            if (item?.ToString() != null)
                             {
-                                Console.WriteLine($"[DEBUG] Enum/In/Collection: Match encontrado: '{item}' está en [{string.Join(", ", conditionValues)}]");
-                                return true;
+                                string normalizedItem = item.ToString().Normalize(System.Text.NormalizationForm.FormC);
+                                if (normalizedConditionValues.Contains(normalizedItem, StringComparer.OrdinalIgnoreCase))
+                                {
+                                    return true;
+                                }
                             }
                         }
-                        Console.WriteLine($"[DEBUG] Enum/In/Collection: No match, ningún valor de la colección está en [{string.Join(", ", conditionValues)}]");
                         return false;
                     }
                 }
@@ -865,17 +1113,59 @@ public class ApiDataService : IApiDataService
                     {
                         valores.Add(s);
                     }
-                    Console.WriteLine($"[DEBUG] Enum/In: valor final para comparación='{value?.ToString()}', valores comparados=[{string.Join(", ", valores)}]");
-                    bool resultado = valores.Contains(value?.ToString());
-                    Console.WriteLine($"[DEBUG] Enum/In: resultado comparación={resultado}");
+                    // Normalizar valores para comparación Unicode
+                    string normalizedValue = (value?.ToString() ?? "").Normalize(System.Text.NormalizationForm.FormC);
+                    var normalizedValores = valores.Select(v => v.Normalize(System.Text.NormalizationForm.FormC)).ToList();
+                    
+                    bool resultado = normalizedValores.Contains(normalizedValue, StringComparer.OrdinalIgnoreCase);
                     return resultado;
                 }
                 // Manejar Equals para enums
-                string condEnum = filter.Condition is string estr ? estr
-                    : filter.Condition is System.Text.Json.JsonElement jee ? jee.GetString()
-                    : filter.Condition?.ToString() ?? "";
+                string condEnum = "";
+                if (filter.Condition is string estr)
+                {
+                    condEnum = estr;
+                }
+                else if (filter.Condition is System.Text.Json.JsonElement jee)
+                {
+                    // Normalizar el string del JsonElement para manejar caracteres Unicode correctamente
+                    if (jee.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        condEnum = jee.GetString() ?? "";
+                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement deserializado de '{jee.GetRawText()}' a '{condEnum}'");
+                    }
+                    else
+                    {
+                        // Si no es string, intentar deserializar como string
+                        condEnum = jee.GetRawText().Trim('"');
+                        // Si viene como escape Unicode, deserializarlo
+                        if (condEnum.StartsWith("\\u"))
+                        {
+                            condEnum = System.Text.RegularExpressions.Regex.Unescape(condEnum);
+                        }
+                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement raw '{jee.GetRawText()}' procesado a '{condEnum}'");
+                    }
+                }
+                else
+                {
+                    condEnum = filter.Condition?.ToString() ?? "";
+                }
+                
+                // Normalizar ambos strings para comparación (normalizar caracteres Unicode)
+                string enumValueStr = value?.ToString() ?? "";
+                condEnum = condEnum.Normalize(System.Text.NormalizationForm.FormC);
+                enumValueStr = enumValueStr.Normalize(System.Text.NormalizationForm.FormC);
+                
                 if (filter.Type == FilterType.Equals)
-                    return value?.ToString() == condEnum;
+                {
+                    bool result = string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
+                    Console.WriteLine($"[DEBUG] Enum/Equals: comparando '{enumValueStr}' con '{condEnum}', resultado={result}");
+                    return result;
+                }
+                if (filter.Type == FilterType.NotEquals)
+                {
+                    return !string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
+                }
                 return false;
             case FilterValueType.Boolean:
                 bool condBool;

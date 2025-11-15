@@ -27,7 +27,6 @@ namespace QA.Tests
 
             var context = new ApplicationDbContext(configuration);
 
-            // Limpiar o preparar datos de prueba
             context.Users.RemoveRange(context.Users.ToList());
             context.Users.Add(new User
             {

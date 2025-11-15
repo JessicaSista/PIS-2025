@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
@@ -23,10 +24,8 @@ namespace OmniMonitor.Server.Controllers
             _sondaUMApiService = sondaUMApiService;
             _sondaAuthService = sondaAuthService;
         }
-
-        // ---------------- DEVICES ----------------
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(List<Device>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<Device>>> GetSondaDevices()
@@ -43,8 +42,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices/{id}")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(Device), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -67,8 +66,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("data")]
+        [RequirePermission("Sensors.View")]
         [ProducesResponseType(typeof(List<DeviceData>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -91,9 +90,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        // ---------------- DEVICE GROUPS ----------------
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("groups")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(List<DeviceGroup>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<DeviceGroup>>> GetAllDeviceGroups()
@@ -110,8 +108,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("groups/{id}")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(DeviceGroup), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -134,8 +132,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices/group/{id}")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(List<Device>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -157,10 +155,8 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, $"Error interno al obtener los dispositivos del grupo: {ex.Message}");
             }
         }
-
-        // ---------------- SOURCES ----------------
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sources")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(List<Source>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<Source>>> GetAllSources()
@@ -177,8 +173,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sources/{id}")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(Source), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -201,8 +197,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("devices/source/{id}")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(List<Device>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -228,8 +224,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los sensores únicos de los dispositivos seleccionados.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("sensors/devices")]
+        [RequirePermission("Sensors.View")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -281,8 +277,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los sensores únicos de los dispositivos pertenecientes a una fuente específica.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sensors/source/{sourceId}")]
+        [RequirePermission("Sensors.View")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -323,8 +319,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("sensors/data")]
+        [RequirePermission("Sensors.View")]
         [ProducesResponseType(typeof(List<SensorData>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -370,8 +366,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones")]
+        [RequirePermission("Zones.View")]
         [ProducesResponseType(typeof(List<Zone>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<Zone>>> GetAllZones()
@@ -393,8 +389,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones/{id}")]
+        [RequirePermission("Zones.View")]
         [ProducesResponseType(typeof(Zone), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<Zone>> GetZoneById(int id)
@@ -416,8 +412,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("newsUM")]
+        [RequirePermission("Zones.View")]
         [ProducesResponseType(typeof(List<News>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<News>>> GetAllNews(
@@ -439,8 +435,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("newsUM/{id}")]
+        [RequirePermission("Zones.View")]
         [ProducesResponseType(typeof(News), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<News>> GetNewsById(int id)
@@ -462,8 +458,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones/{id}/news")]
+        [RequirePermission("Zones.View")]
         [ProducesResponseType(typeof(List<News>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -491,8 +487,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("events")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<Event>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<Event>>> GetAllEvents()
@@ -509,8 +505,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("events/{id}")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(Event), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<Event>> GetEventById(int id)
@@ -532,8 +528,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("zones/{id}/events")]
+        [RequirePermission("Events.View")]
         [ProducesResponseType(typeof(List<Event>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
@@ -556,8 +552,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("kpi/deviceCount")]
+        [RequirePermission("Devices.View")]
         [ProducesResponseType(typeof(int), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<int>> GetDeviceCount()
@@ -574,8 +570,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("kpi/dataStatus")]
+        [RequirePermission("Sensors.View")]
         [ProducesResponseType(typeof(DeviceDataStatusResponse), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<DeviceDataStatusResponse>> GetDataStatus()

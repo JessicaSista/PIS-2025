@@ -2,9 +2,10 @@ using System.Collections.Generic;
 
 namespace OmniMonitor.Shared.Dtos
 {
-    public class CreateDatasetEMFilteredRequest
+    public class CreateDatasetUMFilteredRequest
     {
-        public CreateDatasetEMRequest DatasetRequest { get; set; } = new CreateDatasetEMRequest();
+        public CreateDatasetUMRequest DatasetRequest { get; set; } = new CreateDatasetUMRequest();
         public List<FilterCondition> Filters { get; set; } = new List<FilterCondition>();
     }
 }
+

@@ -1,4 +1,4 @@
-ï»¿@using System.Globalization
+@using System.Globalization
 @using MudBlazor
 @using Blazored.LocalStorage
 
@@ -28,7 +28,6 @@
 
     protected override void OnInitialized()
     {
-        Console.WriteLine($"Idioma actual: {CultureInfo.CurrentUICulture.Name}");
     }
 
     private async void ChangeLanguage(string newCulture)
@@ -40,10 +39,10 @@
             CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
             CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
-            // 2. Guarda la selecciÃ³n en el Local Storage para la prÃ³xima vez
+            // 2. Guarda la selección en el Local Storage para la próxima vez
             await LocalStorage.SetItemAsStringAsync("culture", newCulture);
 
-            // 3. Fuerza la recarga de la pÃ¡gina.
+            // 3. Fuerza la recarga de la página.
             NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
         }
     }
@@ -52,7 +51,7 @@
     {
         return code switch
         {
-            "es" => "EspaÃ±ol",
+            "es" => "Español",
             "en" => "English",
             _ => code
         };

@@ -287,42 +287,21 @@
         try
         {
             _isLoadingKpis = true;
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            var url = $"api/KPI/kpis";
+            var url = "api/KPI/kpis";
 
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
                 var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
                 _kpis = kpisFromApi ?? new();
-                //BORRAR
-                // resumen
-                var total = _kpis.Count;
-                var missingDefault = _kpis.Where(k => string.IsNullOrWhiteSpace(k.ActualColor)).ToList();
-                Console.WriteLine($"Kpis total: {total}, sin DefaultColor: {missingDefault.Count}");
-
-                // detallar los que faltan
-                foreach (var m in missingDefault)
-                {
-                    Console.WriteLine($"Missing DefaultColor -> Id: {m.Id}, Name: {m.Name}");
-                }
-
-                // opcional: ver el JSON crudo (útil para ver si backend envía la propiedad)
-                var raw = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("Raw response JSON:");
-                Console.WriteLine(raw);
-                //BORRAR
             }
             else
             {
                 _kpis = new();
-                var txt = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Error cargando KPIs: {response.StatusCode} - {txt}");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
             _kpis = new();
         }
         finally
@@ -355,7 +334,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex);
             _charts = new();
         }
         finally
@@ -466,7 +444,6 @@
 
     private async Task EditarKpi(KpiResponse kpi)
     {
-        Console.WriteLine($"Editar KPI: {kpi.Id} - {kpi.Name}");
 
         var parameters = new DialogParameters
         {

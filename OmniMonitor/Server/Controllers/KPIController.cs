@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
@@ -32,8 +33,8 @@ namespace OmniMonitor.Server.Controllers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("")]
+        [RequirePermission("Kpis.Create")]
         [ProducesResponseType(typeof(Kpi), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -81,8 +82,8 @@ namespace OmniMonitor.Server.Controllers
         /// <param name="id">id del KPI.</param>
         /// <param name="token">Token del Usuario.</param>
         /// <returns>Devuelve el KPI.</returns>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("{id}")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(KpiResponse), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -139,8 +140,8 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Eliminar KPI por ID
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpDelete("{id}")]
+        [RequirePermission("Kpis.Delete")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(403)]
@@ -176,8 +177,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPatch("{id}")]
+        [RequirePermission("Kpis.Edit")]
         [ProducesResponseType(typeof(Kpi), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -221,8 +222,8 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Obtener todos los KPIs del usuario
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("kpis")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<KpiResponse>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -246,8 +247,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("metrics/{module}")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<MetricInfo>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -275,15 +276,14 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("testDates")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<DeviceData>), 200)]
         [ProducesResponseType(500)]
         public async Task<ActionResult<List<DeviceData>>> TestGetDeviceDataByDate()
         {
             try
             {
-                // 🔧 Datos de prueba (ajustá según tus datos reales)
                 string username = "admin";
                 string password = "admin";
                 int deviceId = 52726;
@@ -305,8 +305,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("test")]
+        [RequirePermission("Kpis.View")]
         public ActionResult<Kpi> GetTestKpi()
         {
             var kpi = new Kpi
@@ -325,8 +325,8 @@ namespace OmniMonitor.Server.Controllers
             return Ok(kpi);
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("test-response")]
+        [RequirePermission("Kpis.View")]
         public ActionResult<KpiResponse> GetTestKpiResponse()
         {
             var response = new KpiResponse
@@ -342,8 +342,8 @@ namespace OmniMonitor.Server.Controllers
         }
 
         // Devuelve los tipos de campos posibles para un KPI según el módulo
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("field-types")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(400)]
         public ActionResult<List<string>> GetKpiFieldTypes([FromQuery] string modulo, [FromQuery] int choice)
@@ -363,7 +363,6 @@ namespace OmniMonitor.Server.Controllers
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.ReducedStockDatasetAM).GetProperties().Select(p => p.Name).ToList();
                     break;
                 case "em":
-                    // Puedes elegir el DTO según el tipo de dato que quieras mostrar
                     if (choice == 1)
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.EM.DatasetReducedAlertEMDTO).GetProperties().Select(p => p.Name).ToList();
                     else if (choice == 2)
@@ -390,8 +389,8 @@ namespace OmniMonitor.Server.Controllers
         /// <summary>
         /// Obtiene todos los KPIs de un usuario con paginación, devolviendo solo nombre y descripción.
         /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetAllKpiDtoPaginated")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(KpiSimplePaginatedResponse), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
@@ -416,8 +415,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("field-values")]
+        [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<string>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
