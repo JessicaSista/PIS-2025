@@ -51,6 +51,7 @@
 <Dashboard CardsData=@(cardsData) 
            dashboardId="@DashboardId" 
            OnVisualizationCreated="HandleNewVisualization"
+           UsedVisualizations="@_visualizationsIDs"
            UpdateCardSize="UpdateCardSize" 
            RemoveCard="HandleDeleteVisualization">
 </Dashboard>
@@ -183,7 +184,6 @@
 
         if (alreadyExists)
         {
-            // 2. Si ya existe, loguea la advertencia y sale del método.
             return;
         }
         _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
@@ -198,11 +198,6 @@
 
     private void HandleDeleteVisualization((int Id, int Type) deletedVisualization)
     {
-        // foreach (var card in cardsData)
-        // {
-        //     Se utiliza el descarte (_) para imprimir todos los campos de la tupla.
-        //     var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
-        // }
         bool alreadyExists = _visualizationsIDs.Contains((deletedVisualization.Id, deletedVisualization.Type));
 
         if (!alreadyExists)
@@ -218,16 +213,6 @@
 
         StateHasChanged();
 
-        // if (cardsData.Any())
-        // {
-        //     foreach (var card in cardsData)
-        //     {
-        //         var (Id, Type, AnchoSm, AnchoMd, AnchoLg, Alto) = card;
-        //     }
-        // }
-        // else
-        // {
-        // }
     }
 
     private void UpdateCardSize((int Id, int Type, int AnchoSm, int AnchoMd, int AnchoLg, int Alto) cardInfo)
