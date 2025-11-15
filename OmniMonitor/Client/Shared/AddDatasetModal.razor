@@ -11,7 +11,7 @@
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
-            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1" />
             @Localizer["AddDataset"]
         </MudText>
     </TitleContent>
@@ -49,14 +49,13 @@
                                Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
                                Class="pa-0">
                         <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
-                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/>
+                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)" />
                             <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@(!string.IsNullOrWhiteSpace(ds.Nombre) ? ds.Nombre : (!string.IsNullOrWhiteSpace(ds.Descripcion) ? ds.Descripcion : $"Dataset {ds.Id}"))</MudText>
                         </MudStack>
                     </MudButton>
                 }
             }
         </MudStack>
-        <MudButton Disabled="@(!_hasNextPage)" OnClick="LoadMoreDatasets">@Localizer["LoadMore"]</MudButton>
     </DialogContent>
     <DialogActions>
         <MudButton Variant="Variant.Outlined" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
@@ -76,17 +75,14 @@
     private List<DatasetDtoGenerico> _datasets = new();
     private bool _isLoading = true;
 
-    private int _currentPage = 1;
-    private int _pageSize = 12;
-    private bool _hasNextPage = false;
-    
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            // Token is now passed automatically via AuthHeaderHandler
             var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var req = new HttpRequestMessage(HttpMethod.Get, $"api/DatasetUM/GetAllDatasetsDtoPaginated?page={_currentPage}&pageSize={_pageSize}");
+            var req = new HttpRequestMessage(HttpMethod.Get, "api/DatasetUM/GetAllGenericDatasetDtos");
             req.Headers.Accept.Clear();
             req.Headers.Accept.ParseAdd("application/json");
             var response = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
@@ -123,31 +119,6 @@
         {
             Snackbar.Add(string.Format(Localizer["ErrorGeneric"], ex.Message), Severity.Error);
             _datasets = new();
-        }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadMoreDatasets()
-    {
-        _isLoading = true;
-        _currentPage++;
-        try
-        {
-            string requestUrl = $"api/DatasetUM/GetAllDatasetsDtoPaginated?page={_currentPage}&pageSize={_pageSize}";
-            PaginatedDatasetDto result = await Http.GetFromJsonAsync<PaginatedDatasetDto>(requestUrl);
-            if (result != null && result.Items != null)
-            {
-                _datasets.AddRange(result.Items);
-                _hasNextPage = result.HasNextPage;
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(string.Format(Localizer["ErrorFetchingDashboards"], ex.Message), Severity.Error);
         }
         finally
         {

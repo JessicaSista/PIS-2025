@@ -57,5 +57,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("usersToNofityTasksDtos")]
         public List<UserNotifyTaskDto>? UsersToNofityTasksDtos { get; set; }
+
+        public override string ToString() => Name;
     }
 }

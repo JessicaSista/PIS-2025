@@ -18,5 +18,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("source")]
         public SourceDto? Source { get; set; }
+
+        public override string ToString() => Name;
     }
 }

@@ -88,7 +88,7 @@
                 <MudButton OnClick="OpenSelectDashboardLinkModal"
                            FullWidth="true"
                            Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
-                           StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Check : Icons.Material.Filled.AddLink)"
+                           StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Link : Icons.Material.Filled.AddLink)"
                            Color="MudBlazor.Color.Inherit"
                            Size="MudBlazor.Size.Large"
                            Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
@@ -96,7 +96,7 @@
 
                     @if (_selectedDashboard != null)
                     {
-                        <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}, {Localizer["ClickForSelectOther"]}")</MudText>
+                        <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}")</MudText>
                     }
                     else
                     {
@@ -205,7 +205,7 @@
         { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
         { "EventAM", new List<string> { "undefined"} },
         { "Stock", new List<string> { "Location", "BundleId" } },
-        { "Asset", new List<string> { "CreatedAt", "BundleId" } },
+        { "Asset", new List<string> { "Name", "CreatedAt", "ExternalId", "Code", "Address", "Reference", "LifeTimeToDate", "TypeDto", "BundleDto", "BrandDto", "StateDto", "ModelDto", "ResponsibleDto", "ProviderDto", "Device", "DeliveredTo" } },
         { "Alert", new List<string> { "AlertState", "CreatedAt" } },
         { "EventEM", new List<string> { "Origin", "CreationDate", "State" } },
         { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
@@ -235,19 +235,6 @@
 
                 currVisualization = await responseVisualization.Content.ReadFromJsonAsync<Visualizacion>();
             }
-            string _visualizationLink = currVisualization.Link;
-            try
-            {
-                HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={_visualizationLink}");
-                DashboardResponse? dashboardData = await response.Content.ReadFromJsonAsync<DashboardResponse>();
-                _selectedDashboard = new DashboardSummaryResponse { Nombre = dashboardData.Nombre, IdDashboard = dashboardData.IdDashboard };
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add("ErrorFetchingDashboard", Severity.Error);
-                return;
-            }
-
 
             visualizationId = currVisualization.IdVisualizacion;
             _visualizationName = currVisualization.Nombre;
@@ -258,7 +245,11 @@
 
             JsonDocument design = JsonDocument.Parse(currVisualization.JsonDesign);
             _selectedChartType = design.RootElement.GetProperty("ChartType").ToString();
-
+            if (currVisualization.Link != null)
+            {
+                string[] dataDashboard = currVisualization.Link.Split(",");
+                _selectedDashboard = currVisualization.Link != null ? new DashboardSummaryResponse { IdDashboard = int.Parse(dataDashboard[0]), Nombre = dataDashboard[1] } : null;
+            }
             try
             {
                 foreach (var grupoDataset in currVisualization.GrupoDatasets)
@@ -266,12 +257,12 @@
                     JsonElement root = JsonDocument.Parse(grupoDataset.JsonDesign).RootElement;
 
                     decimal multiplier = root.GetProperty("Multiplier").GetDecimal();
-                    System.String color = root.GetProperty("Color").GetString();
-                    System.String datasetEntity = root.GetProperty("Entity").GetString();
-                    System.String selectedAttribute = root.GetProperty("EntityAttribute").GetString();
-                    System.String displayName = root.GetProperty("DisplayName").GetString();
-                    System.String module = root.GetProperty("Module").GetString();
-                    System.Int32 IdInModule = root.GetProperty("IdInModule").GetInt32();
+                    string color = root.GetProperty("Color").GetString();
+                    string datasetEntity = root.GetProperty("Entity").GetString();
+                    string selectedAttribute = root.GetProperty("EntityAttribute").GetString();
+                    string displayName = root.GetProperty("DisplayName").GetString();
+                    string module = root.GetProperty("Module").GetString();
+                    int IdInModule = root.GetProperty("IdInModule").GetInt32();
 
                     _selectedDatasets.Add(new DatasetSelection
                     {
@@ -428,7 +419,7 @@
             {
                 Nombre = _visualizationName,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
-                Link = _selectedDashboard == null ? null : _selectedDashboard.IdDashboard.ToString(),
+                Link = _selectedDashboard == null ? null : $" {_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}",
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
