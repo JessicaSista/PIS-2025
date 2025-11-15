@@ -43,14 +43,15 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetIM newDataset = await _datasetService.CreateDatasetIMAsync(request, dataset.Id);
+                DatasetIM newDataset = await _datasetService.CreateDatasetIMAsync(request, dataset.Id, username);
                 await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
@@ -82,6 +83,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -100,9 +102,9 @@ namespace OmniMonitor.Server.Controllers
                 // Convertir la lista de filtros a JSON
                 request.JsonFilters = JsonSerializer.Serialize(request.Filters);
 
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id);
+                DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id, username);
                 await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
@@ -244,17 +246,19 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(500)]
         public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetIMRequest request)
         {
+            Console.WriteLine("dsadas");
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, request.Username);
+                DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (existingDataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
                 }
 
                 // Si es un dataset no formal y tiene filtros, convertir a JSON
@@ -264,11 +268,11 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.InsightMonitor, existingDataset.DatasetId);
+                await _datasetUMService.ValidateDatasetNameAsync(request.Name, username, ModuleType.InsightMonitor, existingDataset.DatasetId);
 
                 // Actualizar la tabla específica del módulo
-                DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request);
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request, username);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }

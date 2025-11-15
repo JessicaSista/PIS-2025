@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
@@ -253,17 +253,7 @@ public class ApiDataService : IApiDataService
                             }
                         }
                         return resultingExtension;
-                    case EntityName.Categoria:
-                        var resultingCategorias = new List<dynamic>();
-                        foreach (var datasetCategoria in datasetEM.DatasetCategory)
-                        {
-                            var category = await _sondaEMService.GetCategoryById(datasetCategoria.Id_Category, username);
-                            if (category != null)
-                            {
-                                resultingCategorias.Add(category);
-                            }
-                        }
-                        return resultingCategorias;
+
                     default:
                         throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");
                 }
@@ -498,20 +488,6 @@ public class ApiDataService : IApiDataService
                         }
 
                         return publicExtensions;
-
-                    case EntityName.Categoria:
-                        if (datasetEM.DatasetCategory == null || !datasetEM.DatasetCategory.Any())
-                            return Enumerable.Empty<dynamic>();
-
-                        var publicCategories = new List<dynamic>();
-                        foreach (var datasetCategory in datasetEM.DatasetCategory)
-                        {
-                            var category = await _sondaEMService.GetCategoryById(datasetCategory.Id_Category, PublicUsername);
-                            if (category != null)
-                                publicCategories.Add(category);
-                        }
-
-                        return publicCategories;
 
                     default:
                         throw new NotSupportedException($"Entity '{operand.EntityName}' is not supported for EventManger.");

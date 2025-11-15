@@ -28,47 +28,6 @@ namespace OmniMonitor.Server.Controllers
             _sondaUMService = sondaUMService;
         }
 
-        /// <summary>
-        /// Crea un nuevo dataset.
-        /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPost]
-        [ProducesResponseType(typeof(DatasetUM), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request)
-        {
-            try
-            {
-                var username = User.Identity?.Name;
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
-                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetUM newDataset = await _datasetUMService.CreateDatasetUMAsync(request, dataset.Id);
-                await _datasetUMService.UpdateDatasetAsyncUM(dataset.Id, requestDataset, newDataset);
-                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
-            }
-        }
-
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetUM), 201)]
@@ -272,55 +231,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        /// <summary>
-        /// Actualiza un dataset existente.
-        /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPut("{datasetId}")]
-        [ProducesResponseType(typeof(DatasetUM), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetUMRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                // Obtener el dataset existente para obtener el DatasetId
-                DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, request.Username);
-                if (existingDataset == null)
-                {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
-                }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
-
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
-                DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
-                int id = updatedDataset.DatasetId;
-                Datasets dataset = await _datasetUMService.UpdateDatasetAsyncUM(id, requestDataset, updatedDataset);
-                return Ok(updatedDataset);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al actualizar el dataset: {ex.Message}");
-            }
-        }
-
             [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
             [HttpPut("EditarUMFiltrado/{datasetId}")]
             [ProducesResponseType(typeof(DatasetUM), 200)]
@@ -371,7 +281,7 @@ namespace OmniMonitor.Server.Controllers
                         return BadRequest("ContentType inválido o no soportado");
                     }
 
-                    DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, req);
+                    DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMWithFiltersAsync(datasetId, req, request.Filters);
                     await _datasetUMService.UpdateDatasetAsyncUM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                     return Ok(updatedDataset);
                 }
