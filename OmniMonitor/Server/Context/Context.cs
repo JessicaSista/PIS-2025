@@ -18,8 +18,6 @@ namespace OmniMonitor.Server.Context
 
         // Add this line inside your ApplicationDbContext.cs
 
-        // Entidades del sistema de roles y permisos
-        // public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
 
         public DbSet<Role> Roles { get; set; }
@@ -36,6 +34,10 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
 
+        public DbSet<DatasetSource> DatasetSources { get; set; }
+
+        public DbSet<DatasetSensor> DatasetSensors { get; set; }
+
         public DbSet<DatasetUM> DatasetsUM { get; set; }
 
         public DbSet<DatasetEvent> DatasetEvents { get; set; }
@@ -50,8 +52,6 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetExtension> DatasetExtensions { get; set; }
 
-        public DbSet<DatasetCategory> DatasetCategory { get; set; }
-
         public DbSet<Visualizacion> Visualizaciones { get; set; }
 
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
@@ -59,10 +59,6 @@ namespace OmniMonitor.Server.Context
         public DbSet<DashboardDto> Dashboards { get; set; }
 
         public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
-
-        public DbSet<DatasetsOfReports> DatasetsOfReports { get; set; }
-
-        public DbSet<DatasetReports> DatasetReports { get; set; }
 
         public DbSet<DatasetAM> DatasetAM { get; set; }
 
@@ -229,23 +225,6 @@ namespace OmniMonitor.Server.Context
                       .WithMany()
                       .HasForeignKey(rj => rj.CrossModuleJoinId);
             });
-
-            builder.Entity<DatasetReports>(entity =>
-            {
-                entity.HasKey(dr => new { dr.ReportId, dr.DatasetsOfReportsId });
-
-                entity.HasOne(dr => dr.Report)
-                      .WithMany(r => r.DatasetsReports)
-                      .HasForeignKey(dr => dr.ReportId);
-
-                entity.HasOne(dr => dr.DatasetsOfReports)
-                      .WithMany()
-                      .HasForeignKey(dr => dr.DatasetsOfReportsId);
-            });
-
-            builder.Entity<DatasetsOfReports>()
-                .Property(dor => dor.ModuleType)
-                .HasConversion<string>();
         }
 
         private static void ConfigureCrossModuleJoins(ModelBuilder builder)

@@ -35,12 +35,13 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                Visualizacion nuevaVisualizacion = await _visualizacionService.CreateVisualizacionAsync(request);
+                Visualizacion nuevaVisualizacion = await _visualizacionService.CreateVisualizacionAsync(request, username);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
                 return CreatedAtAction(nameof(GetVisualizacionById), new { idVisualizacion = nuevaVisualizacion.IdVisualizacion, username = nuevaVisualizacion.Username }, nuevaVisualizacion);

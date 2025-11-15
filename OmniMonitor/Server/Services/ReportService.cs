@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System.Dynamic;
@@ -16,7 +16,7 @@ using iText.IO.Font.Constants;
 
 public interface IReportService
 {
-    Task<Report> CreateReportAsync(CreateReportRequestDto request);
+    Task<Report> CreateReportAsync(CreateReportRequestDto request, string username);
     Task<ReportJoin> CreateAndAddJoinToReportAsync(int reportId, CreateJoinRequestDto joinRequest, string username);
     Task<List<Report>> GetAllReportsByUsernameAsync(string username);
     Task<Report?> GetReportByIdAsync(int reportId, string username);
@@ -58,13 +58,13 @@ public class ReportService : IReportService
     /// <summary>
     /// Creates a new report and returns the complete Report entity.
     /// </summary>
-    public async Task<Report> CreateReportAsync(CreateReportRequestDto request)
+    public async Task<Report> CreateReportAsync(CreateReportRequestDto request, string username)
     {
         var report = new Report
         {
             Name = request.Name,
             Description = request.Description,
-            Username = request.Username,
+            Username = username,
             JSON_config = request.JSON_config,
             JSON_filters = request.JSON_filters
         };

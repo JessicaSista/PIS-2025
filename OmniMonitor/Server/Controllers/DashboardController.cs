@@ -44,17 +44,13 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                if (string.IsNullOrWhiteSpace(request.Username))
-                {
-                    return BadRequest("El nombre de usuario es requerido.");
-                }
-
-                DashboardResponse nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, request.Username);
+                DashboardResponse nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, username);
                 return CreatedAtAction(
                     nameof(GetDashboard),
                     new { id = nuevoDashboard.IdDashboard, username = nuevoDashboard.Username },

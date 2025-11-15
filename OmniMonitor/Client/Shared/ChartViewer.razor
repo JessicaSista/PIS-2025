@@ -112,7 +112,7 @@
 
     [Parameter] public Visualizacion? Visualization { get; set; }
 
-    // Para recargar la gr·fica desde el exterior
+    // Para recargar la gr√°fica desde el exterior
     [Parameter]
     public int ChartReloadKey
     {
@@ -344,7 +344,7 @@
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
-                        HttpResponseMessage? result = await Http.PostAsJsonAsync("api/Visualizacion/visualization-data", req);
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
                         
                         tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
@@ -493,7 +493,7 @@
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
         DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
-        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar VisualizaciÛn", parameters, options);
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualizaci√≥n", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
@@ -502,7 +502,7 @@
             await RetrieveData();
             StateHasChanged();
             _chartKey++;
-            Snackbar.Add("VisualizaciÛn actualizada", Severity.Success);
+            Snackbar.Add("Visualizaci√≥n actualizada", Severity.Success);
         }
     }
 
