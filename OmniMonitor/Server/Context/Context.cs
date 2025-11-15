@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 using OmniMonitor.Server.Models;
+using OmniMonitor.Shared;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Context
@@ -79,6 +80,8 @@ namespace OmniMonitor.Server.Context
         public DbSet<SharedLink> SharedLinks { get; set; }
 
         public DbSet<Kpi> Kpi { get; set; }
+
+        public DbSet<ScheduledReport> ScheduledReports { get; set; }
 
         /// <summary>
         /// Model creation step.

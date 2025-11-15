@@ -14,6 +14,15 @@ using iText.Layout.Properties;
 using iText.Kernel.Colors;
 using iText.IO.Font.Constants;
 
+using iTextSharp.text.pdf;
+
+using Microsoft.EntityFrameworkCore;
+
+using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Services;
+using OmniMonitor.Shared;
+using OmniMonitor.Shared.Dtos;
+
 public interface IReportService
 {
     Task<Report> CreateReportAsync(CreateReportRequestDto request, string username);
@@ -33,6 +42,15 @@ public interface IReportService
     byte[] GenerateReportPdfFromData(List<dynamic> reportData, List<string> columns, string reportTitle);
     string GenerateReportHtml(List<dynamic> reportData, List<string> columns, string reportTitle);
 
+    Task<int> CreateScheduledReportAsync(ScheduledReportRequest dto, string username);
+
+    Task<List<ScheduledReport>> GetScheduledReports();
+    Task<List<ScheduledReport>> GetScheduledReportsByUserAsync(string username);
+    Task<ScheduledReport?> GetScheduledReportByIdAsync(int id, string username);
+
+    Task DeleteScheduledReportAsync(int id);
+    Task ProcessScheduledReportsAsync();
+
 }
 
 public class ReportService : IReportService
@@ -43,9 +61,10 @@ public class ReportService : IReportService
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ISondaIMService _sondaIMService;
     private readonly ILogger<ReportService> _logger;
+    private readonly IMailService _mailService;
 
     public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService,
-        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService, ILogger<ReportService> logger)
+        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService, ILogger<ReportService> logger, IMailService mailService)
     {
         _context = context;
         _joinConfigService = JoinConfigurationService;
@@ -53,6 +72,7 @@ public class ReportService : IReportService
         _sondaAuthService = SondaAuthService;
         _sondaIMService = SondaIMService;
         _logger = logger;
+        _mailService = mailService;
     }
 
     /// <summary>
@@ -400,6 +420,11 @@ public class ReportService : IReportService
         return finalResults;
     }
 
+
+
+
+
+
     private IEnumerable<dynamic> PrefixDatasetData(IEnumerable<dynamic> datasetData, string prefix)
     {
         if (datasetData == null || !datasetData.Any())
@@ -539,8 +564,8 @@ public class ReportService : IReportService
             using (var memoryStream = new MemoryStream())
             {
                 // Crear documento PDF usando iText7
-                var writer = new PdfWriter(memoryStream);
-                var pdf = new PdfDocument(writer);
+                var writer = new iText.Kernel.Pdf.PdfWriter(memoryStream);
+                var pdf = new iText.Kernel.Pdf.PdfDocument(writer);
                 
                 // Configurar página horizontal si hay muchas columnas
                 var pageSize = columns.Count > 6 ? 
