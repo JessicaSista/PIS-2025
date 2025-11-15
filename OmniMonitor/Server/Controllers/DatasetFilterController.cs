@@ -7,6 +7,7 @@ using OmniMonitor.Server.Attributes;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -20,9 +21,10 @@ namespace OmniMonitor.Server.Controllers
     private readonly ISondaEMService _sondaEMService;
     private readonly ISondaIMService _sondaIMService;
     private readonly ISondaAuthService _sondaAuthService;
+    private readonly ILogger<DatasetFilterController> _logger;
 
 
-        public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService)
+        public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, ILogger<DatasetFilterController> logger)
         {
             _context = context;
             _sondaUMService = sondaUMService;
@@ -30,6 +32,7 @@ namespace OmniMonitor.Server.Controllers
             _sondaEMService = sondaEMService;
             _sondaIMService = sondaIMService;
             _sondaAuthService = sondaAuthService;
+            _logger = logger;
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -228,7 +231,9 @@ namespace OmniMonitor.Server.Controllers
             {
                 case "UM":
                     if (entidadId == 2)
-                        entidades = await _sondaUMService.GetAllNews(username);
+                        // Obtener todas las noticias (usar un count alto para obtener todas)
+                        // La implementación usa startIndex y count, no page y pageSize
+                        entidades = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
                     else if (entidadId == 1)
                         entidades = await _sondaUMService.GetAllEvents(username);
                     else
@@ -296,6 +301,49 @@ namespace OmniMonitor.Server.Controllers
             if (!entidadValida)
                 return BadRequest("Entidad no definida para el módulo seleccionado");
 
+            // Caso especial: Zone.Name para noticias - obtener todas las zonas directamente
+            if (modulo == "UM" && entidadId == 2 && atributo == "Zone.Name")
+            {
+                var allZones = await _sondaUMService.GetAllZones(username);
+                var zoneNames = allZones
+                    .Where(z => z != null && !string.IsNullOrWhiteSpace(z.Name))
+                    .Select(z => z.Name)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+                
+                return Ok(zoneNames);
+            }
+
+            // Caso especial: Devices.Name para Source en IM - obtener todos los devices directamente
+            if (modulo == "IM" && entidadId == 2 && atributo == "Devices.Name")
+            {
+                var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                var deviceNames = allDevices
+                    .Where(d => d != null && !string.IsNullOrWhiteSpace(d.Name))
+                    .Select(d => d.Name)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+                
+                return Ok(deviceNames);
+            }
+
+            // Caso especial: Sensors.Name para Device o Source en IM - obtener todos los sensores de todos los devices
+            if (modulo == "IM" && (entidadId == 1 || entidadId == 2) && atributo == "Sensors.Name")
+            {
+                var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                var sensorNames = allDevices
+                    .Where(d => d != null && d.Sensors != null)
+                    .SelectMany(d => d.Sensors!)
+                    .Where(s => s != null && !string.IsNullOrWhiteSpace(s.Name))
+                    .Select(s => s.Name)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+                
+                return Ok(sensorNames);
+            }
 
             if (modulo == "EM" && entidadId == 2)
             {
@@ -323,11 +371,62 @@ namespace OmniMonitor.Server.Controllers
                 void ExtraerValores(object? actual, int parteIdx)
                 {
                     if (actual == null || parteIdx >= partes.Length) return;
-                    var prop = actual.GetType().GetProperty(partes[parteIdx]);
-                    var valor = prop?.GetValue(actual);
-
-                    if (valor is IEnumerable<object> coleccion)
+                    
+                    System.Reflection.PropertyInfo? prop = null;
+                    var tipoActual = actual.GetType();
+                    var nombrePropiedad = partes[parteIdx];
+                    
+                    // Primero buscar por JsonPropertyName (esto es importante porque Zone tiene [JsonPropertyName("zone")])
+                    var allProps = tipoActual.GetProperties(
+                        System.Reflection.BindingFlags.Public | 
+                        System.Reflection.BindingFlags.Instance);
+                    
+                    foreach (var p in allProps)
                     {
+                        // Buscar por JsonPropertyName primero (case-insensitive)
+                        var jsonAttr = p.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
+                            .FirstOrDefault() as System.Text.Json.Serialization.JsonPropertyNameAttribute;
+                        
+                        if (jsonAttr != null && jsonAttr.Name.Equals(nombrePropiedad, StringComparison.OrdinalIgnoreCase))
+                        {
+                            prop = p;
+                            break;
+                        }
+                        
+                        // También buscar por nombre de propiedad (case-insensitive)
+                        if (p.Name.Equals(nombrePropiedad, StringComparison.OrdinalIgnoreCase))
+                        {
+                            prop = p;
+                            break;
+                        }
+                    }
+                    
+                    // Si aún no se encuentra, intentar búsqueda exacta
+                    if (prop == null)
+                    {
+                        prop = tipoActual.GetProperty(nombrePropiedad, 
+                            System.Reflection.BindingFlags.Public | 
+                            System.Reflection.BindingFlags.Instance);
+                    }
+                    
+                    if (prop == null) return;
+                    
+                    var valor = prop.GetValue(actual);
+                    
+                    // Si el valor es null, no podemos continuar navegando
+                    if (valor == null) 
+                    {
+                        // Si es la última parte, no hay nada que hacer
+                        if (parteIdx == partes.Length - 1) return;
+                        // Si no es la última parte, no podemos continuar
+                        return;
+                    }
+
+                    // Verificar si es una colección (pero no string)
+                    if (valor is System.Collections.IEnumerable enumerable && !(valor is string))
+                    {
+                        var coleccion = enumerable.Cast<object>();
+                        
                         // Si es la última parte, agrego cada elemento
                         if (parteIdx == partes.Length - 1)
                         {
@@ -345,16 +444,32 @@ namespace OmniMonitor.Server.Controllers
                     else
                     {
                         // Si es la última parte y no es colección, agrego el valor
-                        if (parteIdx == partes.Length - 1 && valor != null)
-                            valores.Add(valor);
-                        else if (valor != null)
+                        if (parteIdx == partes.Length - 1)
+                        {
+                            // Agregar el valor (incluyendo strings vacíos por ahora, los filtraremos después)
+                            if (valor != null)
+                                valores.Add(valor);
+                        }
+                        else
+                        {
+                            // Continuar navegando el path para objetos anidados
+                            // Esto maneja casos como Zone.Name donde Zone es un objeto
                             ExtraerValores(valor, parteIdx + 1);
+                        }
                     }
                 }
                 ExtraerValores(entidad, 0);
             }
 
-            return Ok(valores.Distinct().ToList());
+            // Convertir todos los valores a string y filtrar nulos/vacíos
+            var valoresString = valores
+                .Where(v => v != null)
+                .Select(v => v.ToString() ?? "")
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct()
+                .ToList();
+
+            return Ok(valoresString);
         }
 
 
@@ -405,7 +520,39 @@ namespace OmniMonitor.Server.Controllers
                 if (request.EntidadId == 1) // Device
                     entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
                 else if (request.EntidadId == 2) // Source
-                    entidades = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                {
+                    var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                    
+                    // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
+                    bool needsDevices = request.Filtros.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
+                    bool needsSensors = request.Filtros.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
+                    
+                    if (needsDevices || needsSensors)
+                    {
+                        // Poblar Devices para cada Source
+                        foreach (var source in sources)
+                        {
+                            if (source != null)
+                            {
+                                var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
+                                source.Devices = devices;
+                                
+                                // Si también se necesitan Sensors, extraerlos de los devices
+                                if (needsSensors && devices.Any())
+                                {
+                                    var sensors = devices
+                                        .Where(d => d.Sensors != null)
+                                        .SelectMany(d => d.Sensors!)
+                                        .DistinctBy(s => s.Name)
+                                        .ToList();
+                                    source.Sensors = sensors;
+                                }
+                            }
+                        }
+                    }
+                    
+                    entidades = sources;
+                }
                 else if (request.EntidadId == 3) // Sensor (extraído de los devices)
                 {
                     var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();

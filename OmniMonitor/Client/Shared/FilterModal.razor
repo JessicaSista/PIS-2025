@@ -69,24 +69,41 @@
                     else if (GetCurrentValueType() == FilterValueType.Enum)
                     {
                         <MudSelect T="string"
-                                   @bind-Value="enumValue"
-                                   Label="Valor"
+                                   SelectedValues="selectedEnumValues"
+                                   SelectedValuesChanged="OnEnumValuesChanged"
+                                   Label="Valores"
                                    Variant="Variant.Outlined"
                                    Required="true"
+                                   MultiSelection="true"
                                    Class="mb-3 dark-field"
                                    Disabled="@(enumOptions.Count == 0)">
                             @if (enumOptions.Count == 0)
                             {
-                                <MudSelectItem Value="@((string?)null)" Disabled="true">Cargando valores...</MudSelectItem>
+                                <MudSelectItem Value="@((string?)null)" Disabled="true">No hay valores disponibles</MudSelectItem>
                             }
                             else
                             {
+                                <MudSelectItem Value="@SELECT_ALL_MARKER">
+                                    <strong>@(AreAllSelected() ? "Deseleccionar Todos" : "Seleccionar Todos")</strong>
+                                </MudSelectItem>
                                 @foreach (var option in enumOptions)
                                 {
                                     <MudSelectItem Value="@option">@option</MudSelectItem>
                                 }
                             }
                         </MudSelect>
+                        @if (enumOptions.Count > 0)
+                        {
+                            <MudButton Variant="Variant.Text" Size="MudBlazor.Size.Small" OnClick="ToggleSelectAll" Class="mt-2">
+                                @(AreAllSelected() ? "Deseleccionar Todos" : "Seleccionar Todos")
+                            </MudButton>
+                        }
+                        @if (enumOptions.Count == 0 && !string.IsNullOrEmpty(selectedAttribute))
+                        {
+                            <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true">
+                                No se encontraron valores para el atributo "@selectedAttribute". Verifica que los datos tengan valores para este atributo.
+                            </MudAlert>
+                        }
                     }
                     else if (GetCurrentValueType() == FilterValueType.Boolean)
                     {
@@ -134,11 +151,11 @@
                     }
                 }
 
-                <!-- Para In, permitir múltiples valores -->
-                @if (selectedFilterType == FilterType.In)
+                <!-- Para In, permitir múltiples valores (solo para String y Number, Enum ya usa select múltiple) -->
+                @if (selectedFilterType == FilterType.In && GetCurrentValueType() != FilterValueType.Enum)
                 {
                     <MudText Typo="Typo.body2" Class="mb-2">Valores (separados por coma):</MudText>
-                    @if (GetCurrentValueType() == FilterValueType.String || GetCurrentValueType() == FilterValueType.Enum)
+                    @if (GetCurrentValueType() == FilterValueType.String)
                     {
                         <MudTextField @bind-Value="inValuesString"
                                      Label="Valores"
@@ -172,15 +189,16 @@
     [Parameter] public List<PropiedadEntidadDto> AvailableAttributes { get; set; } = new();
     [Parameter] public string Modulo { get; set; } = string.Empty;
     [Parameter] public int EntidadId { get; set; }
-    [Parameter] public string Token { get; set; } = string.Empty;
 
+    private const string SELECT_ALL_MARKER = "__SELECT_ALL__";
+    
     private List<PropiedadEntidadDto> availableAttributes = new();
     private string selectedAttribute = string.Empty;
     private FilterType selectedFilterType = FilterType.Equals;
     private string stringValue = string.Empty;
     private double? numberValue;
     private DateTime? dateValue;
-    private string enumValue = string.Empty;
+    private HashSet<string> selectedEnumValues = new();
     private bool? boolValue;
     private double? numberValueFrom;
     private double? numberValueTo;
@@ -208,22 +226,34 @@
 
     private async Task LoadEnumOptions()
     {
-        if (string.IsNullOrEmpty(selectedAttribute) || string.IsNullOrEmpty(Token))
+        if (string.IsNullOrEmpty(selectedAttribute))
             return;
 
         try
         {
-            var url = $"api/DatasetFilter/GetAtributoValores?modulo={Uri.EscapeDataString(Modulo)}&entidadId={EntidadId}&atributo={Uri.EscapeDataString(selectedAttribute)}&token={Uri.EscapeDataString(Token)}";
+            enumOptions = new List<string>(); // Limpiar primero
+            var url = $"api/DatasetFilter/GetAtributoValores?modulo={Uri.EscapeDataString(Modulo)}&entidadId={EntidadId}&atributo={Uri.EscapeDataString(selectedAttribute)}";
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                var values = await response.Content.ReadFromJsonAsync<List<string>>();
-                enumOptions = values?.Select(v => v?.ToString() ?? string.Empty).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToList() ?? new List<string>();
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(jsonContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                enumOptions = values?.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().OrderBy(v => v).ToList() ?? new List<string>();
+            }
+            else
+            {
+                // Si hay error, intentar leer el mensaje de error
+                var errorContent = await response.Content.ReadAsStringAsync();
+                enumOptions = new List<string>();
             }
         }
         catch (Exception ex)
         {
             enumOptions = new List<string>();
+        }
+        finally
+        {
+            StateHasChanged(); // Forzar actualización de la UI
         }
     }
 
@@ -255,13 +285,52 @@
         stringValue = string.Empty;
         numberValue = null;
         dateValue = null;
-        enumValue = string.Empty;
+        selectedEnumValues.Clear();
         boolValue = null;
         numberValueFrom = null;
         numberValueTo = null;
         dateValueFrom = null;
         dateValueTo = null;
         inValuesString = string.Empty;
+    }
+
+    private void ToggleSelectAll()
+    {
+        if (AreAllSelected())
+        {
+            // Si ya están todos seleccionados, deseleccionar todos
+            selectedEnumValues.Clear();
+        }
+        else
+        {
+            // Si no están todos seleccionados, seleccionar todos
+            selectedEnumValues = new HashSet<string>(enumOptions);
+        }
+        StateHasChanged();
+    }
+
+    private bool AreAllSelected()
+    {
+        return enumOptions.Count > 0 && selectedEnumValues.Count == enumOptions.Count && 
+               enumOptions.All(opt => selectedEnumValues.Contains(opt));
+    }
+
+    private async Task OnEnumValuesChanged(IEnumerable<string> values)
+    {
+        var valuesList = values?.ToList() ?? new List<string>();
+        // Remover el marcador SELECT_ALL_MARKER si está presente (es solo un marcador, no un valor real)
+        var cleanValues = new HashSet<string>(valuesList.Where(v => v != SELECT_ALL_MARKER));
+        
+        // Si se seleccionó el marcador, activar Select All
+        if (valuesList.Contains(SELECT_ALL_MARKER))
+        {
+            ToggleSelectAll();
+        }
+        else
+        {
+            selectedEnumValues = cleanValues;
+            StateHasChanged();
+        }
     }
 
     private List<FilterType> GetAvailableFilterTypes(FilterValueType valueType)
@@ -340,6 +409,12 @@
 
             if (selectedFilterType == FilterType.In)
             {
+                // Para Enum, validar que haya valores seleccionados
+                if (valueType == FilterValueType.Enum)
+                {
+                    return selectedEnumValues != null && selectedEnumValues.Count > 0 && !selectedEnumValues.Contains("__SELECT_ALL__");
+                }
+                // Para String y Number, validar que haya texto en el campo
                 return !string.IsNullOrWhiteSpace(inValuesString);
             }
 
@@ -348,7 +423,7 @@
                 FilterValueType.String => !string.IsNullOrWhiteSpace(stringValue),
                 FilterValueType.Number => numberValue.HasValue,
                 FilterValueType.Date => dateValue.HasValue,
-                FilterValueType.Enum => !string.IsNullOrWhiteSpace(enumValue),
+                FilterValueType.Enum => selectedEnumValues != null && selectedEnumValues.Count > 0 && !selectedEnumValues.Contains(SELECT_ALL_MARKER),
                 FilterValueType.Boolean => boolValue.HasValue,
                 _ => false
             };
@@ -371,6 +446,24 @@
 
         object conditionValue;
 
+        // Para Enum, siempre usar FilterType.In con los valores seleccionados
+        if (attr.Tipo == FilterValueType.Enum)
+        {
+            var values = selectedEnumValues.Where(v => v != SELECT_ALL_MARKER).ToList();
+            conditionValue = values;
+            
+            var enumFilter = new FilterCondition
+            {
+                AttributeName = selectedAttribute,
+                Type = FilterType.In, // Siempre usar In para Enum
+                Condition = conditionValue,
+                ValueType = attr.Tipo
+            };
+
+            MudDialog.Close(DialogResult.Ok(enumFilter));
+            return;
+        }
+
         if (selectedFilterType == FilterType.Between)
         {
             if (attr.Tipo == FilterValueType.Number)
@@ -384,20 +477,30 @@
         }
         else if (selectedFilterType == FilterType.In)
         {
-            var values = inValuesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(v => v.Trim())
-                .ToList();
-            
-            if (attr.Tipo == FilterValueType.Number)
+            if (attr.Tipo == FilterValueType.Enum)
             {
-                conditionValue = values.Select(v => double.TryParse(v, out var num) ? num : (double?)null)
-                    .Where(v => v.HasValue)
-                    .Select(v => v!.Value)
-                    .ToList();
+                // Para Enum, usar los valores seleccionados del select múltiple
+                var values = selectedEnumValues.Where(v => v != SELECT_ALL_MARKER).ToList();
+                conditionValue = values;
             }
             else
             {
-                conditionValue = values;
+                // Para String y Number, usar el campo de texto separado por comas
+                var values = inValuesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(v => v.Trim())
+                    .ToList();
+                
+                if (attr.Tipo == FilterValueType.Number)
+                {
+                    conditionValue = values.Select(v => double.TryParse(v, out var num) ? num : (double?)null)
+                        .Where(v => v.HasValue)
+                        .Select(v => v!.Value)
+                        .ToList();
+                }
+                else
+                {
+                    conditionValue = values;
+                }
             }
         }
         else
@@ -407,7 +510,6 @@
                 FilterValueType.String => stringValue,
                 FilterValueType.Number => numberValue!.Value,
                 FilterValueType.Date => dateValue!.Value,
-                FilterValueType.Enum => enumValue,
                 FilterValueType.Boolean => boolValue!.Value,
                 _ => stringValue
             };

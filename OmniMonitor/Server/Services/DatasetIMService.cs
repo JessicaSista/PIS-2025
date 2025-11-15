@@ -160,7 +160,14 @@ namespace OmniMonitor.Server.Services
             }
 
             _context.DatasetsIM.Add(newDataset);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                throw new InvalidOperationException($"Error al guardar el dataset en la base de datos: {dbEx.Message}. Inner Exception: {dbEx.InnerException?.Message}", dbEx);
+            }
 
             return newDataset;
         }
@@ -172,6 +179,12 @@ namespace OmniMonitor.Server.Services
             
             // 2. Aplicar filtros
             var filteredDevices = ApiDataService.StaticFilterObjects(allDevices, filters);
+            
+            // Validar que haya resultados
+            if (!filteredDevices.Any())
+            {
+                throw new InvalidOperationException("El filtro no encontró ningún dispositivo. El dataset no puede crearse sin resultados.");
+            }
             
             // 3. Persistir devices filtrados
             foreach (var deviceObj in filteredDevices)
@@ -188,8 +201,42 @@ namespace OmniMonitor.Server.Services
             // 1. Traer todas las sources
             var allSources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
             
+            // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
+            bool needsDevices = filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
+            bool needsSensors = filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
+            
+            if (needsDevices || needsSensors)
+            {
+                // Poblar Devices para cada Source
+                foreach (var source in allSources)
+                {
+                    if (source != null)
+                    {
+                        var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
+                        source.Devices = devices;
+                        
+                        // Si también se necesitan Sensors, extraerlos de los devices
+                        if (needsSensors && devices.Any())
+                        {
+                            var sensors = devices
+                                .Where(d => d.Sensors != null)
+                                .SelectMany(d => d.Sensors!)
+                                .DistinctBy(s => s.Name)
+                                .ToList();
+                            source.Sensors = sensors;
+                        }
+                    }
+                }
+            }
+            
             // 2. Aplicar filtros
             var filteredSources = ApiDataService.StaticFilterObjects(allSources, filters);
+            
+            // Validar que haya resultados
+            if (!filteredSources.Any())
+            {
+                throw new InvalidOperationException("El filtro no encontró ninguna fuente. El dataset no puede crearse sin resultados.");
+            }
             
             // 3. Persistir sources filtradas
             foreach (var sourceObj in filteredSources)
@@ -214,6 +261,12 @@ namespace OmniMonitor.Server.Services
             
             // 2. Aplicar filtros
             var filteredSensors = ApiDataService.StaticFilterObjects(allSensors, filters);
+            
+            // Validar que haya resultados
+            if (!filteredSensors.Any())
+            {
+                throw new InvalidOperationException("El filtro no encontró ningún sensor. El dataset no puede crearse sin resultados.");
+            }
             
             // 3. Persistir sensors filtrados
             foreach (var sensorObj in filteredSensors)

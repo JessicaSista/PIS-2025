@@ -1215,8 +1215,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             { x => x.AvailableAttributes, availableAttributes },
             { x => x.Modulo, "AM" },
-            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } }
         };
         
         var options = new DialogOptions 
@@ -1633,8 +1632,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             { x => x.AvailableAttributes, umAvailableAttributes },
             { x => x.Modulo, "UM" },
-            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } }
         };
         
         var options = new DialogOptions 
@@ -1855,8 +1853,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             { x => x.AvailableAttributes, emAvailableAttributes },
             { x => x.Modulo, "EM" },
-            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } }
         };
         
         var options = new DialogOptions 

@@ -692,7 +692,41 @@ public class ApiDataService : IApiDataService
                     }
                     else
                     {
-                        var prop = actual.GetType().GetProperty(partes[i]);
+                        // Buscar por JsonPropertyName primero, luego por nombre de propiedad
+                        var tipoActual = actual.GetType();
+                        System.Reflection.PropertyInfo? prop = null;
+                        
+                        // Buscar por JsonPropertyName (case-insensitive)
+                        var allProps = tipoActual.GetProperties(
+                            System.Reflection.BindingFlags.Public | 
+                            System.Reflection.BindingFlags.Instance);
+                        
+                        foreach (var p in allProps)
+                        {
+                            var jsonAttr = p.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
+                                .FirstOrDefault() as System.Text.Json.Serialization.JsonPropertyNameAttribute;
+                            
+                            if (jsonAttr != null && jsonAttr.Name.Equals(partes[i], StringComparison.OrdinalIgnoreCase))
+                            {
+                                prop = p;
+                                break;
+                            }
+                            
+                            if (p.Name.Equals(partes[i], StringComparison.OrdinalIgnoreCase))
+                            {
+                                prop = p;
+                                break;
+                            }
+                        }
+                        
+                        // Si aún no se encuentra, intentar búsqueda exacta
+                        if (prop == null)
+                        {
+                            prop = tipoActual.GetProperty(partes[i], 
+                                System.Reflection.BindingFlags.Public | 
+                                System.Reflection.BindingFlags.Instance);
+                        }
+                        
                         actual = prop?.GetValue(actual);
                     }
                     
