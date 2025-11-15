@@ -1,0 +1,262 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudForm @ref="_form" @bind-IsValid="_formValid" >
+    <MudDialog>
+        <DialogContent>
+            <MudStack Spacing="2">
+                <MudSelect T="int" Label="Reporte" @bind-Value="_reportId" Required="true" Disabled="_submitting">
+                    @if (_reports is null)
+                    {
+                        <MudSelectItem T="int" Value="0">Cargando...</MudSelectItem>
+                    }
+                    else
+                    {
+                        @foreach (var r in _reports)
+                        {
+                            <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+
+                <MudSelect T="string" Label="Frecuencia" @bind-Value="_scheduleType" Required="true" Disabled="_submitting">
+                    <MudSelectItem T="string" Value="Daily">Diaria</MudSelectItem>
+                    <MudSelectItem T="string" Value="Weekly">Semanal</MudSelectItem>
+                    <MudSelectItem T="string" Value="Monthly">Mensual</MudSelectItem>
+                </MudSelect>
+
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                    <MudTimePicker @bind-Time="_time" Label="Hora" AmPm="false" Disabled="_submitting" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Zona horaria: @_timeZone</MudText>
+                </MudStack>
+
+                <MudText Typo="Typo.subtitle2">Destinatarios</MudText>
+                <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+                    <MudTextField @bind-Value="_recipientInput" Placeholder="email@dominio.com" Disabled="_submitting" Immediate="true" OnKeyDown="OnRecipientKeyDown" />
+                    <MudButton Variant="Variant.Outlined" OnClick="AddRecipient" Disabled="_submitting">Agregar</MudButton>
+                </MudStack>
+                <MudChipSet @bind-SelectedValues="_dummySelection" MultiSelection="true">
+                    @foreach (var mail in _recipients)
+                    {
+                        <MudChip T="string" Value="@mail" OnClose="() => RemoveRecipient(mail)" Closeable="true">@mail</MudChip>
+                    }
+                </MudChipSet>
+
+                <MudTextField T="string" Label="Asunto" @bind-Value="_subject" Disabled="_submitting" Immediate="true" />
+                <MudTextField T="string" Label="Mensaje" @bind-Value="_message" Lines="3" Disabled="_submitting" Immediate="true" />
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel" Disabled="_submitting">Cancelar</MudButton>
+            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_submitting || !_formValid">Programar</MudButton>
+        </DialogActions>
+    </MudDialog>
+</MudForm>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm? _form;
+    // Se elimina _formValid ya que la validación se manejará en el setter de las propiedades
+    private bool _submitting;
+
+    private List<SimpleReport>? _reports;
+    
+    // CORRECCIÓN: Usamos backing fields con propiedades para ejecutar la lógica de validación y Subject al cambiar el valor.
+    private int _backingReportId;
+    private int _reportId 
+    {
+        get => _backingReportId;
+        set 
+        {
+            if (_backingReportId == value) return;
+            _backingReportId = value;
+            UpdateSubjectSuggestion();
+            ValidateFormState();
+        }
+    }
+
+    private string _backingScheduleType = string.Empty;
+    private string _scheduleType 
+    {
+        get => _backingScheduleType;
+        set 
+        {
+            if (_backingScheduleType == value) return;
+            _backingScheduleType = value;
+            UpdateSubjectSuggestion();
+            ValidateFormState();
+        }
+    }
+    
+    private TimeSpan? _time;
+    private string _timeZone = TimeZoneInfo.Local.Id;
+
+    private string _recipientInput = string.Empty;
+    private HashSet<string> _dummySelection = new();
+    private List<string> _recipients = new();
+
+    private string _subject = string.Empty;
+    private string _message = string.Empty;
+    
+    // Nueva propiedad para manejar la validación del botón
+    private bool _formValid => 
+        _reportId > 0 && 
+        !string.IsNullOrWhiteSpace(_scheduleType) && 
+        _time.HasValue && 
+        _recipients.Count > 0 && 
+        _recipients.All(IsValidEmail);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReports();
+        // Inicializa los valores para que _formValid se evalúe correctamente
+        _reportId = _reports?.FirstOrDefault()?.Id ?? 0;
+        _scheduleType = "Daily";
+        
+        UpdateSubjectSuggestion();
+        ValidateFormState(); // Se eliminó, se reemplazó por la propiedad _formValid
+    }
+
+    // ... (LoadReports permanece igual)
+
+    private async Task LoadReports()
+    {
+        // ... (Tu código de LoadReports) ...
+        try
+        {
+            var resp = await Http.GetAsync("/api/reports/GetAllReportsPaginated?page=1&pageSize=1000");
+            if (resp.IsSuccessStatusCode)
+            {
+                var page = await resp.Content.ReadFromJsonAsync<PaginatedReportDto>();
+                _reports = page?.Items?.Select(x => new SimpleReport { Id = x.Id, Name = x.Name ?? $"Reporte {x.Id}" }).ToList() ?? new();
+                
+                // Asegurar que el ID se inicializa si hay reportes
+                _reportId = _reports.FirstOrDefault()?.Id ?? 0; 
+                UpdateSubjectSuggestion(); // Actualizar el subject inicial
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Error cargando reportes: {resp.StatusCode}", Severity.Error);
+                _reports = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error cargando reportes: {ex.Message}", Severity.Error);
+            _reports = new();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // Se eliminó la función ValidateFormState() ya que la lógica se movió a la propiedad _formValid
+    // (pero la mantengo para AddRecipient/RemoveRecipient)
+    private void ValidateFormState()
+    {
+        StateHasChanged(); // Forzar la reevaluación de la propiedad _formValid
+    }
+
+
+    private void UpdateSubjectSuggestion()
+    {
+        if (!string.IsNullOrWhiteSpace(_subject) && _subject != "Reporte - Daily" && _subject != "Reporte - Weekly" && _subject != "Reporte - Monthly") return;
+        var reportName = _reports?.FirstOrDefault(r => r.Id == _reportId)?.Name ?? "Reporte";
+        _subject = $"{reportName} - {_scheduleType}".Trim().Trim(' ', '-');
+    }
+
+    private async Task Submit()
+    {
+        if (_form is not null) await _form.Validate();
+        
+        // Usamos la propiedad _formValid que combina la validación del formulario y la validación manual.
+        if (!_formValid) return; 
+
+        _submitting = true;
+        // ... (El resto del código de Submit permanece igual) ...
+        try
+        {
+            var payload = new ScheduledReportRequest
+            {
+                ReportId = _reportId,
+                ScheduleType = _scheduleType,
+                SendAtLocalTime = _time?.ToString(@"hh\\:mm"),
+                TimeZone = _timeZone,
+                Recipients = _recipients.ToList(),
+                Subject = string.IsNullOrWhiteSpace(_subject) ?
+                    ($"{_reports?.FirstOrDefault(r => r.Id == _reportId)?.Name ?? "Reporte"} - {_scheduleType}") : _subject,
+                Message = _message ?? string.Empty
+            };
+
+            var resp = await Http.PostAsJsonAsync("/api/reports/scheduled-reports", payload);
+            if (resp.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Programación creada correctamente", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al programar: {resp.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al programar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private Task OnRecipientKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            AddRecipient();
+        }
+        return Task.CompletedTask;
+    }
+
+    private void AddRecipient()
+    {
+        // ... (Tu código de AddRecipient) ...
+        var email = (_recipientInput ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(email)) return;
+        if (!IsValidEmail(email))
+        {
+            Snackbar.Add("Email inválido", Severity.Warning);
+            return;
+        }
+        if (_recipients.Contains(email, StringComparer.OrdinalIgnoreCase))
+        {
+            _recipientInput = string.Empty;
+            return;
+        }
+        _recipients.Add(email);
+        _recipientInput = string.Empty;
+        ValidateFormState(); // Forzará la reevaluación de _formValid
+        StateHasChanged();
+    }
+
+    private void RemoveRecipient(string email)
+    {
+        // ... (Tu código de RemoveRecipient) ...
+        _recipients.RemoveAll(e => string.Equals(e, email, StringComparison.OrdinalIgnoreCase));
+        ValidateFormState(); // Forzará la reevaluación de _formValid
+        StateHasChanged();
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try { var addr = new System.Net.Mail.MailAddress(email); return addr.Address == email; }
+        catch { return false; }
+    }
+
+    private class SimpleReport { public int Id { get; set; } public string Name { get; set; } = string.Empty; }
+}

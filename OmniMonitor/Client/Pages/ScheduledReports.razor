@@ -1,0 +1,209 @@
+@page "/reportes-programados"
+@attribute [Authorize]
+@using MudBlazor
+@using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Client.Shared
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Reportes programados</PageTitle>
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
+            Reportes programados
+        </MudText>
+    </MudStack>
+    <MudStack Row Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="OpenCreateDialog" Disabled="_loading">
+            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+            Nueva programación
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
+        Listado de programaciones de envío de reportes para tu usuario.
+    </MudText>
+</MudStack>
+
+<MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
+    <MudTextField @bind-Value="_search" Immediate="true" Placeholder="Buscar" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="flex-grow-1" />
+</MudStack>
+
+<MudContainer Fixed="true" Class="pl-4 pr-6">
+    <MudPaper Elevation="0" Class="pa-0">
+        <MudTable Items="_filtered" Hover="true" Dense="true" Bordered="false" Striped="false" Loading="_loading">
+            <ToolBarContent>
+                <MudText Typo="Typo.subtitle2">Total: @_items.Count</MudText>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>#</MudTh>
+                <MudTh>Reporte</MudTh>
+                <MudTh>Programación</MudTh>
+                <MudTh>Horario</MudTh>
+                <MudTh>Zona</MudTh>
+                <MudTh>Destinatarios</MudTh>
+                <MudTh>Asunto</MudTh>
+                <MudTh>Estado</MudTh>
+                <MudTh>Última ejecución</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="#">@context.Id</MudTd>
+                <MudTd DataLabel="Reporte">@context.ReportId</MudTd>
+                <MudTd DataLabel="Programación">@context.ScheduleType</MudTd>
+                <MudTd DataLabel="Horario">@GetScheduleDisplay(context)</MudTd>
+                <MudTd DataLabel="Zona">@context.TimeZone</MudTd>
+                <MudTd DataLabel="Destinatarios">@string.Join(", ", context.Recipients ?? new())</MudTd>
+                <MudTd DataLabel="Asunto">@context.Subject</MudTd>
+                <MudTd DataLabel="Estado">
+                    @if (context.IsActive)
+                    {
+                        <MudChip T="string" Color="MudBlazor.Color.Success" Variant="Variant.Filled" Dense="true">Activo</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="MudBlazor.Color.Default" Variant="Variant.Outlined" Dense="true">Inactivo</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Última ejecución">@GetLastExecution(context)</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="() => ConfirmDelete(context)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">No hay programaciones</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<ScheduledReportResponse> _items = new();
+    private string _search = string.Empty;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private IEnumerable<ScheduledReportResponse> _filtered =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _items
+            : _items.Where(x =>
+                (x.Subject?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.Message?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.ScheduleType?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.TimeZone?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (x.Recipients != null && x.Recipients.Any(r => r.Contains(_search, StringComparison.OrdinalIgnoreCase)))
+            );
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CreateScheduledReportDialog>("Nueva programación", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled && result.Data is bool ok && ok)
+        {
+            await Cargar();
+        }
+    }
+
+    private async Task Cargar()
+    {
+        _loading = true;
+        try
+        {
+            var resp = await Http.GetAsync("/api/reports/scheduled-reports");
+            if (resp.IsSuccessStatusCode)
+            {
+                var data = await resp.Content.ReadFromJsonAsync<List<ScheduledReportResponse>>();
+                _items = data ?? new List<ScheduledReportResponse>();
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                Snackbar.Add("Sesión expirada. Por favor, inicia sesión nuevamente.", Severity.Warning);
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al cargar: {resp.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al cargar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetScheduleDisplay(ScheduledReportResponse item)
+    {
+        if (string.Equals(item.ScheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase))
+            return item.IntervalMinutes.HasValue ? $"Cada {item.IntervalMinutes} min" : "-";
+        if (string.Equals(item.ScheduleType, "Daily", StringComparison.OrdinalIgnoreCase))
+            return item.SendAtLocalTime ?? "-";
+        if (string.Equals(item.ScheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
+            return item.SendAtLocalTime ?? "-";
+        if (string.Equals(item.ScheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+            return item.SendAtLocalTime ?? "-";
+        if (string.Equals(item.ScheduleType, "Cron", StringComparison.OrdinalIgnoreCase))
+            return item.AdvancedRule ?? "-";
+        return "-";
+    }
+
+    private string GetLastExecution(ScheduledReportResponse item)
+    {
+        if (item.LastExecution == null) return "-";
+        return item.LastExecution.Value.ToLocalTime().ToString("g");
+    }
+
+    private async Task ConfirmDelete(ScheduledReportResponse item)
+    {
+        bool? confirm = await DialogService.ShowMessageBox(
+            "Eliminar programación",
+            (MarkupString)$"¿Desea eliminar la programación <b>#{item.Id}</b>?",
+            yesText: "Eliminar",
+            cancelText: "Cancelar",
+            options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
+        );
+
+        if (confirm == true)
+        {
+            await Eliminar(item);
+        }
+    }
+
+    [Inject] IDialogService DialogService { get; set; } = default!;
+
+    private async Task Eliminar(ScheduledReportResponse item)
+    {
+        try
+        {
+            var resp = await Http.DeleteAsync($"/api/reports/scheduled-reports/{item.Id}");
+            if (resp.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Programación eliminada correctamente", Severity.Success);
+                await Cargar();
+            }
+            else
+            {
+                var error = await resp.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al eliminar: {resp.StatusCode}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+        }
+    }
+}

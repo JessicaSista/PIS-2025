@@ -36,6 +36,24 @@
                 <span class="ml-2">@SharedLocalizer["ReportsTitle"]</span>
             }
         </MudNavLink>
+        <MudNavLink Href="/reportes-programados" Icon=@Icons.Material.Filled.Schedule>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">@SharedLocalizer["ScheduledReportsTitle"]</span>
+            }
+        </MudNavLink>
+        <MudNavLink Href="/create-scheduled-report" Icon=@Icons.Material.Filled.Schedule>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">create</span>
+            }
+        </MudNavLink>
+        <MudNavLink Href="/delete-scheduled-report" Icon=@Icons.Material.Filled.Schedule>
+            @if (_drawerOpen)
+            {
+                <span class="ml-2">Delete</span>
+            }
+        </MudNavLink>
               
         </MudNavMenu>
     </MudPaper>
