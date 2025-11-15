@@ -104,7 +104,6 @@ namespace OmniMonitor.Shared.Dtos
                 }
                 catch (JsonException)
                 {
-                    // Si hay error al deserializar, continuar con la siguiente área
                     continue;
                 }
             }

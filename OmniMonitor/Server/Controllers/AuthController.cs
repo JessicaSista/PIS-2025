@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Server.Services;
@@ -18,6 +19,7 @@ namespace OmniMonitor.Server.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest loginRequest)
         {

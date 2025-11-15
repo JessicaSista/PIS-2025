@@ -11,5 +11,6 @@ namespace OmniMonitor.Shared.Dtos
         public string? Description { get; set; }
 
         public string? JSON_config { get; set; }
+        public ReportFiltersConfig? Filters { get; set; }
     }
 }

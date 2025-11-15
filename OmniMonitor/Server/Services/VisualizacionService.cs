@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -13,18 +13,18 @@ using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Services
 {
-    // --- Interfaz para el servicio de Visualizaciones ---
     public interface IVisualizacionService
     {
-        Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
-        Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
+    Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
+    Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
+    Task<List<Visualizacion>> GetAllVisualizacionesPaginatedAsync(string username, int page, int pageSize, string? query = null);
+    Task<int> GetVisualizacionesCountAsync(string username, string? query = null);
     Task<Visualizacion?> GetVisualizacionByIdAsync(int idVisualizacion, string username);
     Task<Visualizacion?> GetVisualizacionByIdAsyncSinToken(int idVisualizacion);
-        Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
-        Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req);
+    Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username);
+    Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req);
     }
 
-    // --- Implementación del servicio ---
     public class VisualizacionService : IVisualizacionService
     {
         private readonly ApplicationDbContext _context;
@@ -52,7 +52,8 @@ namespace OmniMonitor.Server.Services
                 Username = request.Username,
                 FechaDesde = request.FechaDesde,
                 FechaHasta = request.FechaHasta,
-                JsonDesign = request.JsonDiseñoGeneral
+                JsonDesign = request.JsonDiseñoGeneral,
+                Link = request.Link
             };
 
             // Añadir los datasets asociados a la visualización
@@ -80,11 +81,41 @@ namespace OmniMonitor.Server.Services
         public async Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username)
         {
             return await _context.Visualizaciones
-            .Include(v => v.GrupoDatasets)           // ← Incluye los GrupoDatasets
-                .ThenInclude(gd => gd.Dataset)       // ← Incluye los Datasets dentro de cada GrupoDataset
+            .Include(v => v.GrupoDatasets)           // ? Incluye los GrupoDatasets
+                .ThenInclude(gd => gd.Dataset)       // ? Incluye los Datasets dentro de cada GrupoDataset
             .Where(v => v.Username == username)
             .OrderByDescending(v => v.IdVisualizacion)
             .ToListAsync();
+        }
+
+        
+        public async Task<List<Visualizacion>> GetAllVisualizacionesPaginatedAsync(string username, int page, int pageSize, string? query = null)
+        {
+            var visualizacionesQuery = _context.Visualizaciones.Where(v => v.Username == username);
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                visualizacionesQuery = visualizacionesQuery.Where(v =>
+                    (v.Nombre != null && v.Nombre.ToLower().Contains(loweredQuery)));
+            }
+            return await visualizacionesQuery
+                .OrderByDescending(v => v.IdVisualizacion)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(v => v.GrupoDatasets)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetVisualizacionesCountAsync(string username, string? query = null)
+        {
+            var visualizacionesQuery = _context.Visualizaciones.Where(v => v.Username == username);
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                visualizacionesQuery = visualizacionesQuery.Where(v =>
+                    (v.Nombre != null && v.Nombre.ToLower().Contains(loweredQuery)));
+            }
+            return await visualizacionesQuery.CountAsync();
         }
 
         /// <summary>

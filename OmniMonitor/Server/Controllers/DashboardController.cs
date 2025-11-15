@@ -108,6 +108,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpGet("GetDashboardSinToken")]
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
@@ -187,21 +188,20 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
 
                 // Obtener todos los dashboards (con filtro de búsqueda si existe)
-                List<DashboardSummaryResponse> allDashboards = await _dashboardService.GetAllDashboardsAsync(username, query);
+
+                if (page <= 0 || pageSize <= 0)
+                    return BadRequest("La página y el tamaño deben ser mayores a 0.");
+
+                // Obtener solo los dashboards necesarios para la página
+                List<DashboardSummaryResponse> paginatedItems = await _dashboardService.GetAllDashboardsPaginatedAsync(username, query, page, pageSize);
 
                 // Calcular totales
-                int totalCount = allDashboards.Count;
+                int totalCount = await _dashboardService.GetDashboardsCount(username, query);
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
                 // Validar página
                 if (page < 1) page = 1;
                 if (page > totalPages && totalPages > 0) page = totalPages;
-
-                // Aplicar paginación
-                var paginatedItems = allDashboards
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList();
 
                 // Crear respuesta paginada
                 var result = new PaginatedDashboardDto
@@ -232,6 +232,7 @@ namespace OmniMonitor.Server.Controllers
         /// <response code="400">Lista de IDs inválida.</response>
         /// <response code="500">Error interno del servidor.</response>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPost("validate-cards")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
@@ -304,6 +305,7 @@ namespace OmniMonitor.Server.Controllers
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.Edit")]
         [HttpPost("{id}/card")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
@@ -435,6 +437,7 @@ namespace OmniMonitor.Server.Controllers
         /// Busca dashboards por fragmento de texto en nombre o descripción.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Dashboards.View")]
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         public async Task<IActionResult> SearchDashboards([FromQuery] string query)
@@ -499,7 +502,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpGet("getShare/{slug}")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(404)]
@@ -520,7 +522,6 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [AllowAnonymous]
         [HttpPost("ValidateShare/{slug}/validate")]
         [ProducesResponseType(typeof(ValidateSharePasswordResponseDto), 200)]
         [ProducesResponseType(401)]

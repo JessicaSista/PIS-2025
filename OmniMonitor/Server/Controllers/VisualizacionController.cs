@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -78,6 +78,52 @@ namespace OmniMonitor.Server.Controllers
         }
 
         /// <summary>
+        /// Obtiene todas las visualizaciones de un usuario específico con paginación.
+        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
+        [HttpGet("GetAllVisualizacionesPaginated")]
+        [ProducesResponseType(typeof(PaginatedVisualizacionDto), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<object>> GetAllVisualizacionesPaginated(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? query = null)
+        {
+            var username = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(username))
+                return BadRequest("Usuario no encontrado.");
+            if (page <= 0 || pageSize <= 0)
+                return BadRequest("La página y el tamaño deben ser mayores a 0.");
+            try
+            {
+
+                var items = await _visualizacionService.GetAllVisualizacionesPaginatedAsync(username, page, pageSize, query);
+                var totalCount = await _visualizacionService.GetVisualizacionesCountAsync(username, query);
+                int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+                if (page < 1) page = 1;
+                if (page > totalPages && totalPages > 0) page = totalPages;
+
+                var result = new {
+                    Items = items,
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalPages = totalPages,
+                    HasPreviousPage = page > 1,
+                    HasNextPage = page < totalPages
+                };
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al obtener las visualizaciones: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Obtiene una visualización específica por su ID y nombre de usuario.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -106,6 +152,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
 
+        [AllowAnonymous]
         [HttpGet("GetVisualizacionByIdSinToken")]
         [ProducesResponseType(typeof(Visualizacion), 200)]
         [ProducesResponseType(404)]
@@ -280,6 +327,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.View")]
         [HttpPost("visualization-data")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]
@@ -301,6 +349,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("visualization-dataSinToken")]
         [ProducesResponseType(typeof(VisualizationResponse), 200)]
         [ProducesResponseType(400)]
@@ -319,6 +368,47 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al generar los datos de visualización: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Actualiza el link de una visualización.
+        /// </summary>
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Visualizations.Edit")]
+        [HttpPatch("{idVisualizacion}/link")]
+        [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(500)]
+        public async Task<IActionResult> UpdateVisualizacionLink(int idVisualizacion, [FromBody] string? link)
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                {
+                    return Unauthorized("Token inválido o usuario no encontrado.");
+                }
+
+                using IServiceScope scope = HttpContext.RequestServices.CreateScope();
+                Context.ApplicationDbContext db = scope.ServiceProvider.GetRequiredService<Context.ApplicationDbContext>();
+                
+                Visualizacion? visualizacion = await db.Visualizaciones
+                    .FirstOrDefaultAsync(v => v.IdVisualizacion == idVisualizacion && v.Username == username);
+                    
+                if (visualizacion == null)
+                {
+                    return NotFound($"No se encontró la visualización con ID {idVisualizacion}.");
+                }
+
+                visualizacion.Link = link;
+                await db.SaveChangesAsync();
+                
+                return Ok(new { message = "Link actualizado correctamente" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error interno al actualizar el link: {ex.Message}");
             }
         }
     }

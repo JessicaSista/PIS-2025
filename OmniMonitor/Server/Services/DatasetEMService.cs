@@ -8,12 +8,14 @@ namespace OmniMonitor.Server.Services
     public interface IDatasetEMService
     {
         Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request,int dataset);
+        Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetEM>> GetAllDatasetsEMAsync(string username);
         Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username);
         Task<DatasetEM?> GetDatasetEMByIdAsyncSinToken(int datasetId);
         Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username);
         Task DeleteDatasetEMAsync(int datasetId, string username);
         Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request);
+        Task<DatasetEM> UpdateDatasetEMWithFiltersAsync(int datasetId, CreateDatasetEMRequest request, List<FilterCondition> filters);
     }
 
     public class DatasetEMService : IDatasetEMService
@@ -180,7 +182,6 @@ namespace OmniMonitor.Server.Services
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncEM)
-            // para garantizar unicidad global entre todos los módulos
 
             // Actualizar campos básicos
             existingDataset.Name = request.Name;
@@ -200,14 +201,13 @@ namespace OmniMonitor.Server.Services
             _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
             _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;
-            */// Eliminar relaciones existentes de la base de datos
+            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;*/
+            
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
             _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
 
-            // Limpiar colecciones
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();
@@ -234,9 +234,6 @@ namespace OmniMonitor.Server.Services
             _context.DatasetsEM.Remove(dataset);
             await _context.SaveChangesAsync();
         }
-
-        // --- Helpers ---
-
         private static void UpdateRelationsFromRequest(DatasetEM dataset, CreateDatasetEMRequest request)
         {
             if (request.AlertIds?.Any() == true)
@@ -296,6 +293,68 @@ namespace OmniMonitor.Server.Services
 
             if (await query.AnyAsync())
                 throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+        }
+
+        public async Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters)
+        {
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+            
+            var newDataset = new DatasetEM
+            {
+                Username = request.Username,
+                Name = request.Name,
+                Description = request.Description,
+                Is_Dataset = request.IsDataset,
+                DatasetId = dataset,
+                ContentType = GetContentType(request).ToString(),
+                Filters = filtersJson // Almacenar los filtros como JSON
+            };
+
+            UpdateRelationsFromRequest(newDataset, request);
+
+            _context.DatasetsEM.Add(newDataset);
+            await _context.SaveChangesAsync();
+
+            return newDataset;
+        }
+
+        public async Task<DatasetEM> UpdateDatasetEMWithFiltersAsync(int datasetId, CreateDatasetEMRequest request, List<FilterCondition> filters)
+        {
+            var existingDataset = await _context.DatasetsEM
+                .Include(d => d.DatasetAlerts)
+                .Include(d => d.DatasetEvents)
+                .Include(d => d.DatasetExtensions)
+            
+                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
+
+            if (existingDataset == null)
+                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+
+            string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
+
+            // Actualizar campos básicos
+            existingDataset.Name = request.Name;
+            existingDataset.Description = request.Description;
+            existingDataset.Is_Dataset = request.IsDataset;
+            existingDataset.ContentType = GetContentType(request).ToString();
+            existingDataset.Filters = filtersJson; // Actualizar los filtros
+
+            _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
+            _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
+            _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
+            _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
+            
+
+            existingDataset.DatasetAlerts.Clear();
+            existingDataset.DatasetEvents.Clear();
+            existingDataset.DatasetExtensions.Clear();
+            existingDataset.DatasetCategory.Clear();
+
+            // Agregar nuevas relaciones
+            UpdateRelationsFromRequest(existingDataset, request);
+
+            await _context.SaveChangesAsync();
+            return existingDataset;
         }
     }
 

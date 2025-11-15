@@ -33,14 +33,22 @@ namespace OmniMonitor.Shared.Dtos
 
         public int? Id_Event_Task { get; set; }
 
-        // Referencia a un datasetEvent (EventTaskInstanceDto)
         public ICollection<DatasetEventTaskInstance> Grupo_Event_Task_Instance { get; set; } = new List<DatasetEventTaskInstance>();
 
         public int? Id_Asset_Type { get; set; }
 
         public ICollection<DatasetAsset> Grupo_Asset { get; set; } = new List<DatasetAsset>();
+        public ICollection<DatasetStock> Grupo_Stock { get; set; } = new List<DatasetStock>();
 
-        public int DatasetId { get; set; }  // Clave for·nea
+        public int DatasetId { get; set; }  // Clave for√°nea
+        
+        /// <summary>
+        /// Filtros aplicados almacenados como JSON. 
+        /// Contiene un array de FilterCondition serializados.
+        /// </summary>
+        [Column(TypeName = "nvarchar(max)")]
+        public string? Filters { get; set; }
+        
         [ForeignKey(nameof(DatasetId))]
         public virtual Datasets Datasets { get; set; } = null!;
     }

@@ -1,8 +1,15 @@
-﻿using System.Dynamic;
+using System.Dynamic;
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using iText.Kernel.Colors;
+using iText.IO.Font.Constants;
 
 using iTextSharp.text.pdf;
 
@@ -21,18 +28,25 @@ public interface IReportService
     Task<Report?> GetReportByIdAsync(int reportId, string username);
     Task<bool> DeleteReportAsync(int reportId, string username);
     Task<Report?> UpdateReportAsync(int reportId, string name, string descripcion, string username, string JSON_config);
+    Task<Report?> UpdateReportWithFiltersAsync(int reportId, string name, string descripcion, string username, string JSON_config, string? JSON_filters);
     Task<bool> RemoveJoinFromReportAsync(int reportId, int joinId, string username);
     Task<List<dynamic>> ExecuteReportAsync(int reportId, string username);
+    Task<List<Report>> GetAllReportsPaginatedAsync(string username, int page = 1, int pageSize = 10, string? query = null);
+    Task<int> GetReportsCountAsync(string username, string? query = null);
+
+    // PDF Generation Methods
+    Task<byte[]> GenerateReportPdfAsync(int reportId, string username);
+    byte[] GenerateReportPdfFromData(List<dynamic> reportData, List<string> columns, string reportTitle);
+    string GenerateReportHtml(List<dynamic> reportData, List<string> columns, string reportTitle);
 
     Task<int> CreateScheduledReportAsync(ScheduledReportRequest dto, string username);
 
     Task<List<ScheduledReport>> GetScheduledReports();
     Task<List<ScheduledReport>> GetScheduledReportsByUserAsync(string username);
     Task<ScheduledReport?> GetScheduledReportByIdAsync(int id, string username);
-    
+
     Task DeleteScheduledReportAsync(int id);
     Task ProcessScheduledReportsAsync();
-
 
 }
 
@@ -43,16 +57,18 @@ public class ReportService : IReportService
     private readonly IApiDataService _apiDataService;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ISondaIMService _sondaIMService;
+    private readonly ILogger<ReportService> _logger;
     private readonly IMailService _mailService;
 
     public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService,
-        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService, IMailService mailService)
+        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService, ILogger<ReportService> logger, IMailService mailService)
     {
         _context = context;
         _joinConfigService = JoinConfigurationService;
         _apiDataService = ApiDataService;
         _sondaAuthService = SondaAuthService;
         _sondaIMService = SondaIMService;
+        _logger = logger;
         _mailService = mailService;
     }
 
@@ -66,7 +82,8 @@ public class ReportService : IReportService
             Name = request.Name,
             Description = request.Description,
             Username = request.Username,
-            JSON_config = request.JSON_config
+            JSON_config = request.JSON_config,
+            JSON_filters = request.JSON_filters
         };
         _context.Reports.Add(report);
         await _context.SaveChangesAsync();
@@ -110,6 +127,42 @@ public class ReportService : IReportService
             .ToListAsync();
     }
 
+    public async Task<List<Report>> GetAllReportsPaginatedAsync(string username, int page = 1, int pageSize = 10, string? query = null)
+    {
+            var reportsQuery = _context.Reports
+                .Where(r => r.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                reportsQuery = reportsQuery.Where(r =>
+                    (r.Name != null && r.Name.ToLower().Contains(loweredQuery)) ||
+                    (r.Description != null && r.Description.ToLower().Contains(loweredQuery)));
+            }
+
+            return await reportsQuery
+                .OrderByDescending(r => r.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+    }
+
+    public async Task<int> GetReportsCountAsync(string username, string? query = null)
+    {
+            var reportsQuery = _context.Reports
+                .Where(r => r.Username == username);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var loweredQuery = query.ToLowerInvariant();
+                reportsQuery = reportsQuery.Where(r =>
+                    (r.Name != null && r.Name.ToLower().Contains(loweredQuery)) ||
+                    (r.Description != null && r.Description.ToLower().Contains(loweredQuery)));
+            }
+
+            return await reportsQuery.CountAsync();
+    }
+
     /// <summary>
     /// Retrieves a single, fully detailed Report entity by its ID.
     /// </summary>
@@ -139,7 +192,6 @@ public class ReportService : IReportService
             return false;
         }
 
-        // 3. Elimina el reporte. La base de datos se encargará de eliminar en cascada
         //    las entradas correspondientes en la tabla 'ReportJoins'.
         _context.Reports.Remove(reportToDelete);
         await _context.SaveChangesAsync();
@@ -163,6 +215,29 @@ public class ReportService : IReportService
         reportToUpdate.Name = name;
         reportToUpdate.Description = descripcion;
         reportToUpdate.JSON_config = JSON_config;
+
+        await _context.SaveChangesAsync();
+
+        return reportToUpdate;
+    }
+
+    public async Task<Report?> UpdateReportWithFiltersAsync(int reportId, string name, string descripcion, string username, string JSON_config, string? JSON_filters)
+    {
+        // 1. Busca el reporte asegurándote de que pertenezca al usuario correcto.
+        var reportToUpdate = await _context.Reports
+            .FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+
+        // 2. Si no se encuentra, retorna null.
+        if (reportToUpdate == null)
+        {
+            return null;
+        }
+
+        // 3. Actualiza las propiedades incluyendo filtros y guarda los cambios.
+        reportToUpdate.Name = name;
+        reportToUpdate.Description = descripcion;
+        reportToUpdate.JSON_config = JSON_config;
+        reportToUpdate.JSON_filters = JSON_filters;
 
         await _context.SaveChangesAsync();
 
@@ -194,12 +269,14 @@ public class ReportService : IReportService
 
     public async Task<List<dynamic>> ExecuteReportAsync(int reportId, string username)
     {
+        
         // 1. Obtener el reporte y su configuración JSON
         var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
         if (report == null || string.IsNullOrWhiteSpace(report.JSON_config))
         {
             throw new KeyNotFoundException($"El reporte con ID {reportId} no fue encontrado o no tiene una configuración JSON válida.");
         }
+
 
         var serializerOptions = new JsonSerializerOptions
         {
@@ -208,23 +285,57 @@ public class ReportService : IReportService
         };
 
         var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, serializerOptions);
-
-    var finalResults = new List<dynamic>();
-
-    var sources = config?.Sources ?? new List<ReportSourceConfig>();
-    foreach (var sourceConfig in sources)
+        
+        ReportFiltersConfig? filtersConfig = null;
+        if (!string.IsNullOrWhiteSpace(report.JSON_filters))
         {
+            try
+            {
+                filtersConfig = JsonSerializer.Deserialize<ReportFiltersConfig>(report.JSON_filters, serializerOptions);
+            }
+            catch (JsonException ex)
+            {
+                // Si hay error en la deserialización de filtros, continuar sin filtros
+                filtersConfig = null;
+            }
+        }
+        else
+        {
+        }
 
+        var finalResults = new List<dynamic>();
+
+        var sources = config?.Sources ?? new List<ReportSourceConfig>();
+        
+        foreach (var sourceConfig in sources)
+        {
             IEnumerable<dynamic> rawData;
             switch (sourceConfig.SourceType.ToLower())
             {
                 case "join":
-                    if (!sourceConfig.SourceId.HasValue) continue;
-                    rawData = await _joinConfigService.ExecuteJoinAsync(sourceConfig.SourceId.Value);
+                    if (!sourceConfig.SourceId.HasValue) 
+                    {
+                        continue;
+                    }
+                    
+                    
+                    // Para joins, necesitamos obtener la información del join y crear filtros para sus operandos
+                    JoinFiltersConfig? joinFilters = null;
+                    if (filtersConfig?.DatasetFilters != null && filtersConfig.DatasetFilters.Any())
+                    {
+                        joinFilters = await CreateJoinFiltersFromReportFilters(sourceConfig.SourceId.Value, filtersConfig);
+                    }
+                    
+                    rawData = await _joinConfigService.ExecuteJoinWithFiltersAsync(sourceConfig.SourceId.Value, joinFilters);
                     break;
 
                 case "dataset":
-                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue || !sourceConfig.EntityName.HasValue) continue;
+                    if (!sourceConfig.SourceId.HasValue || !sourceConfig.SourceModule.HasValue || !sourceConfig.EntityName.HasValue) 
+                    {
+                        continue;
+                    }
+                    
+                    
                     var operand = new JoinOperand
                     {
                         ModuleType = sourceConfig.SourceModule.Value,
@@ -233,6 +344,24 @@ public class ReportService : IReportService
                     };
                     var datasetData = await _apiDataService.GetDataForOperand(operand, username);
                     rawData = PrefixDatasetData(datasetData, sourceConfig.EntityName.Value.ToString());
+                    
+                    // Aplicar filtros específicos para este dataset si existen
+                    if (filtersConfig?.DatasetFilters != null)
+                    {
+                        var datasetFilter = filtersConfig.DatasetFilters.FirstOrDefault(f => 
+                            f.DatasetId == sourceConfig.SourceId.Value && 
+                            f.ModuleType == sourceConfig.SourceModule.Value);
+                        
+                        if (datasetFilter?.Filters != null && datasetFilter.Filters.Any())
+                        {
+                    // Imprimir cada filtro individualmente
+                    foreach (var f in datasetFilter.Filters)
+                    {
+                    }
+
+                    rawData = ApiDataService.StaticFilterObjects(rawData, datasetFilter.Filters);
+                        }
+                    }
                     break;
 
                 case "device":
@@ -241,6 +370,7 @@ public class ReportService : IReportService
                         continue;
                     }
 
+                    
                     try
                     {
                         DateTime dateFrom = DateTime.ParseExact(sourceConfig.DateFrom.Value.ToString(), "yyyyMMddHHmm", CultureInfo.InvariantCulture);
@@ -249,7 +379,7 @@ public class ReportService : IReportService
                         var deviceReadings = await _sondaIMService.GetDeviceDataByDate(sourceConfig.SourceId.Value, dateFrom, dateTo, username);
                         rawData = PrefixDatasetData(deviceReadings, "DeviceData");
                     }
-                    catch (FormatException)
+                    catch (FormatException ex)
                     {
                         continue;
                     }
@@ -262,6 +392,7 @@ public class ReportService : IReportService
             {
                 continue;
             }
+
 
             foreach (var rawRow in rawData)
             {
@@ -331,7 +462,421 @@ public class ReportService : IReportService
         return dictionary;
     }
 
+    /// <summary>
+    /// Crea filtros para un join específico basándose en los filtros del reporte y los operandos del join.
+    /// </summary>
+    private async Task<JoinFiltersConfig?> CreateJoinFiltersFromReportFilters(int joinId, ReportFiltersConfig reportFilters)
+    {
+        // 1. Obtener la configuración del join para conocer sus operandos
+        var joinConfig = await _context.CrossModuleJoins
+            .Include(j => j.LeftOperand)
+            .Include(j => j.RightOperand)
+            .FirstOrDefaultAsync(j => j.Id == joinId);
 
+        if (joinConfig == null)
+        {
+            return null;
+        }
+
+        var joinFilters = new JoinFiltersConfig();
+
+        // 2. Buscar filtros para el operando izquierdo
+        var leftFilter = reportFilters.DatasetFilters.FirstOrDefault(f => 
+            f.DatasetId == joinConfig.LeftOperand.DatasetId && 
+            f.ModuleType == joinConfig.LeftOperand.ModuleType);
+        
+        if (leftFilter?.Filters != null && leftFilter.Filters.Any())
+        {
+            joinFilters.LeftOperandFilters = new OperandFilterConfig
+            {
+                Filters = leftFilter.Filters
+            };
+            // Log each left filter for visibility
+            foreach (var f in leftFilter.Filters)
+            {
+            }
+        }
+
+        // 3. Buscar filtros para el operando derecho
+        var rightFilter = reportFilters.DatasetFilters.FirstOrDefault(f => 
+            f.DatasetId == joinConfig.RightOperand.DatasetId && 
+            f.ModuleType == joinConfig.RightOperand.ModuleType);
+        
+        if (rightFilter?.Filters != null && rightFilter.Filters.Any())
+        {
+            joinFilters.RightOperandFilters = new OperandFilterConfig
+            {
+                Filters = rightFilter.Filters
+            };
+            // Log each right filter for visibility
+            foreach (var f in rightFilter.Filters)
+            {
+            }
+        }
+
+        // 4. Solo devolver filtros si hay al menos uno
+        if (joinFilters.LeftOperandFilters == null && joinFilters.RightOperandFilters == null)
+        {
+            return null;
+        }
+
+        return joinFilters;
+    }
+
+    // ===================== PDF GENERATION METHODS =====================
+    
+    public async Task<byte[]> GenerateReportPdfAsync(int reportId, string username)
+    {
+        try
+        {
+            _logger.LogInformation($"Generando PDF para reporte {reportId}, usuario {username}");
+
+            // 1. Obtener la definición del reporte
+            var reportDefinition = await GetReportByIdAsync(reportId, username);
+            if (reportDefinition == null)
+                throw new ArgumentException($"Reporte {reportId} no encontrado para el usuario {username}");
+
+            // 2. Ejecutar el reporte para obtener los datos
+            var reportData = await ExecuteReportAsync(reportId, username);
+            if (reportData == null || !reportData.Any())
+                throw new InvalidOperationException($"No se pudieron obtener datos para el reporte {reportId}");
+
+            // 3. Extraer las columnas de los datos
+            var columns = ExtractColumnsFromDynamicData(reportData);
+
+            // 4. Generar el PDF
+            return GenerateReportPdfFromData(reportData, columns, reportDefinition.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error generando PDF para reporte {reportId}");
+            throw;
+        }
+    }
+
+    public byte[] GenerateReportPdfFromData(List<dynamic> reportData, List<string> columns, string reportTitle)
+    {
+        try
+        {
+            using (var memoryStream = new MemoryStream())
+            {
+                // Crear documento PDF usando iText7
+                var writer = new iText.Kernel.Pdf.PdfWriter(memoryStream);
+                var pdf = new iText.Kernel.Pdf.PdfDocument(writer);
+                
+                // Configurar página horizontal si hay muchas columnas
+                var pageSize = columns.Count > 6 ? 
+                    iText.Kernel.Geom.PageSize.A4.Rotate() : 
+                    iText.Kernel.Geom.PageSize.A4;
+                
+                var document = new Document(pdf, pageSize);
+                
+                // Márgenes más pequeños para tablas grandes
+                if (columns.Count > 6)
+                {
+                    document.SetMargins(20, 20, 20, 20);
+                }
+
+                // Header del reporte
+                var title = new Paragraph(reportTitle)
+                    .SetFontSize(20)
+                    .SetBold()
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetMarginBottom(20)
+                    .SetFontColor(ColorConstants.DARK_GRAY);
+                document.Add(title);
+
+                // Información del reporte
+                var info = new Paragraph()
+                    .Add(new Text($"Fecha de generación: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n").SetBold())
+                    .Add(new Text($"Total de registros: {reportData.Count:N0}\n"))
+                    .Add(new Text("Sistema: OmniMonitor"))
+                    .SetMarginBottom(20)
+                    .SetFontSize(10)
+                    .SetFontColor(ColorConstants.GRAY);
+                document.Add(info);
+
+                // Crear tabla con ancho relativo basado en el número de columnas
+                float[] columnWidths;
+                
+                if (columns.Count > 10)
+                {
+                    // Para muchas columnas, usar anchos iguales y fuente más pequeña
+                    columnWidths = Enumerable.Repeat(1f, columns.Count).ToArray();
+                }
+                else
+                {
+                    // Para pocas columnas, calcular anchos inteligentes
+                    columnWidths = CalculateColumnWidths(columns, reportData);
+                }
+                
+                var table = new Table(columnWidths)
+                    .UseAllAvailableWidth()
+                    .SetMarginBottom(20);
+
+                // Ajustar fuente basado en número de columnas
+                var headerFontSize = columns.Count > 8 ? 8f : 10f;
+                var cellFontSize = columns.Count > 8 ? 7f : 9f;
+
+                // Headers de la tabla
+                foreach (var column in columns)
+                {
+                    var headerText = columns.Count > 10 ? 
+                        TruncateText(column, 8) : 
+                        column;
+                        
+                    var headerCell = new Cell()
+                        .Add(new Paragraph(headerText)
+                            .SetBold()
+                            .SetFontColor(ColorConstants.WHITE)
+                            .SetFontSize(headerFontSize))
+                        .SetBackgroundColor(new DeviceRgb(44, 82, 130))
+                        .SetTextAlignment(TextAlignment.CENTER)
+                        .SetPadding(columns.Count > 8 ? 4 : 8);
+                    table.AddHeaderCell(headerCell);
+                }
+
+                // Datos de la tabla
+                bool isOddRow = false;
+                foreach (var row in reportData)
+                {
+                    foreach (var column in columns)
+                    {
+                        var cellValue = GetValueFromDynamicObject(row, column);
+                        var displayValue = FormatCellValue(cellValue);
+                        
+                        // Truncar texto si hay muchas columnas
+                        if (columns.Count > 10)
+                        {
+                            displayValue = TruncateText(displayValue, 15);
+                        }
+                        else if (columns.Count > 6)
+                        {
+                            displayValue = TruncateText(displayValue, 25);
+                        }
+                        
+                        var cell = new Cell()
+                            .Add(new Paragraph(displayValue).SetFontSize(cellFontSize))
+                            .SetPadding(columns.Count > 8 ? 3 : 6)
+                            .SetTextAlignment(GetCellAlignment(cellValue));
+                        
+                        if (isOddRow)
+                        {
+                            cell.SetBackgroundColor(new DeviceRgb(247, 250, 252));
+                        }
+                        
+                        table.AddCell(cell);
+                    }
+                    isOddRow = !isOddRow;
+                }
+
+                document.Add(table);
+
+                // Footer
+                var footer = new Paragraph("Generado por OmniMonitor - Sistema de Monitoreo Integral")
+                    .SetTextAlignment(TextAlignment.CENTER)
+                    .SetFontSize(8)
+                    .SetFontColor(ColorConstants.GRAY)
+                    .SetMarginTop(20);
+                document.Add(footer);
+
+                document.Close();
+                return memoryStream.ToArray();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando PDF desde datos");
+            throw;
+        }
+    }
+
+    public string GenerateReportHtml(List<dynamic> reportData, List<string> columns, string reportTitle)
+    {
+        var html = new StringBuilder();
+        
+        html.AppendLine("<!DOCTYPE html>");
+        html.AppendLine("<html>");
+        html.AppendLine("<head>");
+        html.AppendLine("    <meta charset='utf-8'>");
+        html.AppendLine($"    <title>{reportTitle}</title>");
+        html.AppendLine("    <style>");
+        html.AppendLine("        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f9f9f9; }");
+        html.AppendLine("        .header { background: #2c5282; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }");
+        html.AppendLine("        .header h1 { margin: 0; font-size: 24px; }");
+        html.AppendLine("        .info { background: #e2e8f0; padding: 15px; border-left: 4px solid #2c5282; margin: 20px 0; }");
+        html.AppendLine("        .info p { margin: 5px 0; font-size: 14px; color: #4a5568; }");
+        html.AppendLine("        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; }");
+        html.AppendLine("        th { background: #2c5282; color: white; padding: 12px; text-align: left; font-weight: 600; }");
+        html.AppendLine("        td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }");
+        html.AppendLine("        tr:nth-child(even) { background: #f7fafc; }");
+        html.AppendLine("        tr:hover { background: #edf2f7; }");
+        html.AppendLine("        .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #718096; }");
+        html.AppendLine("        @media print { body { margin: 0; } .header { border-radius: 0; } }");
+        html.AppendLine("    </style>");
+        html.AppendLine("</head>");
+        html.AppendLine("<body>");
+        
+        // Header
+        html.AppendLine("    <div class='header'>");
+        html.AppendLine($"        <h1>{System.Net.WebUtility.HtmlEncode(reportTitle)}</h1>");
+        html.AppendLine("    </div>");
+        
+        // Info
+        html.AppendLine("    <div class='info'>");
+        html.AppendLine($"        <p><strong>Fecha de generación:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>");
+        html.AppendLine($"        <p><strong>Total de registros:</strong> {reportData.Count:N0}</p>");
+        html.AppendLine($"        <p><strong>Sistema:</strong> OmniMonitor</p>");
+        html.AppendLine("    </div>");
+        
+        // Table
+        html.AppendLine("    <table>");
+        
+        // Headers
+        html.AppendLine("        <thead>");
+        html.AppendLine("            <tr>");
+        foreach (var column in columns)
+        {
+            html.AppendLine($"                <th>{System.Net.WebUtility.HtmlEncode(column)}</th>");
+        }
+        html.AppendLine("            </tr>");
+        html.AppendLine("        </thead>");
+        
+        // Data
+        html.AppendLine("        <tbody>");
+        foreach (var row in reportData)
+        {
+            html.AppendLine("            <tr>");
+            foreach (var column in columns)
+            {
+                var cellValue = GetValueFromDynamicObject(row, column);
+                var displayValue = FormatCellValue(cellValue);
+                html.AppendLine($"                <td>{System.Net.WebUtility.HtmlEncode(displayValue)}</td>");
+            }
+            html.AppendLine("            </tr>");
+        }
+        html.AppendLine("        </tbody>");
+        html.AppendLine("    </table>");
+        
+        // Footer
+        html.AppendLine("    <div class='footer'>");
+        html.AppendLine("        <p>Generado por OmniMonitor - Sistema de Monitoreo Integral</p>");
+        html.AppendLine("    </div>");
+        
+        html.AppendLine("</body>");
+        html.AppendLine("</html>");
+        
+        return html.ToString();
+    }
+
+    private List<string> ExtractColumnsFromDynamicData(List<dynamic> data)
+    {
+        if (data == null || !data.Any())
+            return new List<string>();
+
+        var firstRow = data.First();
+        
+        if (firstRow is ExpandoObject expandoObj)
+        {
+            return ((IDictionary<string, object>)expandoObj).Keys.ToList();
+        }
+        else
+        {
+            // Si es un objeto tipado, usar reflection
+            var properties = firstRow.GetType()
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            
+            var columnNames = new List<string>();
+            foreach (var prop in properties)
+            {
+                columnNames.Add(prop.Name);
+            }
+            return columnNames;
+        }
+    }
+
+    private object? GetValueFromDynamicObject(dynamic obj, string propertyName)
+    {
+        try
+        {
+            if (obj is ExpandoObject expandoObj)
+            {
+                var dict = (IDictionary<string, object>)expandoObj;
+                return dict.ContainsKey(propertyName) ? dict[propertyName] : null;
+            }
+            else
+            {
+                // Objeto tipado
+                var property = obj.GetType().GetProperty(propertyName);
+                return property?.GetValue(obj);
+            }
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string FormatCellValue(object? value)
+    {
+        if (value == null)
+            return "";
+
+        return value switch
+        {
+            DateTime dt => dt.ToString("dd/MM/yyyy HH:mm"),
+            decimal dec => dec.ToString("N2"),
+            double dbl => dbl.ToString("N2"),
+            float flt => flt.ToString("N2"),
+            bool boolean => boolean ? "Sí" : "No",
+            _ => value.ToString() ?? ""
+        };
+    }
+
+    private float[] CalculateColumnWidths(List<string> columns, List<dynamic> reportData)
+    {
+        var widths = new float[columns.Count];
+        
+        // Calcular ancho basado en el contenido
+        for (int i = 0; i < columns.Count; i++)
+        {
+            var columnName = columns[i];
+            var maxLength = columnName.Length;
+            
+            // Revisar algunas filas para estimar ancho
+            var sampleRows = reportData.Take(Math.Min(10, reportData.Count));
+            foreach (var row in sampleRows)
+            {
+                var cellValue = GetValueFromDynamicObject(row, columnName);
+                var displayValue = FormatCellValue(cellValue);
+                maxLength = Math.Max(maxLength, displayValue.Length);
+            }
+            
+            // Asignar ancho relativo (mínimo 1, máximo 4)
+            widths[i] = Math.Max(1f, Math.Min(4f, maxLength / 10f + 1f));
+        }
+        
+        return widths;
+    }
+
+    private string TruncateText(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+        
+        return text.Substring(0, maxLength - 3) + "...";
+    }
+
+    private TextAlignment GetCellAlignment(object? value)
+    {
+        return value switch
+        {
+            decimal _ or double _ or float _ or int _ or long _ => TextAlignment.RIGHT,
+            DateTime _ => TextAlignment.CENTER,
+            bool _ => TextAlignment.CENTER,
+            _ => TextAlignment.LEFT
+        };
+    }
 
 
 
@@ -508,41 +1053,46 @@ public class ReportService : IReportService
 
     private async Task sendScheduledReport(ScheduledReport scheduled)
     {
-        Console.WriteLine($"sendScheduledReport llamado para ReportId={scheduled.ReportId}, Id={scheduled.Id}");
-
-        // 1. Obtener el reporte asociado
-        var report = await _context.Reports
-            .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Id == scheduled.ReportId);
-
-        if (report == null)
-        {
-            Console.WriteLine("Reporte no encontrado.");
+        if (scheduled == null)
             return;
-        }
 
-        // 2. Generar PDF (placeholder que después vas a implementar)
-        var pdfBytes = await GenerateReportPdfAsync(report);
-
-        // 3. Obtener destinatarios desde RecipientsJson
-        var recipients = JsonSerializer.Deserialize<List<string>>(scheduled.RecipientsJson)
-                        ?? new List<string>();
-
-        if (recipients.Count == 0)
+        try
         {
-            Console.WriteLine("No hay destinatarios para este scheduled report.");
-            return;
-        }
 
-        // 4. Enviar email usando TU función exacta
-        await _mailService.SendEmailAsync(
-            recipients: recipients,
-            subject: scheduled.Subject,
-            message: scheduled.Message,
-            pdfAttachment: pdfBytes,
-            pdfName: $"Reporte_{report.Id}.pdf"
-        );
+            // 2. Generar PDF
+            var pdfBytes = await GenerateReportPdfAsync(scheduled.ReportId, scheduled.Username);
+
+            // 3. Obtener destinatarios
+            List<string>? recipients;
+
+            try
+            {
+                recipients = JsonSerializer.Deserialize<List<string>>(scheduled.RecipientsJson)
+                             ?? new List<string>();
+            }
+            catch
+            {
+                return;
+            }
+
+            if (recipients.Count == 0)
+                return;
+
+            // 4. Enviar email
+            await _mailService.SendEmailAsync(
+                recipients: recipients,
+                subject: scheduled.Subject,
+                message: scheduled.Message,
+                pdfAttachment: pdfBytes,
+                pdfName: $"Reporte_{scheduled.Id}.pdf"
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
     }
+
 
 
     private async Task<byte[]> GenerateReportPdfAsync(Report report)
@@ -551,7 +1101,7 @@ public class ReportService : IReportService
 
         var doc = new iTextSharp.text.Document(iTextSharp.text.PageSize.A4);
 
-        PdfWriter.GetInstance(doc, ms);
+        iTextSharp.text.pdf.PdfWriter.GetInstance(doc, ms);
 
         doc.Open();
 
@@ -570,39 +1120,39 @@ public class ReportService : IReportService
 
 
     public bool ShouldSend(ScheduledReport report, DateTime utcNow)
-{
-    var tz = TimeZoneInfo.FindSystemTimeZoneById(report.TimeZone);
-    var localNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
-
-    if (!report.IsActive)
-        return false;
-
-    if (report.LastExecution.HasValue)
     {
-        var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(report.TimeZone);
+        var localNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
 
-        if (report.ScheduleType != "ADVANCED" && lastLocal.Date == localNow.Date)
+        if (!report.IsActive)
             return false;
+
+        if (report.LastExecution.HasValue)
+        {
+            var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
+
+            if (report.ScheduleType != "ADVANCED" && lastLocal.Date == localNow.Date)
+                return false;
+        }
+
+        switch (report.ScheduleType)
+        {
+            case "DAILY":
+                return localNow.TimeOfDay >= TimeSpan.Parse(report.SendAtLocalTime);
+
+            case "WEEKLY":
+                return ShouldSendWeekly(report, localNow);
+
+            case "MONTHLY":
+                return ShouldSendMonthly(report, localNow);
+
+            case "ADVANCED":
+                return ShouldSendAdvanced(report, localNow);
+
+            default:
+                return false;
+        }
     }
-
-    switch (report.ScheduleType)
-    {
-        case "DAILY":
-            return localNow.TimeOfDay >= TimeSpan.Parse(report.SendAtLocalTime);
-
-        case "WEEKLY":
-            return ShouldSendWeekly(report, localNow);
-
-        case "MONTHLY":
-            return ShouldSendMonthly(report, localNow);
-
-        case "ADVANCED":
-            return ShouldSendAdvanced(report, localNow);
-
-        default:
-            return false;
-    }
-}
 
     private bool ShouldSendMonthly(ScheduledReport report, DateTime localNow)
     {
@@ -640,7 +1190,7 @@ public class ReportService : IReportService
             var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
 
             if (lastLocal.Date == localNow.Date)
-                return false; 
+                return false;
         }
 
         var obj = JsonSerializer.Deserialize<WeeklyRule>(report.AdvancedRule);
@@ -695,6 +1245,9 @@ public class ReportService : IReportService
 
     // Solo para simplificar ejemplo semanal
     private DayOfWeek DayOfWeekFromAdvancedRule(string rule) => ParseDayOfWeek(rule.Split(',')[0]);
+
+
+
 
 
 

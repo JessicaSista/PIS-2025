@@ -1,15 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using System.Dynamic;
 using System.Linq.Dynamic.Core;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using OmniMonitor.Shared.Dtos;
 
 public interface IJoinConfigurationService
 {
     Task<CrossModuleJoin> CreateJoinAsync(CreateJoinRequestDto request, string username);
     Task<List<dynamic>> ExecuteJoinAsync(int joinId);
+    Task<List<dynamic>> ExecuteJoinWithFiltersAsync(int joinId, JoinFiltersConfig? filters = null);
     Task<List<CrossModuleJoinDto>> GetJoinsByUsernameAsync(string username);
 }
 
@@ -26,7 +30,6 @@ public class JoinConfigurationService : IJoinConfigurationService
 
     public async Task<CrossModuleJoin> CreateJoinAsync(CreateJoinRequestDto request, string username)
     {
-        // 1. Map DTOs to the database entities for Operands
         var leftOperand = new JoinOperand
         {
             ModuleType = request.LeftOperand.ModuleType,
@@ -58,7 +61,7 @@ public class JoinConfigurationService : IJoinConfigurationService
             Username = username,
             JoinType = request.JoinType,
             LeftOperandId = leftOperand.Id,
-            RightOperandId = rightOperand.Id 
+            RightOperandId = rightOperand.Id
         };
 
         _context.CrossModuleJoins.Add(joinDefinition);
@@ -133,7 +136,6 @@ public class JoinConfigurationService : IJoinConfigurationService
 
         var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
         var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
-        //
         List<dynamic> nestedResults;
 
         var leftList = processedLeftQuery.ToDynamicList();
@@ -169,6 +171,109 @@ public class JoinConfigurationService : IJoinConfigurationService
         }
 
         return FlattenJoinResults(nestedResults, joinConfig);
+    }
+
+    public async Task<List<dynamic>> ExecuteJoinWithFiltersAsync(int joinId, JoinFiltersConfig? filters = null)
+    {
+        // 1. Load the Join "Recipe" from the database
+        var joinConfig = await _context.CrossModuleJoins
+            .Include(j => j.LeftOperand)
+            .Include(j => j.RightOperand)
+            .FirstOrDefaultAsync(j => j.Id == joinId);
+
+        if (joinConfig == null)
+        {
+            throw new KeyNotFoundException($"Join configuration with ID {joinId} not found.");
+        }
+
+        // 2. Obtener datos y aplicar filtros si se proporcionan
+        var leftData = await _apiDataService.GetDataForOperand(joinConfig.LeftOperand, joinConfig.Username);
+        
+        // Aplicar filtros al operando izquierdo si existen
+        if (filters?.LeftOperandFilters?.Filters != null && filters.LeftOperandFilters.Filters.Any())
+        {
+            foreach (var f in filters.LeftOperandFilters.Filters)
+            {
+            }
+            leftData = ApiDataService.StaticFilterObjects(leftData, filters.LeftOperandFilters.Filters);
+        }
+
+        var rightData = await _apiDataService.GetDataForOperand(joinConfig.RightOperand, joinConfig.Username);
+        
+        // Aplicar filtros al operando derecho si existen
+        if (filters?.RightOperandFilters?.Filters != null && filters.RightOperandFilters.Filters.Any())
+        {
+            foreach (var f in filters.RightOperandFilters.Filters)
+            {
+            }
+            rightData = ApiDataService.StaticFilterObjects(rightData, filters.RightOperandFilters.Filters);
+        }
+
+        if (leftData == null || rightData == null)
+        {
+            return new List<dynamic>(); // Return empty if any data source fails
+        }
+
+        // 3. Perform the in-memory join using Dynamic LINQ
+        string leftJoinKey = joinConfig.LeftOperand.JoinPropertyName;
+        string leftJoinType = GetPropertyTypeDynamically(leftData, leftJoinKey);
+
+        string rightJoinKey = joinConfig.RightOperand.JoinPropertyName;
+        string rightJoinType = GetPropertyTypeDynamically(rightData, rightJoinKey);
+
+        if ((joinConfig.JoinType == JoinType.Inner || joinConfig.JoinType == JoinType.LeftOuter) && (leftData == null || !leftData.AsQueryable().Any()))
+            return new List<dynamic>();
+        if ((joinConfig.JoinType == JoinType.Inner || joinConfig.JoinType == JoinType.RightOuter) && (rightData == null || !rightData.AsQueryable().Any()))
+            return new List<dynamic>();
+
+        if (leftJoinType != rightJoinType)
+        {
+            throw new InvalidOperationException(
+                $"Incompatibilidad de tipos para el Join. La propiedad izquierda '{leftJoinKey}' es de tipo '{leftJoinType}', " +
+                $"pero la propiedad derecha '{rightJoinKey}' es de tipo '{rightJoinType}'. " +
+                "Por favor, asegÃºrate de que las propiedades en las que haces el Join tengan tipos de datos compatibles."
+            );
+        }
+
+        var processedLeftQuery = leftData.AsQueryable().Select($"new(it as Data, {BuildSelector(leftJoinKey, leftJoinType)} as JoinKey)");
+        var processedRightQuery = rightData.AsQueryable().Select($"new(it as Data, {BuildSelector(rightJoinKey, rightJoinType)} as JoinKey)");
+
+        List<dynamic> nestedResults;
+
+        var leftList = processedLeftQuery.ToDynamicList();
+        var rightList = processedRightQuery.ToDynamicList();
+
+        switch (joinConfig.JoinType)
+        {
+            case JoinType.Inner:
+                nestedResults = leftList.Join(
+                    rightList,
+                    outer => ((dynamic)outer).JoinKey,
+                    inner => ((dynamic)inner).JoinKey,
+                    (outer, inner) => (dynamic)new { Left = ((dynamic)outer).Data, Right = ((dynamic)inner).Data }
+                ).ToList();
+                break;
+
+            case JoinType.LeftOuter:
+                nestedResults = PerformLeftJoin(leftList, rightList);
+                break;
+
+            case JoinType.RightOuter:
+                var rightJoinResults = PerformLeftJoin(rightList, leftList);
+                nestedResults = rightJoinResults.Select(r =>
+                {
+                    var leftValue = r.GetType().GetProperty("Right").GetValue(r, null);
+                    var rightValue = r.GetType().GetProperty("Left").GetValue(r, null);
+                    return (dynamic)new { Left = leftValue, Right = rightValue };
+                }).ToList();
+                break;
+
+            default:
+                throw new NotSupportedException($"El tipo de Join '{joinConfig.JoinType}' no estÃ¡ soportado.");
+        }
+
+        var finalResults = FlattenJoinResults(nestedResults, joinConfig);
+        return finalResults;
     }
 
     public async Task<List<CrossModuleJoinDto>> GetJoinsByUsernameAsync(string username)

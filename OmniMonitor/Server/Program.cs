@@ -126,6 +126,12 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Visualizations.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Edit")));
     options.AddPolicy("Visualizations.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Visualizations.Delete")));
 
+    // Módulo KPIs
+    options.AddPolicy("Kpis.View", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.View")));
+    options.AddPolicy("Kpis.Create", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.Create")));
+    options.AddPolicy("Kpis.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.Edit")));
+    options.AddPolicy("Kpis.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Kpis.Delete")));
+
     // Módulo Reports
     options.AddPolicy("Reports.View", policy => policy.Requirements.Add(new PermissionRequirement("Reports.View")));
     options.AddPolicy("Reports.Create", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Create")));
@@ -180,6 +186,8 @@ builder.Services.AddControllersWithViews()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.WriteIndented = true;
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()); 
+
     });
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<IMailService, MailService>();
@@ -313,7 +321,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Ocurri� un error durante el seeding de la base de datos.");
+        logger.LogError(ex, "Ocurrió un error durante el seeding de la base de datos.");
     }
 }
 

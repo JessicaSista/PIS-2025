@@ -37,6 +37,10 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetDevice> DatasetDevices { get; set; }
 
+        public DbSet<DatasetSource> DatasetSources { get; set; }
+
+        public DbSet<DatasetSensor> DatasetSensors { get; set; }
+
         public DbSet<DatasetUM> DatasetsUM { get; set; }
 
         public DbSet<DatasetEvent> DatasetEvents { get; set; }
@@ -192,7 +196,13 @@ namespace OmniMonitor.Server.Context
                 new Permission { Id = 44, Module = "System", Action = "ManagePermissions", Name = "System.ManagePermissions", Description = "Gestionar permisos" },
                 new Permission { Id = 45, Module = "System", Action = "ViewLogs", Name = "System.ViewLogs", Description = "Ver logs del sistema" },
                 new Permission { Id = 46, Module = "System", Action = "ViewSettings", Name = "System.ViewSettings", Description = "Ver configuración del sistema" },
-                new Permission { Id = 47, Module = "System", Action = "ManageSettings", Name = "System.ManageSettings", Description = "Gestionar configuración del sistema" }
+                new Permission { Id = 47, Module = "System", Action = "ManageSettings", Name = "System.ManageSettings", Description = "Gestionar configuración del sistema" },
+
+                // Módulo KPIs
+                new Permission { Id = 48, Module = "Kpis", Action = "View", Name = "Kpis.View", Description = "Ver KPIs" },
+                new Permission { Id = 49, Module = "Kpis", Action = "Create", Name = "Kpis.Create", Description = "Crear KPIs" },
+                new Permission { Id = 50, Module = "Kpis", Action = "Edit", Name = "Kpis.Edit", Description = "Editar KPIs" },
+                new Permission { Id = 51, Module = "Kpis", Action = "Delete", Name = "Kpis.Delete", Description = "Eliminar KPIs" }
             };
 
             builder.Entity<Permission>().HasData(permissions);

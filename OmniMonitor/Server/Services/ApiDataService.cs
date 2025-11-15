@@ -196,20 +196,14 @@ public class ApiDataService : IApiDataService
 
                     case EntityName.Stock:
                         var resultingStock = new List<dynamic>();
-                        foreach (var eventDataset in datasetAM.Grupo_Event_Task_Instance)
+                        foreach (var stockDataset in datasetAM.Grupo_Stock)
                         {
-                            if (eventDataset != null)
+                            if (stockDataset != null)
                             {
-                                foreach (var stockDataset in eventDataset.Grupo_Stock)
+                                var stock = await _sondaAMService.GetStockById(stockDataset.Id_Stock, username);
+                                if (stock != null)
                                 {
-                                    if (stockDataset != null)
-                                    {
-                                        var stock = await _sondaAMService.GetStockById(stockDataset.Id_Stock, username);
-                                        if (stock != null)
-                                        {
-                                            resultingStock.Add(stock);
-                                        }
-                                    }
+                                    resultingStock.Add(stock);
                                 }
                             }
                         }
@@ -525,6 +519,695 @@ public class ApiDataService : IApiDataService
 
             default:
                 throw new NotSupportedException($"Module type '{operand.ModuleType}' is not supported.");
+        }
+    }
+
+    
+
+    /// <summary>
+    /// Filtra una lista de objetos dinámicos según una lista de condiciones de filtro.
+    /// </summary>
+    public List<dynamic> FilterObjects(IEnumerable<dynamic> objects, List<FilterCondition> filters)
+    {
+        var filtered = new List<dynamic>();
+        foreach (var obj in objects)
+        {
+            bool matchesAll = true;
+            var dict = ObjectToDictionary(obj);
+            foreach (var filter in filters)
+            {
+                object value;
+                if (!dict.TryGetValue(filter.AttributeName, out value))
+                {
+                    matchesAll = false;
+                    break;
+                }
+                if (!MatchesFilter(value, filter))
+                {
+                    matchesAll = false;
+                    break;
+                }
+            }
+            if (matchesAll)
+                filtered.Add(obj);
+        }
+        return filtered;
+    }
+
+    private bool MatchesFilter(object value, FilterCondition filter)
+    {
+        if (value == null) return false;
+        switch (filter.ValueType)
+        {
+            case FilterValueType.Date:
+                if (filter.Type == FilterType.Between && filter.Condition is IEnumerable<object> range && range.Count() == 2)
+                {
+                    DateTime dateVal;
+                    if (value is DateTime dt)
+                        dateVal = dt;
+                    else
+                    {
+                        var dateStr = value?.ToString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                            return false;
+                    }
+                    
+                    DateTime start;
+                    if (range.ElementAt(0) is DateTime d1)
+                        start = d1;
+                    else
+                    {
+                        var startStr = range.ElementAt(0)?.ToString();
+                        if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                            return false;
+                    }
+                    
+                    DateTime end;
+                    if (range.ElementAt(1) is DateTime d2)
+                        end = d2;
+                    else
+                    {
+                        var endStr = range.ElementAt(1)?.ToString();
+                        if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                            return false;
+                    }
+                    
+                    return dateVal >= start && dateVal <= end;
+                }
+                return false;
+            case FilterValueType.Number:
+                switch (filter.Type)
+                {
+                    case FilterType.Equals:
+                        return value.Equals(filter.Condition);
+                    case FilterType.NotEquals:
+                        return !value.Equals(filter.Condition);
+                    case FilterType.GreaterThan:
+                        if (value is IComparable comp1 && filter.Condition is IComparable comp2)
+                            return comp1.CompareTo(comp2) > 0;
+                        return false;
+                    case FilterType.LessThan:
+                        if (value is IComparable comp3 && filter.Condition is IComparable comp4)
+                            return comp3.CompareTo(comp4) < 0;
+                        return false;
+                    default:
+                        return false;
+                }
+            case FilterValueType.String:
+                switch (filter.Type)
+                {
+                    case FilterType.Equals:
+                        return value.Equals(filter.Condition);
+                    case FilterType.NotEquals:
+                        return !value.Equals(filter.Condition);
+                    case FilterType.Contains:
+                        return value is string s && filter.Condition is string cond && s.Contains(cond);
+                    default:
+                        return false;
+                }
+            case FilterValueType.Enum:
+                if (filter.Type == FilterType.In && filter.Condition is IEnumerable<object> list)
+                    return list.Contains(value);
+                return false;
+
+            case FilterValueType.Boolean:
+                if (filter.Type == FilterType.Equals)
+                    return value.Equals(filter.Condition);
+                if (filter.Type == FilterType.NotEquals)
+                    return !value.Equals(filter.Condition);
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private IDictionary<string, object> ObjectToDictionary(object obj)
+    {
+        if (obj == null) return new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        if (obj is IDictionary<string, object> dict)
+        {
+            return new Dictionary<string, object>(dict, StringComparer.OrdinalIgnoreCase);
+        }
+        var dictionary = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in obj.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            dictionary[property.Name] = property.GetValue(obj) ?? default!;
+        }
+        return dictionary;
+    }
+
+        /// <summary>
+    /// Método estático para filtrar objetos sin instanciar dependencias.
+    /// </summary>
+    public static List<dynamic> StaticFilterObjects(IEnumerable<dynamic> objects, List<FilterCondition> filters)
+    {
+        var filtered = new List<dynamic>();
+        foreach (var obj in objects)
+        {
+            bool matchesAll = true;
+            var dict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+            if (obj != null)
+            {
+                if (obj is IDictionary<string, object> d)
+                    dict = new Dictionary<string, object>(d, StringComparer.OrdinalIgnoreCase);
+                else
+                {
+                    foreach (var property in obj.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+                    {
+                        dict[property.Name] = property.GetValue(obj) ?? default!;
+                    }
+                }
+            }
+            foreach (var filter in filters)
+            {
+                object value = null;
+                var partes = filter.AttributeName.Split('.');
+                object actual = dict;
+                for (int i = 0; i < partes.Length; i++)
+                {
+                    if (actual == null) break;
+                    if (actual is IDictionary<string, object> d)
+                    {
+                        d.TryGetValue(partes[i], out actual);
+                    }
+                    else
+                    {
+                        var prop = actual.GetType().GetProperty(partes[i]);
+                        actual = prop?.GetValue(actual);
+                    }
+                    
+                    // Manejo especial para colecciones en enums (como Categories.Name)
+                    if (filter.ValueType == FilterValueType.Enum && actual != null && i < partes.Length - 1 && 
+                        actual is System.Collections.IEnumerable enumerable && !(actual is string))
+                    {
+                        var remainingPath = string.Join(".", partes.Skip(i + 1));
+                        var collectionValues = new List<object>();
+                        
+                        foreach (var item in enumerable)
+                        {
+                            if (item == null) continue;
+                            
+                            var itemValue = item;
+                            var remainingParts = partes.Skip(i + 1).ToArray();
+                            
+                            // Navegar el path restante en cada item de la colección
+                            for (int j = 0; j < remainingParts.Length; j++)
+                            {
+                                if (itemValue == null) break;
+                                var itemProp = itemValue.GetType().GetProperty(remainingParts[j]);
+                                itemValue = itemProp?.GetValue(itemValue);
+                            }
+                            
+                            if (itemValue != null)
+                                collectionValues.Add(itemValue);
+                        }
+                        
+                        actual = collectionValues;
+                        break; // Salir del loop principal porque ya procesamos el path completo
+                    }
+                }
+                value = actual;
+                if (value == null)
+                {
+                    matchesAll = false;
+                    break;
+                }
+                
+                // Validación adicional para fechas: si es DateTime? null o DateTime default, no procesar
+                if (filter.ValueType == FilterValueType.Date)
+                {
+                    var valueType = value.GetType();
+                    if (valueType == typeof(DateTime))
+                    {
+                        var dt = (DateTime)value;
+                        if (dt == default(DateTime))
+                        {
+                            matchesAll = false;
+                            break;
+                        }
+                    }
+                    else if (valueType == typeof(DateTime?) || (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(Nullable<>) && valueType.GetGenericArguments()[0] == typeof(DateTime)))
+                    {
+                        var dtn = (DateTime?)value;
+                        if (!dtn.HasValue)
+                        {
+                            matchesAll = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!MatchesFilterStatic(value, filter))
+                {
+                    matchesAll = false;
+                    break;
+                }
+            }
+            if (matchesAll)
+                filtered.Add(obj);
+        }
+        return filtered;
+    }
+
+    private static bool MatchesFilterStatic(object value, FilterCondition filter)
+    {
+        if (value == null) return false;
+        
+        // Si el valor es DateTime y es default (MinValue), tratarlo como null para filtros de fecha
+        if (filter.ValueType == FilterValueType.Date)
+        {
+            if (value is DateTime dt)
+            {
+                if (dt == default(DateTime))
+                    return false;
+            }
+            else
+            {
+                // Verificar si es un tipo nullable de DateTime
+                var type = value.GetType();
+                if (type == typeof(DateTime?) || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && type.GetGenericArguments()[0] == typeof(DateTime)))
+                {
+                    var nullableValue = (DateTime?)value;
+                    if (!nullableValue.HasValue)
+                        return false;
+                }
+            }
+        }
+        
+        switch (filter.ValueType)
+        {
+            case FilterValueType.Date:
+                DateTime condDate;
+                if (filter.Type == FilterType.Between)
+                {
+                    DateTime start, end;
+                    if (filter.Condition is System.Text.Json.JsonElement jeArr && jeArr.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        var arr = jeArr.EnumerateArray().ToArray();
+                        if (arr.Length < 2)
+                            return false;
+                        
+                        // Intentar parsear como DateTime directamente
+                        if (arr[0].ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var startStr = arr[0].GetString();
+                            if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                                return false;
+                        }
+                        else
+                        {
+                            // Intentar deserializar como DateTime
+                            try
+                            {
+                                start = System.Text.Json.JsonSerializer.Deserialize<DateTime>(arr[0].GetRawText());
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        }
+                        
+                        if (arr[1].ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var endStr = arr[1].GetString();
+                            if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                                return false;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                end = System.Text.Json.JsonSerializer.Deserialize<DateTime>(arr[1].GetRawText());
+                            }
+                            catch
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                    else if (filter.Condition is DateTime[] dateArray && dateArray.Length == 2)
+                    {
+                        start = dateArray[0];
+                        end = dateArray[1];
+                    }
+                    else if (filter.Condition is IEnumerable<object> range && range.Count() == 2)
+                    {
+                        var first = range.ElementAt(0);
+                        var second = range.ElementAt(1);
+                        
+                        if (first is DateTime d1)
+                            start = d1;
+                        else if (first is System.Text.Json.JsonElement je1)
+                        {
+                            if (je1.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var startStr = je1.GetString();
+                                if (string.IsNullOrWhiteSpace(startStr) || !DateTime.TryParse(startStr, out start))
+                                    return false;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    start = System.Text.Json.JsonSerializer.Deserialize<DateTime>(je1.GetRawText());
+                                }
+                                catch
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (!DateTime.TryParse(first?.ToString(), out start))
+                            return false;
+                        
+                        if (second is DateTime d2)
+                            end = d2;
+                        else if (second is System.Text.Json.JsonElement je2)
+                        {
+                            if (je2.ValueKind == System.Text.Json.JsonValueKind.String)
+                            {
+                                var endStr = je2.GetString();
+                                if (string.IsNullOrWhiteSpace(endStr) || !DateTime.TryParse(endStr, out end))
+                                    return false;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    end = System.Text.Json.JsonSerializer.Deserialize<DateTime>(je2.GetRawText());
+                                }
+                                catch
+                                {
+                                    return false;
+                                }
+                            }
+                        }
+                        else if (!DateTime.TryParse(second?.ToString(), out end))
+                            return false;
+                    }
+                    else
+                    {
+                        var arr = filter.Condition as object[];
+                        if (arr == null || arr.Length < 2)
+                            return false;
+                        
+                        var startStr = arr[0]?.ToString();
+                        var endStr = arr[1]?.ToString();
+                        if (string.IsNullOrWhiteSpace(startStr) || string.IsNullOrWhiteSpace(endStr))
+                            return false;
+                        if (!DateTime.TryParse(startStr, out start) || !DateTime.TryParse(endStr, out end))
+                            return false;
+                    }
+                    
+                    // Manejar el valor de fecha que puede venir como DateTime, string, o JsonElement
+                    DateTime dateVal;
+                    if (value is DateTime dtv)
+                    {
+                        dateVal = dtv;
+                    }
+                    else if (value is System.Text.Json.JsonElement jeValue)
+                    {
+                        if (jeValue.ValueKind == System.Text.Json.JsonValueKind.String)
+                        {
+                            var dateStr = jeValue.GetString();
+                            if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                                return false;
+                        }
+                        else
+                        {
+                            var dateStr = jeValue.GetRawText().Trim('"');
+                            if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                                return false;
+                        }
+                    }
+                    else
+                    {
+                        var dateStr = value?.ToString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateVal))
+                            return false;
+                    }
+                    
+                    return dateVal >= start && dateVal <= end;
+                }
+                
+                // Parsear la condición de fecha
+                if (filter.Condition is System.Text.Json.JsonElement jeDate && jeDate.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    var condDateStr = jeDate.GetString();
+                    if (string.IsNullOrWhiteSpace(condDateStr) || !DateTime.TryParse(condDateStr, out condDate))
+                        return false;
+                }
+                else if (filter.Condition is DateTime dt)
+                {
+                    condDate = dt;
+                }
+                else
+                {
+                    var condDateStr2 = filter.Condition?.ToString();
+                    if (string.IsNullOrWhiteSpace(condDateStr2) || !DateTime.TryParse(condDateStr2, out condDate))
+                        return false;
+                }
+                    
+                // Manejar el valor de fecha que puede venir como DateTime, string, o JsonElement
+                DateTime dateValue;
+                if (value is DateTime dv)
+                {
+                    dateValue = dv;
+                }
+                else if (value is System.Text.Json.JsonElement jeValueDate)
+                {
+                    if (jeValueDate.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        var dateStr = jeValueDate.GetString();
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                            return false;
+                    }
+                    else
+                    {
+                        var dateStr = jeValueDate.GetRawText().Trim('"');
+                        if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                            return false;
+                    }
+                }
+                else
+                {
+                    var dateStr = value?.ToString();
+                    if (string.IsNullOrWhiteSpace(dateStr) || !DateTime.TryParse(dateStr, out dateValue))
+                        return false;
+                }
+                
+                if (filter.Type == FilterType.Equals)
+                    return dateValue == condDate;
+                return false;
+            case FilterValueType.Number:
+                double condNum;
+                if (filter.Condition is System.Text.Json.JsonElement jeNum && jeNum.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    condNum = jeNum.GetDouble();
+                else if (double.TryParse(filter.Condition?.ToString(), out var num))
+                    condNum = num;
+                else
+                    condNum = 0;
+                double valueNum = value is int vi ? vi : value is double vd ? vd : double.TryParse(value?.ToString(), out var vn) ? vn : 0;
+                switch (filter.Type)
+                {
+                    case FilterType.Equals:
+                        return valueNum == condNum;
+                    case FilterType.NotEquals:
+                        return valueNum != condNum;
+                    case FilterType.GreaterThan:
+                        return valueNum > condNum;
+                    case FilterType.LessThan:
+                        return valueNum < condNum;
+                    default:
+                        return false;
+                }
+            case FilterValueType.String:
+                string condStr = "";
+                if (filter.Condition is string str)
+                {
+                    condStr = str;
+                }
+                else if (filter.Condition is System.Text.Json.JsonElement je)
+                {
+                    // Intentar obtener como string primero
+                    if (je.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        condStr = je.GetString() ?? "";
+                    }
+                    else if (je.ValueKind == System.Text.Json.JsonValueKind.Number)
+                    {
+                        // Si es un número, convertirlo a string
+                        condStr = je.GetRawText(); // Obtiene el valor como string sin comillas
+                    }
+                    else
+                    {
+                        // Si no es string ni número, convertir a string
+                        condStr = je.GetRawText();
+                    }
+                }
+                else
+                {
+                    condStr = filter.Condition?.ToString() ?? "";
+                }
+                
+                // Convertir el valor a string para comparar
+                string valueStr = value?.ToString() ?? "";
+                
+                Console.WriteLine($"[DEBUG] String filter comparison: valueStr='{valueStr}', condStr='{condStr}', match={valueStr == condStr}");
+                
+                switch (filter.Type)
+                {
+                    case FilterType.Equals:
+                        return valueStr == condStr;
+                    case FilterType.NotEquals:
+                        return valueStr != condStr;
+                    case FilterType.Contains:
+                        return valueStr.Contains(condStr, StringComparison.OrdinalIgnoreCase);
+                    case FilterType.StartsWith:
+                        return valueStr.StartsWith(condStr, StringComparison.OrdinalIgnoreCase);
+                    case FilterType.EndsWith:
+                        return valueStr.EndsWith(condStr, StringComparison.OrdinalIgnoreCase);
+                    default:
+                        return false;
+                }
+            case FilterValueType.Enum:
+                // Si el valor es objeto y el filtro es compuesto, busca la propiedad indicada
+                
+                // Si value es una colección (como List<string> de nombres de categorías)
+                if (value is System.Collections.IEnumerable enumerable && !(value is string))
+                {
+                    if (filter.Type == FilterType.In)
+                    {
+                        List<string> conditionValues = new();
+                        if (filter.Condition is System.Text.Json.JsonElement jeArray && jeArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        {
+                            foreach (var item in jeArray.EnumerateArray())
+                            {
+                                if (item.ValueKind == System.Text.Json.JsonValueKind.String)
+                                    conditionValues.Add(item.GetString() ?? "");
+                                else
+                                    conditionValues.Add(item.ToString());
+                            }
+                        }
+                        else if (filter.Condition is IEnumerable<object> list)
+                        {
+                            foreach (var item in list)
+                                conditionValues.Add(item?.ToString() ?? "");
+                        }
+                        
+                        // Normalizar valores de condición para comparación Unicode
+                        var normalizedConditionValues = conditionValues.Select(v => v.Normalize(System.Text.NormalizationForm.FormC)).ToList();
+                        
+                        // Verificar si algún valor de la colección está en la condición
+                        foreach (var item in enumerable)
+                        {
+                            if (item?.ToString() != null)
+                            {
+                                string normalizedItem = item.ToString().Normalize(System.Text.NormalizationForm.FormC);
+                                if (normalizedConditionValues.Contains(normalizedItem, StringComparer.OrdinalIgnoreCase))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    }
+                }
+                
+                // Manejar el caso de 'In' con array de valores (valor simple)
+                if (filter.Type == FilterType.In)
+                {
+                    List<string> valores = new();
+                    if (filter.Condition is System.Text.Json.JsonElement jeArray && jeArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        foreach (var item in jeArray.EnumerateArray())
+                        {
+                            if (item.ValueKind == System.Text.Json.JsonValueKind.String)
+                                valores.Add(item.GetString() ?? "");
+                            else
+                                valores.Add(item.ToString());
+                        }
+                    }
+                    else if (filter.Condition is IEnumerable<object> list)
+                    {
+                        foreach (var item in list)
+                            valores.Add(item?.ToString() ?? "");
+                    }
+                    else if (filter.Condition is string s)
+                    {
+                        valores.Add(s);
+                    }
+                    // Normalizar valores para comparación Unicode
+                    string normalizedValue = (value?.ToString() ?? "").Normalize(System.Text.NormalizationForm.FormC);
+                    var normalizedValores = valores.Select(v => v.Normalize(System.Text.NormalizationForm.FormC)).ToList();
+                    
+                    bool resultado = normalizedValores.Contains(normalizedValue, StringComparer.OrdinalIgnoreCase);
+                    return resultado;
+                }
+                // Manejar Equals para enums
+                string condEnum = "";
+                if (filter.Condition is string estr)
+                {
+                    condEnum = estr;
+                }
+                else if (filter.Condition is System.Text.Json.JsonElement jee)
+                {
+                    // Normalizar el string del JsonElement para manejar caracteres Unicode correctamente
+                    if (jee.ValueKind == System.Text.Json.JsonValueKind.String)
+                    {
+                        condEnum = jee.GetString() ?? "";
+                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement deserializado de '{jee.GetRawText()}' a '{condEnum}'");
+                    }
+                    else
+                    {
+                        // Si no es string, intentar deserializar como string
+                        condEnum = jee.GetRawText().Trim('"');
+                        // Si viene como escape Unicode, deserializarlo
+                        if (condEnum.StartsWith("\\u"))
+                        {
+                            condEnum = System.Text.RegularExpressions.Regex.Unescape(condEnum);
+                        }
+                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement raw '{jee.GetRawText()}' procesado a '{condEnum}'");
+                    }
+                }
+                else
+                {
+                    condEnum = filter.Condition?.ToString() ?? "";
+                }
+                
+                // Normalizar ambos strings para comparación (normalizar caracteres Unicode)
+                string enumValueStr = value?.ToString() ?? "";
+                condEnum = condEnum.Normalize(System.Text.NormalizationForm.FormC);
+                enumValueStr = enumValueStr.Normalize(System.Text.NormalizationForm.FormC);
+                
+                if (filter.Type == FilterType.Equals)
+                {
+                    bool result = string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
+                    Console.WriteLine($"[DEBUG] Enum/Equals: comparando '{enumValueStr}' con '{condEnum}', resultado={result}");
+                    return result;
+                }
+                if (filter.Type == FilterType.NotEquals)
+                {
+                    return !string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
+                }
+                return false;
+            case FilterValueType.Boolean:
+                bool condBool;
+                if (filter.Condition is System.Text.Json.JsonElement jeBool && jeBool.ValueKind == System.Text.Json.JsonValueKind.True)
+                    condBool = true;
+                else if (filter.Condition is System.Text.Json.JsonElement jeBool2 && jeBool2.ValueKind == System.Text.Json.JsonValueKind.False)
+                    condBool = false;
+                else if (bool.TryParse(filter.Condition?.ToString(), out var b))
+                    condBool = b;
+                else
+                    condBool = false;
+                if (filter.Type == FilterType.Equals)
+                    return value is bool bv && bv == condBool;
+                if (filter.Type == FilterType.NotEquals)
+                    return value is bool bnv && bnv != condBool;
+                return false;
+            default:
+                return false;
         }
     }
 }

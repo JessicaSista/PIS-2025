@@ -1,4 +1,4 @@
-ï»¿@page "/sonda-test"
+@page "/sonda-test"
 @using OmniMonitor.Shared.Dtos
 @inject HttpClient Http
 @inject NavigationManager Navigation
@@ -8,7 +8,7 @@
 
 <h3>Visualizador Interactivo de Dispositivos</h3>
 <p>
-    Busca un dispositivo en la lista o selecciÃ³nalo directamente para ver sus detalles completos.
+    Busca un dispositivo en la lista o selecciónalo directamente para ver sus detalles completos.
 </p>
 
 
@@ -48,11 +48,11 @@ else if (errorMessage != null)
 else if (devices != null)
 {
     <div class="row g-4">
-        <!-- Columna del MenÃº de Dispositivos -->
+        <!-- Columna del Menú de Dispositivos -->
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header">
-                    <i class="fas fa-list me-2"></i>MenÃº de Dispositivos (@FilteredDevices.Count())
+                    <i class="fas fa-list me-2"></i>Menú de Dispositivos (@FilteredDevices.Count())
                 </div>
                 <div class="card-body">
                     <input type="text" class="form-control mb-3" placeholder="Buscar por nombre..." @bind="searchTerm" @bind:event="oninput" />
@@ -81,7 +81,7 @@ else if (devices != null)
                     <div class="card-body text-center d-flex align-items-center justify-content-center" style="min-height: 300px;">
                         <div>
                             <h5 class="card-title">Selecciona un dispositivo</h5>
-                            <p class="card-text text-muted">Haz clic en un nombre de la lista para ver sus detalles aquÃ­.</p>
+                            <p class="card-text text-muted">Haz clic en un nombre de la lista para ver sus detalles aquí.</p>
                         </div>
                     </div>
                 }
@@ -91,7 +91,7 @@ else if (devices != null)
                         <h4>@selectedDevice.Name <span class="badge @(selectedDevice.IsActive ? "bg-success" : "bg-secondary") ms-2">@(selectedDevice.IsActive ? "Activo" : "Inactivo")</span></h4>
                         <p class="text-muted">ID: @selectedDevice.Id | Tipo: @(selectedDevice.Source?.Name ?? "N/A")</p>
 
-                        <!-- Nuevo BotÃ³n para Detalles Completos -->
+                        <!-- Nuevo Botón para Detalles Completos -->
                         <button class="btn btn-outline-info btn-sm" @onclick="GetFullDeviceDetailsAsync" disabled="@isLoadingDetails">
                             @if (isLoadingDetails)
                             {
@@ -106,7 +106,7 @@ else if (devices != null)
                         </button>
                         <hr />
 
-                        <!-- Ãrea para mostrar los detalles completos -->
+                        <!-- Área para mostrar los detalles completos -->
                         @if (fullDeviceDetails != null)
                         {
                             <div class="alert alert-info">
@@ -123,7 +123,7 @@ else if (devices != null)
                                 }
                                 @if (fullDeviceDetails.SendConfigurations?.Any() == true)
                                 {
-                                    <p><strong>Configuraciones de EnvÃ­o:</strong></p>
+                                    <p><strong>Configuraciones de Envío:</strong></p>
                                     <ul>
                                         @foreach (var config in fullDeviceDetails.SendConfigurations)
                                         {
@@ -228,7 +228,7 @@ else if (devices != null)
         }
         catch (Exception ex)
         {
-            errorMessage = $"OcurriÃ³ un error al cargar los datos: {ex.Message}";
+            errorMessage = $"Ocurrió un error al cargar los datos: {ex.Message}";
         }
         finally
         {

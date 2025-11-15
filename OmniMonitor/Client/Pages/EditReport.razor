@@ -3,6 +3,7 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Client.Extensions
 @inject HttpClient Http
 @using MudBlazor
 @using OmniMonitor.Shared
@@ -310,7 +311,6 @@
 
                 if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Cargar detalles del dataset IM (opcional) para soporte de columnas/joins
                     var token = await LocalStorage.GetItemAsync<string>("authToken");
                     var responseDataset = !string.IsNullOrEmpty(token)
                         ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}")
@@ -318,7 +318,7 @@
 
                     if (responseDataset != null && responseDataset.IsSuccessStatusCode)
                     {
-                        var datasetIM = await responseDataset.Content.ReadFromJsonAsync<DatasetIM>();
+                        var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
                         if (datasetIM != null)
                         {
                             selectedDatasetsIM[dataset.Id] = datasetIM;
@@ -491,12 +491,10 @@
             }
 
             await LoadAvailableJoinsAsync(token);
-
-            // Cargar detalles del reporte (nombre/descripcion)
             var reportResp = await Http.GetAsync($"api/reports/{ReportId}");
             if (reportResp.IsSuccessStatusCode)
             {
-                currentReport = await reportResp.Content.ReadFromJsonAsync<Report>();
+                currentReport = await reportResp.Content.ReadFromJsonWithEnumSupportAsync<Report>();
                 if (currentReport != null)
                 {
                     reportName = currentReport.Name ?? string.Empty;
@@ -505,14 +503,12 @@
             }
 
             var aggregatedDatasets = new List<DatasetDto>();
-
-            // Cargar datasets de Insight Monitor
             try
             {
                 var responseIM = await Http.GetAsync($"api/Dataset/user");
                 if (responseIM.IsSuccessStatusCode)
                 {
-                    var datasetsIM = await responseIM.Content.ReadFromJsonAsync<List<DatasetIM>>();
+                    var datasetsIM = await responseIM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetIM>>();
                     aggregatedDatasets.AddRange(datasetsIM?.Select(d => new DatasetDto
                     {
                         Id = d.Id,
@@ -531,14 +527,12 @@
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets IM");
                 Snackbar.Add("Error al cargar datasets de Insight Monitor", Severity.Warning);
             }
-
-            // Cargar datasets de Asset Manager
             try
             {
                 var responseAM = await Http.GetAsync($"api/DatasetAM/GetAllDatasetAMs");
                 if (responseAM.IsSuccessStatusCode)
                 {
-                    var datasetsAM = await responseAM.Content.ReadFromJsonAsync<List<DatasetAM>>();
+                    var datasetsAM = await responseAM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetAM>>();
                     aggregatedDatasets.AddRange(datasetsAM?.Select(d => new DatasetDto
                     {
                         Id = d.Id_Dataset,
@@ -557,14 +551,12 @@
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets AM");
                 Snackbar.Add("Error al cargar datasets de Asset Manager", Severity.Warning);
             }
-
-            // Cargar datasets de Urban Monitor
             try
             {
                 var responseUM = await Http.GetAsync($"api/DatasetUM/GetAllDatasets");
                 if (responseUM.IsSuccessStatusCode)
                 {
-                    var datasetsUM = await responseUM.Content.ReadFromJsonAsync<List<DatasetUM>>();
+                    var datasetsUM = await responseUM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetUM>>();
                     aggregatedDatasets.AddRange(datasetsUM?.Select(d => new DatasetDto
                     {
                         Id = d.Id,
@@ -583,14 +575,12 @@
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets UM");
                 Snackbar.Add("Error al cargar datasets de Urban Monitor", Severity.Warning);
             }
-
-            // Cargar datasets de Event Manager
             try
             {
                 var responseEM = await Http.GetAsync($"api/DatasetEM/GetAllDatasets");
                 if (responseEM.IsSuccessStatusCode)
                 {
-                    var datasetsEM = await responseEM.Content.ReadFromJsonAsync<List<DatasetEM>>();
+                    var datasetsEM = await responseEM.Content.ReadFromJsonWithEnumSupportAsync<List<DatasetEM>>();
                     aggregatedDatasets.AddRange(datasetsEM?.Select(d => new DatasetDto
                     {
                         Id = d.Id,
@@ -818,7 +808,8 @@
                     {
                         var createdLink = JsonSerializer.Deserialize<ReportJoin>(rawResponse, new JsonSerializerOptions
                             {
-                                PropertyNameCaseInsensitive = true
+                                PropertyNameCaseInsensitive = true,
+                                Converters = { new JsonStringEnumConverter() }
                             });
                         if (createdLink?.CrossModuleJoinId > 0)
                         {
@@ -1204,7 +1195,7 @@
             var response = await Http.GetAsync($"api/reports/joins/by-user");
             if (response.IsSuccessStatusCode)
             {
-                var joinsFromApi = await response.Content.ReadFromJsonAsync<List<CrossModuleJoinDto>>();
+                var joinsFromApi = await response.Content.ReadFromJsonWithEnumSupportAsync<List<CrossModuleJoinDto>>();
                 userJoins = joinsFromApi ?? new List<CrossModuleJoinDto>();
             }
             else
@@ -1554,7 +1545,7 @@
                 return;
             }
 
-            var datasetIM = await responseDataset.Content.ReadFromJsonAsync<DatasetIM>();
+            var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
             if (datasetIM == null)
             {
                 return;
@@ -1676,10 +1667,8 @@
         }
     }
 
-    // --- Generar JSON de configuración ---
     private async Task GenerarJsonConfig()
     {
-        Console.WriteLine("dsa");
         try
         {
             // Tomar columnas visibles
@@ -1838,7 +1827,6 @@
             isSaving = true;
             StateHasChanged();
 
-            Console.WriteLine($"UpdateReport JSON_config payload: {json}");
 
             UpdateReportRequestDto updateRequest = new UpdateReportRequestDto
                 {
@@ -2033,7 +2021,6 @@
 
     private void UpdateJoinFields(JoinDto join)
     {
-        // Limpiar los campos de unión al cambiar el dataset
         if (string.IsNullOrEmpty(join.LeftDataset) || string.IsNullOrEmpty(join.RightDataset))
         {
             join.LeftField = string.Empty; // Use empty string instead of null

@@ -21,4 +21,5 @@ public class Report
     public virtual ICollection<ReportJoin> ReportJoins { get; set; } = new List<ReportJoin>();
     [Required]
     public string JSON_config { get; set; } = "{}";
+    public string? JSON_filters { get; set; }
 }
