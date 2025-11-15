@@ -44,9 +44,10 @@
     else if (ActiveTab == "filtros")
     {
         <FilterSelector Filters="Filters"
-                        AvailableColumns="AvailableColumns"
-                        OnFilterAdd="OnFilterAdd"
-                        OnFilterRemove="OnFilterRemove" />
+                AvailableColumns="AvailableColumns"
+                OnFilterAdd="OnFilterAdd"
+                OnFilterRemove="OnFilterRemove"
+                OnFilterColumnChanged="OnFilterColumnChanged" />
     }
 </MudPaper>
 
@@ -80,9 +81,10 @@
     [Parameter] public Func<string?, IEnumerable<string>>? ResolvePropertyNamesForDataset { get; set; }
     [Parameter] public EventCallback<EditReport.JoinDto> OnJoinDatasetsChanged { get; set; }
 
-    [Parameter] public List<EditReport.FilterDto> Filters { get; set; } = new();
+    [Parameter] public List<EditReport.FilterViewModel> Filters { get; set; } = new();
     [Parameter] public EventCallback OnFilterAdd { get; set; }
-    [Parameter] public EventCallback<EditReport.FilterDto> OnFilterRemove { get; set; }
+    [Parameter] public EventCallback<EditReport.FilterViewModel> OnFilterRemove { get; set; }
+    [Parameter] public EventCallback<(int FilterId, string ColumnKey)> OnFilterColumnChanged { get; set; }
 
     private async Task SetActiveTab(string tab)
     {

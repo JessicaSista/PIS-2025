@@ -1,11 +1,14 @@
 @using MudBlazor
 @using OmniMonitor.Client.Pages
 @using OmniMonitor.Shared.Dtos
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<EditReport> Localizer
 
 <MudStack>
     <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
         <MudItem>
-            <MudText Typo="Typo.body1">Configurar Joins</MudText>
+            <MudText Typo="Typo.body1">@Localizer["ConfigureJoinsTitle"]</MudText>
         </MudItem>
         <MudItem>
             <MudStack Row="true" Spacing="2">
@@ -14,7 +17,7 @@
                            Size="MudBlazor.Size.Small"
                            Style="border-color: var(--mud-palette-lines-default);"
                            OnClick="@(async () => await NotifyJoinAdd())">
-                    Agregar Join
+                    @Localizer["AddJoinButton"]
                 </MudButton>
             </MudStack>
         </MudItem>
@@ -28,7 +31,7 @@
                 <MudPaper @key="join.Id" Class="pa-4" Elevation="1">
                     <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudItem>
-                            <MudText Typo="Typo.subtitle2">Join #@join.Id</MudText>
+                            <MudText Typo="Typo.subtitle2">@Localizer["JoinNumber", join.Id]</MudText>
                         </MudItem>
                         <MudItem>
                             <MudIconButton Icon="@Icons.Material.Filled.Delete"
@@ -40,7 +43,7 @@
                     <MudGrid Spacing="2" Class="mt-2">
                         <MudItem Xs="12" Sm="6">
                             <MudSelect T="string"
-                                       Label="Dataset Izquierdo"
+                                       Label=@Localizer["LeftDatasetLabel"]
                                        Value="@join.LeftDataset"
                                        ValueChanged="@(value => OnLeftDatasetChanged(join, value))">
                                 @foreach (var dataset in SelectedDatasets)
@@ -51,7 +54,7 @@
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
-                            <MudSelect T="string" Label="Campo de Unión (Izquierdo)" @bind-Value="join.LeftField">
+                            <MudSelect T="string" Label=@Localizer["LeftFieldLabel"] @bind-Value="join.LeftField">
                                 @foreach (var option in GetPropertyNames(join.LeftDataset))
                                 {
                                     <MudSelectItem Value="@option">@option</MudSelectItem>
@@ -60,22 +63,22 @@
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
-                            <MudSelect T="string" Label="Tipo de Comparación" @bind-Value="join.Comparison">
-                                <MudSelectItem Value="@("Equal")">Igual a (=)</MudSelectItem>
+                            <MudSelect T="string" Label=@Localizer["ComparisonTypeLabel"] @bind-Value="join.Comparison">
+                                <MudSelectItem Value="@("Equal")">@Localizer["ComparisonEqual"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
-                            <MudSelect T="string" Label="Tipo de Join" @bind-Value="join.JoinType">
-                                <MudSelectItem Value="@("Inner")">Inner Join</MudSelectItem>
-                                <MudSelectItem Value="@("LeftOuter")">Left Outer</MudSelectItem>
-                                <MudSelectItem Value="@("RightOuter")">Right Outer</MudSelectItem>
+                            <MudSelect T="string" Label=@Localizer["JoinTypeLabel"] @bind-Value="join.JoinType">
+                                <MudSelectItem Value="@("Inner")">@Localizer["JoinTypeInner"]</MudSelectItem>
+                                <MudSelectItem Value="@("LeftOuter")">@Localizer["JoinTypeLeftOuter"]</MudSelectItem>
+                                <MudSelectItem Value="@("RightOuter")">@Localizer["JoinTypeRightOuter"]</MudSelectItem>
                             </MudSelect>
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
                             <MudSelect T="string"
-                                       Label="Dataset Derecho"
+                                       Label=@Localizer["RightDatasetLabel"]
                                        Value="@join.RightDataset"
                                        ValueChanged="@(value => OnRightDatasetChanged(join, value))">
                                 @foreach (var dataset in SelectedDatasets.Where(d => !string.Equals(d.Nombre, join.LeftDataset, StringComparison.Ordinal)))
@@ -86,7 +89,7 @@
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
-                            <MudSelect T="string" Label="Campo de Unión (Derecho)" @bind-Value="join.RightField">
+                            <MudSelect T="string" Label=@Localizer["RightFieldLabel"] @bind-Value="join.RightField">
                                 @foreach (var option in GetPropertyNames(join.RightDataset))
                                 {
                                     <MudSelectItem Value="@option">@option</MudSelectItem>
@@ -105,7 +108,7 @@
                    Color="MudBlazor.Color.Primary"
                    Class="mt-4"
                    OnClick="@(async () => await NotifyApplyJoins())">
-            Aplicar Joins
+            @Localizer["ApplyJoinsButton"]
         </MudButton>
     }
 </MudStack>

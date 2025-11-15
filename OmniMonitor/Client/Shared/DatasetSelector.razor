@@ -1,9 +1,13 @@
 @using MudBlazor
 @using OmniMonitor.Shared
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Client.Pages
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<EditReport> Localizer
 
 <MudStack>
-    <MudText Typo="Typo.h6" Class="mb-2">Datasets Seleccionados</MudText>
+    <MudText Typo="Typo.h6" Class="mb-2">@Localizer["SelectedDatasetsTitle"]</MudText>
 
     @if (SelectedDatasets.Any())
     {
@@ -30,7 +34,7 @@
                 </MudCardHeader>
                 <MudCardContent>
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.caption" Class="mr-2">Entidad</MudText>
+                        <MudText Typo="Typo.caption" Class="mr-2">@Localizer["EntityLabel"]</MudText>
                         <MudSelect T="EntityName"
                                    Dense="true"
                                    Value="@GetSelectedEntity(dataset)"
@@ -47,17 +51,17 @@
     }
     else
     {
-        <MudText Class="mb-4" Color="MudBlazor.Color.Secondary">No hay datasets seleccionados</MudText>
+        <MudText Class="mb-4" Color="MudBlazor.Color.Secondary">@Localizer["NoSelectedDatasets"]</MudText>
     }
 
     <MudDivider Class="my-4" />
 
-    <MudText Typo="Typo.h6" Class="mb-2">Datasets Disponibles</MudText>
+    <MudText Typo="Typo.h6" Class="mb-2">@Localizer["AvailableDatasetsTitle"]</MudText>
     <MudTextField T="string"
                   Value="@_currentSearchText"
                   ValueChanged="@(value => NotifySearchChanged(value))"
                   Immediate="true"
-                  Placeholder="Buscar Datasets..."
+                  Placeholder=@Localizer["SearchDatasetsPlaceholder"]
                   Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Filled.Search"
                   IconSize="MudBlazor.Size.Small"
@@ -90,11 +94,11 @@
     }
     else if (!string.IsNullOrWhiteSpace(SearchText))
     {
-        <MudText>No se encontraron datasets que coincidan con la búsqueda</MudText>
+        <MudText>@Localizer["NoSearchResults"]</MudText>
     }
     else
     {
-        <MudText>No hay datasets disponibles</MudText>
+        <MudText>@Localizer["NoDatasetsAvailable"]</MudText>
     }
 </MudStack>
 
@@ -165,7 +169,7 @@
     private string GetDatasetDescription(DatasetDto dataset)
     {
         var description = dataset?.Descripcion;
-        return string.IsNullOrWhiteSpace(description) ? "Sin descripción" : description!;
+        return string.IsNullOrWhiteSpace(description) ? Localizer["NoDescription"] : description!;
     }
 
     private async Task NotifyDatasetToggle(DatasetDto dataset)

@@ -1,6 +1,9 @@
 @using MudBlazor
 @using OmniMonitor.Client.Pages
 @using OmniMonitor.Shared.Dtos
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<EditReport> Localizer
 
 <style>
     .column-checkbox {
@@ -65,20 +68,20 @@
 
 <MudStack>
     <MudToolBar Dense="true" DisableGutters="true" Class="mb-4">
-        <MudText Typo="Typo.body1">Columnas a mostrar</MudText>
+        <MudText Typo="Typo.body1">@Localizer["ColumnsToolbarTitle"]</MudText>
         <MudSpacer />
         <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Outlined"
                        Size="MudBlazor.Size.Small"
                        Style="border-color: var(--mud-palette-lines-default);"
                        OnClick="@(async () => await NotifySelectAll())">
-                Todas
+                @Localizer["SelectAllColumnsButton"]
             </MudButton>
             <MudButton Variant="Variant.Outlined"
                        Size="MudBlazor.Size.Small"
                        Style="border-color: var(--mud-palette-lines-default);"
                        OnClick="@(async () => await NotifyDeselectAll())">
-                Ninguna
+                @Localizer["DeselectAllColumnsButton"]
             </MudButton>
         </MudStack>
     </MudToolBar>
@@ -151,7 +154,7 @@
         }
         else
         {
-            <MudText>Selecciona al menos un dataset para ver las columnas disponibles</MudText>
+            <MudText>@Localizer["NoDatasetsSelectedForColumns"]</MudText>
         }
     </MudPaper>
 </MudStack>
@@ -217,6 +220,6 @@
             return ResolveJoinLabel.Invoke(joinId);
         }
 
-        return $"Join {joinId}";
+        return Localizer["JoinDisplayName", joinId];
     }
 }
