@@ -84,26 +84,26 @@
                            Disabled="false">
                     @Localizer["AddDataset"]
                 </MudButton>
+
+                <MudButton OnClick="OpenSelectDashboardLinkModal"
+                           FullWidth="true"
+                           Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
+                           StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Check : Icons.Material.Filled.AddLink)"
+                           Color="MudBlazor.Color.Inherit"
+                           Size="MudBlazor.Size.Large"
+                           Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                           Disabled="false">
+
+                    @if (_selectedDashboard != null)
+                    {
+                        <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}, {Localizer["ClickForSelectOther"]}")</MudText>
+                    }
+                    else
+                    {
+                        @Localizer["AddDashboard"]
+                    }
+                </MudButton>
             </MudItem>
-
-            <MudButton OnClick="OpenSelectDashboardLinkModal"
-                       FullWidth="true"
-                       Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
-                       StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Check : Icons.Material.Filled.AddLink)"
-                       Color="MudBlazor.Color.Inherit"
-                       Size="MudBlazor.Size.Large"
-                       Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
-                       Disabled="false">
-
-                @if (_selectedDashboard != null)
-                {
-                    <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}, {Localizer["ClickForSelectOther"]}")</MudText>
-                }
-                else
-                {
-                    @Localizer["AddDashboard"]
-                }
-            </MudButton>
         </MudGrid>
 
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["VisualisationName"]</MudText>
