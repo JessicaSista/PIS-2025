@@ -9,6 +9,7 @@
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<CreateVisualizationCard> Localizer
 @inject IDialogService DialogService
+@inject IJSRuntime JS
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
@@ -167,21 +168,21 @@
                     <div class="d-flex" style="gap:8px; margin-bottom:8px;">
                         @if (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 1)" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 2)" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 3)" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
                         }
                         else if (string.Equals(_selectedModuleName, "Urban Monitor", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Noticia</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 1)" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 2)" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Noticia</MudButton>
                         }
                         else if (string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 1)" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 2)" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="@(_isTypeLocked && _selectedType != 3)" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
                         }
                     </div>
 
@@ -438,13 +439,18 @@
                     if (string.IsNullOrWhiteSpace(moduleName))
                         moduleName = "Unknown";
 
-                    return new DatasetItem
+                    var item = new DatasetItem
                     {
                         Id = ds.Id,
                         Nombre = ds.Nombre,
                         Module = moduleName,
                         ContentType = ds.ContentType
                     };
+                    
+                    // Log para debug
+                    Console.WriteLine($"[LoadDatasets] Dataset: {item.Nombre}, Module: {item.Module}, ContentType: '{item.ContentType}'");
+                    
+                    return item;
                 })
                 .OrderBy(i => i.Module)
                 .ThenBy(i => i.Nombre)
@@ -494,6 +500,8 @@
         }
 
         var selectedItem = _datasetItems.FirstOrDefault(i => i.Key == _selectedDatasetKey);
+        
+        Console.WriteLine($"[OnDatasetChanged] Dataset seleccionado: {selectedItem?.Nombre ?? "null"}, ContentType: '{selectedItem?.ContentType ?? "null"}'");
 
         var idx = _selectedDatasetKey.LastIndexOf("__", StringComparison.Ordinal);
         if (idx >= 0)
@@ -608,84 +616,136 @@
 
     private async Task ApplyContentTypeLockAsync(DatasetItem? datasetItem)
     {
+        Console.WriteLine($"[ApplyContentTypeLockAsync] Inicio - datasetItem: {(datasetItem != null ? datasetItem.Nombre : "null")}, ContentType: '{(datasetItem?.ContentType ?? "null")}'");
+        
         _isTypeLocked = false;
 
         var moduleCode = GetModuleCode(_selectedModuleName);
+        Console.WriteLine($"[ApplyContentTypeLockAsync] moduleCode: '{moduleCode}', _selectedModuleName: '{_selectedModuleName}'");
+        
         if (datasetItem == null || string.IsNullOrWhiteSpace(moduleCode))
         {
+            Console.WriteLine($"[ApplyContentTypeLockAsync] Salida temprana - datasetItem es null o moduleCode vacío");
+            StateHasChanged(); // Actualizar UI cuando no hay contentType
             return;
         }
 
         if (TryResolveTypeFromContent(moduleCode, datasetItem.ContentType, out var resolvedType))
         {
+            Console.WriteLine($"[ApplyContentTypeLockAsync] Tipo resuelto: {resolvedType}, bloqueando tipo");
             _selectedType = resolvedType;
             _isTypeLocked = true;
             await LoadFieldTypes();
+            StateHasChanged(); // Actualizar UI para mostrar botones bloqueados
         }
+        else
+        {
+            Console.WriteLine($"[ApplyContentTypeLockAsync] No se pudo resolver el tipo desde ContentType: '{datasetItem.ContentType}'");
+            StateHasChanged(); // Actualizar UI cuando no se puede resolver el tipo
+        }
+        
+        Console.WriteLine($"[ApplyContentTypeLockAsync] Fin - _isTypeLocked: {_isTypeLocked}, _selectedType: {_selectedType}");
     }
 
     private bool TryResolveTypeFromContent(string? moduleCode, string? rawContentType, out int resolvedType)
     {
         resolvedType = 0;
+        Console.WriteLine($"[TryResolveTypeFromContent] Inicio - moduleCode: '{moduleCode}', rawContentType: '{rawContentType}'");
+        
         if (string.IsNullOrWhiteSpace(moduleCode) || string.IsNullOrWhiteSpace(rawContentType))
         {
+            Console.WriteLine($"[TryResolveTypeFromContent] Salida temprana - moduleCode o rawContentType vacío");
             return false;
         }
 
         var normalized = rawContentType.Trim().ToLowerInvariant();
+        Console.WriteLine($"[TryResolveTypeFromContent] normalized: '{normalized}'");
 
         bool Matches(string keyword) => normalized.Contains(keyword);
 
         if (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase))
         {
-            if (Matches("asset") || normalized == "2")
-            {
-                resolvedType = 1;
-                return true;
-            }
-            if (Matches("event") || Matches("task") || normalized == "1")
+            Console.WriteLine($"[TryResolveTypeFromContent] Módulo AM - verificando matches");
+            // Verificar EventTask primero (más específico) antes que Asset
+            if (normalized == "eventtask" || (Matches("event") && Matches("task")) || normalized == "1")
             {
                 resolvedType = 2;
+                Console.WriteLine($"[TryResolveTypeFromContent] AM - Match EventTask (tipo 2)");
                 return true;
             }
-            if (Matches("stock") || normalized == "3")
+            if (normalized == "asset" || normalized == "2")
+            {
+                resolvedType = 1;
+                Console.WriteLine($"[TryResolveTypeFromContent] AM - Match Asset (tipo 1)");
+                return true;
+            }
+            if (normalized == "stock" || normalized == "3")
             {
                 resolvedType = 3;
+                Console.WriteLine($"[TryResolveTypeFromContent] AM - Match Stock (tipo 3)");
                 return true;
             }
         }
         else if (moduleCode.Equals("um", StringComparison.OrdinalIgnoreCase))
         {
+            Console.WriteLine($"[TryResolveTypeFromContent] Módulo UM - verificando matches");
             if (Matches("event") || Matches("evento") || normalized == "1")
             {
                 resolvedType = 1;
+                Console.WriteLine($"[TryResolveTypeFromContent] UM - Match Evento (tipo 1)");
                 return true;
             }
             if (Matches("news") || Matches("noticia") || normalized == "2")
             {
                 resolvedType = 2;
+                Console.WriteLine($"[TryResolveTypeFromContent] UM - Match Noticia (tipo 2)");
                 return true;
             }
         }
         else if (moduleCode.Equals("em", StringComparison.OrdinalIgnoreCase))
         {
-            if (Matches("alert") || normalized == "1")
+            Console.WriteLine($"[TryResolveTypeFromContent] Módulo EM - verificando matches");
+            // Verificar coincidencias exactas primero
+            if (normalized == "alert" || normalized == "1")
             {
                 resolvedType = 1;
+                Console.WriteLine($"[TryResolveTypeFromContent] EM - Match Alert (tipo 1)");
                 return true;
             }
-            if (Matches("event") || normalized == "2")
+            if (normalized == "event" || normalized == "2")
             {
                 resolvedType = 2;
+                Console.WriteLine($"[TryResolveTypeFromContent] EM - Match Event (tipo 2)");
                 return true;
             }
-            if (Matches("extension") || normalized == "3")
+            if (normalized == "extension" || normalized == "3")
             {
                 resolvedType = 3;
+                Console.WriteLine($"[TryResolveTypeFromContent] EM - Match Extension (tipo 3)");
+                return true;
+            }
+            // Fallback a matches parciales si no hay coincidencia exacta
+            if (Matches("alert"))
+            {
+                resolvedType = 1;
+                Console.WriteLine($"[TryResolveTypeFromContent] EM - Match Alert parcial (tipo 1)");
+                return true;
+            }
+            if (Matches("event"))
+            {
+                resolvedType = 2;
+                Console.WriteLine($"[TryResolveTypeFromContent] EM - Match Event parcial (tipo 2)");
+                return true;
+            }
+            if (Matches("extension"))
+            {
+                resolvedType = 3;
+                Console.WriteLine($"[TryResolveTypeFromContent] EM - Match Extension parcial (tipo 3)");
                 return true;
             }
         }
 
+        Console.WriteLine($"[TryResolveTypeFromContent] No se encontró match - retornando false");
         return false;
     }
 
@@ -733,6 +793,7 @@
         _selectedType = type;
 
         await LoadFieldTypes();
+        StateHasChanged(); // Asegurar que el botón Save se actualice
     }
 
     private async Task OnAtributoChanged(string atributo)

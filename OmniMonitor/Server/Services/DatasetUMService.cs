@@ -327,11 +327,32 @@ namespace OmniMonitor.Server.Services
                 return r.ContentType;
             }
             
-            // Lógica antigua para compatibilidad
-            if (r.IsDataset == "S") return "0";
-            if (r.EventIds?.Any() == true) return "1";
-            if (r.NewsIds?.Any() == true) return "2";
-            if (r.ZoneId.HasValue) return "3";
+            // Para datasets formales, determinar el tipo según los datos que contiene
+            if (r.IsDataset == "S")
+            {
+                // Si tiene eventos, es tipo Evento
+                if (r.EventIds?.Any() == true)
+                {
+                    return "Evento";
+                }
+                // Si tiene noticias, es tipo Noticia
+                if (r.NewsIds?.Any() == true)
+                {
+                    return "Noticia";
+                }
+                // Si solo tiene zona, por defecto es Evento (ya que las zonas generalmente tienen eventos)
+                if (r.ZoneId.HasValue)
+                {
+                    return "Evento";
+                }
+                // Fallback
+                return "0";
+            }
+            
+            // Para datasets no formales
+            if (r.EventIds?.Any() == true) return "Evento";
+            if (r.NewsIds?.Any() == true) return "Noticia";
+            if (r.ZoneId.HasValue) return "Evento"; // Zona generalmente implica eventos
             return null;
         }
 

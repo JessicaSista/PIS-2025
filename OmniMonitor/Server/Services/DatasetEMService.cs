@@ -176,14 +176,54 @@ namespace OmniMonitor.Server.Services
             }
         }
 
-        private static DatasetContentType GetContentType(CreateDatasetEMRequest r)
+        private static string GetContentType(CreateDatasetEMRequest r)
         {
-            DatasetContentType type = DatasetContentType.None;
-            if (r.AlertIds?.Any() == true) type |= DatasetContentType.Alerts;
-            if (r.EventIds?.Any() == true) type |= DatasetContentType.Events;
-            if (r.ExtensionIds?.Any() == true) type |= DatasetContentType.Extensions;
-            if (r.CategoryIds?.Any() == true) type |= DatasetContentType.Category;
-            return type;
+            // Si ContentType ya está establecido en el request (viene del frontend), usarlo directamente
+            // Esto es importante para datasets creados con filtros donde el ContentType viene como "1", "2", "3"
+            if (!string.IsNullOrEmpty(r.ContentType) && r.ContentType != "0")
+            {
+                // Mapear ContentType numérico a string descriptivo
+                if (r.ContentType == "1")
+                {
+                    return "Alert";
+                }
+                if (r.ContentType == "2")
+                {
+                    return "Event";
+                }
+                if (r.ContentType == "3")
+                {
+                    return "Extension";
+                }
+                if (r.ContentType == "4")
+                {
+                    return "Category";
+                }
+                // Si ya viene como string descriptivo, usarlo directamente
+                return r.ContentType;
+            }
+            
+            // Si no hay ContentType en el request, determinar el tipo principal según los datos que contiene
+            // Prioridad: Alerts > Events > Extensions > Category
+            if (r.AlertIds?.Any() == true)
+            {
+                return "Alert";
+            }
+            if (r.EventIds?.Any() == true)
+            {
+                return "Event";
+            }
+            if (r.ExtensionIds?.Any() == true)
+            {
+                return "Extension";
+            }
+            if (r.CategoryIds?.Any() == true)
+            {
+                return "Category";
+            }
+            
+            // Si no tiene ningún tipo específico, devolver "0" para datasets formales
+            return r.IsDataset == "S" ? "0" : null;
         }
 
         private async Task ValidateDuplicateName(string name, string username, int? excludeId = null)
@@ -209,7 +249,7 @@ namespace OmniMonitor.Server.Services
                 Description = request.Description,
                 Is_Dataset = request.IsDataset,
                 DatasetId = dataset,
-                ContentType = GetContentType(request).ToString(),
+                ContentType = GetContentType(request),
                 Filters = filtersJson // Almacenar los filtros como JSON
             };
 
@@ -239,7 +279,7 @@ namespace OmniMonitor.Server.Services
             existingDataset.Name = request.Name;
             existingDataset.Description = request.Description;
             existingDataset.Is_Dataset = request.IsDataset;
-            existingDataset.ContentType = GetContentType(request).ToString();
+            existingDataset.ContentType = GetContentType(request);
             existingDataset.Filters = filtersJson; // Actualizar los filtros
 
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);

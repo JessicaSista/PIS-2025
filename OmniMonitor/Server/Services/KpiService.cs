@@ -513,12 +513,7 @@ namespace OmniMonitor.Server.Services
             var dataset = await _datasetAmService.GetDatasetAMByIdAsync(kpi.DatasetId, username);
             if (dataset == null)
             {
-                return new KpiResponse
-                {
-                    Name = kpi.Name,
-                    ActualColor = kpi.DefaultColor,
-                    Value = "Dataset AM no encontrado"
-                };
+                return BuildNoDataResponse(kpi, "Dataset no encontrado");
             }
             KpiResponse? response;
             if (kpi.Type == 1)
@@ -669,12 +664,7 @@ namespace OmniMonitor.Server.Services
             var dataset = await _datasetEmService.GetDatasetEMByIdAsync(kpi.DatasetId, username);
             if (dataset == null)
             {
-                return new KpiResponse
-                {
-                    Name = kpi.Name,
-                    ActualColor = kpi.DefaultColor,
-                    Value = "Dataset EM no encontrado"
-                };
+                return BuildNoDataResponse(kpi, "Dataset no encontrado");
             }
 
             if (kpi.Type == 1)
@@ -761,12 +751,7 @@ namespace OmniMonitor.Server.Services
             var datasetUM = await _datasetUMService.GetDatasetUMByIdAsync(kpi.DatasetId, username);
             if (datasetUM == null)
             {
-                return new KpiResponse
-                {
-                    Name = kpi.Name,
-                    ActualColor = kpi.DefaultColor,
-                    Value = "Dataset UM no encontrado"
-                };
+                return BuildNoDataResponse(kpi, "Dataset no encontrado");
             }
             if (kpi.Type == 1)
             {

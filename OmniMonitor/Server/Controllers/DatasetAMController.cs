@@ -52,8 +52,10 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Validar filtros ANTES de crear el dataset general
+                // Mapear ContentType a Type_Dataset
                 if (req.ContentType == "2") // Asset
                 {
+                    req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
@@ -87,6 +89,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
+                    req.Type_Dataset = 1; // Establecer Type_Dataset para EventTask
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
                     
@@ -101,6 +104,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "3") // Stock
                 {
+                    req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
@@ -167,8 +171,10 @@ namespace OmniMonitor.Server.Controllers
                 var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
 
                 // Validar filtros ANTES de actualizar el dataset
+                // Mapear ContentType a Type_Dataset
                 if (req.ContentType == "2") // Asset
                 {
+                    req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
@@ -197,6 +203,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
+                    req.Type_Dataset = 1; // Establecer Type_Dataset para EventTask
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
                     
@@ -213,6 +220,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "3") // Stock
                 {
+                    req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
                     // [EDIT AM DATASET] Total Stocks obtenidos (log de consola removido).
                     

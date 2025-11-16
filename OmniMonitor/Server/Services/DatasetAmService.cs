@@ -306,7 +306,24 @@ namespace OmniMonitor.Server.Services
 
             if (request.IsDataset == "S")
             {
-                newDatasetAM.ContentType = "0"; // Dataset formal
+                // Para datasets formales, establecer ContentType según Type_Dataset
+                // Type_Dataset: 1 = EventTask, 2 = Asset, 3 = Stock
+                if (request.Type_Dataset == 1)
+                {
+                    newDatasetAM.ContentType = "EventTask";
+                }
+                else if (request.Type_Dataset == 2)
+                {
+                    newDatasetAM.ContentType = "Asset";
+                }
+                else if (request.Type_Dataset == 3)
+                {
+                    newDatasetAM.ContentType = "Stock";
+                }
+                else
+                {
+                    newDatasetAM.ContentType = "0"; // Fallback
+                }
             }
             else
             {
@@ -373,7 +390,24 @@ namespace OmniMonitor.Server.Services
 
             if (request.IsDataset == "S")
             {
-                existingDataset.ContentType = "0"; // Dataset formal
+                // Para datasets formales, establecer ContentType según Type_Dataset
+                // Type_Dataset: 1 = EventTask, 2 = Asset, 3 = Stock
+                if (request.Type_Dataset == 1)
+                {
+                    existingDataset.ContentType = "EventTask";
+                }
+                else if (request.Type_Dataset == 2)
+                {
+                    existingDataset.ContentType = "Asset";
+                }
+                else if (request.Type_Dataset == 3)
+                {
+                    existingDataset.ContentType = "Stock";
+                }
+                else
+                {
+                    existingDataset.ContentType = "0"; // Fallback
+                }
             }
             else
             {
