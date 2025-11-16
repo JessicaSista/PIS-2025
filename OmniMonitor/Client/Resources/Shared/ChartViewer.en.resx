@@ -117,157 +117,19 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="AddDataset" xml:space="preserve">
-    <value>Agregar Dataset</value>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
   </data>
-  <data name="AddSensor" xml:space="preserve">
-    <value>Agregar Sensor</value>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
   </data>
-  <data name="Cancel" xml:space="preserve">
-    <value>Cancelar</value>
+  <data name="LoadData" xml:space="preserve">
+    <value>Load data</value>
   </data>
-  <data name="Color" xml:space="preserve">
-    <value>Color</value>
+  <data name="Loading" xml:space="preserve">
+    <value>Loading...</value>
   </data>
-  <data name="Dataset" xml:space="preserve">
-    <value>Dataset</value>
-  </data>
-  <data name="From" xml:space="preserve">
-    <value>Desde</value>
-  </data>
-  <data name="Date" xml:space="preserve">
-    <value>Fecha</value>
-  </data>
-  <data name="Save" xml:space="preserve">
-    <value>Guardar</value>
-  </data>
-  <data name="To" xml:space="preserve">
-    <value>Hasta</value>
-  </data>
-  <data name="Time" xml:space="preserve">
-    <value>Hora</value>
-  </data>
-  <data name="Multiplier" xml:space="preserve">
-    <value>Multiplicador</value>
-  </data>
-  <data name="Name" xml:space="preserve">
-    <value>Nombre</value>
-  </data>
-  <data name="VisualisationName" xml:space="preserve">
-    <value>Nombre de la Visualización</value>
-  </data>
-  <data name="AddVisualisationTitle" xml:space="preserve">
-    <value>Nueva Visualización</value>
-  </data>
-  <data name="ChartType" xml:space="preserve">
-    <value>Tipo de Gráfica</value>
-  </data>
-  <data name="NewChart" xml:space="preserve">
-    <value>Nueva gráfica</value>
-  </data>
-  <data name="NewKPI" xml:space="preserve">
-    <value>Nuevo KPI</value>
-  </data>
-  <data name="Description" xml:space="preserve">
-    <value>Descripción</value>
-  </data>
-  <data name="Metric" xml:space="preserve">
-    <value>Tipo de métrica</value>
-  </data>
-  <data name="ColorRanges" xml:space="preserve">
-    <value>Rangos de color</value>
-  </data>
-  <data name="MinValue" xml:space="preserve">
-    <value>Valor mínimo</value>
-  </data>
-  <data name="MaxValue" xml:space="preserve">
-    <value>Valor máximo</value>
-  </data>
-  <data name="AddRange" xml:space="preserve">
-    <value>Agregar nuevo rango</value>
-  </data>
-  <data name="DateRange" xml:space="preserve">
-    <value>Rango de fechas</value>
-  </data>
-  <data name="NoData" xml:space="preserve">
-    <value>No hay datos disponibles</value>
-  </data>
-  <data name="ErrorFetchingDatasets" xml:space="preserve">
-    <value>Error al obtener datasets del backend.</value>
-  </data>
-  <data name="ErrorLoadingDatasets" xml:space="preserve">
-    <value>Error al cargar datasets: {0}</value>
-  </data>
-  <data name="DatasetAlreadyAdded" xml:space="preserve">
-    <value>Ese dataset ya fue agregado.</value>
-  </data>
-  <data name="DatasetAdded" xml:space="preserve">
-    <value>Dataset agregado.</value>
-  </data>
-  <data name="NewDatasetAdded" xml:space="preserve">
-    <value>Nuevo dataset agregado.</value>
-  </data>
-  <data name="VisualizationNameRequired" xml:space="preserve">
-    <value>El nombre de la visualización es obligatorio.</value>
-  </data>
-  <data name="SelectAtLeastOneDataset" xml:space="preserve">
-    <value>Selecciona al menos un dataset.</value>
-  </data>
-  <data name="DatasetMultiplierZero" xml:space="preserve">
-    <value>El multiplicador del dataset no puede ser 0.</value>
-  </data>
-  <data name="StartEndDateRequired" xml:space="preserve">
-    <value>Debes seleccionar fecha y hora de inicio y fin.</value>
-  </data>
-  <data name="EndDateAfterStartDate" xml:space="preserve">
-    <value>La fecha/hora de fin debe ser posterior a la de inicio.</value>
-  </data>
-  <data name="UserNotFound" xml:space="preserve">
-    <value>No se encontró el usuario.</value>
-  </data>
-  <data name="GeneralError" xml:space="preserve">
-    <value>Error: {0}</value>
-  </data>
-  <data name="VisualizationCreated" xml:space="preserve">
-    <value>Visualización creada correctamente.</value>
-  </data>
-  <data name="ErrorCreatingVisualization" xml:space="preserve">
-    <value>Error creando visualización: {0}</value>
-  </data>
-  <data name="KpiNameRequired" xml:space="preserve">
-    <value>El nombre del KPI es obligatorio.</value>
-  </data>
-  <data name="KpiCreated" xml:space="preserve">
-    <value>KPI '{0}' creado correctamente.</value>
-  </data>
-  <data name="ErrorCreatingKpi" xml:space="preserve">
-    <value>Error creando KPI: {0}</value>
-  </data>
-  <data name="ServerConnectionError" xml:space="preserve">
-    <value>Error al conectar con el servidor: {0}</value>
-  </data>
-  <data name="DateRangeInvalid" xml:space="preserve">
-    <value>El rango de fechas no es válido</value>
-  </data>
-  <data name="EditKPI" xml:space="preserve">
-    <value>Editar KPI</value>
-  </data>
-  <data name="KpiUpdatedSuccess" xml:space="preserve">
-    <value>KPI actualizado correctamente.</value>
-  </data>
-  <data name="AddDashboard" xml:space="preserve">
-    <value>Agregar link a dashboard</value>
-  </data>
-  <data name="DashboardLinked" xml:space="preserve">
-    <value>Dashboard seleccionado:</value>
-  </data>
-  <data name="ClickForSelectOther" xml:space="preserve">
-    <value>Haga clic para cambiar su elección</value>
-  </data>
-  <data name="DashboardLinkAdded" xml:space="preserve">
-    <value>Link agregado</value>
-  </data>
-  <data name="ErrorLoadingPreview" xml:space="preserve">
-    <value>Error al cargar la previsualización: {0}</value>
+  <data name="NoDataFound" xml:space="preserve">
+    <value>No data was found</value>
   </data>
 </root>

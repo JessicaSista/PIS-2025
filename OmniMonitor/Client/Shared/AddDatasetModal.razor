@@ -11,7 +11,7 @@
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
-            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1" />
             @Localizer["AddDataset"]
         </MudText>
     </TitleContent>
@@ -49,7 +49,7 @@
                                Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
                                Class="pa-0">
                         <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
-                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)"/>
+                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)" />
                             <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@(!string.IsNullOrWhiteSpace(ds.Nombre) ? ds.Nombre : (!string.IsNullOrWhiteSpace(ds.Descripcion) ? ds.Descripcion : $"Dataset {ds.Id}"))</MudText>
                         </MudStack>
                     </MudButton>
@@ -74,7 +74,7 @@
 
     private List<DatasetDtoGenerico> _datasets = new();
     private bool _isLoading = true;
-    
+
 
     protected override async Task OnInitializedAsync()
     {

@@ -20,5 +20,7 @@ namespace OmniMonitor.Shared.Dtos.AM
         public string AlertTimeSpan { get; set; }
         public bool PredictionTask { get; set; }
         public int BundleId { get; set; }
+
+        public override string ToString() => Subject ?? String.Empty;
     }
 }

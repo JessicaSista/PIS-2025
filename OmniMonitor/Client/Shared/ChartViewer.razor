@@ -9,6 +9,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject HttpClient Http
+@inject IStringLocalizer<ChartViewer> Localizer
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -40,10 +41,10 @@
                     {
                         <MudMenu Icon="@Icons.Material.Filled.MoreVert">
                             <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
-                                <MudText Typo="Typo.body2">Editar</MudText>
+                        <MudText Typo="Typo.body2">@Localizer["Edit"]</MudText>
                             </MudMenuItem>
                             <MudMenuItem OnClick="@(() => DeleteVisualization())">
-                                <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>Eliminar</MudText>
+                        <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>@Localizer["Delete"]</MudText>
                             </MudMenuItem>
                         </MudMenu>
                     }
@@ -71,7 +72,7 @@
                     }
                     else
                     {
-                        <MudText>No se encontraron datos</MudText>
+                        <MudText>@Localizer["NoDataFound"]</MudText>
                     }
                 }
                 else{
@@ -80,11 +81,11 @@
                             @if (_retrievingData)
                             {
                                 <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
-                                <MudText Class="ms-2">Cargando...</MudText>
+                        <MudText Class="ms-2">@Localizer["Loading"].</MudText>
                             }
                             else
                             {
-                                <MudText>Cargar Datos</MudText>
+                        <MudText>@Localizer["LoadData"]</MudText>
                             }
                         </MudButton>
                     </MudContainer>
@@ -134,9 +135,9 @@
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
     [Parameter] public bool showCustomizationIcon {get; set;} = false;
     [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
+    [Parameter] public Visualizacion visualization { get; set; } = null;
 
-    // Local Variables
-    private Visualizacion _visualization {get; set;}
+
     private bool _dataRetrieved = false;
     private bool _retrievingData = false;
     private string _authenticatedUser = string.Empty;
@@ -220,22 +221,22 @@
         var allData = new List<object>();
         try
         {
-            DateTime dateFrom = _visualization.FechaDesde;
-            DateTime dateTo = _visualization.FechaHasta;
+            DateTime dateFrom = visualization.FechaDesde;
+            DateTime dateTo = visualization.FechaHasta;
 
             List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
 
-            foreach (var grupoDataset in _visualization.GrupoDatasets)
+            foreach (var grupoDataset in visualization.GrupoDatasets)
             {
                 try
                 {
                     decimal multiplier = 1;
-                    System.String color = "#00FFE7";
-                    System.String attribute = String.Empty;
-                    System.String module = String.Empty;
-                    System.String entity = String.Empty;
-                    System.String displayName = String.Empty;
-                    System.Int32 idInModule = 0;
+                    string color = "#00FFE7";
+                    string attribute = String.Empty;
+                    string module = String.Empty;
+                    string entity = String.Empty;
+                    string displayName = String.Empty;
+                    int idInModule = 0;
 
                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
                     {
@@ -346,7 +347,7 @@
                         };
                         HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                        
+
                         tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
                     }
                 }
@@ -492,12 +493,13 @@
     private async Task OpenEditVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
+        DialogParameters parameters = new DialogParameters{["currVisualization"] = visualization,};
         IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
         {
+            visualization = null;
             await DownloadVisualization();
             await RetrieveData();
             StateHasChanged();
@@ -514,7 +516,7 @@
             if(response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Visualizacion eliminada", Severity.Success);
-                await OnDeleted.InvokeAsync(_visualization == null ? VisualizationId : _visualization.IdVisualizacion);
+                await OnDeleted.InvokeAsync(visualization == null ? VisualizationId : visualization.IdVisualizacion);
             }
             else
             {

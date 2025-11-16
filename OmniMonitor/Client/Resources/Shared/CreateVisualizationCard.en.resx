@@ -154,10 +154,10 @@
     <value>Name</value>
   </data>
   <data name="VisualisationName" xml:space="preserve">
-    <value>Visualisation Name</value>
+    <value>Visualization Name</value>
   </data>
   <data name="AddVisualisationTitle" xml:space="preserve">
-    <value>New Visualisation</value>
+    <value>New Visualization</value>
   </data>
   <data name="ChartType" xml:space="preserve">
     <value>Chart Type</value>
@@ -254,6 +254,18 @@
   </data>
   <data name="KpiUpdatedSuccess" xml:space="preserve">
     <value>KPI updated successfully.</value>
+  </data>
+  <data name="AddDashboard" xml:space="preserve">
+    <value>Add link to dashboard</value>
+  </data>
+  <data name="DashboardLinked" xml:space="preserve">
+    <value>Selected dashboard:</value>
+  </data>
+  <data name="ClickForSelectOther" xml:space="preserve">
+    <value>Click here to change your election</value>
+  </data>
+  <data name="DashboardLinkAdded" xml:space="preserve">
+    <value>Link added</value>
   </data>
   <data name="ErrorLoadingPreview" xml:space="preserve">
     <value>Error loading preview: {0}</value>

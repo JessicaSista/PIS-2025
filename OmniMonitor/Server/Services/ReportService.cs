@@ -14,6 +14,15 @@ using iText.Layout.Properties;
 using iText.Kernel.Colors;
 using iText.IO.Font.Constants;
 
+using iTextSharp.text.pdf;
+
+using Microsoft.EntityFrameworkCore;
+
+using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Services;
+using OmniMonitor.Shared;
+using OmniMonitor.Shared.Dtos;
+
 public interface IReportService
 {
     Task<Report> CreateReportAsync(CreateReportRequestDto request, string username);
@@ -33,6 +42,15 @@ public interface IReportService
     byte[] GenerateReportPdfFromData(List<dynamic> reportData, List<string> columns, string reportTitle);
     string GenerateReportHtml(List<dynamic> reportData, List<string> columns, string reportTitle);
 
+    Task<int> CreateScheduledReportAsync(ScheduledReportRequest dto, string username);
+
+    Task<List<ScheduledReport>> GetScheduledReports();
+    Task<List<ScheduledReportResponse>> GetScheduledReportsByUserAsync(string username);
+    Task<ScheduledReportResponse?> GetScheduledReportByIdAsync(int id, string username);
+
+    Task DeleteScheduledReportAsync(int id);
+    Task ProcessScheduledReportsAsync();
+
 }
 
 public class ReportService : IReportService
@@ -43,9 +61,10 @@ public class ReportService : IReportService
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ISondaIMService _sondaIMService;
     private readonly ILogger<ReportService> _logger;
+    private readonly IMailService _mailService;
 
     public ReportService(ApplicationDbContext context, IJoinConfigurationService JoinConfigurationService,
-        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService, ILogger<ReportService> logger)
+        IApiDataService ApiDataService, ISondaAuthService SondaAuthService, ISondaIMService SondaIMService, ILogger<ReportService> logger, IMailService mailService)
     {
         _context = context;
         _joinConfigService = JoinConfigurationService;
@@ -53,6 +72,7 @@ public class ReportService : IReportService
         _sondaAuthService = SondaAuthService;
         _sondaIMService = SondaIMService;
         _logger = logger;
+        _mailService = mailService;
     }
 
     /// <summary>
@@ -400,6 +420,11 @@ public class ReportService : IReportService
         return finalResults;
     }
 
+
+
+
+
+
     private IEnumerable<dynamic> PrefixDatasetData(IEnumerable<dynamic> datasetData, string prefix)
     {
         if (datasetData == null || !datasetData.Any())
@@ -539,8 +564,8 @@ public class ReportService : IReportService
             using (var memoryStream = new MemoryStream())
             {
                 // Crear documento PDF usando iText7
-                var writer = new PdfWriter(memoryStream);
-                var pdf = new PdfDocument(writer);
+                var writer = new iText.Kernel.Pdf.PdfWriter(memoryStream);
+                var pdf = new iText.Kernel.Pdf.PdfDocument(writer);
                 
                 // Configurar página horizontal si hay muchas columnas
                 var pageSize = columns.Count > 6 ? 
@@ -855,4 +880,405 @@ public class ReportService : IReportService
             _ => TextAlignment.LEFT
         };
     }
+
+    public async Task<int> CreateScheduledReportAsync(ScheduledReportRequest dto, string username)
+    {
+        if (dto.Recipients == null || dto.Recipients.Count == 0)
+            throw new ArgumentException("Debe especificar al menos un destinatario.");
+
+        if (dto.Recipients.Count > 50)
+            throw new ArgumentException("No se permiten más de 50 destinatarios por programación.");
+
+        foreach (var email in dto.Recipients)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+            }
+            catch
+            {
+                throw new ArgumentException($"El correo '{email}' no es válido.");
+            }
+        }
+
+        var validTypes = new[] { "DAILY", "WEEKLY", "MONTHLY", "ADVANCED" };
+        if (!validTypes.Contains(dto.ScheduleType.ToUpper()))
+            throw new ArgumentException("Tipo de programación no válido. Use DAILY, WEEKLY, MONTHLY o ADVANCED.");
+
+        if (dto.ScheduleType != "ADVANCED" && string.IsNullOrWhiteSpace(dto.SendAtLocalTime))
+            throw new ArgumentException("Debe indicar una hora para los tipos de programación diaria, semanal o mensual.");
+
+        if (dto.ScheduleType == "ADVANCED" && string.IsNullOrWhiteSpace(dto.AdvancedRule))
+            throw new ArgumentException("Debe especificar una regla avanzada si usa tipo ADVANCED.");
+
+        // 3️⃣ Zona horaria
+        if (string.IsNullOrWhiteSpace(dto.TimeZone))
+            throw new ArgumentException("Debe especificar una zona horaria válida.");
+
+        try
+        {
+            TimeZoneInfo.FindSystemTimeZoneById(dto.TimeZone);
+        }
+        catch
+        {
+            throw new ArgumentException($"La zona horaria '{dto.TimeZone}' no es válida.");
+        }
+
+        var existing = await _context.ScheduledReports
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r =>
+                r.ReportId == dto.ReportId &&
+                r.Username == username &&
+                r.ScheduleType == dto.ScheduleType &&
+                r.SendAtLocalTime == dto.SendAtLocalTime &&
+                r.AdvancedRule == dto.AdvancedRule &&
+                r.TimeZone == dto.TimeZone);
+
+        if (existing != null)
+            throw new ArgumentException("Ya existe una programación idéntica para este reporte.");
+
+        int count = await _context.ScheduledReports.CountAsync(r => r.Username == username);
+        if (count >= 100)
+            throw new ArgumentException("Se alcanzó el límite máximo de programaciones permitidas (100).");
+
+        var entity = new ScheduledReport
+        {
+            ReportId = dto.ReportId,
+            Username = username,
+            ScheduleType = dto.ScheduleType,
+            IntervalMinutes = dto.IntervalMinutes,
+            SendAtLocalTime = dto.SendAtLocalTime,
+            AdvancedRule = dto.AdvancedRule,
+            TimeZone = dto.TimeZone,
+            RecipientsJson = JsonSerializer.Serialize(dto.Recipients),
+            Subject = dto.Subject,
+            Message = dto.Message,
+            LastExecution = null,
+            IsActive = true
+        };
+
+        _context.ScheduledReports.Add(entity);
+        await _context.SaveChangesAsync();
+
+        return entity.Id;
+    }
+
+    public async Task<List<ScheduledReport>> GetScheduledReports()
+    {
+        return await _context.ScheduledReports
+            .AsNoTracking()
+            .OrderBy(sr => sr.Id)
+            .ToListAsync();
+    }
+
+
+    public async Task<List<ScheduledReportResponse>> GetScheduledReportsByUserAsync(string username)
+    {
+        var list = await _context.ScheduledReports
+            .AsNoTracking()
+            .Where(sr => sr.Username == username && sr.IsActive)
+            .OrderBy(sr => sr.Id)
+            .ToListAsync();
+
+        return list
+            .Select(sr => MapToResponse(sr))
+            .ToList();
+    }
+
+
+    private ScheduledReportResponse MapToResponse(ScheduledReport entity)
+    {
+        return new ScheduledReportResponse
+        {
+            Id = entity.Id,
+            ReportId = entity.ReportId,
+            Username = entity.Username,
+            ScheduleType = entity.ScheduleType,
+            IntervalMinutes = entity.IntervalMinutes,
+            SendAtLocalTime = entity.SendAtLocalTime,
+            AdvancedRule = entity.AdvancedRule,
+            TimeZone = entity.TimeZone,
+            Recipients = string.IsNullOrWhiteSpace(entity.RecipientsJson)
+                ? new List<string>()
+                : JsonSerializer.Deserialize<List<string>>(entity.RecipientsJson),
+            Subject = entity.Subject,
+            Message = entity.Message,
+            LastExecution = entity.LastExecution,
+            IsActive = entity.IsActive
+        };
+    }
+
+
+
+    public async Task<ScheduledReportResponse?> GetScheduledReportByIdAsync(int id, string username)
+    {
+        var entity = await _context.ScheduledReports
+            .AsNoTracking()
+            .Where(sr => sr.Id == id && sr.Username == username && sr.IsActive)
+            .FirstOrDefaultAsync();
+
+        if (entity == null)
+            return null;
+
+        return MapToResponse(entity);
+    }
+
+    public async Task DeleteScheduledReportAsync(int id)
+    {
+        var report = await _context.ScheduledReports
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (report == null)
+            throw new ArgumentException($"No se encontró la programación con Id {id}.");
+
+
+        _context.ScheduledReports.Remove(report);
+        await _context.SaveChangesAsync();
+    }
+
+
+    public ScheduledReportResponse MapToDto(ScheduledReport entity)
+    {
+        return new ScheduledReportResponse
+        {
+            Id = entity.Id,
+            ReportId = entity.ReportId,
+            Username = entity.Username,
+            ScheduleType = entity.ScheduleType,
+            IntervalMinutes = entity.IntervalMinutes,
+            SendAtLocalTime = entity.SendAtLocalTime,
+            AdvancedRule = entity.AdvancedRule,
+            TimeZone = entity.TimeZone,
+            Recipients = JsonSerializer.Deserialize<List<string>>(entity.RecipientsJson),
+            Subject = entity.Subject,
+            Message = entity.Message,
+            IsActive = entity.IsActive,
+            LastExecution = entity.LastExecution
+        };
+    }
+
+    public async Task ProcessScheduledReportsAsync()
+    {
+        var utcNow = DateTime.UtcNow;
+
+        var scheduledReports = await _context.ScheduledReports
+            .Where(r => r.IsActive)
+            .ToListAsync();
+
+        foreach (var report in scheduledReports)
+        {
+            try
+            {
+                if (ShouldSend(report, utcNow))
+                {
+                    await sendScheduledReport(report);
+
+                    report.LastExecution = utcNow;
+                    _context.ScheduledReports.Update(report);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error procesando reporte {report.Id}: {ex.Message}");
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task sendScheduledReport(ScheduledReport scheduled)
+    {
+        if (scheduled == null)
+            return;
+
+        try
+        {
+
+            // 2. Generar PDF
+            var pdfBytes = await GenerateReportPdfAsync(scheduled.ReportId, scheduled.Username);
+
+            // 3. Obtener destinatarios
+            List<string>? recipients;
+
+            try
+            {
+                recipients = JsonSerializer.Deserialize<List<string>>(scheduled.RecipientsJson)
+                             ?? new List<string>();
+            }
+            catch
+            {
+                return;
+            }
+
+            if (recipients.Count == 0)
+                return;
+
+            // 4. Enviar email
+            await _mailService.SendEmailAsync(
+                recipients: recipients,
+                subject: scheduled.Subject,
+                message: scheduled.Message,
+                pdfAttachment: pdfBytes,
+                pdfName: $"Reporte_{scheduled.Id}.pdf"
+            );
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+
+
+    private async Task<byte[]> GenerateReportPdfAsync(Report report)
+    {
+        using var ms = new MemoryStream();
+
+        var doc = new iTextSharp.text.Document(iTextSharp.text.PageSize.A4);
+
+        iTextSharp.text.pdf.PdfWriter.GetInstance(doc, ms);
+
+        doc.Open();
+
+        doc.Add(new iTextSharp.text.Paragraph("📄 Reporte generado automáticamente"));
+        doc.Add(new iTextSharp.text.Paragraph($"Reporte ID: {report.Id}"));
+        doc.Add(new iTextSharp.text.Paragraph($"Nombre: {report.Name}"));
+        doc.Add(new iTextSharp.text.Paragraph($"Fecha: {DateTime.Now}"));
+        doc.Add(new iTextSharp.text.Paragraph(" "));
+        doc.Add(new iTextSharp.text.Paragraph("Este es un PDF dummy, la versión real será implementada después."));
+
+        doc.Close();
+
+        return await Task.FromResult(ms.ToArray());
+    }
+
+
+
+    public bool ShouldSend(ScheduledReport report, DateTime utcNow)
+    {
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(report.TimeZone);
+        var localNow = TimeZoneInfo.ConvertTimeFromUtc(utcNow, tz);
+
+        if (!report.IsActive)
+            return false;
+
+        if (report.LastExecution.HasValue)
+        {
+            var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
+
+            if (report.ScheduleType != "ADVANCED" && lastLocal.Date == localNow.Date)
+                return false;
+        }
+
+        switch (report.ScheduleType)
+        {
+            case "DAILY":
+                return localNow.TimeOfDay >= TimeSpan.Parse(report.SendAtLocalTime);
+
+            case "WEEKLY":
+                return ShouldSendWeekly(report, localNow);
+
+            case "MONTHLY":
+                return ShouldSendMonthly(report, localNow);
+
+            case "ADVANCED":
+                return ShouldSendAdvanced(report, localNow);
+
+            default:
+                return false;
+        }
+    }
+
+    private bool ShouldSendMonthly(ScheduledReport report, DateTime localNow)
+    {
+        if (report.LastExecution.HasValue)
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(report.TimeZone);
+            var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
+
+            if (lastLocal.Date == localNow.Date)
+                return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(report.AdvancedRule))
+            return false;
+
+        var obj = JsonSerializer.Deserialize<MonthlyRule>(report.AdvancedRule);
+        var sendTime = TimeSpan.Parse(report.SendAtLocalTime);
+
+        return localNow.Day == obj.day &&
+               localNow.TimeOfDay >= sendTime;
+    }
+
+
+    public class MonthlyRule
+    {
+        public int day { get; set; }
+    }
+
+    private bool ShouldSendWeekly(ScheduledReport report, DateTime localNow)
+    {
+
+        if (report.LastExecution.HasValue)
+        {
+            var tz = TimeZoneInfo.FindSystemTimeZoneById(report.TimeZone);
+            var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
+
+            if (lastLocal.Date == localNow.Date)
+                return false;
+        }
+
+        var obj = JsonSerializer.Deserialize<WeeklyRule>(report.AdvancedRule);
+
+        var dayOfWeek = ParseDayOfWeek(obj.day);
+        var sendTime = TimeSpan.Parse(report.SendAtLocalTime);
+
+        return localNow.DayOfWeek == dayOfWeek &&
+               localNow.TimeOfDay >= sendTime;
+    }
+
+    public class WeeklyRule
+    {
+        public string day { get; set; }
+    }
+
+    private bool ShouldSendAdvanced(ScheduledReport report, DateTime localNow)
+    {
+        // { "days": ["MON","THU"], "time": "08:00" }
+        var obj = JsonSerializer.Deserialize<AdvancedRule>(report.AdvancedRule);
+
+        var targetDays = obj.days.Select(ParseDayOfWeek).ToList();
+        var targetTime = TimeSpan.Parse(obj.time);
+
+        return targetDays.Contains(localNow.DayOfWeek) &&
+               localNow.TimeOfDay >= targetTime;
+    }
+
+    public class AdvancedRule
+    {
+        public string[] days { get; set; }
+        public string time { get; set; }
+    }
+
+
+    // Helpers
+    private DayOfWeek ParseDayOfWeek(string s)
+    {
+        return s.ToUpper() switch
+        {
+            "MON" => DayOfWeek.Monday,
+            "TUE" => DayOfWeek.Tuesday,
+            "WED" => DayOfWeek.Wednesday,
+            "THU" => DayOfWeek.Thursday,
+            "FRI" => DayOfWeek.Friday,
+            "SAT" => DayOfWeek.Saturday,
+            "SUN" => DayOfWeek.Sunday,
+            _ => throw new Exception("Día inválido en regla avanzada")
+        };
+    }
+
+
+    // Solo para simplificar ejemplo semanal
+    private DayOfWeek DayOfWeekFromAdvancedRule(string rule) => ParseDayOfWeek(rule.Split(',')[0]);
+
 }

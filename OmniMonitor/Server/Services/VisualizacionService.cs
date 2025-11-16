@@ -92,7 +92,7 @@ namespace OmniMonitor.Server.Services
         
         public async Task<List<Visualizacion>> GetAllVisualizacionesPaginatedAsync(string username, int page, int pageSize, string? query = null)
         {
-            var visualizacionesQuery = _context.Visualizaciones.Where(v => v.Username == username);
+            var visualizacionesQuery = _context.Visualizaciones.Include(v => v.GrupoDatasets).ThenInclude(gd => gd.Dataset).Where(v => v.Username == username);
             if (!string.IsNullOrWhiteSpace(query))
             {
                 var loweredQuery = query.ToLowerInvariant();

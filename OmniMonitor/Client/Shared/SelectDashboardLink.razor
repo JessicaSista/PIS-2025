@@ -1,4 +1,4 @@
-﻿@using Blazored.LocalStorage
+@using Blazored.LocalStorage
 @using Microsoft.Extensions.Localization
 @using System.Text.Json
 @using OmniMonitor.Shared.Dtos
@@ -68,8 +68,7 @@
     {
         try
         {
-            string token = await LocalStorage.GetItemAsync<string>("authToken");
-            string requestUrl = $"api/Dashboard/GetAllDashboardsPaginated?page={_currentPage}&pageSize={_pageSize}&token={token}";
+            string requestUrl = $"api/Dashboard/GetAllDashboardsPaginated?page={_currentPage}&pageSize={_pageSize}";
             PaginatedDashboardDto result = await Http.GetFromJsonAsync<PaginatedDashboardDto>(requestUrl);
 
             if (result != null)

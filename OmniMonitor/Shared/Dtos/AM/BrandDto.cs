@@ -19,6 +19,8 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("bundleDtos")]
         public List<BundleDto>? BundleDtos { get; set; }
+
+        public override string ToString() => Name;
     }
 }
 

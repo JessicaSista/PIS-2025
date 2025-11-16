@@ -2,93 +2,85 @@
 @using MudBlazor.Extensions
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
-@using Blazored.LocalStorage
 @using System.Globalization
 @using Microsoft.Extensions.Localization
-@inject IDialogService DialogService
-@inject NavigationManager Nav
-@inject ISnackbar Snackbar
 @inject HttpClient Http
-@inject ILocalStorageService LocalStorage
-@inject AuthenticationStateProvider AuthenticationStateProvider
-
-
+@inject IStringLocalizer<ChartViewer> Localizer
 
 <MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
 
-    
-            <MudCardHeader>
-                <CardHeaderAvatar>
-                    @if (ShowIcon) {
-                        <MudPaper Square="true" Class="pa-2" Style="background-color: #1d283a !important; color: #f4f8fd; border-radius: 2px">
-                            <MudIcon Icon="@GetIcon(_chartType)" />
-                        </MudPaper>
-                    }
-                    else
-                    {
-                        <div style="width: 0px;"></div>
-                    }
-                </CardHeaderAvatar>
-                <CardHeaderContent>
-                    @if (ShowTitle) {   
-                        <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)" >@_title</MudText>
-                    }
-                </CardHeaderContent>
+        <MudCardHeader>
+            <CardHeaderAvatar>
+                @if (ShowIcon) {
+                    <MudPaper Square="true" Class="pa-2" Style="background-color: #1d283a !important; color: #f4f8fd; border-radius: 2px">
+                        <MudIcon Icon="@GetIcon(_chartType)" />
+                    </MudPaper>
+                }
+                else
+                {
+                    <div style="width: 0px;"></div>
+                }
+            </CardHeaderAvatar>
+            <CardHeaderContent>
+                @if (ShowTitle) {   
+                    <MudText Typo="Typo.h6" Style="color: var(--card-text-primary)">@_title</MudText>
+                }
+            </CardHeaderContent>
+
+        </MudCardHeader>
+
+        <MudCardContent Class="pl-7 pr-8"
+                        Style="color: var(--card-text-secondary); height: 100%">
+            @if(_dataRetrieved){
+                @if (_seriesData.Any())
+                {
+                    <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
+                        @foreach (DatasetSeries serie in _seriesData)
+                        {
+                            <ApexPointSeries TItem="ChartPoint"
+                                            Items="serie.Points"
+                                            Name="@serie.DatasetName"
+                                            SeriesType="@_seriesType"
+                                            XValue="@(p => p.X)"
+                                            YValue="@(p => (decimal)p.Y)"
+                                            Color="@serie.Color" />
+                        }
+                    </ApexChart>
+                }
+                else
+                {
+                    <MudText>@Localizer["NoDataFound"]</MudText>
+                }
+            }
+            else{
+                <MudContainer Class="d-flex justify-center align-center" Style="min-height: 270px">
+                    <MudButton Disabled="@_retrievingData" OnClick="RetrieveData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
+                        @if (_retrievingData)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
+                    <MudText Class="ms-2">@Localizer["Loading"]</MudText>
+                        }
+                        else
+                        {
+                    <MudText>@Localizer["LoadData"]</MudText>
+                        }
+                    </MudButton>
+                </MudContainer>
+            }
+        </MudCardContent>
+
+
+        <MudCardActions Class="d-block">
+            @if (ShowDatasetsInfo)
+            {
+                <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
+            }
+            @if (ShowLastUpdatedInfo)
+            {
                 
-            </MudCardHeader>
-
-            <MudCardContent Class="pl-7 pr-8"
-                            Style="color: var(--card-text-secondary); height: 100%">
-                @if(_dataRetrieved){
-                    @if (_seriesData.Any())
-                    {
-                        <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
-                            @foreach (DatasetSeries serie in _seriesData)
-                            {
-                                <ApexPointSeries TItem="ChartPoint"
-                                                Items="serie.Points"
-                                                Name="@serie.DatasetName"
-                                                SeriesType="@_seriesType"
-                                                XValue="@(p => p.X)"
-                                                YValue="@(p => (decimal)p.Y)"
-                                                Color="@serie.Color" />
-                            }
-                        </ApexChart>
-                    }
-                    else
-                    {
-                        <MudText>No se encontraron datos</MudText>
-                    }
-                }
-                else{
-                    <MudContainer Class="d-flex justify-center align-center" Style="min-height: 270px">
-                        <MudButton Disabled="@_retrievingData" OnClick="RetrieveData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
-                            @if (_retrievingData)
-                            {
-                                <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
-                                <MudText Class="ms-2">Cargando...</MudText>
-                            }
-                            else
-                            {
-                                <MudText>Cargar Datos</MudText>
-                            }
-                        </MudButton>
-                    </MudContainer>
-                }
-            </MudCardContent>
-
-
-            <MudCardActions Class="d-block">
-                @if (ShowDatasetsInfo)
-                {
-                    <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
-                }
-                @if (ShowLastUpdatedInfo)
-                {
-                    
-                }
-            </MudCardActions>
-        
+            }
+        </MudCardActions>
+    
 </MudItem>
 
 @code {
@@ -116,9 +108,9 @@
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
     [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
+    [Parameter] public Visualizacion visualization { get; set; } = null;
 
-    // Local Variables
-    private Visualizacion? _visualization;
+
     private bool _dataRetrieved = false;
     private bool _retrievingData = false;
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
@@ -130,6 +122,8 @@
     private SeriesType _seriesType = SeriesType.Line;
     private List<DatasetSeries> _seriesData = new();
     private string _chartType { get; set; } = "line";
+    private List<object> _dataCharts { get; set; } = new();
+    private ApexChart<ChartPoint>? _apexChart;
     private readonly ApexChartOptions<ChartPoint> _chartOptions = new()
     {
         Xaxis = new XAxis
@@ -155,25 +149,30 @@
     {
         try
         {
-
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionByIdSinToken?idVisualizacion={VisualizationId}");
-
-            if (response.IsSuccessStatusCode)
+            if (visualization == null)
             {
-                Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
-                _visualization = cardVisualization;
-                if (cardVisualization != null)
+                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionByIdSinToken?idVisualizacion={VisualizationId}");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _title = cardVisualization.Nombre;
-
-                    JsonDocument design = JsonDocument.Parse(cardVisualization.JsonDesign);
-                    var _chartType = design.RootElement.GetProperty("ChartType").ToString();
-                    _seriesType = MapSeriesType(_chartType);
-
-                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+                    Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                    visualization = cardVisualization;
                 }
             }
-            if(_visualization != null && retrieveOnInitialized)
+
+            if (visualization == null)
+            {
+                return;
+            }
+
+            _title = visualization.Nombre;
+
+            JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+            _chartType = design.RootElement.GetProperty("ChartType").ToString();
+            _seriesType = MapSeriesType(_chartType);
+
+            _datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+            if (retrieveOnInitialized)
             {
                 await RetrieveData();
             }
@@ -184,12 +183,6 @@
     }
 
     private async Task RetrieveData(){
-        if (_visualization == null)
-        {
-            return;
-        }
-
-        Visualizacion visualization = _visualization;
         _seriesData = new List<DatasetSeries>();
         _dataRetrieved = false;
         _retrievingData = true;
@@ -263,7 +256,7 @@
                                         try
                                         {
                                             var sensorDataResponse = await Http.GetAsync(
-                                                $"api/SondaMain/sensors/dataSinToken?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}"
+                                                $"api/SondaMain/sensors/dataSinToken?deviceId={datasetDevice.Id_device}&sensorName={dataset.SensorName}&dateFrom={dateFrom.ToString("o", new CultureInfo("en-US"))}&dateTo={dateTo.ToString("o", new CultureInfo("en-US"))}{(string.IsNullOrWhiteSpace(visualization.Username) ? string.Empty : "&username=" + Uri.EscapeDataString(visualization.Username))}"
                                             );
 
                                             if (sensorDataResponse.IsSuccessStatusCode)

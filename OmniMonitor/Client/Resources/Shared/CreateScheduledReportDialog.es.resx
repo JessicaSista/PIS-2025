@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="ReportLabel" xml:space="preserve"><value>Reporte</value></data>
+  <data name="LoadingOption" xml:space="preserve"><value>Cargando...</value></data>
+  <data name="FrequencyLabel" xml:space="preserve"><value>Frecuencia</value></data>
+  <data name="FrequencyDaily" xml:space="preserve"><value>Diaria</value></data>
+  <data name="FrequencyWeekly" xml:space="preserve"><value>Semanal</value></data>
+  <data name="FrequencyMonthly" xml:space="preserve"><value>Mensual</value></data>
+  <data name="WeeklyDaySubtitle" xml:space="preserve"><value>Día de la semana (Selección única)</value></data>
+  <data name="MonthlyDayLabel" xml:space="preserve"><value>Día del mes</value></data>
+  <data name="HourLabel" xml:space="preserve"><value>Hora</value></data>
+  <data name="TimeZonePrefix" xml:space="preserve"><value>Zona horaria:</value></data>
+  <data name="RecipientsSubtitle" xml:space="preserve"><value>Destinatarios (Mínimo uno)</value></data>
+  <data name="AddButton" xml:space="preserve"><value>Agregar</value></data>
+  <data name="SubjectLabel" xml:space="preserve"><value>Asunto</value></data>
+  <data name="MessageLabel" xml:space="preserve"><value>Mensaje</value></data>
+  <data name="CancelButton" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="ScheduleButton" xml:space="preserve"><value>Programar</value></data>
+
+  <data name="ErrSelectReport" xml:space="preserve"><value>Selecciona un reporte</value></data>
+  <data name="ErrSelectFrequency" xml:space="preserve"><value>Selecciona una frecuencia</value></data>
+  <data name="ErrEnterHour" xml:space="preserve"><value>Ingresa la hora</value></data>
+  <data name="ErrAddValidRecipient" xml:space="preserve"><value>Agrega al menos un destinatario válido</value></data>
+  <data name="ErrSelectWeekday" xml:space="preserve"><value>Selecciona un día de la semana</value></data>
+  <data name="ErrSelectMonthDay" xml:space="preserve"><value>Selecciona un día del mes válido</value></data>
+
+  <data name="ScheduleCreated" xml:space="preserve"><value>Programación creada correctamente</value></data>
+  <data name="ScheduleCreateErrorFormat" xml:space="preserve"><value>Error al programar: {0}</value></data>
+  <data name="ScheduleCreateExceptionFormat" xml:space="preserve"><value>Error al programar: {0}</value></data>
+
+  <data name="InvalidEmail" xml:space="preserve"><value>Email inválido</value></data>
+
+  <data name="EmailPlaceholder" xml:space="preserve"><value>email@dominio.com</value></data>
+</root>
