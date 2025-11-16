@@ -279,4 +279,7 @@
   <data name="NoChanges" xml:space="preserve">
     <value>No changes detected.</value>
   </data>
+  <data name="ModuleType" xml:space="preserve">
+    <value>Dataset Type</value>
+  </data>
 </root>

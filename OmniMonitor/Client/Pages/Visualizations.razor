@@ -136,7 +136,8 @@
                                 Description = card.Info.Description,
                                 ActualColor = card.Info.DefaultColor ?? "#00FFE7",
                                 Unit = "x",
-                                Value = null
+                                Value = null,
+                                DatasetName = card.Info.DatasetName
                             };
                             <KpiCard Kpi="previewKpi">
                                 <ValueTemplate>
@@ -266,7 +267,7 @@
                     <MudPaper Class="pa-4" Style="background-color: var(--card);">
                         <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
-                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" visualization=@visualization VisualizationId="@visualization.IdVisualizacion" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
+                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" visualization=@visualization VisualizationId="@visualization.IdVisualizacion" ShowIcon="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
 
                         </MudCard>
                     </MudPaper>

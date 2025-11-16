@@ -408,6 +408,7 @@ namespace OmniMonitor.Server.Services
             if (response == null)
                 throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
 
+            response.DatasetName = await GetDatasetNameAsync(kpi.DatasetId);
             return response;
         }
 
@@ -1853,18 +1854,25 @@ namespace OmniMonitor.Server.Services
                 .OrderBy(k => k.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(k => new KpiSimpleDto
-                {
-                    Id = k.Id,
-                    Name = k.Name,
-                    Description = k.Description,
-                    DefaultColor = k.DefaultColor
-                })
                 .ToListAsync();
+
+            var kpiDtos = new List<KpiSimpleDto>();
+            foreach (var kpi in kpis)
+            {
+                var datasetName = await GetDatasetNameFromModuleAsync(kpi.DatasetId, kpi.SourceModule, kpi.Username ?? username);
+                kpiDtos.Add(new KpiSimpleDto
+                {
+                    Id = kpi.Id,
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    DefaultColor = kpi.DefaultColor,
+                    DatasetName = datasetName ?? string.Empty
+                });
+            }
             
             return new KpiSimplePaginatedResponse
             {
-                Items = kpis,
+                Items = kpiDtos,
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
@@ -1884,6 +1892,48 @@ namespace OmniMonitor.Server.Services
 
             [JsonPropertyName("color")]
             public string color { get; set; } = "#000000";
+        }
+
+        private async Task<string?> GetDatasetNameAsync(int datasetId)
+        {
+            try
+            {
+                var dataset = await _context.Datasets
+                    .FirstOrDefaultAsync(d => d.Id == datasetId);
+                return dataset?.NameDataset;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private async Task<string?> GetDatasetNameFromModuleAsync(int moduleDatasetId, string sourceModule, string username)
+        {
+            try
+            {
+                switch (sourceModule.ToUpperInvariant())
+                {
+                    case "IM":
+                        var datasetIM = await _datasetService.GetDatasetIMByIdAsync(moduleDatasetId, username);
+                        return datasetIM?.Name;
+                    case "AM":
+                        var datasetAM = await _datasetAmService.GetDatasetAMByIdAsync(moduleDatasetId, username);
+                        return datasetAM?.Nombre;
+                    case "UM":
+                        var datasetUM = await _datasetUMService.GetDatasetUMByIdAsync(moduleDatasetId, username);
+                        return datasetUM?.Name;
+                    case "EM":
+                        var datasetEM = await _datasetEmService.GetDatasetEMByIdAsync(moduleDatasetId, username);
+                        return datasetEM?.Name;
+                    default:
+                        return null;
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static KpiResponse BuildNoDataResponse(Kpi kpi, string? reason = null)

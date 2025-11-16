@@ -15,6 +15,9 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("defaultColor")]
         public string? DefaultColor { get; set; }
+
+        [JsonPropertyName("datasetName")]
+        public string? DatasetName { get; set; }
     }
 
     public class KpiSimplePaginatedResponse

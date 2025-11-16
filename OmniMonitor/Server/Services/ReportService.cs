@@ -1079,7 +1079,6 @@ public class ReportService : IReportService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error procesando reporte {report.Id}: {ex.Message}");
             }
         }
 
@@ -1124,7 +1123,6 @@ public class ReportService : IReportService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
         }
     }
 

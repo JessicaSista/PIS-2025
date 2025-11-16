@@ -56,7 +56,18 @@
                 </MudText>
             }
 
-            <!-- Footer (no 'Actualizado' porque no viene del backend) -->
+            <!-- Dataset Name -->
+            @if (!string.IsNullOrEmpty(Kpi.DatasetName))
+            {
+                <MudText Typo="Typo.body2"
+                         Style="color: var(--card-text-secondary);
+                                    margin-top:4px;
+                                    white-space: normal;
+                                    word-wrap: break-word;
+                                    overflow-wrap: break-word;">
+                    Dataset: @Kpi.DatasetName
+                </MudText>
+            }
         </MudCardContent>
     </MudCard>
 </MudPaper>

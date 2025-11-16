@@ -396,6 +396,13 @@ namespace OmniMonitor.Server.Context
 
             builder.Entity<GrupoVisualizacion>()
                 .HasIndex(gv => gv.KpiId);
+
+            // Configurar relación Kpi -> Datasets
+            builder.Entity<Kpi>()
+                .HasOne(k => k.Dataset)
+                .WithMany()
+                .HasForeignKey(k => k.DatasetId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
