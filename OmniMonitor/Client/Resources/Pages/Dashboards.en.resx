@@ -177,4 +177,16 @@
   <data name="GuardarCambios" xml:space="preserve">
     <value>Save Changes</value>
   </data>
+  <data name="DashboardSavedSuccess" xml:space="preserve">
+    <value>Dashboard saved successfully.</value>
+  </data>
+  <data name="DashboardSaveError" xml:space="preserve">
+    <value>Error saving dashboard design.</value>
+  </data>
+  <data name="ConfirmButtonText" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="CancelButtonText" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
 </root>

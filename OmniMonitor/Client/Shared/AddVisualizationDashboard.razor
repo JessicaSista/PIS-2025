@@ -67,7 +67,7 @@
     @if (availableKpis.Any())
     {
     <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
-        @foreach(KpiResponse kpi in availableKpis){
+        @foreach(Kpi kpi in availableKpis){
             @* JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
             <MudButton FullWidth="true"
@@ -97,7 +97,7 @@
 
     private List<Visualizacion> _visualizations = new List<Visualizacion>();
 
-    private List<KpiResponse> _kpiResponses = new List<KpiResponse>();
+    private List<Kpi> _kpiResponses = new List<Kpi>();
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(true));
 
@@ -191,10 +191,10 @@
                 }
             }
 
-            HttpResponseMessage? kpiResponse = await Http.GetAsync("api/KPI/kpis");
+            HttpResponseMessage? kpiResponse = await Http.GetAsync("api/KPI/all-KPIs");
             if (kpiResponse.IsSuccessStatusCode)
             {
-                var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<List<KpiResponse>>();
+                var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<List<Kpi>>();
                 if (kpisFromApi != null)
                 {
                     _kpiResponses = kpisFromApi;
