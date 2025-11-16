@@ -1,6 +1,9 @@
 @using MudBlazor
 @using OmniMonitor.Client.Pages
 @using OmniMonitor.Shared.Dtos
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<EditReport> Localizer
 
 <style>
     .column-checkbox {
@@ -65,20 +68,20 @@
 
 <MudStack>
     <MudToolBar Dense="true" DisableGutters="true" Class="mb-4">
-        <MudText Typo="Typo.body1">Columnas a mostrar</MudText>
+        <MudText Typo="Typo.body1">@Localizer["ColumnsToolbarTitle"]</MudText>
         <MudSpacer />
         <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Outlined"
                        Size="MudBlazor.Size.Small"
                        Style="border-color: var(--mud-palette-lines-default);"
                        OnClick="@(async () => await NotifySelectAll())">
-                Todas
+                @Localizer["SelectAllColumnsButton"]
             </MudButton>
             <MudButton Variant="Variant.Outlined"
                        Size="MudBlazor.Size.Small"
                        Style="border-color: var(--mud-palette-lines-default);"
                        OnClick="@(async () => await NotifyDeselectAll())">
-                Ninguna
+                @Localizer["DeselectAllColumnsButton"]
             </MudButton>
         </MudStack>
     </MudToolBar>
@@ -86,7 +89,39 @@
     <MudPaper Class="pa-4 mb-4" Elevation="1">
         @if (SelectedDatasets.Any())
         {
-            if (HasJoinColumns && Joins.Any(j => j.ServerJoinId.HasValue))
+            var renderedSection = false;
+
+            @foreach (var dataset in SelectedDatasets)
+            {
+                var normalizedModule = string.IsNullOrWhiteSpace(dataset.Module) ? "Insight Monitor" : dataset.Module!;
+                var datasetKey = $"{normalizedModule}|{dataset.Id}";
+                var columnsForDataset = AvailableColumns
+                    .Where(c => !c.IsJoin && string.Equals(c.DatasetKey, datasetKey, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (!columnsForDataset.Any())
+                {
+                    continue;
+                }
+
+                renderedSection = true;
+
+                <MudText Typo="Typo.h6" Class="mb-2 mt-4">@GetDatasetLabel(dataset)</MudText>
+                <MudGrid Spacing="2">
+                    @foreach (var column in columnsForDataset)
+                    {
+                        <MudItem Xs="12">
+                            <label class="column-checkbox">
+                                <input type="checkbox"
+                                       checked="@column.IsVisible"
+                                       @onchange="@(args => HandleColumnChanged(column, args))" />
+                                <span>@column.DisplayName</span>
+                            </label>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+
+            @if (HasJoinColumns && Joins.Any(j => j.ServerJoinId.HasValue))
             {
                 @foreach (var join in Joins.Where(j => j.ServerJoinId.HasValue))
                 {
@@ -96,6 +131,8 @@
                     {
                         continue;
                     }
+
+                    renderedSection = true;
 
                     <MudText Typo="Typo.h6" Class="mb-2 mt-4">@GetJoinLabel(joinId)</MudText>
 
@@ -122,36 +159,15 @@
                     }
                 }
             }
-            else
-            {
-                @foreach (var dataset in SelectedDatasets)
-                {
-                    var columnsForDataset = AvailableColumns.Where(c => !c.IsJoin && c.DatasetId == dataset.Id).ToList();
-                    if (!columnsForDataset.Any())
-                    {
-                        continue;
-                    }
 
-                    <MudText Typo="Typo.h6" Class="mb-2 mt-4">@GetDatasetLabel(dataset)</MudText>
-                    <MudGrid Spacing="2">
-                        @foreach (var column in columnsForDataset)
-                        {
-                            <MudItem Xs="12">
-                                <label class="column-checkbox">
-                                    <input type="checkbox"
-                                           checked="@column.IsVisible"
-                                           @onchange="@(args => HandleColumnChanged(column, args))" />
-                                    <span>@column.DisplayName</span>
-                                </label>
-                            </MudItem>
-                        }
-                    </MudGrid>
-                }
+            @if (!renderedSection)
+            {
+                <MudText>@Localizer["NoVisibleColumns"]</MudText>
             }
         }
         else
         {
-            <MudText>Selecciona al menos un dataset para ver las columnas disponibles</MudText>
+            <MudText>@Localizer["NoDatasetsSelectedForColumns"]</MudText>
         }
     </MudPaper>
 </MudStack>
@@ -217,6 +233,6 @@
             return ResolveJoinLabel.Invoke(joinId);
         }
 
-        return $"Join {joinId}";
+        return Localizer["JoinDisplayName", joinId];
     }
 }
