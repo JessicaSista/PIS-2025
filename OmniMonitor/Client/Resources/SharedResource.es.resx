@@ -170,5 +170,103 @@
   </data>
   <data name="RecordsLabel" xml:space="preserve">
     <value>Registros:</value>
+  <data name="ScheduledReportsTitle" xml:space="preserve">
+    <value>Reportes programados</value>
+  </data>
+  <data name="SessionExpired" xml:space="preserve">
+    <value>Sesión expirada. Por favor, inicia sesión nuevamente.</value>
+  </data>
+  <data name="LoadErrorFormat" xml:space="preserve">
+    <value>Error al cargar: {0}</value>
+  </data>
+  <data name="LoadExceptionFormat" xml:space="preserve">
+    <value>Error al cargar: {0}</value>
+  </data>
+  <data name="DeleteScheduleTitle" xml:space="preserve">
+    <value>Eliminar programación</value>
+  </data>
+  <data name="DeleteScheduleConfirmHtml" xml:space="preserve">
+    <value>¿Desea eliminar la programación &lt;b&gt;#{0}&lt;/b&gt;?</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="ScheduleDeleted" xml:space="preserve">
+    <value>Programación eliminada correctamente</value>
+  </data>
+  <data name="DeleteErrorFormat" xml:space="preserve">
+    <value>Error al eliminar: {0}</value>
+  </data>
+  <data name="DeleteExceptionFormat" xml:space="preserve">
+    <value>Error al eliminar: {0}</value>
+  </data>
+  <data name="FrequencyDaily" xml:space="preserve">
+    <value>Diaria</value>
+  </data>
+  <data name="FrequencyWeekly" xml:space="preserve">
+    <value>Semanal</value>
+  </data>
+  <data name="FrequencyMonthly" xml:space="preserve">
+    <value>Mensual</value>
+  </data>
+  <data name="EachDay" xml:space="preserve">
+    <value>Cada {0}</value>
+  </data>
+  <data name="EachMonthDay" xml:space="preserve">
+    <value>Cada día {0}</value>
+  </data>
+  <data name="Day_MON" xml:space="preserve">
+    <value>Lunes</value>
+  </data>
+  <data name="Day_TUE" xml:space="preserve">
+    <value>Martes</value>
+  </data>
+  <data name="Day_WED" xml:space="preserve">
+    <value>Miércoles</value>
+  </data>
+  <data name="Day_THU" xml:space="preserve">
+    <value>Jueves</value>
+  </data>
+  <data name="Day_FRI" xml:space="preserve">
+    <value>Viernes</value>
+  </data>
+  <data name="Day_SAT" xml:space="preserve">
+    <value>Sábado</value>
+  </data>
+  <data name="Day_SUN" xml:space="preserve">
+    <value>Domingo</value>
+  </data>
+  <data name="ErrorLoadingReportsFormat" xml:space="preserve">
+    <value>Error cargando reportes: {0}</value>
+  </data>
+  <data name="ErrorLoadingReportsExceptionFormat" xml:space="preserve">
+    <value>Error cargando reportes: {0}</value>
+  </data>
+  <data name="NewScheduleDialogTitle" xml:space="preserve">
+    <value>Nueva programación</value>
+  </data>
+  <data name="WeekdayShort_MON" xml:space="preserve">
+    <value>Lun</value>
+  </data>
+  <data name="WeekdayShort_TUE" xml:space="preserve">
+    <value>Mar</value>
+  </data>
+  <data name="WeekdayShort_WED" xml:space="preserve">
+    <value>Mié</value>
+  </data>
+  <data name="WeekdayShort_THU" xml:space="preserve">
+    <value>Jue</value>
+  </data>
+  <data name="WeekdayShort_FRI" xml:space="preserve">
+    <value>Vie</value>
+  </data>
+  <data name="WeekdayShort_SAT" xml:space="preserve">
+    <value>Sáb</value>
+  </data>
+  <data name="WeekdayShort_SUN" xml:space="preserve">
+    <value>Dom</value>
   </data>
 </root>

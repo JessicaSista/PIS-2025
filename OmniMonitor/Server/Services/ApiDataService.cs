@@ -268,7 +268,15 @@ public class ApiDataService : IApiDataService
         switch (operand.ModuleType)
         {
             case ModuleType.InsightMonitor:
-                var datasetIM = await _datasetService.GetDatasetIMByIdForEditAsyncSinToken(operand.DatasetId);
+                var datasetIMInfo = await _datasetService.GetDatasetIMByIdForEditAsyncSinToken(operand.DatasetId);
+                if (datasetIMInfo == null)
+                    return Enumerable.Empty<dynamic>();
+
+                var imOwner = string.IsNullOrWhiteSpace(datasetIMInfo.Username)
+                    ? PublicUsername
+                    : datasetIMInfo.Username;
+
+                var datasetIM = await _datasetService.GetDatasetIMByIdAsync(operand.DatasetId, imOwner);
                 if (datasetIM == null)
                     return Enumerable.Empty<dynamic>();
 
@@ -281,7 +289,7 @@ public class ApiDataService : IApiDataService
                         var publicDevices = new List<dynamic>();
                         foreach (var datasetDevice in datasetIM.DatasetDevices)
                         {
-                            var device = await _sondaIMService.GetDeviceById(datasetDevice.Id_device, PublicUsername);
+                            var device = await _sondaIMService.GetDeviceById(datasetDevice.Id_device, imOwner);
                             if (device != null)
                                 publicDevices.Add(device);
                         }
@@ -295,7 +303,7 @@ public class ApiDataService : IApiDataService
                         var publicSensors = new List<dynamic>();
                         foreach (var datasetDevice in datasetIM.DatasetDevices)
                         {
-                            var device = await _sondaIMService.GetDeviceById(datasetDevice.Id_device, PublicUsername);
+                            var device = await _sondaIMService.GetDeviceById(datasetDevice.Id_device, imOwner);
                             if (device?.Sensors == null)
                                 continue;
 
@@ -312,7 +320,7 @@ public class ApiDataService : IApiDataService
                         if (!datasetIM.Id_Source.HasValue)
                             return Enumerable.Empty<dynamic>();
 
-                        var source = await _sondaIMService.GetSourceById(datasetIM.Id_Source.Value, PublicUsername);
+                        var source = await _sondaIMService.GetSourceById(datasetIM.Id_Source.Value, imOwner);
                         return source != null
                             ? new List<dynamic> { source }
                             : Enumerable.Empty<dynamic>();
@@ -321,7 +329,7 @@ public class ApiDataService : IApiDataService
                         if (!datasetIM.Id_Group.HasValue)
                             return Enumerable.Empty<dynamic>();
 
-                        var group = await _sondaIMService.GetDeviceGroupById(datasetIM.Id_Group.Value, PublicUsername);
+                        var group = await _sondaIMService.GetDeviceGroupById(datasetIM.Id_Group.Value, imOwner);
                         return group != null
                             ? new List<dynamic> { group }
                             : Enumerable.Empty<dynamic>();
@@ -335,6 +343,10 @@ public class ApiDataService : IApiDataService
                 if (datasetUM == null)
                     return Enumerable.Empty<dynamic>();
 
+                var umOwner = string.IsNullOrWhiteSpace(datasetUM.Username)
+                    ? PublicUsername
+                    : datasetUM.Username;
+
                 switch (operand.EntityName)
                 {
                     case EntityName.New:
@@ -344,7 +356,7 @@ public class ApiDataService : IApiDataService
                         var publicNews = new List<dynamic>();
                         foreach (var datasetNew in datasetUM.DatasetNews)
                         {
-                            var news = await _sondaUMService.GetNewsById(datasetNew.Id_news, PublicUsername);
+                            var news = await _sondaUMService.GetNewsById(datasetNew.Id_news, umOwner);
                             if (news != null)
                                 publicNews.Add(news);
                         }
@@ -358,7 +370,7 @@ public class ApiDataService : IApiDataService
                         var publicEvents = new List<dynamic>();
                         foreach (var datasetEvent in datasetUM.DatasetEvents)
                         {
-                            var eventDto = await _sondaUMService.GetEventById(datasetEvent.Id_event, PublicUsername);
+                            var eventDto = await _sondaUMService.GetEventById(datasetEvent.Id_event, umOwner);
                             if (eventDto != null)
                                 publicEvents.Add(eventDto);
                         }
@@ -369,7 +381,7 @@ public class ApiDataService : IApiDataService
                         if (!datasetUM.Id_Zone.HasValue)
                             return Enumerable.Empty<dynamic>();
 
-                        var zone = await _sondaUMService.GetZoneById(datasetUM.Id_Zone.Value, PublicUsername);
+                        var zone = await _sondaUMService.GetZoneById(datasetUM.Id_Zone.Value, umOwner);
                         return zone != null
                             ? new List<dynamic> { zone }
                             : Enumerable.Empty<dynamic>();
@@ -383,6 +395,10 @@ public class ApiDataService : IApiDataService
                 if (datasetAM == null)
                     return Enumerable.Empty<dynamic>();
 
+                var amOwner = string.IsNullOrWhiteSpace(datasetAM.Username)
+                    ? PublicUsername
+                    : datasetAM.Username;
+
                 switch (operand.EntityName)
                 {
                     case EntityName.Asset:
@@ -395,7 +411,7 @@ public class ApiDataService : IApiDataService
                             if (!int.TryParse(assetDataset.Id_Asset, out var assetId))
                                 continue;
 
-                            var asset = await _sondaAMService.GetAssetById(assetId, PublicUsername);
+                            var asset = await _sondaAMService.GetAssetById(assetId, amOwner);
                             if (asset != null)
                                 publicAssets.Add(asset);
                         }
@@ -409,7 +425,7 @@ public class ApiDataService : IApiDataService
                         var publicEventTasks = new List<dynamic>();
                         foreach (var eventDataset in datasetAM.Grupo_Event_Task_Instance)
                         {
-                            var eventTask = await _sondaAMService.GetEventTaskInstanceById(eventDataset.Id_Event_Task_Instance, PublicUsername);
+                            var eventTask = await _sondaAMService.GetEventTaskInstanceById(eventDataset.Id_Event_Task_Instance, amOwner);
                             if (eventTask != null)
                                 publicEventTasks.Add(eventTask);
                         }
@@ -428,7 +444,7 @@ public class ApiDataService : IApiDataService
 
                             foreach (var stockDataset in eventDataset.Grupo_Stock)
                             {
-                                var stock = await _sondaAMService.GetStockById(stockDataset.Id_Stock, PublicUsername);
+                                var stock = await _sondaAMService.GetStockById(stockDataset.Id_Stock, amOwner);
                                 if (stock != null)
                                     publicStocks.Add(stock);
                             }
@@ -445,6 +461,10 @@ public class ApiDataService : IApiDataService
                 if (datasetEM == null)
                     return Enumerable.Empty<dynamic>();
 
+                var emOwner = string.IsNullOrWhiteSpace(datasetEM.Username)
+                    ? PublicUsername
+                    : datasetEM.Username;
+
                 switch (operand.EntityName)
                 {
                     case EntityName.EventEM:
@@ -454,7 +474,7 @@ public class ApiDataService : IApiDataService
                         var publicEmEvents = new List<dynamic>();
                         foreach (var datasetEvent in datasetEM.DatasetEvents)
                         {
-                            var eventDto = await _sondaEMService.GetEventById(datasetEvent.Id_event, PublicUsername);
+                            var eventDto = await _sondaEMService.GetEventById(datasetEvent.Id_event, emOwner);
                             if (eventDto != null)
                                 publicEmEvents.Add(eventDto);
                         }
@@ -468,7 +488,7 @@ public class ApiDataService : IApiDataService
                         var publicAlerts = new List<dynamic>();
                         foreach (var datasetAlert in datasetEM.DatasetAlerts)
                         {
-                            var alertDto = await _sondaEMService.GetAlertById(datasetAlert.Id_alert, PublicUsername);
+                            var alertDto = await _sondaEMService.GetAlertById(datasetAlert.Id_alert, emOwner);
                             if (alertDto != null)
                                 publicAlerts.Add(alertDto);
                         }
@@ -482,7 +502,7 @@ public class ApiDataService : IApiDataService
                         var publicExtensions = new List<dynamic>();
                         foreach (var datasetExtension in datasetEM.DatasetExtensions)
                         {
-                            var extensionDto = await _sondaEMService.GetExtensionById(datasetExtension.Id_extension, PublicUsername);
+                            var extensionDto = await _sondaEMService.GetExtensionById(datasetExtension.Id_extension, emOwner);
                             if (extensionDto != null)
                                 publicExtensions.Add(extensionDto);
                         }

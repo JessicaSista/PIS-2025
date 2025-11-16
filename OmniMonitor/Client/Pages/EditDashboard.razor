@@ -22,7 +22,14 @@
 <!-- Encabezado -->
 <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
     <MudStack>
-        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@(dashName)</MudText>
+        <MudText Typo="Typo.h4" 
+         Style="font-weight:500;
+                font-family:Inter,Roboto,sans-serif;
+                white-space:normal;
+                word-break:break-word;
+                overflow-wrap:break-word;">
+        @(dashName)
+        </MudText>
     </MudStack>
 
     <MudStack Row Spacing="2">
@@ -43,7 +50,7 @@
 </MudStack>
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
-    <MudText Typo="Typo.body1" Class="mb-4" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:#a5a8b5;font-family:Inter,Roboto,sans-serif;word-break:break-word;white-space:pre-line;">
         @(dashDesc)
     </MudText>
 </MudStack>
@@ -287,7 +294,7 @@
 
         if (!allActionsOk && _actionHistory.Any())
         {
-            Snackbar.Add("Se produjo un error al procesar una o más acciones. Diseño no actualizado.", Severity.Warning);
+            Snackbar.Add(Localizer["DashboardSaveError"], Severity.Warning);
             return;
         }
 
@@ -342,20 +349,20 @@
                         Snackbar.Add($"Error interno al actualizar el orden de las tarjetas.", Severity.Error);
                     }
 
-                    Snackbar.Add("Diseño del Dashboard guardado exitosamente.", Severity.Success);
+                    Snackbar.Add(Localizer["DashboardSavedSuccess"], Severity.Success);
                     _actionHistory.Clear();
                 }
                 else
                 {
                     string errorContent = await response.Content.ReadAsStringAsync();
-                    Snackbar.Add($"Error al actualizar el diseño: {response.ReasonPhrase}. {errorContent}", Severity.Error);
+                    Snackbar.Add(Localizer["DashboardSaveError"] + $" {response.ReasonPhrase}. {errorContent}", Severity.Error);
                 }
             }
 
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al guardar el diseño del dashboard: {ex.Message}", Severity.Error);
+            Snackbar.Add(Localizer["DashboardSaveError"] + $" {ex.Message}", Severity.Error);
         }
 
     }

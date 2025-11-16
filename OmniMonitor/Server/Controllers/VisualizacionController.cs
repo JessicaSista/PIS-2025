@@ -358,9 +358,6 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(500)]
         public async Task<IActionResult> GetVisualizationDataSinToken([FromBody] VisualizationRequest request)
         {
-            string token = await _sondaAuthService.GetUserTokenIMAsync("visitante");
-            ArgumentNullException.ThrowIfNull(token);
-
             try
             {
                 VisualizationResponse response = await _visualizacionService.GetVisualizationDataSinTokenAsync(request);

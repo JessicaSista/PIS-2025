@@ -45,8 +45,8 @@ public interface IReportService
     Task<int> CreateScheduledReportAsync(ScheduledReportRequest dto, string username);
 
     Task<List<ScheduledReport>> GetScheduledReports();
-    Task<List<ScheduledReport>> GetScheduledReportsByUserAsync(string username);
-    Task<ScheduledReport?> GetScheduledReportByIdAsync(int id, string username);
+    Task<List<ScheduledReportResponse>> GetScheduledReportsByUserAsync(string username);
+    Task<ScheduledReportResponse?> GetScheduledReportByIdAsync(int id, string username);
 
     Task DeleteScheduledReportAsync(int id);
     Task ProcessScheduledReportsAsync();
@@ -1022,21 +1022,55 @@ public class ReportService : IReportService
     }
 
 
-    public async Task<List<ScheduledReport>> GetScheduledReportsByUserAsync(string username)
+    public async Task<List<ScheduledReportResponse>> GetScheduledReportsByUserAsync(string username)
     {
-        return await _context.ScheduledReports
+        var list = await _context.ScheduledReports
             .AsNoTracking()
             .Where(sr => sr.Username == username && sr.IsActive)
             .OrderBy(sr => sr.Id)
             .ToListAsync();
+
+        return list
+            .Select(sr => MapToResponse(sr))
+            .ToList();
     }
 
-    public async Task<ScheduledReport?> GetScheduledReportByIdAsync(int id, string username)
+
+    private ScheduledReportResponse MapToResponse(ScheduledReport entity)
     {
-        return await _context.ScheduledReports
+        return new ScheduledReportResponse
+        {
+            Id = entity.Id,
+            ReportId = entity.ReportId,
+            Username = entity.Username,
+            ScheduleType = entity.ScheduleType,
+            IntervalMinutes = entity.IntervalMinutes,
+            SendAtLocalTime = entity.SendAtLocalTime,
+            AdvancedRule = entity.AdvancedRule,
+            TimeZone = entity.TimeZone,
+            Recipients = string.IsNullOrWhiteSpace(entity.RecipientsJson)
+                ? new List<string>()
+                : JsonSerializer.Deserialize<List<string>>(entity.RecipientsJson),
+            Subject = entity.Subject,
+            Message = entity.Message,
+            LastExecution = entity.LastExecution,
+            IsActive = entity.IsActive
+        };
+    }
+
+
+
+    public async Task<ScheduledReportResponse?> GetScheduledReportByIdAsync(int id, string username)
+    {
+        var entity = await _context.ScheduledReports
             .AsNoTracking()
             .Where(sr => sr.Id == id && sr.Username == username && sr.IsActive)
             .FirstOrDefaultAsync();
+
+        if (entity == null)
+            return null;
+
+        return MapToResponse(entity);
     }
 
     public async Task DeleteScheduledReportAsync(int id)
