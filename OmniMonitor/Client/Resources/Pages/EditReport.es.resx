@@ -79,6 +79,27 @@
   <data name="SaveReport" xml:space="preserve">
     <value>Guardar reporte</value>
   </data>
+  <data name="DeviceDataToggleLabel" xml:space="preserve">
+    <value>Incluir datos de dispositivo</value>
+  </data>
+  <data name="DeviceDataDeviceLabel" xml:space="preserve">
+    <value>Dispositivo</value>
+  </data>
+  <data name="DeviceDataDeviceDatasetHint" xml:space="preserve">
+    <value>Dispositivo del dataset {0}</value>
+  </data>
+  <data name="DeviceDataFromLabel" xml:space="preserve">
+    <value>Fecha desde</value>
+  </data>
+  <data name="DeviceDataFromTimeLabel" xml:space="preserve">
+    <value>Hora desde</value>
+  </data>
+  <data name="DeviceDataToLabel" xml:space="preserve">
+    <value>Fecha hasta</value>
+  </data>
+  <data name="DeviceDataToTimeLabel" xml:space="preserve">
+    <value>Hora hasta</value>
+  </data>
   <data name="ExecutingReport" xml:space="preserve">
     <value>Ejecutando reporte...</value>
   </data>
@@ -168,6 +189,33 @@
   </data>
   <data name="SelectVisibleColumnBeforeSave" xml:space="preserve">
     <value>Seleccione al menos una columna visible antes de guardar.</value>
+  </data>
+  <data name="DeviceDataDatasetRequired" xml:space="preserve">
+    <value>Seleccione un dataset de Insight Monitor para los datos de dispositivo.</value>
+  </data>
+  <data name="DeviceDataDeviceRequired" xml:space="preserve">
+    <value>Seleccione un dispositivo para incluir sus datos.</value>
+  </data>
+  <data name="DeviceDataDateRangeRequired" xml:space="preserve">
+    <value>Seleccione el rango de fechas para los datos de dispositivo.</value>
+  </data>
+  <data name="DeviceDataDateRangeInvalid" xml:space="preserve">
+    <value>La fecha de fin debe ser posterior a la fecha de inicio.</value>
+  </data>
+  <data name="DeviceDataNoDevicesForDataset" xml:space="preserve">
+    <value>El dataset seleccionado no tiene dispositivos configurados.</value>
+  </data>
+  <data name="DeviceDataNoAvailableDatasets" xml:space="preserve">
+    <value>Seleccione un dataset de Insight Monitor para habilitar los datos de dispositivo.</value>
+  </data>
+  <data name="DeviceDataNoDevicesAvailable" xml:space="preserve">
+    <value>Ningún dataset seleccionado contiene dispositivos configurados.</value>
+  </data>
+  <data name="DeviceDataUnknownDeviceName" xml:space="preserve">
+    <value>Dispositivo #{0}</value>
+  </data>
+  <data name="DeviceDataRestoreDatasetMissing" xml:space="preserve">
+    <value>No se encontró un dataset de Insight Monitor con el dispositivo #{0}. Se omitieron los datos de dispositivo.</value>
   </data>
   <data name="SaveReportError" xml:space="preserve">
     <value>Error al guardar el reporte: {0}</value>

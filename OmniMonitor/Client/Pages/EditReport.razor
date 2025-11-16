@@ -25,22 +25,20 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
 
-    <MudStack Class="mb-6">
-        <MudText Typo="Typo.h4">@(!string.IsNullOrWhiteSpace(reportName) ? reportName : Localizer["DefaultReportTitle"])</MudText>
-        <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudItem>
-                <MudText Typo="Typo.body1">@(!string.IsNullOrWhiteSpace(reportDescription) ? reportDescription : Localizer["NoDescription"])</MudText>
-            </MudItem>
-            <MudItem>
-                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Share" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Share"]</MudButton>
-                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Pdf"]</MudButton>
-                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" Disabled="@isSaving" OnClick="GenerarJsonConfig">
-                        @(isSaving ? Localizer["Saving"] : Localizer["SaveReport"])
-                    </MudButton>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
+    <MudStack Spacing="1" Class="mb-6">
+        <MudText Typo="Typo.h4" Style="display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">
+            @(!string.IsNullOrWhiteSpace(reportName) ? reportName : Localizer["DefaultReportTitle"])
+        </MudText>
+        <MudText Typo="Typo.body1" Style="display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">
+            @(!string.IsNullOrWhiteSpace(reportDescription) ? reportDescription : Localizer["NoDescription"])
+        </MudText>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd" Class="mt-2">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Share" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Share"]</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Pdf"]</MudButton>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" Disabled="@isSaving" OnClick="GenerarJsonConfig">
+                @(isSaving ? Localizer["Saving"] : Localizer["SaveReport"])
+            </MudButton>
+        </MudStack>
     </MudStack>
 
 
@@ -55,7 +53,7 @@
                 OnDatasetToggle="ToggleDatasetSelection"
                 IsDatasetSelected="@IsSelected"
                 ResolveSelectedEntity="@GetSelectedEntity"
-                ResolveEntityOptions="@GetEntityOptions"
+                ResolveEntityOptions="@GetEntityOptionsForDataset"
                 OnDatasetEntityChanged="@HandleDatasetEntityChanged"
                 DatasetSearchText="@searchText"
                 OnDatasetSearchTextChanged="@HandleDatasetSearchTextChanged"
@@ -89,7 +87,7 @@
                 }
                 else if (executeRows.Any())
                 {
-                    <MudTable Items="@executeRows" Dense="true" Hover="true">
+                    <MudTable Items="@PagedRows" Dense="true" Hover="true">
                         <HeaderContent>
                             <MudTh>#</MudTh>
                             @foreach (var col in executeColumns)
@@ -105,6 +103,14 @@
                             }
                         </RowTemplate>
                     </MudTable>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3">
+                        <MudText Typo="Typo.caption">@($"{CurrentPageStart}-{CurrentPageEnd} / {executeRows.Count}")</MudText>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Disabled="@IsFirstPage" OnClick="GoToPreviousPage" />
+                            <MudText Typo="Typo.caption">@($"{currentPage} / {TotalPages}")</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Disabled="@IsLastPage" OnClick="GoToNextPage" />
+                        </MudStack>
+                    </MudStack>
                 }
                 else
                 {
@@ -132,6 +138,7 @@
         public string Name { get; set; } = string.Empty; // Initialize to avoid null
         public string DisplayName { get; set; } = string.Empty; // Initialize to avoid null
         public string DatasetName { get; set; } = string.Empty; // Initialize to avoid null
+        public string DatasetKey { get; set; } = string.Empty; // Unique key per dataset (module + id)
         public string GroupLabel { get; set; } = string.Empty; // Used to display dataset/module grouping
         public bool IsVisible { get; set; } = false;
         public int DatasetId { get; set; }
@@ -146,7 +153,7 @@
         public FilterValueType FilterValueType { get; set; } = FilterValueType.String;
         public IReadOnlyList<string> EnumOptions { get; set; } = Array.Empty<string>();
         public string AttributeName => $"{Entity}_{PropertyName}";
-        public string FilterKey => $"{DatasetId}:{Entity}:{PropertyName}";
+        public string FilterKey => $"{ModuleType}:{DatasetId}:{Entity}:{PropertyName}";
     }
 
     private record PropertyDescriptor(string Name, Type ClrType, FilterValueType ValueType, IReadOnlyList<string> EnumOptions);
@@ -167,7 +174,16 @@
     private static int _nextFilterId = 1;
     private int currentPage = 1;
     private const int pageSize = 10; 
-    private Dictionary<int, DatasetIM> selectedDatasetsIM = new();
+    private IEnumerable<Dictionary<string, string?>> PagedRows => executeRows.Skip((currentPage - 1) * pageSize).Take(pageSize);
+    private int TotalPages => executeRows.Count == 0 ? 1 : (int)Math.Ceiling(executeRows.Count / (double)pageSize);
+    private int CurrentPageStart => executeRows.Count == 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
+    private int CurrentPageEnd => executeRows.Count == 0 ? 0 : Math.Min(currentPage * pageSize, executeRows.Count);
+    private bool IsFirstPage => currentPage <= 1;
+    private bool IsLastPage => executeRows.Count == 0 || currentPage >= TotalPages;
+    private Dictionary<string, DatasetAM> selectedDatasetsAM = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, DatasetUM> selectedDatasetsUM = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, DatasetEM> selectedDatasetsEM = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, EntityName> datasetForcedEntities = new(StringComparer.OrdinalIgnoreCase);
     private Dictionary<string, EntityName> selectedEntities = new();
     private List<DatasetDto> selectedDatasets = new();
     private List<DatasetDto> datasets = new();
@@ -182,6 +198,29 @@
     private List<CrossModuleJoinDto> userJoins = new();
     private bool HasJoinColumns => availableColumns.Any(c => c.IsJoin);
 
+    private void GoToPreviousPage()
+    {
+        if (currentPage <= 1)
+        {
+            return;
+        }
+
+        currentPage--;
+        StateHasChanged();
+    }
+
+    private void GoToNextPage()
+    {
+        var totalPages = TotalPages;
+        if (currentPage >= totalPages)
+        {
+            return;
+        }
+
+        currentPage++;
+        StateHasChanged();
+    }
+
     private static string BuildDatasetKey(DatasetDto dataset) => BuildDatasetKey(dataset.Id, dataset.Module);
     private static string BuildDatasetKey(int datasetId, string? module)
     {
@@ -189,7 +228,7 @@
         return $"{normalizedModule}|{datasetId}";
     }
 
-    private static EntityName[] GetEntityOptions(string? module)
+    private static EntityName[] GetModuleEntityOptions(string? module)
     {
         if (string.Equals(module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
         {
@@ -211,8 +250,24 @@
 
     private static EntityName GetDefaultEntityForModule(string? module)
     {
-        var options = GetEntityOptions(module);
+        var options = GetModuleEntityOptions(module);
         return options.Length > 0 ? options[0] : EntityName.Device;
+    }
+
+    private IEnumerable<EntityName> GetEntityOptionsForDataset(DatasetDto dataset)
+    {
+        if (dataset == null)
+        {
+            return Array.Empty<EntityName>();
+        }
+
+        var datasetKey = BuildDatasetKey(dataset);
+        if (datasetForcedEntities.TryGetValue(datasetKey, out var forced))
+        {
+            return new[] { forced };
+        }
+
+        return GetModuleEntityOptions(dataset.Module);
     }
 
     private static string GetSourceModuleForDataset(string? module)
@@ -294,12 +349,16 @@
                 }
 
                 selectedDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
-                if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
-                {
-                    selectedDatasetsIM.Remove(dataset.Id);
-                }
-                selectedEntities.Remove(BuildDatasetKey(dataset));
-                filters.RemoveAll(f => f.DatasetId == dataset.Id);
+                var datasetKey = BuildDatasetKey(dataset);
+                selectedEntities.Remove(datasetKey);
+                datasetForcedEntities.Remove(datasetKey);
+                selectedDatasetsAM.Remove(datasetKey);
+                selectedDatasetsUM.Remove(datasetKey);
+                selectedDatasetsEM.Remove(datasetKey);
+                var moduleType = GetModuleTypeForDataset(dataset.Module);
+                filters.RemoveAll(f =>
+                    (f.DatasetId == dataset.Id && f.ModuleType == moduleType) ||
+                    (!string.IsNullOrWhiteSpace(f.DatasetKey) && string.Equals(f.DatasetKey, datasetKey, StringComparison.OrdinalIgnoreCase)));
 
                 if (!selectedDatasets.Any())
                 {
@@ -319,22 +378,16 @@
                 {
                     selectedEntities[datasetKey] = GetDefaultEntityForModule(dataset.Module);
                 }
+                await PrefetchDatasetDetailsAsync(dataset);
 
-                if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+                if (datasetForcedEntities.TryGetValue(datasetKey, out var forcedEntity))
                 {
-                    var token = await LocalStorage.GetItemAsync<string>("authToken");
-                    var responseDataset = !string.IsNullOrEmpty(token)
-                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}")
-                        : null;
+                    selectedEntities[datasetKey] = forcedEntity;
+                }
 
-                    if (responseDataset != null && responseDataset.IsSuccessStatusCode)
-                    {
-                        var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
-                        if (datasetIM != null)
-                        {
-                            selectedDatasetsIM[dataset.Id] = datasetIM;
-                        }
-                    }
+                if (activeTab == "columnas")
+                {
+                    UpdateAvailableColumns();
                 }
             }
             FilterDatasets();
@@ -408,6 +461,7 @@
         return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
     }
 
+
     public class JoinDto
     {
         private static int nextId = 1;
@@ -443,6 +497,7 @@
         public string ColumnKey { get; set; } = string.Empty;
         public string DisplayLabel { get; set; } = string.Empty;
         public string DatasetName { get; set; } = string.Empty;
+        public string DatasetKey { get; set; } = string.Empty;
         public int DatasetId { get; set; }
         public ModuleType ModuleType { get; set; } = ModuleType.InsightMonitor;
         public string ModuleName { get; set; } = string.Empty;
@@ -465,7 +520,6 @@
         public HashSet<string> EnumValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         public IReadOnlyList<string> AvailableEnumOptions { get; set; } = Array.Empty<string>();
     }
-
     private class ColumnSelectionSpec
     {
         public bool IsJoin { get; init; }
@@ -920,12 +974,13 @@
         filter.ColumnKey = column.FilterKey;
         filter.DisplayLabel = column.DisplayName;
         filter.DatasetName = column.DatasetName;
+        filter.DatasetKey = column.DatasetKey;
         filter.DatasetId = column.DatasetId;
         filter.ModuleType = column.ModuleType;
         filter.ModuleName = column.ModuleName;
         filter.Entity = column.Entity;
         filter.PropertyName = column.PropertyName;
-        filter.AttributeName = column.PropertyName;
+        filter.AttributeName = column.AttributeName;
         filter.IsJoinColumn = column.IsJoin;
         filter.JoinId = column.JoinId;
         filter.ValueType = column.FilterValueType;
@@ -1089,13 +1144,37 @@
             .Where(j => j.ServerJoinId.HasValue)
             .ToList();
 
+        var datasetsUsedInJoins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         if (resolvedJoins.Any())
         {
             foreach (var join in resolvedJoins)
             {
                 var joinId = join.ServerJoinId!.Value;
                 var joinDisplayName = GetJoinDisplayName(joinId);
+
+                var leftDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.LeftDataset);
+                if (leftDataset != null)
+                {
+                    datasetsUsedInJoins.Add(BuildDatasetKey(leftDataset));
+                }
+
+                var rightDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.RightDataset);
+                if (rightDataset != null)
+                {
+                    datasetsUsedInJoins.Add(BuildDatasetKey(rightDataset));
+                }
+
                 AddColumnsForJoin(joinDisplayName, joinId, join, previousVisibility, newColumns);
+            }
+
+            foreach (var dataset in selectedDatasets)
+            {
+                var datasetKey = BuildDatasetKey(dataset);
+                if (!datasetsUsedInJoins.Contains(datasetKey))
+                {
+                    AddColumnsForDataset(dataset, previousVisibility, newColumns);
+                }
             }
         }
         else
@@ -1143,6 +1222,7 @@
         foreach (var (dataset, entity, sideKey) in sides)
         {
             var datasetLabel = GetDatasetDisplayLabel(dataset);
+            var datasetKey = BuildDatasetKey(dataset);
             var propertyDescriptors = GetEntityPropertyDescriptors(entity);
             foreach (var descriptor in propertyDescriptors)
             {
@@ -1171,6 +1251,7 @@
                     Name = columnName,
                     DisplayName = descriptor.Name,
                     DatasetName = dataset.Nombre,
+                    DatasetKey = datasetKey,
                     GroupLabel = datasetLabel,
                     IsVisible = isVisible,
                     DatasetId = dataset.Id,
@@ -1221,15 +1302,17 @@
         var datasetLabel = GetDatasetDisplayLabel(dataset);
         var moduleName = string.IsNullOrWhiteSpace(dataset.Module) ? ModuleInsightMonitor : dataset.Module!;
         var moduleType = GetModuleTypeForDataset(dataset.Module);
+        var datasetKey = BuildDatasetKey(dataset);
         foreach (var prop in props)
         {
-            var columnKey = $"{dataset.Nombre}.{prop.Name}";
+            var columnKey = $"{datasetKey}:{entity}:{prop.Name}";
             var isVisible = previousVisibility.TryGetValue(columnKey, out var prev) ? prev : false;
             target.Add(new ColumnDefinition
             {
                 Name = columnKey,
                 DisplayName = prop.Name,
                 DatasetName = dataset.Nombre,
+                DatasetKey = datasetKey,
                 GroupLabel = datasetLabel,
                 IsVisible = isVisible,
                 DatasetId = dataset.Id,
@@ -1362,7 +1445,10 @@
 
         joins.Clear();
         selectedDatasets.Clear();
-        selectedDatasetsIM.Clear();
+        selectedDatasetsAM.Clear();
+        selectedDatasetsUM.Clear();
+        selectedDatasetsEM.Clear();
+        datasetForcedEntities.Clear();
         selectedEntities.Clear();
         availableColumns.Clear();
         filters.Clear();
@@ -1512,7 +1598,7 @@
 
         foreach (var selectionEntry in datasetSelections)
         {
-            await EnsureDatasetSelectedAsync(selectionEntry.DatasetId, selectionEntry.ModuleName, token);
+            await EnsureDatasetSelectedAsync(selectionEntry.DatasetId, selectionEntry.ModuleName);
         }
 
         foreach (var kvp in entityOverrides)
@@ -1522,7 +1608,7 @@
             {
                 continue;
             }
-            var options = GetEntityOptions(dataset.Module);
+            var options = GetModuleEntityOptions(dataset.Module);
             var entityToApply = options.Contains(kvp.Value) ? kvp.Value : GetDefaultEntityForModule(dataset.Module);
             selectedEntities[BuildDatasetKey(dataset)] = entityToApply;
         }
@@ -1613,7 +1699,7 @@
         };
     }
 
-    private async Task EnsureDatasetSelectedAsync(int datasetId, string moduleName, string token)
+    private async Task EnsureDatasetSelectedAsync(int datasetId, string moduleName)
     {
         var moduleComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -1625,11 +1711,10 @@
             {
                 selectedEntities[existingKey] = GetDefaultEntityForModule(existingDataset.Module);
             }
-            if (string.Equals(existingDataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase)
-                && !selectedDatasetsIM.ContainsKey(datasetId)
-                && !string.IsNullOrEmpty(token))
+            await PrefetchDatasetDetailsAsync(existingDataset);
+            if (datasetForcedEntities.TryGetValue(existingKey, out var forcedExisting))
             {
-                await PrefetchDatasetDetailsAsync(existingDataset, token);
+                selectedEntities[existingKey] = forcedExisting;
             }
             return;
         }
@@ -1648,39 +1733,350 @@
             selectedEntities[datasetKey] = EntityName.Device;
         }
 
-        if (!string.IsNullOrEmpty(token))
+        await PrefetchDatasetDetailsAsync(dataset);
+
+        if (datasetForcedEntities.TryGetValue(datasetKey, out var forcedFromMetadata))
         {
-            await PrefetchDatasetDetailsAsync(dataset, token);
+            selectedEntities[datasetKey] = forcedFromMetadata;
         }
     }
 
-    private async Task PrefetchDatasetDetailsAsync(DatasetDto dataset, string token)
+    private async Task PrefetchDatasetDetailsAsync(DatasetDto dataset)
     {
-        if (!string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+        if (dataset == null)
         {
             return;
         }
+
+        var datasetKey = BuildDatasetKey(dataset);
+
         try
         {
-            var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}");
-            if (!responseDataset.IsSuccessStatusCode)
-            {
-                var error = await responseDataset.Content.ReadAsStringAsync();
-                Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, responseDataset.StatusCode, error);
-                return;
-            }
-
-            var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
-            if (datasetIM == null)
+            if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
 
-            selectedDatasetsIM[dataset.Id] = datasetIM;
+            if (string.Equals(dataset.Module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
+            {
+                if (datasetForcedEntities.ContainsKey(datasetKey) && selectedDatasetsAM.ContainsKey(datasetKey))
+                {
+                    return;
+                }
+
+                var response = await Http.GetAsync($"api/DatasetAM/GetDatasetAMById?id={dataset.Id}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset AM {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, response.StatusCode, body);
+                    return;
+                }
+
+                var datasetAM = await response.Content.ReadFromJsonWithEnumSupportAsync<DatasetAM>();
+                if (datasetAM == null)
+                {
+                    return;
+                }
+
+                selectedDatasetsAM[datasetKey] = datasetAM;
+                if (TryDeriveEntityFromAssetManagerDataset(datasetAM, out var entity))
+                {
+                    ApplyForcedEntity(dataset, entity);
+                }
+                return;
+            }
+
+            if (string.Equals(dataset.Module, ModuleEventManager, StringComparison.OrdinalIgnoreCase))
+            {
+                if (datasetForcedEntities.ContainsKey(datasetKey) && selectedDatasetsEM.ContainsKey(datasetKey))
+                {
+                    return;
+                }
+
+                var response = await Http.GetAsync($"api/DatasetEM/{dataset.Id}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset EM {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, response.StatusCode, body);
+                    return;
+                }
+
+                var datasetEM = await response.Content.ReadFromJsonWithEnumSupportAsync<DatasetEM>();
+                if (datasetEM == null)
+                {
+                    return;
+                }
+
+                selectedDatasetsEM[datasetKey] = datasetEM;
+                if (TryDeriveEntityFromEventManagerDataset(datasetEM, out var entity))
+                {
+                    ApplyForcedEntity(dataset, entity);
+                }
+                return;
+            }
+
+            if (string.Equals(dataset.Module, ModuleUrbanMonitor, StringComparison.OrdinalIgnoreCase))
+            {
+                if (datasetForcedEntities.ContainsKey(datasetKey) && selectedDatasetsUM.ContainsKey(datasetKey))
+                {
+                    return;
+                }
+
+                var response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={dataset.Id}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    var body = await response.Content.ReadAsStringAsync();
+                    Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset UM {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, response.StatusCode, body);
+                    return;
+                }
+
+                var datasetUM = await response.Content.ReadFromJsonWithEnumSupportAsync<DatasetUM>();
+                if (datasetUM == null)
+                {
+                    return;
+                }
+
+                selectedDatasetsUM[datasetKey] = datasetUM;
+                if (TryDeriveEntityFromUrbanMonitorDataset(datasetUM, out var entity))
+                {
+                    ApplyForcedEntity(dataset, entity);
+                }
+                return;
+            }
         }
         catch (Exception ex)
         {
             Logger?.LogWarning(ex, "[EditarReporte] No se pudo recuperar detalles del dataset {DatasetId}", dataset.Id);
+        }
+    }
+
+    private void ApplyForcedEntity(DatasetDto dataset, EntityName entity)
+    {
+        var datasetKey = BuildDatasetKey(dataset);
+        datasetForcedEntities[datasetKey] = entity;
+        selectedEntities[datasetKey] = entity;
+
+        _ = InvokeAsync(() =>
+        {
+            if (selectedDatasets.Any(d => string.Equals(BuildDatasetKey(d), datasetKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (activeTab == "columnas")
+                {
+                    UpdateAvailableColumns();
+                }
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    private static bool TryDeriveEntityFromAssetManagerDataset(DatasetAM dataset, out EntityName entity)
+    {
+        entity = default;
+        if (dataset == null)
+        {
+            return false;
+        }
+
+        string? token = dataset.ContentType;
+        if (string.IsNullOrWhiteSpace(token) || string.Equals(token, "0", StringComparison.OrdinalIgnoreCase))
+        {
+            token = dataset.Type_Dataset switch
+            {
+                1 => "1",
+                2 => "2",
+                3 => "3",
+                _ => null
+            };
+        }
+
+        if (TryMapAssetManagerToken(token, out entity))
+        {
+            return true;
+        }
+
+        if (dataset.Grupo_Asset?.Any() == true)
+        {
+            entity = EntityName.Asset;
+            return true;
+        }
+
+        if (dataset.Grupo_Event_Task_Instance?.Any() == true)
+        {
+            entity = EntityName.EventAM;
+            return true;
+        }
+
+        if (dataset.Grupo_Stock?.Any() == true)
+        {
+            entity = EntityName.Stock;
+            return true;
+        }
+
+        return false;
+
+        static bool TryMapAssetManagerToken(string? tokenValue, out EntityName mapped)
+        {
+            mapped = default;
+            if (string.IsNullOrWhiteSpace(tokenValue))
+            {
+                return false;
+            }
+
+            var normalized = tokenValue.Trim().ToLowerInvariant();
+            if (normalized is "1" or "event" or "eventtask" or "event_task")
+            {
+                mapped = EntityName.EventAM;
+                return true;
+            }
+
+            if (normalized is "2" or "asset" or "assets")
+            {
+                mapped = EntityName.Asset;
+                return true;
+            }
+
+            if (normalized is "3" or "stock" or "stocks")
+            {
+                mapped = EntityName.Stock;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    private static bool TryDeriveEntityFromEventManagerDataset(DatasetEM dataset, out EntityName entity)
+    {
+        entity = default;
+        if (dataset == null)
+        {
+            return false;
+        }
+
+        if (TryMapEventManagerToken(dataset.ContentType, out entity))
+        {
+            return true;
+        }
+
+        if (dataset.DatasetAlerts?.Any() == true)
+        {
+            entity = EntityName.Alert;
+            return true;
+        }
+
+        if (dataset.DatasetEvents?.Any() == true)
+        {
+            entity = EntityName.EventEM;
+            return true;
+        }
+
+        if (dataset.DatasetExtensions?.Any() == true)
+        {
+            entity = EntityName.Extension;
+            return true;
+        }
+
+        return false;
+
+        static bool TryMapEventManagerToken(string? tokenValue, out EntityName mapped)
+        {
+            mapped = default;
+            if (string.IsNullOrWhiteSpace(tokenValue))
+            {
+                return false;
+            }
+
+            var normalized = tokenValue.Trim().ToLowerInvariant();
+            if (normalized is "1" or "alert" or "alerts")
+            {
+                mapped = EntityName.Alert;
+                return true;
+            }
+
+            if (normalized is "2" or "event" or "events")
+            {
+                mapped = EntityName.EventEM;
+                return true;
+            }
+
+            if (normalized is "3" or "extension" or "extensions")
+            {
+                mapped = EntityName.Extension;
+                return true;
+            }
+
+            if (normalized is "4" or "category" or "categoria")
+            {
+                mapped = EntityName.Categoria;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    private static bool TryDeriveEntityFromUrbanMonitorDataset(DatasetUM dataset, out EntityName entity)
+    {
+        entity = default;
+        if (dataset == null)
+        {
+            return false;
+        }
+
+        if (TryMapUrbanMonitorToken(dataset.ContentType, out entity))
+        {
+            return true;
+        }
+
+        if (dataset.DatasetNews?.Any() == true)
+        {
+            entity = EntityName.New;
+            return true;
+        }
+
+        if (dataset.DatasetEvents?.Any() == true)
+        {
+            entity = EntityName.EventUM;
+            return true;
+        }
+
+        if (dataset.Id_Zone.HasValue)
+        {
+            entity = EntityName.Zone;
+            return true;
+        }
+
+        return false;
+
+        static bool TryMapUrbanMonitorToken(string? tokenValue, out EntityName mapped)
+        {
+            mapped = default;
+            if (string.IsNullOrWhiteSpace(tokenValue))
+            {
+                return false;
+            }
+
+            var normalized = tokenValue.Trim().ToLowerInvariant();
+            if (normalized is "1" or "event" or "events")
+            {
+                mapped = EntityName.EventUM;
+                return true;
+            }
+
+            if (normalized is "2" or "news" or "noticias")
+            {
+                mapped = EntityName.New;
+                return true;
+            }
+
+            if (normalized is "3" or "zone" or "zona")
+            {
+                mapped = EntityName.Zone;
+                return true;
+            }
+
+            return false;
         }
     }
 
@@ -2421,6 +2817,7 @@
         {
             isExecuting = true;
             executeRows.Clear();
+            currentPage = 1;
             executeColumns.Clear();
             previewExecuted = false;
             StateHasChanged();
@@ -2499,9 +2896,15 @@
     private EntityName GetSelectedEntity(DatasetDto dataset)
     {
         var key = BuildDatasetKey(dataset);
+        if (datasetForcedEntities.TryGetValue(key, out var forcedEntity))
+        {
+            selectedEntities[key] = forcedEntity;
+            return forcedEntity;
+        }
+
         if (selectedEntities.TryGetValue(key, out var e))
         {
-            var allowed = GetEntityOptions(dataset.Module);
+            var allowed = GetModuleEntityOptions(dataset.Module);
             if (allowed.Contains(e))
             {
                 return e;
@@ -2515,13 +2918,21 @@
 
     private void OnEntityChanged(DatasetDto dataset, EntityName entity)
     {
-        var options = GetEntityOptions(dataset.Module);
+        var datasetKey = BuildDatasetKey(dataset);
+        if (datasetForcedEntities.TryGetValue(datasetKey, out var forced))
+        {
+            selectedEntities[datasetKey] = forced;
+            StateHasChanged();
+            return;
+        }
+
+        var options = GetModuleEntityOptions(dataset.Module);
         if (!options.Contains(entity))
         {
             entity = GetDefaultEntityForModule(dataset.Module);
         }
 
-        selectedEntities[BuildDatasetKey(dataset)] = entity;
+        selectedEntities[datasetKey] = entity;
         UpdateAvailableColumns();
         StateHasChanged();
     }

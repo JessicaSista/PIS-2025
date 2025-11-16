@@ -79,6 +79,27 @@
   <data name="SaveReport" xml:space="preserve">
     <value>Save report</value>
   </data>
+  <data name="DeviceDataToggleLabel" xml:space="preserve">
+    <value>Include device data</value>
+  </data>
+  <data name="DeviceDataDeviceLabel" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="DeviceDataDeviceDatasetHint" xml:space="preserve">
+    <value>Device from dataset {0}</value>
+  </data>
+  <data name="DeviceDataFromLabel" xml:space="preserve">
+    <value>From date</value>
+  </data>
+  <data name="DeviceDataFromTimeLabel" xml:space="preserve">
+    <value>From time</value>
+  </data>
+  <data name="DeviceDataToLabel" xml:space="preserve">
+    <value>To date</value>
+  </data>
+  <data name="DeviceDataToTimeLabel" xml:space="preserve">
+    <value>To time</value>
+  </data>
   <data name="ExecutingReport" xml:space="preserve">
     <value>Running report...</value>
   </data>
@@ -168,6 +189,33 @@
   </data>
   <data name="SelectVisibleColumnBeforeSave" xml:space="preserve">
     <value>Select at least one visible column before saving.</value>
+  </data>
+  <data name="DeviceDataDatasetRequired" xml:space="preserve">
+    <value>Select an Insight Monitor dataset for the device data.</value>
+  </data>
+  <data name="DeviceDataDeviceRequired" xml:space="preserve">
+    <value>Select a device to include its data.</value>
+  </data>
+  <data name="DeviceDataDateRangeRequired" xml:space="preserve">
+    <value>Select the date range for the device data.</value>
+  </data>
+  <data name="DeviceDataDateRangeInvalid" xml:space="preserve">
+    <value>The end date must be later than the start date.</value>
+  </data>
+  <data name="DeviceDataNoDevicesForDataset" xml:space="preserve">
+    <value>The selected dataset has no configured devices.</value>
+  </data>
+  <data name="DeviceDataNoAvailableDatasets" xml:space="preserve">
+    <value>Select an Insight Monitor dataset to enable device data.</value>
+  </data>
+  <data name="DeviceDataNoDevicesAvailable" xml:space="preserve">
+    <value>No selected dataset contains configured devices.</value>
+  </data>
+  <data name="DeviceDataUnknownDeviceName" xml:space="preserve">
+    <value>Device #{0}</value>
+  </data>
+  <data name="DeviceDataRestoreDatasetMissing" xml:space="preserve">
+    <value>No Insight Monitor dataset containing device #{0} was found. Device data was skipped.</value>
   </data>
   <data name="SaveReportError" xml:space="preserve">
     <value>Failed to save report: {0}</value>

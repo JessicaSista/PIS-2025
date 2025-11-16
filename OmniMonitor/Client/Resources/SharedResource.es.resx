@@ -168,4 +168,7 @@
   <data name="datasets" xml:space="preserve">
     <value>datasets</value>
   </data>
+  <data name="RecordsLabel" xml:space="preserve">
+    <value>Registros:</value>
+  </data>
 </root>

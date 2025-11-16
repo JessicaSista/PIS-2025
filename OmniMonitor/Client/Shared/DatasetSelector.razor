@@ -39,7 +39,7 @@
                                    Dense="true"
                                    Value="@GetSelectedEntity(dataset)"
                                    ValueChanged="@(entity => NotifyEntityChanged(dataset, entity))">
-                            @foreach (var option in GetEntityOptions(dataset.Module))
+                            @foreach (var option in GetEntityOptions(dataset))
                             {
                                 <MudSelectItem Value="@option">@option.ToString()</MudSelectItem>
                             }
@@ -109,7 +109,7 @@
     [Parameter] public EventCallback<DatasetDto> OnDatasetToggle { get; set; }
     [Parameter] public Func<DatasetDto, bool>? IsDatasetSelected { get; set; }
     [Parameter] public Func<DatasetDto, EntityName>? ResolveSelectedEntity { get; set; }
-    [Parameter] public Func<string?, IEnumerable<EntityName>>? ResolveEntityOptions { get; set; }
+    [Parameter] public Func<DatasetDto, IEnumerable<EntityName>>? ResolveEntityOptions { get; set; }
     [Parameter] public EventCallback<EntitySelectionChangedArgs> OnEntityChanged { get; set; }
     [Parameter] public string SearchText { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> OnSearchTextChanged { get; set; }
@@ -150,11 +150,11 @@
         return EntityName.Device;
     }
 
-    private IEnumerable<EntityName> GetEntityOptions(string? module)
+    private IEnumerable<EntityName> GetEntityOptions(DatasetDto dataset)
     {
         if (ResolveEntityOptions != null)
         {
-            return ResolveEntityOptions.Invoke(module);
+            return ResolveEntityOptions.Invoke(dataset);
         }
 
         return Array.Empty<EntityName>();
