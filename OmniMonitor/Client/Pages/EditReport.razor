@@ -18,27 +18,29 @@
 @inject IDialogService DialogService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.Extensions.Localization
-@inject IStringLocalizer<EditReport> Localizer
+@inject IStringLocalizer<Datasets> Localizer
 @inject ILogger<EditReport> Logger
 
 
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-8">
 
-    <MudStack Spacing="1" Class="mb-6">
-        <MudText Typo="Typo.h4" Style="display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">
-            @(!string.IsNullOrWhiteSpace(reportName) ? reportName : Localizer["DefaultReportTitle"])
-        </MudText>
-        <MudText Typo="Typo.body1" Style="display:block;max-width:100%;white-space:normal;overflow-wrap:anywhere;word-break:break-word;">
-            @(!string.IsNullOrWhiteSpace(reportDescription) ? reportDescription : Localizer["NoDescription"])
-        </MudText>
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd" Class="mt-2">
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Share" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Share"]</MudButton>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Pdf"]</MudButton>
-            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" Disabled="@isSaving" OnClick="GenerarJsonConfig">
-                @(isSaving ? Localizer["Saving"] : Localizer["SaveReport"])
-            </MudButton>
-        </MudStack>
+    <MudStack Class="mb-6">
+        <MudText Typo="Typo.h4">@(!string.IsNullOrWhiteSpace(reportName) ? reportName : "Reporte")</MudText>
+        <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudItem>
+                <MudText Typo="Typo.body1">@(!string.IsNullOrWhiteSpace(reportDescription) ? reportDescription : "Sin descripción")</MudText>
+            </MudItem>
+            <MudItem>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Share" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">Compartir</MudButton>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">PDF</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" Disabled="@isSaving" OnClick="GenerarJsonConfig">
+                        @(isSaving ? "Guardando..." : "Guardar Reporte")
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
     </MudStack>
 
 
@@ -53,7 +55,7 @@
                 OnDatasetToggle="ToggleDatasetSelection"
                 IsDatasetSelected="@IsSelected"
                 ResolveSelectedEntity="@GetSelectedEntity"
-                ResolveEntityOptions="@GetEntityOptionsForDataset"
+                ResolveEntityOptions="@GetEntityOptions"
                 OnDatasetEntityChanged="@HandleDatasetEntityChanged"
                 DatasetSearchText="@searchText"
                 OnDatasetSearchTextChanged="@HandleDatasetSearchTextChanged"
@@ -72,8 +74,7 @@
                 OnJoinDatasetsChanged="@HandleJoinDatasetsChanged"
                 Filters="@filters"
                 OnFilterAdd="@HandleFilterAdd"
-                OnFilterRemove="@HandleFilterRemove"
-                OnFilterColumnChanged="@HandleFilterColumnChanged" />
+                OnFilterRemove="@HandleFilterRemove" />
         </MudItem>
 
         <MudItem Xs="12" Sm="7" Md="8">
@@ -82,12 +83,12 @@
                 {
                     <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height:100%">
                         <MudProgressCircular Color="MudBlazor.Color.Primary" />
-                        <MudText Class="mt-2">@Localizer["ExecutingReport"]</MudText>
+                        <MudText Class="mt-2">Ejecutando reporte...</MudText>
                     </MudStack>
                 }
                 else if (executeRows.Any())
                 {
-                    <MudTable Items="@PagedRows" Dense="true" Hover="true">
+                    <MudTable Items="@executeRows" Dense="true" Hover="true">
                         <HeaderContent>
                             <MudTh>#</MudTh>
                             @foreach (var col in executeColumns)
@@ -103,27 +104,19 @@
                             }
                         </RowTemplate>
                     </MudTable>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-3">
-                        <MudText Typo="Typo.caption">@($"{CurrentPageStart}-{CurrentPageEnd} / {executeRows.Count}")</MudText>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Disabled="@IsFirstPage" OnClick="GoToPreviousPage" />
-                            <MudText Typo="Typo.caption">@($"{currentPage} / {TotalPages}")</MudText>
-                            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Disabled="@IsLastPage" OnClick="GoToNextPage" />
-                        </MudStack>
-                    </MudStack>
                 }
                 else
                 {
                     if (previewExecuted)
                     {
                         <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height:100%">
-                            <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">@Localizer["NoDataForConfiguration"]</MudText>
+                            <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">No hay datos que cumplan la configuracion elegida.</MudText>
                         </MudStack>
                     }
                     else
                     {
                         <MudText Typo="Typo.h6" Color="MudBlazor.Color.Secondary">
-                            @Localizer["SelectAtLeastOneColumn"]
+                            Seleccione al menos una columna
                         </MudText>
                     }
                 }
@@ -138,7 +131,6 @@
         public string Name { get; set; } = string.Empty; // Initialize to avoid null
         public string DisplayName { get; set; } = string.Empty; // Initialize to avoid null
         public string DatasetName { get; set; } = string.Empty; // Initialize to avoid null
-        public string DatasetKey { get; set; } = string.Empty; // Unique key per dataset (module + id)
         public string GroupLabel { get; set; } = string.Empty; // Used to display dataset/module grouping
         public bool IsVisible { get; set; } = false;
         public int DatasetId { get; set; }
@@ -147,16 +139,7 @@
         public bool IsJoin { get; set; }
         public int? JoinId { get; set; }
         public string? JoinDisplayName { get; set; }
-        public ModuleType ModuleType { get; set; } = ModuleType.InsightMonitor;
-        public string ModuleName { get; set; } = string.Empty;
-        public Type? PropertyType { get; set; }
-        public FilterValueType FilterValueType { get; set; } = FilterValueType.String;
-        public IReadOnlyList<string> EnumOptions { get; set; } = Array.Empty<string>();
-        public string AttributeName => $"{Entity}_{PropertyName}";
-        public string FilterKey => $"{ModuleType}:{DatasetId}:{Entity}:{PropertyName}";
     }
-
-    private record PropertyDescriptor(string Name, Type ClrType, FilterValueType ValueType, IReadOnlyList<string> EnumOptions);
 
     private List<ColumnDefinition> availableColumns = new();
 
@@ -174,16 +157,7 @@
     private static int _nextFilterId = 1;
     private int currentPage = 1;
     private const int pageSize = 10; 
-    private IEnumerable<Dictionary<string, string?>> PagedRows => executeRows.Skip((currentPage - 1) * pageSize).Take(pageSize);
-    private int TotalPages => executeRows.Count == 0 ? 1 : (int)Math.Ceiling(executeRows.Count / (double)pageSize);
-    private int CurrentPageStart => executeRows.Count == 0 ? 0 : ((currentPage - 1) * pageSize) + 1;
-    private int CurrentPageEnd => executeRows.Count == 0 ? 0 : Math.Min(currentPage * pageSize, executeRows.Count);
-    private bool IsFirstPage => currentPage <= 1;
-    private bool IsLastPage => executeRows.Count == 0 || currentPage >= TotalPages;
-    private Dictionary<string, DatasetAM> selectedDatasetsAM = new(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, DatasetUM> selectedDatasetsUM = new(StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, DatasetEM> selectedDatasetsEM = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, EntityName> datasetForcedEntities = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<int, DatasetIM> selectedDatasetsIM = new();
     private Dictionary<string, EntityName> selectedEntities = new();
     private List<DatasetDto> selectedDatasets = new();
     private List<DatasetDto> datasets = new();
@@ -198,29 +172,6 @@
     private List<CrossModuleJoinDto> userJoins = new();
     private bool HasJoinColumns => availableColumns.Any(c => c.IsJoin);
 
-    private void GoToPreviousPage()
-    {
-        if (currentPage <= 1)
-        {
-            return;
-        }
-
-        currentPage--;
-        StateHasChanged();
-    }
-
-    private void GoToNextPage()
-    {
-        var totalPages = TotalPages;
-        if (currentPage >= totalPages)
-        {
-            return;
-        }
-
-        currentPage++;
-        StateHasChanged();
-    }
-
     private static string BuildDatasetKey(DatasetDto dataset) => BuildDatasetKey(dataset.Id, dataset.Module);
     private static string BuildDatasetKey(int datasetId, string? module)
     {
@@ -228,7 +179,7 @@
         return $"{normalizedModule}|{datasetId}";
     }
 
-    private static EntityName[] GetModuleEntityOptions(string? module)
+    private static EntityName[] GetEntityOptions(string? module)
     {
         if (string.Equals(module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
         {
@@ -250,24 +201,8 @@
 
     private static EntityName GetDefaultEntityForModule(string? module)
     {
-        var options = GetModuleEntityOptions(module);
+        var options = GetEntityOptions(module);
         return options.Length > 0 ? options[0] : EntityName.Device;
-    }
-
-    private IEnumerable<EntityName> GetEntityOptionsForDataset(DatasetDto dataset)
-    {
-        if (dataset == null)
-        {
-            return Array.Empty<EntityName>();
-        }
-
-        var datasetKey = BuildDatasetKey(dataset);
-        if (datasetForcedEntities.TryGetValue(datasetKey, out var forced))
-        {
-            return new[] { forced };
-        }
-
-        return GetModuleEntityOptions(dataset.Module);
     }
 
     private static string GetSourceModuleForDataset(string? module)
@@ -349,16 +284,11 @@
                 }
 
                 selectedDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
-                var datasetKey = BuildDatasetKey(dataset);
-                selectedEntities.Remove(datasetKey);
-                datasetForcedEntities.Remove(datasetKey);
-                selectedDatasetsAM.Remove(datasetKey);
-                selectedDatasetsUM.Remove(datasetKey);
-                selectedDatasetsEM.Remove(datasetKey);
-                var moduleType = GetModuleTypeForDataset(dataset.Module);
-                filters.RemoveAll(f =>
-                    (f.DatasetId == dataset.Id && f.ModuleType == moduleType) ||
-                    (!string.IsNullOrWhiteSpace(f.DatasetKey) && string.Equals(f.DatasetKey, datasetKey, StringComparison.OrdinalIgnoreCase)));
+                if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedDatasetsIM.Remove(dataset.Id);
+                }
+                selectedEntities.Remove(BuildDatasetKey(dataset));
 
                 if (!selectedDatasets.Any())
                 {
@@ -378,23 +308,29 @@
                 {
                     selectedEntities[datasetKey] = GetDefaultEntityForModule(dataset.Module);
                 }
-                await PrefetchDatasetDetailsAsync(dataset);
 
-                if (datasetForcedEntities.TryGetValue(datasetKey, out var forcedEntity))
+                if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
                 {
-                    selectedEntities[datasetKey] = forcedEntity;
-                }
+                    var token = await LocalStorage.GetItemAsync<string>("authToken");
+                    var responseDataset = !string.IsNullOrEmpty(token)
+                        ? await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}")
+                        : null;
 
-                if (activeTab == "columnas")
-                {
-                    UpdateAvailableColumns();
+                    if (responseDataset != null && responseDataset.IsSuccessStatusCode)
+                    {
+                        var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
+                        if (datasetIM != null)
+                        {
+                            selectedDatasetsIM[dataset.Id] = datasetIM;
+                        }
+                    }
                 }
             }
             FilterDatasets();
         }
         catch (Exception ex)
         {
-            Snackbar.Add(Localizer["DatasetLoadError", ex.Message], Severity.Error);
+            Snackbar.Add($"Error al cargar el dataset: {ex.Message}", Severity.Error);
             Logger?.LogError(ex, "ToggleDatasetSelection error");
         }
         finally
@@ -461,7 +397,6 @@
         return withoutDiacritics.Normalize(System.Text.NormalizationForm.FormC);
     }
 
-
     public class JoinDto
     {
         private static int nextId = 1;
@@ -491,35 +426,19 @@
         }
     }
 
-    public class FilterViewModel
+    public class FilterDto
     {
         public int Id { get; set; }
-        public string ColumnKey { get; set; } = string.Empty;
-        public string DisplayLabel { get; set; } = string.Empty;
-        public string DatasetName { get; set; } = string.Empty;
-        public string DatasetKey { get; set; } = string.Empty;
-        public int DatasetId { get; set; }
-        public ModuleType ModuleType { get; set; } = ModuleType.InsightMonitor;
-        public string ModuleName { get; set; } = string.Empty;
-        public EntityName Entity { get; set; } = EntityName.Device;
-        public string PropertyName { get; set; } = string.Empty;
-        public FilterType FilterType { get; set; } = FilterType.Equals;
-        public FilterValueType ValueType { get; set; } = FilterValueType.String;
-        public string AttributeName { get; set; } = string.Empty;
-        public bool IsJoinColumn { get; set; }
-        public int? JoinId { get; set; }
+        public string Column { get; set; } = "ID"; 
+        public string Operator { get; set; } = "=";
+        public string Value { get; set; } = "";
 
-        public string? StringValue { get; set; }
-        public string? StringValueTo { get; set; }
-        public double? NumericValue { get; set; }
-        public double? NumericValueTo { get; set; }
-        public DateTime? DateValue { get; set; }
-        public DateTime? DateValueTo { get; set; }
-        public bool? BooleanValue { get; set; }
-        public string? EnumValue { get; set; }
-        public HashSet<string> EnumValues { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-        public IReadOnlyList<string> AvailableEnumOptions { get; set; } = Array.Empty<string>();
+        public FilterDto(int id)
+        {
+            Id = id;
+        }
     }
+
     private class ColumnSelectionSpec
     {
         public bool IsJoin { get; init; }
@@ -548,7 +467,7 @@
     private string activeTab = "datasets";
 
     private List<JoinDto> joins = new();
-    private readonly List<FilterViewModel> filters = new();
+    private List<FilterDto> filters = new();
     protected override async Task OnInitializedAsync()
     {
         JoinDto.ResetIdCounter();
@@ -567,7 +486,7 @@
             token = await LocalStorage.GetItemAsync<string>("authToken");
             if (string.IsNullOrEmpty(token))
             {
-                Snackbar.Add(Localizer["AuthTokenNotFound"], Severity.Error);
+                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
                 return;
             }
 
@@ -594,7 +513,7 @@
                     {
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
-                        Descripcion = d.Description ?? Localizer["NoDescription"],
+                        Descripcion = d.Description ?? "Sin descripción",
                         Module = ModuleInsightMonitor
                     }) ?? new List<DatasetDto>());
                 }
@@ -606,7 +525,7 @@
             catch (Exception ex)
             {
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets IM");
-                Snackbar.Add(Localizer["InsightDatasetsLoadError"], Severity.Warning);
+                Snackbar.Add("Error al cargar datasets de Insight Monitor", Severity.Warning);
             }
             try
             {
@@ -618,7 +537,7 @@
                     {
                         Id = d.Id_Dataset,
                         Nombre = d.Nombre ?? string.Empty,
-                        Descripcion = d.Descripcion ?? Localizer["NoDescription"],
+                        Descripcion = d.Descripcion ?? "Sin descripción",
                         Module = ModuleAssetManager
                     }) ?? new List<DatasetDto>());
                 }
@@ -630,7 +549,7 @@
             catch (Exception ex)
             {
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets AM");
-                Snackbar.Add(Localizer["AssetDatasetsLoadError"], Severity.Warning);
+                Snackbar.Add("Error al cargar datasets de Asset Manager", Severity.Warning);
             }
             try
             {
@@ -642,7 +561,7 @@
                     {
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
-                        Descripcion = d.Description ?? Localizer["NoDescription"],
+                        Descripcion = d.Description ?? "Sin descripción",
                         Module = ModuleUrbanMonitor
                     }) ?? new List<DatasetDto>());
                 }
@@ -654,7 +573,7 @@
             catch (Exception ex)
             {
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets UM");
-                Snackbar.Add(Localizer["UrbanDatasetsLoadError"], Severity.Warning);
+                Snackbar.Add("Error al cargar datasets de Urban Monitor", Severity.Warning);
             }
             try
             {
@@ -666,7 +585,7 @@
                     {
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
-                        Descripcion = d.Description ?? Localizer["NoDescription"],
+                        Descripcion = d.Description ?? "Sin descripción",
                         Module = ModuleEventManager
                     }) ?? new List<DatasetDto>());
                 }
@@ -678,7 +597,7 @@
             catch (Exception ex)
             {
                 Logger?.LogError(ex, "[EditarReporte] Error cargando datasets EM");
-                Snackbar.Add(Localizer["EventDatasetsLoadError"], Severity.Warning);
+                Snackbar.Add("Error al cargar datasets de Event Manager", Severity.Warning);
             }
 
             datasets = aggregatedDatasets
@@ -691,7 +610,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(Localizer["LoadDataError", ex.Message], Severity.Error);
+            Snackbar.Add($"Error al cargar los datos: {ex.Message}", Severity.Error);
         }
 
         _nextFilterId = 1;
@@ -756,7 +675,7 @@
                 var token = await LocalStorage.GetItemAsync<string>("authToken");
                 if (string.IsNullOrEmpty(token))
                 {
-                    Snackbar.Add(Localizer["AuthTokenNotFound"], Severity.Error);
+                    Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
                 }
                 else
                 {
@@ -764,7 +683,7 @@
                     if (!response.IsSuccessStatusCode)
                     {
                         var error = await response.Content.ReadAsStringAsync();
-                        Snackbar.Add(Localizer["RemoveJoinError", error], Severity.Error);
+                        Snackbar.Add($"Error al quitar el join del reporte: {error}", Severity.Error);
                         // Aún así, lo removemos de la UI para que el usuario pueda continuar
                     }
                 }
@@ -773,16 +692,12 @@
         catch (Exception ex)
         {
             Logger?.LogError(ex, "Error al eliminar join del reporte");
-            Snackbar.Add(Localizer["DeleteJoinError", ex.Message], Severity.Error);
+            Snackbar.Add($"Error al eliminar el join: {ex.Message}", Severity.Error);
         }
         finally
         {
             // Quitar de la UI
             joins.Remove(join);
-            if (join.ServerJoinId.HasValue)
-            {
-                filters.RemoveAll(f => f.JoinId == join.ServerJoinId);
-            }
             StateHasChanged();
         }
     }
@@ -791,7 +706,7 @@
         var token = await LocalStorage.GetItemAsync<string>("authToken");
         if (string.IsNullOrEmpty(token))
         {
-            Snackbar.Add(Localizer["AuthTokenNotFound"], Severity.Error);
+            Snackbar.Add("Token de autenticación no encontrado.", Severity.Error);
             return;
         }
 
@@ -810,21 +725,21 @@
 
                 if (string.IsNullOrWhiteSpace(join.LeftDataset) || string.IsNullOrWhiteSpace(join.RightDataset))
                 {
-                    Snackbar.Add(Localizer["JoinDatasetsRequired", join.Id], Severity.Warning);
+                    Snackbar.Add($"Seleccione los datasets izquierdo y derecho para el join #{join.Id}", Severity.Warning);
                     encounteredErrors = true;
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(join.LeftField) || string.IsNullOrWhiteSpace(join.RightField))
                 {
-                    Snackbar.Add(Localizer["JoinFieldsRequired", join.Id], Severity.Warning);
+                    Snackbar.Add($"Seleccione los campos del join #{join.Id}", Severity.Warning);
                     encounteredErrors = true;
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(join.JoinType))
                 {
-                    Snackbar.Add(Localizer["JoinTypeRequired", join.Id], Severity.Warning);
+                    Snackbar.Add($"Seleccione el tipo de join para #{join.Id}", Severity.Warning);
                     encounteredErrors = true;
                     continue;
                 }
@@ -834,7 +749,7 @@
 
                 if (leftDataset == null || rightDataset == null)
                 {
-                    Snackbar.Add(Localizer["JoinDatasetsMissing", join.LeftDataset, join.RightDataset], Severity.Error);
+                    Snackbar.Add($"Datasets no encontrados para el join: {join.LeftDataset} - {join.RightDataset}", Severity.Error);
                     encounteredErrors = true;
                     continue;
                 }
@@ -844,7 +759,7 @@
 
                 if (!Enum.TryParse<JoinType>(join.JoinType, true, out var joinType))
                 {
-                    Snackbar.Add(Localizer["JoinTypeUnknown", join.Id, join.JoinType], Severity.Error);
+                    Snackbar.Add($"Tipo de join desconocido para #{join.Id}: {join.JoinType}", Severity.Error);
                     encounteredErrors = true;
                     continue;
                 }
@@ -854,7 +769,7 @@
 
                 var createJoinRequest = new CreateJoinRequestDto
                     {
-                        Name = Localizer["JoinNamePattern", join.LeftDataset, join.RightDataset],
+                        Name = $"Join: {join.LeftDataset} y {join.RightDataset}",
                         Description = string.Empty,
                         JoinType = joinType,
                         LeftOperand = new JoinOperandDto
@@ -879,7 +794,7 @@
                 if (!createJoinResponse.IsSuccessStatusCode)
                 {
                     var error = await createJoinResponse.Content.ReadAsStringAsync();
-                    Snackbar.Add(Localizer["JoinCreateError", join.Id, error], Severity.Error);
+                    Snackbar.Add($"Error al crear la configuración del join #{join.Id}: {error}", Severity.Error);
                     encounteredErrors = true;
                     continue;
                 }
@@ -921,7 +836,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add(Localizer["JoinApplyError", ex.Message], Severity.Error);
+                Snackbar.Add($"Error al aplicar join: {ex.Message}", Severity.Error);
                 encounteredErrors = true;
             }
         }
@@ -930,7 +845,7 @@
 
         if (!encounteredErrors)
         {
-            var message = appliedJoins > 0 ? Localizer["JoinsSaved"] : Localizer["JoinsUpdated"];
+            var message = appliedJoins > 0 ? "Joins guardados correctamente." : "Joins actualizados correctamente.";
             Snackbar.Add(message, Severity.Success);
         }
 
@@ -942,77 +857,21 @@
     // --- Métodos de Filtros ---
     private void AgregarFiltro()
     {
-        var defaultColumn = availableColumns.FirstOrDefault(c => c.IsVisible);
-        if (defaultColumn == null)
+        var newFilter = new FilterDto(_nextFilterId++);
+
+        var defaultColumn = availableColumns.FirstOrDefault(c => c.IsVisible)?.Name;
+        if (defaultColumn != null)
         {
-            Snackbar.Add(Localizer["ConfigureColumnsBeforeFilters"], Severity.Warning);
-            return;
+            newFilter.Column = defaultColumn;
         }
 
-        var filter = CreateFilterFromColumn(defaultColumn, _nextFilterId++);
-        filters.Add(filter);
+        filters.Add(newFilter);
     }
 
-    private void EliminarFiltro(FilterViewModel filter)
+    private void EliminarFiltro(FilterDto filter)
     {
         filters.Remove(filter);
     }
-
-    private FilterViewModel CreateFilterFromColumn(ColumnDefinition column, int filterId)
-    {
-        var filter = new FilterViewModel
-        {
-            Id = filterId
-        };
-
-        ApplyColumnToFilter(filter, column);
-        return filter;
-    }
-
-    private void ApplyColumnToFilter(FilterViewModel filter, ColumnDefinition column)
-    {
-        filter.ColumnKey = column.FilterKey;
-        filter.DisplayLabel = column.DisplayName;
-        filter.DatasetName = column.DatasetName;
-        filter.DatasetKey = column.DatasetKey;
-        filter.DatasetId = column.DatasetId;
-        filter.ModuleType = column.ModuleType;
-        filter.ModuleName = column.ModuleName;
-        filter.Entity = column.Entity;
-        filter.PropertyName = column.PropertyName;
-        filter.AttributeName = column.AttributeName;
-        filter.IsJoinColumn = column.IsJoin;
-        filter.JoinId = column.JoinId;
-        filter.ValueType = column.FilterValueType;
-        filter.AvailableEnumOptions = column.EnumOptions ?? Array.Empty<string>();
-        filter.FilterType = GetDefaultFilterType(filter.ValueType);
-
-        ResetFilterValues(filter);
-    }
-
-    private static void ResetFilterValues(FilterViewModel filter)
-    {
-        filter.StringValue = null;
-        filter.StringValueTo = null;
-        filter.NumericValue = null;
-        filter.NumericValueTo = null;
-        filter.DateValue = null;
-        filter.DateValueTo = null;
-        filter.BooleanValue = null;
-        filter.EnumValue = null;
-        filter.EnumValues ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        filter.EnumValues.Clear();
-    }
-
-    private static FilterType GetDefaultFilterType(FilterValueType valueType) => valueType switch
-    {
-        FilterValueType.String => FilterType.Contains,
-        FilterValueType.Number => FilterType.Equals,
-        FilterValueType.Date => FilterType.Equals,
-        FilterValueType.Boolean => FilterType.Equals,
-        FilterValueType.Enum => FilterType.Equals,
-        _ => FilterType.Equals
-    };
 
 
     // --- Métodos de UI / Tabs ---
@@ -1021,14 +880,14 @@
         // Only allow moving to joins if we have at least two datasets
         if (tab == "joins" && selectedDatasets.Count < 2)
         {
-            Snackbar.Add(Localizer["SelectTwoDatasetsForJoins"], Severity.Warning);
+            Snackbar.Add("Seleccione al menos dos datasets para configurar joins", Severity.Warning);
             return;
         }
 
         // Only allow moving to columns if we have at least one dataset
         if (tab == "columnas" && !selectedDatasets.Any())
         {
-            Snackbar.Add(Localizer["SelectDatasetForColumns"], Severity.Warning);
+            Snackbar.Add("Seleccione al menos un dataset para configurar columnas", Severity.Warning);
             return;
         }
 
@@ -1049,7 +908,7 @@
         if (tab == "filtros" 
             && !availableColumns.Any(c => c.IsVisible))
         {
-            Snackbar.Add(Localizer["ConfigureColumnsBeforeFilters"], Severity.Warning);
+            Snackbar.Add("Configure las columnas antes de agregar filtros", Severity.Warning);
             return;
         }
 
@@ -1096,31 +955,9 @@
         return Task.CompletedTask;
     }
 
-    private Task HandleFilterRemove(FilterViewModel filter)
+    private Task HandleFilterRemove(FilterDto filter)
     {
         EliminarFiltro(filter);
-        StateHasChanged();
-        return Task.CompletedTask;
-    }
-
-    private Task HandleFilterColumnChanged((int FilterId, string ColumnKey) args)
-    {
-        var (filterId, columnKey) = args;
-
-        var filter = filters.FirstOrDefault(f => f.Id == filterId);
-        if (filter == null)
-        {
-            return Task.CompletedTask;
-        }
-
-        var column = availableColumns.FirstOrDefault(c => string.Equals(c.FilterKey, columnKey, StringComparison.Ordinal));
-        if (column == null)
-        {
-            Snackbar.Add(Localizer["FilterColumnNotFound"], Severity.Warning);
-            return Task.CompletedTask;
-        }
-
-        ApplyColumnToFilter(filter, column);
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -1144,37 +981,13 @@
             .Where(j => j.ServerJoinId.HasValue)
             .ToList();
 
-        var datasetsUsedInJoins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
         if (resolvedJoins.Any())
         {
             foreach (var join in resolvedJoins)
             {
                 var joinId = join.ServerJoinId!.Value;
                 var joinDisplayName = GetJoinDisplayName(joinId);
-
-                var leftDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.LeftDataset);
-                if (leftDataset != null)
-                {
-                    datasetsUsedInJoins.Add(BuildDatasetKey(leftDataset));
-                }
-
-                var rightDataset = selectedDatasets.FirstOrDefault(d => d.Nombre == join.RightDataset);
-                if (rightDataset != null)
-                {
-                    datasetsUsedInJoins.Add(BuildDatasetKey(rightDataset));
-                }
-
                 AddColumnsForJoin(joinDisplayName, joinId, join, previousVisibility, newColumns);
-            }
-
-            foreach (var dataset in selectedDatasets)
-            {
-                var datasetKey = BuildDatasetKey(dataset);
-                if (!datasetsUsedInJoins.Contains(datasetKey))
-                {
-                    AddColumnsForDataset(dataset, previousVisibility, newColumns);
-                }
             }
         }
         else
@@ -1222,18 +1035,16 @@
         foreach (var (dataset, entity, sideKey) in sides)
         {
             var datasetLabel = GetDatasetDisplayLabel(dataset);
-            var datasetKey = BuildDatasetKey(dataset);
-            var propertyDescriptors = GetEntityPropertyDescriptors(entity);
-            foreach (var descriptor in propertyDescriptors)
+            foreach (var prop in GetEntityPropertyNames(entity))
             {
-                var columnName = $"{joinDisplayName}.{entity}.{descriptor.Name}";
+                var columnName = $"{joinDisplayName}.{entity}.{prop}";
 
                 if (useSharedColumns)
                 {
                     var existingColumn = target.FirstOrDefault(c => string.Equals(c.Name, columnName, StringComparison.OrdinalIgnoreCase));
                     if (existingColumn != null)
                     {
-                        var extraVisibility = GetVisibilityForJoinColumn(previousVisibility, joinDisplayName, dataset, descriptor.Name, columnName, sideKey);
+                        var extraVisibility = GetVisibilityForJoinColumn(previousVisibility, joinDisplayName, dataset, prop, columnName, sideKey);
                         if (extraVisibility && !existingColumn.IsVisible)
                         {
                             existingColumn.IsVisible = true;
@@ -1242,29 +1053,21 @@
                     }
                 }
 
-                var isVisible = GetVisibilityForJoinColumn(previousVisibility, joinDisplayName, dataset, descriptor.Name, columnName, sideKey);
-                var moduleName = string.IsNullOrWhiteSpace(dataset.Module) ? ModuleInsightMonitor : dataset.Module!;
-                var moduleType = GetModuleTypeForDataset(dataset.Module);
+                var isVisible = GetVisibilityForJoinColumn(previousVisibility, joinDisplayName, dataset, prop, columnName, sideKey);
 
                 target.Add(new ColumnDefinition
                 {
                     Name = columnName,
-                    DisplayName = descriptor.Name,
+                    DisplayName = prop,
                     DatasetName = dataset.Nombre,
-                    DatasetKey = datasetKey,
                     GroupLabel = datasetLabel,
                     IsVisible = isVisible,
                     DatasetId = dataset.Id,
                     Entity = entity,
-                    PropertyName = descriptor.Name,
+                    PropertyName = prop,
                     IsJoin = true,
                     JoinId = joinId,
-                    JoinDisplayName = joinDisplayName,
-                    ModuleName = moduleName,
-                    ModuleType = moduleType,
-                    PropertyType = descriptor.ClrType,
-                    FilterValueType = descriptor.ValueType,
-                    EnumOptions = descriptor.EnumOptions
+                    JoinDisplayName = joinDisplayName
                 });
             }
         }
@@ -1298,34 +1101,25 @@
     private void AddColumnsForDataset(DatasetDto dataset, Dictionary<string, bool> previousVisibility, List<ColumnDefinition> target)
     {
         var entity = GetSelectedEntity(dataset);
-        var props = GetEntityPropertyDescriptors(entity);
+        var props = GetEntityPropertyNames(entity);
         var datasetLabel = GetDatasetDisplayLabel(dataset);
-        var moduleName = string.IsNullOrWhiteSpace(dataset.Module) ? ModuleInsightMonitor : dataset.Module!;
-        var moduleType = GetModuleTypeForDataset(dataset.Module);
-        var datasetKey = BuildDatasetKey(dataset);
         foreach (var prop in props)
         {
-            var columnKey = $"{datasetKey}:{entity}:{prop.Name}";
+            var columnKey = $"{dataset.Nombre}.{prop}";
             var isVisible = previousVisibility.TryGetValue(columnKey, out var prev) ? prev : false;
             target.Add(new ColumnDefinition
             {
                 Name = columnKey,
-                DisplayName = prop.Name,
+                DisplayName = prop,
                 DatasetName = dataset.Nombre,
-                DatasetKey = datasetKey,
                 GroupLabel = datasetLabel,
                 IsVisible = isVisible,
                 DatasetId = dataset.Id,
                 Entity = entity,
-                PropertyName = prop.Name,
+                PropertyName = prop,
                 IsJoin = false,
                 JoinId = null,
-                JoinDisplayName = null,
-                ModuleName = moduleName,
-                ModuleType = moduleType,
-                PropertyType = prop.ClrType,
-                FilterValueType = prop.ValueType,
-                EnumOptions = prop.EnumOptions
+                JoinDisplayName = null
             });
         }
     }
@@ -1392,7 +1186,7 @@
         return leftMatch && rightMatch;
     }
 
-    private string GetJoinDisplayName(int joinId) => Localizer["JoinDisplayName", joinId];
+    private static string GetJoinDisplayName(int joinId) => $"Join {joinId}";
 
     private async Task LoadAvailableJoinsAsync(string token)
     {
@@ -1445,13 +1239,9 @@
 
         joins.Clear();
         selectedDatasets.Clear();
-        selectedDatasetsAM.Clear();
-        selectedDatasetsUM.Clear();
-        selectedDatasetsEM.Clear();
-        datasetForcedEntities.Clear();
+        selectedDatasetsIM.Clear();
         selectedEntities.Clear();
         availableColumns.Clear();
-        filters.Clear();
         JoinDto.ResetIdCounter();
 
         var datasetSelections = new List<(int DatasetId, string ModuleName)>();
@@ -1598,7 +1388,7 @@
 
         foreach (var selectionEntry in datasetSelections)
         {
-            await EnsureDatasetSelectedAsync(selectionEntry.DatasetId, selectionEntry.ModuleName);
+            await EnsureDatasetSelectedAsync(selectionEntry.DatasetId, selectionEntry.ModuleName, token);
         }
 
         foreach (var kvp in entityOverrides)
@@ -1608,7 +1398,7 @@
             {
                 continue;
             }
-            var options = GetModuleEntityOptions(dataset.Module);
+            var options = GetEntityOptions(dataset.Module);
             var entityToApply = options.Contains(kvp.Value) ? kvp.Value : GetDefaultEntityForModule(dataset.Module);
             selectedEntities[BuildDatasetKey(dataset)] = entityToApply;
         }
@@ -1642,7 +1432,6 @@
 
         UpdateAvailableColumns();
         ApplyColumnSelections(columnSelections);
-        RestoreFiltersFromConfig(report.JSON_filters);
         FilterDatasets();
         StateHasChanged();
     }
@@ -1699,7 +1488,7 @@
         };
     }
 
-    private async Task EnsureDatasetSelectedAsync(int datasetId, string moduleName)
+    private async Task EnsureDatasetSelectedAsync(int datasetId, string moduleName, string token)
     {
         var moduleComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -1711,10 +1500,11 @@
             {
                 selectedEntities[existingKey] = GetDefaultEntityForModule(existingDataset.Module);
             }
-            await PrefetchDatasetDetailsAsync(existingDataset);
-            if (datasetForcedEntities.TryGetValue(existingKey, out var forcedExisting))
+            if (string.Equals(existingDataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase)
+                && !selectedDatasetsIM.ContainsKey(datasetId)
+                && !string.IsNullOrEmpty(token))
             {
-                selectedEntities[existingKey] = forcedExisting;
+                await PrefetchDatasetDetailsAsync(existingDataset, token);
             }
             return;
         }
@@ -1733,350 +1523,39 @@
             selectedEntities[datasetKey] = EntityName.Device;
         }
 
-        await PrefetchDatasetDetailsAsync(dataset);
-
-        if (datasetForcedEntities.TryGetValue(datasetKey, out var forcedFromMetadata))
+        if (!string.IsNullOrEmpty(token))
         {
-            selectedEntities[datasetKey] = forcedFromMetadata;
+            await PrefetchDatasetDetailsAsync(dataset, token);
         }
     }
 
-    private async Task PrefetchDatasetDetailsAsync(DatasetDto dataset)
+    private async Task PrefetchDatasetDetailsAsync(DatasetDto dataset, string token)
     {
-        if (dataset == null)
+        if (!string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
-
-        var datasetKey = BuildDatasetKey(dataset);
-
         try
         {
-            if (string.Equals(dataset.Module, ModuleInsightMonitor, StringComparison.OrdinalIgnoreCase))
+            var responseDataset = await Http.GetAsync($"api/Dataset/GetDataset?datasetId={dataset.Id}");
+            if (!responseDataset.IsSuccessStatusCode)
+            {
+                var error = await responseDataset.Content.ReadAsStringAsync();
+                Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, responseDataset.StatusCode, error);
+                return;
+            }
+
+            var datasetIM = await responseDataset.Content.ReadFromJsonWithEnumSupportAsync<DatasetIM>();
+            if (datasetIM == null)
             {
                 return;
             }
 
-            if (string.Equals(dataset.Module, ModuleAssetManager, StringComparison.OrdinalIgnoreCase))
-            {
-                if (datasetForcedEntities.ContainsKey(datasetKey) && selectedDatasetsAM.ContainsKey(datasetKey))
-                {
-                    return;
-                }
-
-                var response = await Http.GetAsync($"api/DatasetAM/GetDatasetAMById?id={dataset.Id}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    var body = await response.Content.ReadAsStringAsync();
-                    Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset AM {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, response.StatusCode, body);
-                    return;
-                }
-
-                var datasetAM = await response.Content.ReadFromJsonWithEnumSupportAsync<DatasetAM>();
-                if (datasetAM == null)
-                {
-                    return;
-                }
-
-                selectedDatasetsAM[datasetKey] = datasetAM;
-                if (TryDeriveEntityFromAssetManagerDataset(datasetAM, out var entity))
-                {
-                    ApplyForcedEntity(dataset, entity);
-                }
-                return;
-            }
-
-            if (string.Equals(dataset.Module, ModuleEventManager, StringComparison.OrdinalIgnoreCase))
-            {
-                if (datasetForcedEntities.ContainsKey(datasetKey) && selectedDatasetsEM.ContainsKey(datasetKey))
-                {
-                    return;
-                }
-
-                var response = await Http.GetAsync($"api/DatasetEM/{dataset.Id}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    var body = await response.Content.ReadAsStringAsync();
-                    Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset EM {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, response.StatusCode, body);
-                    return;
-                }
-
-                var datasetEM = await response.Content.ReadFromJsonWithEnumSupportAsync<DatasetEM>();
-                if (datasetEM == null)
-                {
-                    return;
-                }
-
-                selectedDatasetsEM[datasetKey] = datasetEM;
-                if (TryDeriveEntityFromEventManagerDataset(datasetEM, out var entity))
-                {
-                    ApplyForcedEntity(dataset, entity);
-                }
-                return;
-            }
-
-            if (string.Equals(dataset.Module, ModuleUrbanMonitor, StringComparison.OrdinalIgnoreCase))
-            {
-                if (datasetForcedEntities.ContainsKey(datasetKey) && selectedDatasetsUM.ContainsKey(datasetKey))
-                {
-                    return;
-                }
-
-                var response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={dataset.Id}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    var body = await response.Content.ReadAsStringAsync();
-                    Logger?.LogWarning("[EditarReporte] No se pudieron obtener los detalles del dataset UM {DatasetId}. Status={StatusCode}. Body={Body}", dataset.Id, response.StatusCode, body);
-                    return;
-                }
-
-                var datasetUM = await response.Content.ReadFromJsonWithEnumSupportAsync<DatasetUM>();
-                if (datasetUM == null)
-                {
-                    return;
-                }
-
-                selectedDatasetsUM[datasetKey] = datasetUM;
-                if (TryDeriveEntityFromUrbanMonitorDataset(datasetUM, out var entity))
-                {
-                    ApplyForcedEntity(dataset, entity);
-                }
-                return;
-            }
+            selectedDatasetsIM[dataset.Id] = datasetIM;
         }
         catch (Exception ex)
         {
             Logger?.LogWarning(ex, "[EditarReporte] No se pudo recuperar detalles del dataset {DatasetId}", dataset.Id);
-        }
-    }
-
-    private void ApplyForcedEntity(DatasetDto dataset, EntityName entity)
-    {
-        var datasetKey = BuildDatasetKey(dataset);
-        datasetForcedEntities[datasetKey] = entity;
-        selectedEntities[datasetKey] = entity;
-
-        _ = InvokeAsync(() =>
-        {
-            if (selectedDatasets.Any(d => string.Equals(BuildDatasetKey(d), datasetKey, StringComparison.OrdinalIgnoreCase)))
-            {
-                if (activeTab == "columnas")
-                {
-                    UpdateAvailableColumns();
-                }
-            }
-
-            StateHasChanged();
-        });
-    }
-
-    private static bool TryDeriveEntityFromAssetManagerDataset(DatasetAM dataset, out EntityName entity)
-    {
-        entity = default;
-        if (dataset == null)
-        {
-            return false;
-        }
-
-        string? token = dataset.ContentType;
-        if (string.IsNullOrWhiteSpace(token) || string.Equals(token, "0", StringComparison.OrdinalIgnoreCase))
-        {
-            token = dataset.Type_Dataset switch
-            {
-                1 => "1",
-                2 => "2",
-                3 => "3",
-                _ => null
-            };
-        }
-
-        if (TryMapAssetManagerToken(token, out entity))
-        {
-            return true;
-        }
-
-        if (dataset.Grupo_Asset?.Any() == true)
-        {
-            entity = EntityName.Asset;
-            return true;
-        }
-
-        if (dataset.Grupo_Event_Task_Instance?.Any() == true)
-        {
-            entity = EntityName.EventAM;
-            return true;
-        }
-
-        if (dataset.Grupo_Stock?.Any() == true)
-        {
-            entity = EntityName.Stock;
-            return true;
-        }
-
-        return false;
-
-        static bool TryMapAssetManagerToken(string? tokenValue, out EntityName mapped)
-        {
-            mapped = default;
-            if (string.IsNullOrWhiteSpace(tokenValue))
-            {
-                return false;
-            }
-
-            var normalized = tokenValue.Trim().ToLowerInvariant();
-            if (normalized is "1" or "event" or "eventtask" or "event_task")
-            {
-                mapped = EntityName.EventAM;
-                return true;
-            }
-
-            if (normalized is "2" or "asset" or "assets")
-            {
-                mapped = EntityName.Asset;
-                return true;
-            }
-
-            if (normalized is "3" or "stock" or "stocks")
-            {
-                mapped = EntityName.Stock;
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-    private static bool TryDeriveEntityFromEventManagerDataset(DatasetEM dataset, out EntityName entity)
-    {
-        entity = default;
-        if (dataset == null)
-        {
-            return false;
-        }
-
-        if (TryMapEventManagerToken(dataset.ContentType, out entity))
-        {
-            return true;
-        }
-
-        if (dataset.DatasetAlerts?.Any() == true)
-        {
-            entity = EntityName.Alert;
-            return true;
-        }
-
-        if (dataset.DatasetEvents?.Any() == true)
-        {
-            entity = EntityName.EventEM;
-            return true;
-        }
-
-        if (dataset.DatasetExtensions?.Any() == true)
-        {
-            entity = EntityName.Extension;
-            return true;
-        }
-
-        return false;
-
-        static bool TryMapEventManagerToken(string? tokenValue, out EntityName mapped)
-        {
-            mapped = default;
-            if (string.IsNullOrWhiteSpace(tokenValue))
-            {
-                return false;
-            }
-
-            var normalized = tokenValue.Trim().ToLowerInvariant();
-            if (normalized is "1" or "alert" or "alerts")
-            {
-                mapped = EntityName.Alert;
-                return true;
-            }
-
-            if (normalized is "2" or "event" or "events")
-            {
-                mapped = EntityName.EventEM;
-                return true;
-            }
-
-            if (normalized is "3" or "extension" or "extensions")
-            {
-                mapped = EntityName.Extension;
-                return true;
-            }
-
-            if (normalized is "4" or "category" or "categoria")
-            {
-                mapped = EntityName.Categoria;
-                return true;
-            }
-
-            return false;
-        }
-    }
-
-    private static bool TryDeriveEntityFromUrbanMonitorDataset(DatasetUM dataset, out EntityName entity)
-    {
-        entity = default;
-        if (dataset == null)
-        {
-            return false;
-        }
-
-        if (TryMapUrbanMonitorToken(dataset.ContentType, out entity))
-        {
-            return true;
-        }
-
-        if (dataset.DatasetNews?.Any() == true)
-        {
-            entity = EntityName.New;
-            return true;
-        }
-
-        if (dataset.DatasetEvents?.Any() == true)
-        {
-            entity = EntityName.EventUM;
-            return true;
-        }
-
-        if (dataset.Id_Zone.HasValue)
-        {
-            entity = EntityName.Zone;
-            return true;
-        }
-
-        return false;
-
-        static bool TryMapUrbanMonitorToken(string? tokenValue, out EntityName mapped)
-        {
-            mapped = default;
-            if (string.IsNullOrWhiteSpace(tokenValue))
-            {
-                return false;
-            }
-
-            var normalized = tokenValue.Trim().ToLowerInvariant();
-            if (normalized is "1" or "event" or "events")
-            {
-                mapped = EntityName.EventUM;
-                return true;
-            }
-
-            if (normalized is "2" or "news" or "noticias")
-            {
-                mapped = EntityName.New;
-                return true;
-            }
-
-            if (normalized is "3" or "zone" or "zona")
-            {
-                mapped = EntityName.Zone;
-                return true;
-            }
-
-            return false;
         }
     }
 
@@ -2188,432 +1667,6 @@
         }
     }
 
-    private bool TryBuildFiltersConfig(out ReportFiltersConfig? filtersConfig)
-    {
-        filtersConfig = null;
-
-        if (!filters.Any())
-        {
-            return true;
-        }
-
-        var config = new ReportFiltersConfig();
-
-        foreach (var group in filters.GroupBy(f => new { f.DatasetId, f.ModuleType }))
-        {
-            if (group.Key.DatasetId <= 0)
-            {
-                Snackbar.Add(Localizer["FilterDatasetMissing"], Severity.Warning);
-                return false;
-            }
-
-            var datasetFilter = new DatasetFilterConfig
-            {
-                DatasetId = group.Key.DatasetId,
-                ModuleType = group.Key.ModuleType
-            };
-
-            foreach (var filter in group)
-            {
-                if (!TryBuildFilterCondition(filter, out var condition, out var errorMessage))
-                {
-                    if (!string.IsNullOrWhiteSpace(errorMessage))
-                    {
-                        Snackbar.Add(errorMessage, Severity.Warning);
-                    }
-                    else
-                    {
-                        Snackbar.Add(Localizer["FilterValidationFailed"], Severity.Warning);
-                    }
-                    return false;
-                }
-
-                datasetFilter.Filters.Add(condition);
-            }
-
-            if (datasetFilter.Filters.Any())
-            {
-                config.DatasetFilters.Add(datasetFilter);
-            }
-        }
-
-        if (!config.DatasetFilters.Any())
-        {
-            filtersConfig = null;
-            return true;
-        }
-
-        filtersConfig = config;
-        return true;
-    }
-
-    private bool TryBuildFilterCondition(FilterViewModel filter, out FilterCondition condition, out string? errorMessage)
-    {
-        condition = null!;
-        errorMessage = null;
-
-        var attributeName = string.IsNullOrWhiteSpace(filter.AttributeName)
-            ? filter.PropertyName
-            : filter.AttributeName;
-
-        if (string.IsNullOrWhiteSpace(attributeName))
-        {
-            errorMessage = Localizer["FilterAttributeMissing"];
-            return false;
-        }
-
-        object? value = null;
-
-        switch (filter.ValueType)
-        {
-            case FilterValueType.String:
-                var stringValue = filter.StringValue?.Trim();
-                if (string.IsNullOrEmpty(stringValue))
-                {
-                    errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                    return false;
-                }
-                value = stringValue;
-                break;
-
-            case FilterValueType.Number:
-                if (!filter.NumericValue.HasValue)
-                {
-                    errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                    return false;
-                }
-                value = filter.NumericValue.Value;
-                break;
-
-            case FilterValueType.Date:
-                if (filter.FilterType == FilterType.Between)
-                {
-                    if (!filter.DateValue.HasValue || !filter.DateValueTo.HasValue)
-                    {
-                        errorMessage = Localizer["FilterRangeRequired", filter.DisplayLabel ?? filter.PropertyName];
-                        return false;
-                    }
-
-                    value = new object[]
-                    {
-                        filter.DateValue.Value.ToString("O"),
-                        filter.DateValueTo.Value.ToString("O")
-                    };
-                }
-                else
-                {
-                    if (!filter.DateValue.HasValue)
-                    {
-                        errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                        return false;
-                    }
-
-                    value = filter.DateValue.Value.ToString("O");
-                }
-                break;
-
-            case FilterValueType.Boolean:
-                if (!filter.BooleanValue.HasValue)
-                {
-                    errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                    return false;
-                }
-                value = filter.BooleanValue.Value;
-                break;
-
-            case FilterValueType.Enum:
-                if (filter.FilterType == FilterType.In)
-                {
-                    var enumValues = filter.EnumValues?.Where(v => !string.IsNullOrWhiteSpace(v)).Select(v => (object)v).ToList() ?? new List<object>();
-                    if (!enumValues.Any())
-                    {
-                        errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                        return false;
-                    }
-                    value = enumValues;
-                }
-                else
-                {
-                    var enumValue = string.IsNullOrWhiteSpace(filter.EnumValue) ? filter.StringValue : filter.EnumValue;
-                    if (string.IsNullOrWhiteSpace(enumValue))
-                    {
-                        errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                        return false;
-                    }
-                    value = enumValue;
-                }
-                break;
-
-            default:
-                errorMessage = Localizer["FilterValueRequired", filter.DisplayLabel ?? filter.PropertyName];
-                return false;
-        }
-
-        condition = new FilterCondition
-        {
-            AttributeName = attributeName,
-            Type = filter.FilterType,
-            ValueType = filter.ValueType,
-            Condition = value!
-        };
-
-        return true;
-    }
-
-    private void RestoreFiltersFromConfig(string? jsonFilters)
-    {
-        if (string.IsNullOrWhiteSpace(jsonFilters))
-        {
-            return;
-        }
-
-        try
-        {
-            var serializerOptions = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                Converters = { new JsonStringEnumConverter() }
-            };
-
-            var filtersConfig = JsonSerializer.Deserialize<ReportFiltersConfig>(jsonFilters, serializerOptions);
-            if (filtersConfig?.DatasetFilters == null)
-            {
-                return;
-            }
-
-            foreach (var datasetFilter in filtersConfig.DatasetFilters)
-            {
-                if (datasetFilter.Filters == null)
-                {
-                    continue;
-                }
-
-                foreach (var condition in datasetFilter.Filters)
-                {
-                    var column = availableColumns.FirstOrDefault(c =>
-                        c.DatasetId == datasetFilter.DatasetId &&
-                        c.ModuleType == datasetFilter.ModuleType &&
-                        (string.Equals(c.PropertyName, condition.AttributeName, StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(c.AttributeName, condition.AttributeName, StringComparison.OrdinalIgnoreCase)));
-
-                    if (column == null)
-                    {
-                        Logger?.LogWarning("[EditarReporte] No se encontró la columna para restaurar el filtro DatasetId={DatasetId}, ModuleType={ModuleType}, Attribute={Attribute}", datasetFilter.DatasetId, datasetFilter.ModuleType, condition.AttributeName);
-                        continue;
-                    }
-
-                    column.IsVisible = true;
-
-                    var filter = CreateFilterFromColumn(column, _nextFilterId++);
-                    filter.FilterType = condition.Type;
-                    ApplyConditionToFilter(filter, condition);
-                    filters.Add(filter);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger?.LogWarning(ex, "[EditarReporte] Error restaurando filtros desde JSON_filters");
-        }
-    }
-
-    private void ApplyConditionToFilter(FilterViewModel filter, FilterCondition condition)
-    {
-        filter.FilterType = condition.Type;
-
-        if (condition.ValueType != filter.ValueType)
-        {
-            filter.ValueType = condition.ValueType;
-        }
-
-        ResetFilterValues(filter);
-
-        switch (filter.ValueType)
-        {
-            case FilterValueType.String:
-                filter.StringValue = ExtractStringValue(condition.Condition);
-                break;
-
-            case FilterValueType.Number:
-                filter.NumericValue = ExtractDoubleValue(condition.Condition);
-                break;
-
-            case FilterValueType.Date:
-                if (filter.FilterType == FilterType.Between)
-                {
-                    var (start, end) = ExtractDateRange(condition.Condition);
-                    filter.DateValue = start;
-                    filter.DateValueTo = end;
-                }
-                else
-                {
-                    filter.DateValue = ExtractDateValue(condition.Condition);
-                }
-                break;
-
-            case FilterValueType.Boolean:
-                filter.BooleanValue = ExtractBooleanValue(condition.Condition);
-                break;
-
-            case FilterValueType.Enum:
-                if (filter.FilterType == FilterType.In)
-                {
-                    var enumValues = ExtractStringList(condition.Condition);
-                    filter.EnumValues = new HashSet<string>(enumValues, StringComparer.OrdinalIgnoreCase);
-                }
-                else
-                {
-                    filter.EnumValue = ExtractStringValue(condition.Condition);
-                }
-                break;
-        }
-    }
-
-    private static string? ExtractStringValue(object? rawValue)
-    {
-        return rawValue switch
-        {
-            null => null,
-            string s => s,
-            JsonElement element when element.ValueKind == JsonValueKind.String => element.GetString(),
-            JsonElement element when element.ValueKind == JsonValueKind.Number || element.ValueKind == JsonValueKind.True || element.ValueKind == JsonValueKind.False => element.ToString(),
-            _ => rawValue?.ToString()
-        };
-    }
-
-    private static double? ExtractDoubleValue(object? rawValue)
-    {
-        return rawValue switch
-        {
-            null => null,
-            double d => d,
-            float f => f,
-            decimal dec => (double)dec,
-            int i => i,
-            long l => l,
-            JsonElement element when element.ValueKind == JsonValueKind.Number => element.GetDouble(),
-            JsonElement element when element.ValueKind == JsonValueKind.String && double.TryParse(element.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed) => parsed,
-            string s when double.TryParse(s, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsedString) => parsedString,
-            _ => null
-        };
-    }
-
-    private static DateTime? ExtractDateValue(object? rawValue)
-    {
-        return rawValue switch
-        {
-            null => null,
-            DateTime dt => dt,
-            JsonElement element when element.ValueKind == JsonValueKind.String && DateTime.TryParse(element.GetString(), out var parsed) => parsed,
-            JsonElement element when element.ValueKind == JsonValueKind.Number && long.TryParse(element.GetRawText(), out var ticks) => new DateTime(ticks),
-            string s when DateTime.TryParse(s, out var parsedString) => parsedString,
-            _ => null
-        };
-    }
-
-    private static (DateTime? Start, DateTime? End) ExtractDateRange(object? rawValue)
-    {
-        if (rawValue == null)
-        {
-            return (null, null);
-        }
-
-        if (rawValue is JsonElement element && element.ValueKind == JsonValueKind.Array)
-        {
-            var items = element.EnumerateArray().ToArray();
-            var start = items.Length > 0 ? ExtractDateValue(items[0]) : null;
-            var end = items.Length > 1 ? ExtractDateValue(items[1]) : null;
-            return (start, end);
-        }
-
-        if (rawValue is IEnumerable<object> enumerable)
-        {
-            var list = enumerable.Select(ExtractDateValue).ToList();
-            var start = list.Count > 0 ? list[0] : null;
-            var end = list.Count > 1 ? list[1] : null;
-            return (start, end);
-        }
-
-        if (rawValue is object[] array)
-        {
-            var start = array.Length > 0 ? ExtractDateValue(array[0]) : null;
-            var end = array.Length > 1 ? ExtractDateValue(array[1]) : null;
-            return (start, end);
-        }
-
-        return (ExtractDateValue(rawValue), null);
-    }
-
-    private static bool? ExtractBooleanValue(object? rawValue)
-    {
-        return rawValue switch
-        {
-            null => null,
-            bool b => b,
-            JsonElement element when element.ValueKind == JsonValueKind.True => true,
-            JsonElement element when element.ValueKind == JsonValueKind.False => false,
-            string s when bool.TryParse(s, out var parsed) => parsed,
-            _ => null
-        };
-    }
-
-    private static IEnumerable<string> ExtractStringList(object? rawValue)
-    {
-        if (rawValue == null)
-        {
-            return Array.Empty<string>();
-        }
-
-        if (rawValue is JsonElement element)
-        {
-            if (element.ValueKind == JsonValueKind.Array)
-            {
-                var list = new List<string>();
-                foreach (var item in element.EnumerateArray())
-                {
-                    if (item.ValueKind == JsonValueKind.String)
-                    {
-                        var value = item.GetString();
-                        if (!string.IsNullOrWhiteSpace(value))
-                        {
-                            list.Add(value);
-                        }
-                    }
-                    else if (item.ValueKind == JsonValueKind.Number || item.ValueKind == JsonValueKind.True || item.ValueKind == JsonValueKind.False)
-                    {
-                        list.Add(item.ToString());
-                    }
-                }
-                return list;
-            }
-
-            if (element.ValueKind == JsonValueKind.String)
-            {
-                var single = element.GetString();
-                return string.IsNullOrWhiteSpace(single) ? Array.Empty<string>() : new[] { single };
-            }
-        }
-
-        if (rawValue is IEnumerable<string> stringEnumerable)
-        {
-            return stringEnumerable.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-        }
-
-        if (rawValue is IEnumerable<object> objectEnumerable)
-        {
-            return objectEnumerable.Select(o => o?.ToString() ?? string.Empty).Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
-        }
-
-        if (rawValue is string singleValue)
-        {
-            return string.IsNullOrWhiteSpace(singleValue) ? Array.Empty<string>() : new[] { singleValue };
-        }
-
-        var converted = rawValue.ToString();
-        return string.IsNullOrWhiteSpace(converted) ? Array.Empty<string>() : new[] { converted };
-    }
-
-    // --- Generar JSON de configuración ---
     private async Task GenerarJsonConfig()
     {
         try
@@ -2623,13 +1676,13 @@
 
             if (!selectedDatasets.Any())
             {
-                Snackbar.Add(Localizer["SelectDatasetBeforeSave"], Severity.Warning);
+                Snackbar.Add("Seleccione al menos un dataset antes de guardar.", Severity.Warning);
                 return;
             }
 
             if (!visibleColumns.Any())
             {
-                Snackbar.Add(Localizer["SelectVisibleColumnBeforeSave"], Severity.Warning);
+                Snackbar.Add("Seleccione al menos una columna visible antes de guardar.", Severity.Warning);
                 return;
             }
 
@@ -2703,7 +1756,7 @@
                 var unresolvedJoinColumns = joinColumns.Where(c => !c.JoinId.HasValue).ToList();
                 if (unresolvedJoinColumns.Any())
                 {
-                    Snackbar.Add(Localizer["JoinColumnsWithoutJoin"], Severity.Warning);
+                    Snackbar.Add("Hay columnas de joins sin un join aplicado. Guarde los joins antes de generar el reporte.", Severity.Warning);
                     Logger?.LogWarning("[EditarReporte] Columnas de join sin JoinId: {Columns}", string.Join(", ", unresolvedJoinColumns.Select(c => c.Name)));
                 }
 
@@ -2740,7 +1793,7 @@
 
             if (!sources.Any())
             {
-                Snackbar.Add(Localizer["NoVisibleColumns"], Severity.Warning);
+                Snackbar.Add("No se encontraron columnas visibles para generar el reporte.", Severity.Warning);
                 return;
             }
 
@@ -2753,11 +1806,6 @@
             {
                 WriteIndented = true
             });
-
-            if (!TryBuildFiltersConfig(out var filtersPayload))
-            {
-                return;
-            }
 
             try
             {
@@ -2772,7 +1820,7 @@
             var token = await LocalStorage.GetItemAsync<string>("authToken");
             if (string.IsNullOrEmpty(token))
             {
-                Snackbar.Add(Localizer["AuthTokenNotFound"], Severity.Error);
+                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
                 return;
             }
 
@@ -2784,8 +1832,7 @@
                 {
                     Name = reportName,
                     Description = reportDescription,
-                    JSON_config = json,
-                    Filters = filtersPayload
+                    JSON_config = json
                 };
 
             var url = $"api/reports/UpdateReport?id={ReportId}";
@@ -2795,19 +1842,19 @@
             if (!putResp.IsSuccessStatusCode)
             {
                 var err = await putResp.Content.ReadAsStringAsync();
-                Snackbar.Add(Localizer["SaveReportError", putResp.StatusCode], Severity.Error);
+                Snackbar.Add($"Error al guardar el reporte: {putResp.StatusCode}", Severity.Error);
                 Logger?.LogWarning("[EditarReporte] UpdateReport falló con estado {StatusCode}. Body: {Body}", putResp.StatusCode, err);
                 return;
             }
 
-            Snackbar.Add(Localizer["ReportSaved"], Severity.Success);
+            Snackbar.Add("Reporte guardado correctamente", Severity.Success);
             Logger?.LogInformation("[EditarReporte] UpdateReport completado correctamente");
 
             await ExecuteReportPreviewAsync(token);
         }
         catch (Exception ex)
         {
-            Snackbar.Add(Localizer["JsonGenerationError", ex.Message], Severity.Error);
+            Snackbar.Add($"Error generando el JSON: {ex.Message}", Severity.Error);
         }
     }
 
@@ -2817,7 +1864,6 @@
         {
             isExecuting = true;
             executeRows.Clear();
-            currentPage = 1;
             executeColumns.Clear();
             previewExecuted = false;
             StateHasChanged();
@@ -2829,7 +1875,7 @@
             if (!execResp.IsSuccessStatusCode)
             {
                 var err = await execResp.Content.ReadAsStringAsync();
-                Snackbar.Add(Localizer["ExecuteReportStatusError", execResp.StatusCode], Severity.Error);
+                Snackbar.Add($"Error al ejecutar el reporte: {execResp.StatusCode}", Severity.Error);
                 Logger?.LogWarning("[EditarReporte] ExecuteReport falló con estado {StatusCode}. Body: {Body}", execResp.StatusCode, err);
                 return;
             }
@@ -2871,13 +1917,13 @@
                 }
                 else
                 {
-                    Snackbar.Add(Localizer["ExecutionResponseNotList"], Severity.Warning);
+                    Snackbar.Add("La respuesta de ejecución no es una lista", Severity.Warning);
                 }
             }
             catch (Exception ex)
             {
                 Logger?.LogError(ex, "[EditarReporte] Error al procesar respuesta de ExecuteReport");
-                Snackbar.Add(Localizer["ExecutionResponseProcessError"], Severity.Error);
+                Snackbar.Add("Error al procesar la respuesta de ejecución", Severity.Error);
             }
             finally
             {
@@ -2888,7 +1934,7 @@
         {
             isExecuting = false;
             Logger?.LogError(ex, "[EditarReporte] Error ejecutando vista previa del reporte");
-            Snackbar.Add(Localizer["ExecuteReportError", ex.Message], Severity.Error);
+            Snackbar.Add($"Error al ejecutar el reporte: {ex.Message}", Severity.Error);
             StateHasChanged();
         }
     }
@@ -2896,15 +1942,9 @@
     private EntityName GetSelectedEntity(DatasetDto dataset)
     {
         var key = BuildDatasetKey(dataset);
-        if (datasetForcedEntities.TryGetValue(key, out var forcedEntity))
-        {
-            selectedEntities[key] = forcedEntity;
-            return forcedEntity;
-        }
-
         if (selectedEntities.TryGetValue(key, out var e))
         {
-            var allowed = GetModuleEntityOptions(dataset.Module);
+            var allowed = GetEntityOptions(dataset.Module);
             if (allowed.Contains(e))
             {
                 return e;
@@ -2918,21 +1958,13 @@
 
     private void OnEntityChanged(DatasetDto dataset, EntityName entity)
     {
-        var datasetKey = BuildDatasetKey(dataset);
-        if (datasetForcedEntities.TryGetValue(datasetKey, out var forced))
-        {
-            selectedEntities[datasetKey] = forced;
-            StateHasChanged();
-            return;
-        }
-
-        var options = GetModuleEntityOptions(dataset.Module);
+        var options = GetEntityOptions(dataset.Module);
         if (!options.Contains(entity))
         {
             entity = GetDefaultEntityForModule(dataset.Module);
         }
 
-        selectedEntities[datasetKey] = entity;
+        selectedEntities[BuildDatasetKey(dataset)] = entity;
         UpdateAvailableColumns();
         StateHasChanged();
     }
@@ -2942,10 +1974,10 @@
         var ds = selectedDatasets.FirstOrDefault(d => d.Nombre == datasetName);
         if (ds == null) return Enumerable.Empty<string>();
         var entity = GetSelectedEntity(ds);
-        return GetEntityPropertyDescriptors(entity).Select(p => p.Name);
+        return GetEntityPropertyNames(entity);
     }
 
-    private static IEnumerable<PropertyDescriptor> GetEntityPropertyDescriptors(EntityName entity)
+    private static IEnumerable<string> GetEntityPropertyNames(EntityName entity)
     {
         Type? t = entity switch
         {
@@ -2966,54 +1998,25 @@
             _ => null
         };
 
-        if (t == null) return Array.Empty<PropertyDescriptor>();
+        if (t == null) return Array.Empty<string>();
 
+        // Tomar propiedades públicas simples (excluir colecciones complejas)
         return t.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
-            .Where(p => IsFilterableProperty(p.PropertyType))
-            .Select(p => new PropertyDescriptor(p.Name, p.PropertyType, MapToFilterValueType(p.PropertyType), GetEnumOptions(p.PropertyType)))
+            .Where(p => IsSimplePropertyType(p.PropertyType))
+            .Select(p => p.Name)
             .ToList();
     }
 
-    private static bool IsFilterableProperty(Type type)
+    private static bool IsSimplePropertyType(Type type)
     {
-        var underlying = Nullable.GetUnderlyingType(type) ?? type;
-        if (underlying.IsEnum) return true;
-        if (underlying == typeof(string)) return true;
-        if (underlying == typeof(bool)) return true;
-        if (underlying == typeof(DateTime) || underlying == typeof(DateTimeOffset)) return true;
-        if (IsNumericType(underlying)) return true;
+        if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+            return false; // excluir listas y colecciones
+        if (type == typeof(string)) return true;
+        if (type.IsPrimitive) return true;
+        if (type == typeof(decimal) || type == typeof(DateTime) || type == typeof(DateTimeOffset)) return true;
+        if (Nullable.GetUnderlyingType(type) is Type inner)
+            return IsSimplePropertyType(inner);
         return false;
-    }
-
-    private static bool IsNumericType(Type type)
-    {
-        return type == typeof(byte) || type == typeof(sbyte) ||
-               type == typeof(short) || type == typeof(ushort) ||
-               type == typeof(int) || type == typeof(uint) ||
-               type == typeof(long) || type == typeof(ulong) ||
-               type == typeof(float) || type == typeof(double) ||
-               type == typeof(decimal);
-    }
-
-    private static FilterValueType MapToFilterValueType(Type type)
-    {
-        var underlying = Nullable.GetUnderlyingType(type) ?? type;
-        if (underlying.IsEnum) return FilterValueType.Enum;
-        if (underlying == typeof(string)) return FilterValueType.String;
-        if (underlying == typeof(bool)) return FilterValueType.Boolean;
-        if (underlying == typeof(DateTime) || underlying == typeof(DateTimeOffset)) return FilterValueType.Date;
-        if (IsNumericType(underlying)) return FilterValueType.Number;
-        return FilterValueType.String;
-    }
-
-    private static IReadOnlyList<string> GetEnumOptions(Type type)
-    {
-        var underlying = Nullable.GetUnderlyingType(type) ?? type;
-        if (underlying.IsEnum)
-        {
-            return Enum.GetNames(underlying);
-        }
-        return Array.Empty<string>();
     }
 
     private void UpdateJoinFields(JoinDto join)

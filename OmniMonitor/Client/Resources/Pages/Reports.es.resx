@@ -85,16 +85,4 @@
   <data name="NoReports" xml:space="preserve">
     <value>No hay reportes disponibles</value>
   </data>
-  <data name="EditAction" xml:space="preserve">
-    <value>Editar</value>
-  </data>
-  <data name="DeleteAction" xml:space="preserve">
-    <value>Eliminar</value>
-  </data>
-  <data name="CreateDialogTitle" xml:space="preserve">
-    <value>Crear Nuevo Reporte</value>
-  </data>
-  <data name="EditDialogTitle" xml:space="preserve">
-    <value>Editar Reporte</value>
-  </data>
 </root>
