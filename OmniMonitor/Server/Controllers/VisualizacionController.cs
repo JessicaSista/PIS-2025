@@ -283,6 +283,7 @@ namespace OmniMonitor.Server.Controllers
                 visualizacion.FechaDesde = request.FechaDesde;
                 visualizacion.FechaHasta = request.FechaHasta;
                 visualizacion.JsonDesign = request.JsonDiseñoGeneral;
+                visualizacion.Link = request.Link;
 
                 // --- Sincronizar GrupoDatasets ---
                 var requestDatasetIds = request.Datasets.Select(ds => ds.DatasetId).ToHashSet();
