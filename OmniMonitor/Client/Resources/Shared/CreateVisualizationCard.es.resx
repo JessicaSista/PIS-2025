@@ -255,4 +255,16 @@
   <data name="KpiUpdatedSuccess" xml:space="preserve">
     <value>KPI actualizado correctamente.</value>
   </data>
+  <data name="AddDashboard" xml:space="preserve">
+    <value>Agregar link a dashboard</value>
+  </data>
+  <data name="DashboardLinked" xml:space="preserve">
+    <value>Dashboard seleccionado:</value>
+  </data>
+  <data name="ClickForSelectOther" xml:space="preserve">
+    <value>Haga clic para cambiar su elección</value>
+  </data>
+  <data name="DashboardLinkAdded" xml:space="preserve">
+    <value>Link agregado</value>
+  </data>
 </root>

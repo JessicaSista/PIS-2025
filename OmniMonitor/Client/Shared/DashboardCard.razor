@@ -14,6 +14,8 @@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
 
 
 <MudItem lg=@WidthLg md=@WidthMd sm="@WidthXs" xs=@WidthXs>
@@ -43,20 +45,19 @@
             <!-- <span style="position:absolute; left:56px; top:8px; background:#111827; color:#e5e7eb; border:1px solid #374151; border-radius:6px; padding:2px 6px; font-size:12px; line-height:1;">
                 @VisualizationId
             </span> -->
-            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                     AnchorOrigin="Origin.TopRight"
-                     TransformOrigin="Origin.TopRight"
-                     Class="position-absolute"
-                     Style="position:absolute; top:8px; right:8px;">
+            <MudStack Row="true" Spacing="0">
+                    <MudButton OnClick="(() => GoToDashboard())" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Link" class="pa-0"></MudButton>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert">
 
-                <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
-                    @Localizer["EditCard"]
-                </MudMenuItem>
+                        <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
+                            @Localizer["EditCard"]
+                        </MudMenuItem>
 
-                <MudMenuItem OnClick="@(() => ConfirmDelete())">
-                    @Localizer["DeleteCard"]
-                </MudMenuItem>
-            </MudMenu>
+                        <MudMenuItem OnClick="@(() => ConfirmDelete())">
+                            @Localizer["DeleteCard"]
+                        </MudMenuItem>
+                    </MudMenu>
+             </MudStack>
         </MudCardHeader>
 
         
@@ -287,5 +288,26 @@
         }
         catch {}
         if (_isDraggingSelf) return;
+    }
+
+    private async Task GoToDashboard()
+    {
+        try
+        {
+            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
+            Visualizacion visualizacion = await response.Content.ReadFromJsonAsync<Visualizacion>();
+            int toDashboard = int.Parse(visualizacion.Link.Split(",")[0]);
+            if(toDashboard != dashboardId)
+            {
+                var url = $"/dashboards/edit/{toDashboard}";
+                var absolute = Nav.ToAbsoluteUri(url).ToString();
+                await JS.InvokeVoidAsync("open", absolute, "_blank");
+                return;
+            }
+        }
+        catch(Exception ex)
+        {
+            SnackbarService.Add("Error", Severity.Warning);
+        }
     }
 }

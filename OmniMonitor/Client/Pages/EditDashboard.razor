@@ -22,7 +22,14 @@
 <!-- Encabezado -->
 <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
     <MudStack>
-        <MudText Typo="Typo.h4" Style="font-weight:500;font-family:Inter,Roboto,sans-serif;">@(dashName)</MudText>
+        <MudText Typo="Typo.h4" 
+         Style="font-weight:500;
+                font-family:Inter,Roboto,sans-serif;
+                white-space:normal;
+                word-break:break-word;
+                overflow-wrap:break-word;">
+        @(dashName)
+        </MudText>
     </MudStack>
 
     <MudStack Row Spacing="2">

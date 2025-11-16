@@ -51,7 +51,7 @@
     </MudButton>
 </MudStack>
 
-<style>
+@*<style>
     @@media (max-width: 768px) {
         .button-text-filter {
             display: none !important;
@@ -83,102 +83,126 @@
         max-width: 100% !important;
     }
 
+</style>*@
+
+<style>
+    @@media (max-width: 768px) {
+        .button-text-filter {
+            display: none !important;
+            width: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .filter-button .mud-button-icon-start,
+        .filter-button .mud-button-icon-start svg {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto !important;
+        }
+    }
+
+    .mud-container-maxwidth-lg {
+        max-width: 100% !important;
+    }
 </style>
 
 <!-- Dashboard grid -->
-<MudContainer Fixed="false">
-    <MudGrid Spacing="3" Justify="Justify.FlexStart">
-        @if (_isLoading == true)
-        {
-            @*
-            @for (int i = 0; i < 8; i++)
+<MudContainer Fixed="true" Class="pl-4 pr-6">
+        <MudGrid Spacing="3">
+            @if (_isLoading == true)
             {
-                <MudItem xs="12" sm="6" md="4" lg="4"> 
-                    <MudCard>
-                        <MudCardContent>
-                            <MudSkeleton Height="150px" Width="100%" />
-                        </MudCardContent>
-                    </MudCard>
+                @*
+                @for (int i = 0; i < 8; i++)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard>
+                            <MudCardContent>
+                                <MudSkeleton Height="150px" Width="100%" />
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+                *@
+            }
+            else if (filteredDashboards.Count == 0)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle1"
+                             Align="MudBlazor.Align.Center"
+                             Class="mt-6 mb-6"
+                             Style="color:#a5a8b5;">
+                        @Localizer["NoResultados"]
+                    </MudText>
                 </MudItem>
             }
-            *@
-        }
-        else if (filteredDashboards.Count == 0)
+            else
+            {
+                @foreach (var dashboard in filteredDashboards)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <div style="position:relative;">
+                            <DashboardCardComponent Dashboard="dashboard"
+                                                    OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
+
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                     AnchorOrigin="Origin.TopRight"
+                                     TransformOrigin="Origin.TopRight"
+                                     Class="position-absolute"
+                                     Style="position:absolute; top:8px; right:8px;">
+                                <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
+                                    @Localizer["Editar"]
+                                </MudMenuItem>
+                                <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
+                                    @Localizer["Eliminar"]
+                                </MudMenuItem>
+                            </MudMenu>
+                        </div>
+                    </MudItem>
+                }
+            }
+        </MudGrid>
+
+        @if (totalPages > 1)
         {
-            <MudItem xs="12">
-                <MudText Typo="Typo.subtitle1"
-                         Align="MudBlazor.Align.Center"
-                         Class="mt-6 mb-6"
-                         Style="color:#a5a8b5;">
-                    @Localizer["NoResultados"]
+            <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
+                               Disabled="@(!hasPreviousPage)"
+                               OnClick="@(() => GoToPage(1))"
+                               Size="MudBlazor.Size.Small"
+                               Color="MudBlazor.Color.Primary" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                               Disabled="@(!hasPreviousPage)"
+                               OnClick="@(() => GoToPage(currentPage - 1))"
+                               Size="MudBlazor.Size.Small"
+                               Color="MudBlazor.Color.Primary" />
+
+                <MudText Typo="Typo.body2" Class="mx-3">
+                    @Localizer["Página"] @currentPage @Localizer["de"] @totalPages
                 </MudText>
-            </MudItem>
+
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                               Disabled="@(!hasNextPage)"
+                               OnClick="@(() => GoToPage(currentPage + 1))"
+                               Size="MudBlazor.Size.Small"
+                               Color="MudBlazor.Color.Primary" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
+                               Disabled="@(!hasNextPage)"
+                               OnClick="@(() => GoToPage(totalPages))"
+                               Size="MudBlazor.Size.Small"
+                               Color="MudBlazor.Color.Primary" />
+            </MudStack>
+
+            <MudStack Row Justify="Justify.Center" Class="mb-4">
+                <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                    @Localizer["Mostrando"] @filteredDashboards.Count @Localizer["de"] @totalCount dashboards
+                </MudText>
+            </MudStack>
         }
-        else
-        {
-            @foreach (var dashboard in filteredDashboards)
-            {
-                <MudItem xs="12" sm="6" md="4" lg="4">
-                    <div style="position:relative;">
-                        <DashboardCardComponent Dashboard="dashboard"
-                                                OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
-
-                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                                 AnchorOrigin="Origin.TopRight"
-                                 TransformOrigin="Origin.TopRight"
-                                 Class="position-absolute"
-                                 Style="position:absolute; top:8px; right:8px;">
-                            <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
-                                @Localizer["Editar"]
-                            </MudMenuItem>
-                            <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
-                                @Localizer["Eliminar"]
-                            </MudMenuItem>
-                        </MudMenu>
-                    </div>
-                </MudItem>
-            }
-        }
-    </MudGrid>
-
-    @if (totalPages > 1)
-    {
-        <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft" 
-                           Disabled="@(!hasPreviousPage)" 
-                           OnClick="@(() => GoToPage(1))"
-                           Size="MudBlazor.Size.Small"
-                           Color="MudBlazor.Color.Primary" />
-            
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" 
-                           Disabled="@(!hasPreviousPage)" 
-                           OnClick="@(() => GoToPage(currentPage - 1))"
-                           Size="MudBlazor.Size.Small"
-                           Color="MudBlazor.Color.Primary" />
-            
-            <MudText Typo="Typo.body2" Class="mx-3">
-                @Localizer["Página"] @currentPage @Localizer["de"] @totalPages
-            </MudText>
-            
-            <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" 
-                           Disabled="@(!hasNextPage)" 
-                           OnClick="@(() => GoToPage(currentPage + 1))"
-                           Size="MudBlazor.Size.Small"
-                           Color="MudBlazor.Color.Primary" />
-            
-            <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight" 
-                           Disabled="@(!hasNextPage)" 
-                           OnClick="@(() => GoToPage(totalPages))"
-                           Size="MudBlazor.Size.Small"
-                           Color="MudBlazor.Color.Primary" />
-        </MudStack>
-
-        <MudStack Row Justify="Justify.Center" Class="mb-4">
-            <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
-                @Localizer["Mostrando"] @filteredDashboards.Count @Localizer["de"] @totalCount dashboards
-            </MudText>
-        </MudStack>
-    }
+    
 </MudContainer>
 
 
@@ -333,7 +357,7 @@
                 {
                     // Recargar la lista paginada desde el servidor
                     await LoadDashboardsAsync();
-                    await JS.InvokeVoidAsync("equalizeCardHeights");
+                    //await JS.InvokeVoidAsync("equalizeCardHeights");
                     Snackbar.Add($"'{created.Nombre}' created successfully", Severity.Success);
                 }
             }
@@ -395,7 +419,7 @@
                         });
 
                         StateHasChanged();
-                        await JS.InvokeVoidAsync("equalizeCardHeights");
+                        //await JS.InvokeVoidAsync("equalizeCardHeights");
                         NavigationManager.NavigateTo($"/dashboards/edit/{dashboard.IdDashboard}");
                     }
                     else
@@ -492,7 +516,7 @@
     {
         if (filteredDashboards != null && filteredDashboards.Count > 0)
         {
-            await JS.InvokeVoidAsync("equalizeCardHeights");
+            // await JS.InvokeVoidAsync("equalizeCardHeights"); // ¡COMENTADO!
         }
     }
 }

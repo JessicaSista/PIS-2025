@@ -12,7 +12,8 @@
         <MudStack Row AlignItems="AlignItems.Start" Spacing="0" Style="width:100%;">
             <MudStack Style="width:100%;" Spacing="0">
                 <MudTooltip Text="@Dashboard.Nombre">
-                    <MudText Style="color:var(--card-text-primary);
+                    <MudText
+                    Style="color:var(--card-text-primary);
                     font-weight:600;
                     font-size:1.2rem;
                     white-space: nowrap;
@@ -21,7 +22,7 @@
                         @Dashboard.Nombre
                     </MudText>
                 </MudTooltip>
-                <MudText Style="color:var(--card-text-secondary);font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">
+                <MudText Style="color:var(--card-text-secondary); font-size:1rem;" Class="truncate-3-lines">
                     @Dashboard.Descripcion
                 </MudText>
             </MudStack>
@@ -32,6 +33,18 @@
         </MudStack>
     </MudCardContent>
 </MudCard>
+
+<style>
+.truncate-3-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+}
+</style>
 
 @code {
     [Parameter] public DashboardSummaryResponse Dashboard { get; set; } = new();

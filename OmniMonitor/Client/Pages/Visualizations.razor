@@ -168,16 +168,16 @@
         }
         else if (_charts != null && _charts.Any())
         {
-            @foreach (var (chartId, chartName) in _charts
+            @foreach (Visualizacion visualization in _charts
                     .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
                     v.Nombre.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
             {
 
-                <MudItem xs="12" sm="12" md="6" lg="4" @key="@($"V{chartId}_1")" Class="@(_activeTabIndex != 1 ? "d-none" : "")">
+                <MudItem xs="12" sm="12" md="6" lg="4" @key="@($"V{visualization.IdVisualizacion}_1")" Class="@(_activeTabIndex != 1 ? "d-none" : "")">
                     <MudPaper Class="pa-4" Style="background-color: var(--card);">
                         <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
-                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" VisualizationId="@chartId" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
+                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" visualization=@visualization VisualizationId="@visualization.IdVisualizacion" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
 
                         </MudCard>
                     </MudPaper>
@@ -242,7 +242,7 @@
 
 @code {
     private string _searchQuery = "";
-    private List<(int Id, string Nombre)> _charts = new();
+    private List<Visualizacion> _charts = new();
     private List<KpiResponse> _kpis = new();
     private bool _isLoadingKpis = false;
     private bool _isLoadingCharts = false;
@@ -327,8 +327,7 @@
                     _hasPreviousPage = result.HasPreviousPage;
                     _hasNextPage = result.HasNextPage;
 
-                    List<Visualizacion> visualizations = result.Items;
-                    _charts = visualizations?.Select(v => (v.IdVisualizacion, v.Nombre)).ToList() ?? new();
+                    _charts = result.Items;
                 }
             }
         }
@@ -547,7 +546,7 @@
 
     private async Task OnVisualizationDeleted(System.Int32 deletedId)
     {
-        _charts.RemoveAll(c => c.Id == deletedId);
+        _charts.RemoveAll(c => c.IdVisualizacion == deletedId);
         if(_charts.Count == 0 && _hasPreviousPage)
         {
             _currentPage--;
