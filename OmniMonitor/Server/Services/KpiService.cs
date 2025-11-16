@@ -56,6 +56,58 @@ namespace OmniMonitor.Server.Services
             _datasetEmService = datasetEmService;
         }
 
+        private async Task ValidateDuplicateKpiNameAsync(string name, string username, int? excludeId = null)
+        {
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(username))
+            {
+                return;
+            }
+
+            var normalizedName = name.Trim().ToLower();
+
+            var query = _context.Kpi.AsQueryable()
+                .Where(k => k.Username == username && k.Name.ToLower() == normalizedName);
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(k => k.Id != excludeId.Value);
+            }
+
+            if (await query.AnyAsync())
+            {
+                throw new ArgumentException($"Ya existe un KPI con el nombre '{name}'.");
+            }
+        }
+
+        private void ValidateColorRangesOrThrow(string? colorRanges)
+        {
+            if (string.IsNullOrWhiteSpace(colorRanges))
+            {
+                return;
+            }
+
+            try
+            {
+                var ranges = JsonSerializer.Deserialize<List<ColorRange>>(colorRanges);
+                if (ranges == null || ranges.Count == 0)
+                {
+                    throw new ArgumentException("ColorRanges inválido o vacío.", nameof(colorRanges));
+                }
+
+                foreach (var range in ranges)
+                {
+                    if (range.min > range.max)
+                    {
+                        throw new ArgumentException("El mínimo debe ser menor o igual al máximo en cada rango de color.");
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                throw new ArgumentException("ColorRanges no es JSON válido.", nameof(colorRanges));
+            }
+        }
+
         public async Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null)
         {
             if (request == null)
@@ -69,6 +121,9 @@ namespace OmniMonitor.Server.Services
 
             if (request.DatasetId == null)
                 throw new ArgumentException("DatasetId is required.");
+
+            await ValidateDuplicateKpiNameAsync(request.Name, username ?? string.Empty);
+            ValidateColorRangesOrThrow(request.ColorRanges);
 
             switch (request.SourceModule.ToUpperInvariant())
             {
@@ -201,6 +256,11 @@ namespace OmniMonitor.Server.Services
             if (request.Name != null && string.IsNullOrWhiteSpace(request.Name))
                 throw new ArgumentException("Name provisto pero vacío.", nameof(request.Name));
 
+            if (request.Name != null && !request.Name.Equals(existingKpi.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                await ValidateDuplicateKpiNameAsync(request.Name, existingKpi.Username, existingKpi.Id);
+            }
+
             if (request.SourceModule != null && string.IsNullOrWhiteSpace(request.SourceModule))
                 throw new ArgumentException("SourceModule provisto pero vacío.", nameof(request.SourceModule));
 
@@ -221,17 +281,7 @@ namespace OmniMonitor.Server.Services
 
             if (request.ColorRanges != null)
             {
-                try
-                {
-                    // validamos que sea una lista de ColorRange válida
-                    var ranges = JsonSerializer.Deserialize<List<ColorRange>>(request.ColorRanges);
-                    if (ranges == null)
-                        throw new ArgumentException("ColorRanges inválido o vacío.", nameof(request.ColorRanges));
-                }
-                catch (JsonException)
-                {
-                    throw new ArgumentException("ColorRanges no es JSON válido.", nameof(request.ColorRanges));
-                }
+                ValidateColorRangesOrThrow(request.ColorRanges);
             }
 
             // Si la métrica (efectiva) requiere extraInfo (rango de fechas), validamos que exista y sea correcto.
@@ -413,6 +463,7 @@ namespace OmniMonitor.Server.Services
                 }
                 catch (Exception ex)
                 {
+                    results.Add(BuildNoDataResponse(kpi, ex.Message));
                 }
             }
 
@@ -790,6 +841,7 @@ namespace OmniMonitor.Server.Services
         {
             string? rawValue = null;
             string? type = null;
+            var hasHistoricalRange = TryGetDateRange(kpi.ExtraInfo, out var rangeFrom, out var rangeTo);
 
             var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null)
@@ -807,10 +859,40 @@ namespace OmniMonitor.Server.Services
                 var sensor = device.Sensors.FirstOrDefault(s => s.Name == dataset.SensorName);
                 if (sensor != null)
                 {
-                    rawValue = sensor.LastValue;
                     type = sensor.Type;
+
+                    if (hasHistoricalRange)
+                    {
+                        var historicalData = await _sondaIMService.GetSensorDataByDate(device.Id, dataset.SensorName, rangeFrom, rangeTo, username);
+                        if (historicalData != null && historicalData.Count > 0)
+                        {
+                            var lastRecord = historicalData
+                                .OrderBy(d => d.Time)
+                                .Last();
+                            rawValue = lastRecord.Data;
+                            break;
+                        }
+
+                        continue;
+                    }
+
+                    rawValue = sensor.LastValue;
                     break;
                 }
+            }
+
+            if (hasHistoricalRange && string.IsNullOrEmpty(rawValue))
+            {
+                return new KpiResponse
+                {
+                    Id = kpi.Id,
+                    Name = kpi.Name,
+                    Description = kpi.Description,
+                    Unit = kpi.Unit,
+                    Type = type,
+                    ActualColor = kpi.DefaultColor,
+                    Value = null
+                };
             }
 
             object? finalValue = null;
@@ -1729,6 +1811,35 @@ namespace OmniMonitor.Server.Services
             return values;
         }
 
+        private bool TryGetDateRange(string? extraInfo, out DateTime dateFrom, out DateTime dateTo)
+        {
+            dateFrom = default;
+            dateTo = default;
+
+            if (string.IsNullOrWhiteSpace(extraInfo))
+                return false;
+
+            try
+            {
+                var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(extraInfo);
+                if (extra == null)
+                    return false;
+
+                if (extra.TryGetValue("dateFrom", out var fromRaw) && extra.TryGetValue("dateTo", out var toRaw))
+                {
+                    dateFrom = DateTime.Parse(fromRaw, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    dateTo = DateTime.Parse(toRaw, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+
+            return false;
+        }
+
         public async Task<KpiSimplePaginatedResponse> GetAllKpisPaginatedAsync(string username, int page = 1, int pageSize = 10, string? query = null)
         {
             var kpisQuery = _context.Kpi.Where(k => k.Username == username);
@@ -1743,6 +1854,15 @@ namespace OmniMonitor.Server.Services
             
             var totalCount = await kpisQuery.CountAsync();
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            if (totalPages == 0)
+            {
+                page = 1;
+            }
+            else if (page > totalPages)
+            {
+                page = totalPages;
+            }
             
             var kpis = await kpisQuery
                 .OrderBy(k => k.Name)
@@ -1752,7 +1872,8 @@ namespace OmniMonitor.Server.Services
                 {
                     Id = k.Id,
                     Name = k.Name,
-                    Description = k.Description
+                    Description = k.Description,
+                    DefaultColor = k.DefaultColor
                 })
                 .ToListAsync();
             
@@ -1778,6 +1899,21 @@ namespace OmniMonitor.Server.Services
 
             [JsonPropertyName("color")]
             public string color { get; set; } = "#000000";
+        }
+
+        private static KpiResponse BuildNoDataResponse(Kpi kpi, string? reason = null)
+        {
+            _ = reason;
+            return new KpiResponse
+            {
+                Id = kpi.Id,
+                Name = kpi.Name,
+                Description = kpi.Description,
+                ActualColor = kpi.DefaultColor,
+                Type = null,
+                Unit = kpi.Unit,
+                Value = null
+            };
         }
 
     }

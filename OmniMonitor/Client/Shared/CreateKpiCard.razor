@@ -2,6 +2,7 @@
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
 @using System.Text.Json
+@using System.Net
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
@@ -166,21 +167,21 @@
                     <div class="d-flex" style="gap:8px; margin-bottom:8px;">
                         @if (string.Equals(_selectedModuleName, "Asset Manager", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Asset</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">EventTask</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Stock</MudButton>
                         }
                         else if (string.Equals(_selectedModuleName, "Urban Monitor", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Noticia</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Noticia</MudButton>
                         }
                         else if (string.Equals(_selectedModuleName, "Event Manager", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(_selectedModuleName, "EM", StringComparison.OrdinalIgnoreCase))
                         {
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
-                            <MudButton Variant="Variant.Outlined" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 1 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(1))">Alerta</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 2 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(2))">Evento</MudButton>
+                            <MudButton Variant="Variant.Outlined" Disabled="_isTypeLocked" Color="@(_selectedType == 3 ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" OnClick="@(() => SetType(3))">Extensión</MudButton>
                         }
                     </div>
 
@@ -304,6 +305,7 @@
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Module { get; set; } = string.Empty;
+        public string? ContentType { get; set; }
         public string Key => $"{Module}__{Id}";
     }
 
@@ -332,6 +334,9 @@
     private DateTime? _dateTo;
     private bool _isLoadingDatasets = true;
     private bool _isSubmitting = false;
+    private bool _isTypeLocked = false;
+    private bool _isFetchingAttributes = false;
+    private bool _isFetchingAttributeValues = false;
 
     private List<ColorRange> _colorRanges = new();
 
@@ -437,7 +442,8 @@
                     {
                         Id = ds.Id,
                         Nombre = ds.Nombre,
-                        Module = moduleName
+                        Module = moduleName,
+                        ContentType = ds.ContentType
                     };
                 })
                 .OrderBy(i => i.Module)
@@ -483,8 +489,11 @@
             _selectedDatasetId = 0;
             _selectedDatasetModule = null;
             _selectedModuleName = null;
+            _isTypeLocked = false;
             return;
         }
+
+        var selectedItem = _datasetItems.FirstOrDefault(i => i.Key == _selectedDatasetKey);
 
         var idx = _selectedDatasetKey.LastIndexOf("__", StringComparison.Ordinal);
         if (idx >= 0)
@@ -549,6 +558,8 @@
         _selectedAttributeValue = null;
         _selectedType = null;
 
+        await ApplyContentTypeLockAsync(selectedItem);
+
         StateHasChanged();
     }
 
@@ -595,6 +606,89 @@
         };
     }
 
+    private async Task ApplyContentTypeLockAsync(DatasetItem? datasetItem)
+    {
+        _isTypeLocked = false;
+
+        var moduleCode = GetModuleCode(_selectedModuleName);
+        if (datasetItem == null || string.IsNullOrWhiteSpace(moduleCode))
+        {
+            return;
+        }
+
+        if (TryResolveTypeFromContent(moduleCode, datasetItem.ContentType, out var resolvedType))
+        {
+            _selectedType = resolvedType;
+            _isTypeLocked = true;
+            await LoadFieldTypes();
+        }
+    }
+
+    private bool TryResolveTypeFromContent(string? moduleCode, string? rawContentType, out int resolvedType)
+    {
+        resolvedType = 0;
+        if (string.IsNullOrWhiteSpace(moduleCode) || string.IsNullOrWhiteSpace(rawContentType))
+        {
+            return false;
+        }
+
+        var normalized = rawContentType.Trim().ToLowerInvariant();
+
+        bool Matches(string keyword) => normalized.Contains(keyword);
+
+        if (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Matches("asset") || normalized == "2")
+            {
+                resolvedType = 1;
+                return true;
+            }
+            if (Matches("event") || Matches("task") || normalized == "1")
+            {
+                resolvedType = 2;
+                return true;
+            }
+            if (Matches("stock") || normalized == "3")
+            {
+                resolvedType = 3;
+                return true;
+            }
+        }
+        else if (moduleCode.Equals("um", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Matches("event") || Matches("evento") || normalized == "1")
+            {
+                resolvedType = 1;
+                return true;
+            }
+            if (Matches("news") || Matches("noticia") || normalized == "2")
+            {
+                resolvedType = 2;
+                return true;
+            }
+        }
+        else if (moduleCode.Equals("em", StringComparison.OrdinalIgnoreCase))
+        {
+            if (Matches("alert") || normalized == "1")
+            {
+                resolvedType = 1;
+                return true;
+            }
+            if (Matches("event") || normalized == "2")
+            {
+                resolvedType = 2;
+                return true;
+            }
+            if (Matches("extension") || normalized == "3")
+            {
+                resolvedType = 3;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private async Task LoadFieldTypes()
     {
         _attributes.Clear();
@@ -606,6 +700,7 @@
         if (string.IsNullOrWhiteSpace(moduleCode) || !_selectedType.HasValue)
             return;
 
+        _isFetchingAttributes = true;
         try
         {
             var resp = await Http.GetAsync($"api/Kpi/field-types?modulo={Uri.EscapeDataString(moduleCode)}&choice={_selectedType.Value}");
@@ -624,11 +719,16 @@
         {
             _attributes = new();
         }
-        StateHasChanged();
+        finally
+        {
+            _isFetchingAttributes = false;
+            StateHasChanged();
+        }
     }
 
     private async Task SetType(int type)
     {
+        if (_isTypeLocked) return;
         if (_selectedType == type) return;
         _selectedType = type;
 
@@ -648,6 +748,7 @@
         if (string.IsNullOrWhiteSpace(moduleCode))
             return;
 
+        _isFetchingAttributeValues = true;
         try
         {
             // si _selectedType es null, mandar 0 por seguridad (o podrías requerir que el usuario elija tipo)
@@ -669,8 +770,11 @@
         {
             _attributeValues = new();
         }
-
-        StateHasChanged();
+        finally
+        {
+            _isFetchingAttributeValues = false;
+            StateHasChanged();
+        }
     }
 
     private void AddRange() => _colorRanges.Add(new ColorRange());
@@ -684,6 +788,7 @@
     {
         get
         {
+            if (_isFetchingAttributes || _isFetchingAttributeValues) return false;
             if (_selectedDatasetId == 0) return false;
             if (string.IsNullOrWhiteSpace(_name)) return false;
 
@@ -765,6 +870,12 @@
             }
         }
 
+        if (_isNumericDataset && _colorRanges.Any(r => r.Min > r.Max))
+        {
+            Snackbar.Add(Localizer["ColorRangeInvalid"], Severity.Warning);
+            return;
+        }
+
         object? extraInfoObj = null;
         if (string.Equals(_selectedModuleName, "Insight Monitor", StringComparison.OrdinalIgnoreCase))
         {
@@ -792,7 +903,9 @@
             // Multiplier only if numeric
             Multiplier = _isNumericDataset ? (double?)_multiplier : null,
             DefaultColor = _color,
-            ColorRanges = _isNumericDataset ? JsonSerializer.Serialize(_colorRanges) : "[]",
+            ColorRanges = _isNumericDataset && _colorRanges.Any()
+                ? JsonSerializer.Serialize(_colorRanges)
+                : null,
             ExtraInfo = extraInfoObj is null ? null : extraInfoObj.ToString(),
             // Save the long module name returned by backend (but passing module code uppercased)
             SourceModule = GetModuleCode(_selectedModuleName)?.ToUpperInvariant() ?? _selectedModuleName,
@@ -824,7 +937,16 @@
                     serverMsg = response.ReasonPhrase ?? "Unknown server error";
                 }
 
-                _serverError = Localizer["ErrorCreatingKpi", serverMsg];
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    serverMsg.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
+                    serverMsg.Contains("nombre", StringComparison.OrdinalIgnoreCase))
+                {
+                    _serverError = Localizer["KpiNameDuplicate"];
+                }
+                else
+                {
+                    _serverError = Localizer["ErrorCreatingKpi", serverMsg];
+                }
                 Snackbar.Add(_serverError, Severity.Error);
             }
         }

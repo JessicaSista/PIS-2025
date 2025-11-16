@@ -514,7 +514,8 @@
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
                         Descripcion = d.Description ?? "Sin descripción",
-                        Module = ModuleInsightMonitor
+                        Module = ModuleInsightMonitor,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else
@@ -538,7 +539,8 @@
                         Id = d.Id_Dataset,
                         Nombre = d.Nombre ?? string.Empty,
                         Descripcion = d.Descripcion ?? "Sin descripción",
-                        Module = ModuleAssetManager
+                        Module = ModuleAssetManager,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else
@@ -562,7 +564,8 @@
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
                         Descripcion = d.Description ?? "Sin descripción",
-                        Module = ModuleUrbanMonitor
+                        Module = ModuleUrbanMonitor,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else
@@ -586,7 +589,8 @@
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
                         Descripcion = d.Description ?? "Sin descripción",
-                        Module = ModuleEventManager
+                        Module = ModuleEventManager,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else

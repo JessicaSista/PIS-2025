@@ -63,10 +63,10 @@ namespace OmniMonitor.Server.Controllers
                         return BadRequest("El filtro no encontró ningún asset. El dataset no puede crearse sin resultados.");
                     }
                     
-                    Console.WriteLine($"[CREATE AM DATASET] IDs de assets filtrados:");
+                    // [CREATE AM DATASET] IDs de assets filtrados (log de consola removido).
                     foreach (var asset in filtrados)
                     {
-                        Console.WriteLine($"[CREATE AM DATASET]   - Asset Id: {asset.Id} (tipo: {asset.Id?.GetType().Name})");
+                        // [CREATE AM DATASET]   - Asset Id (log de consola removido).
                     }
                     
                     var assetIds = new List<string>();
@@ -83,7 +83,7 @@ namespace OmniMonitor.Server.Controllers
                     }
                     req.Grupo_Asset_Ids = assetIds;
                     
-                    Console.WriteLine($"[CREATE AM DATASET] Grupo_Asset_Ids asignado: {string.Join(", ", req.Grupo_Asset_Ids ?? new List<string>())}");
+                    // [CREATE AM DATASET] Grupo_Asset_Ids asignado (log de consola removido).
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
@@ -214,10 +214,10 @@ namespace OmniMonitor.Server.Controllers
                 else if (req.ContentType == "3") // Stock
                 {
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
-                    Console.WriteLine($"[EDIT AM DATASET] Total Stocks obtenidos: {allStocks.Count()}");
+                    // [EDIT AM DATASET] Total Stocks obtenidos (log de consola removido).
                     
                     var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
-                    Console.WriteLine($"[EDIT AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
+                    // [EDIT AM DATASET] Stocks después de filtrar (log de consola removido).
                     
                     if (!filtrados.Any())
                     {

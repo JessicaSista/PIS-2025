@@ -383,7 +383,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = imDataset.Id,
                             Nombre = imDataset.Name,
                             Descripcion = imDataset.Description ?? string.Empty,
-                            Module = "Insight Monitor"
+                            Module = "Insight Monitor",
+                            ContentType = imDataset.ContentType
                         });
                     }
                 }
@@ -403,7 +404,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = umDataset.Id,
                             Nombre = umDataset.Name,
                             Descripcion = umDataset.Description ?? string.Empty,
-                            Module = "Urban Monitor"
+                            Module = "Urban Monitor",
+                            ContentType = umDataset.ContentType
                         });
                     }
                 }
@@ -423,7 +425,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = amDataset.Id_Dataset,
                             Nombre = amDataset.Nombre,
                             Descripcion = amDataset.Descripcion ?? string.Empty,
-                            Module = "Asset Manager"
+                            Module = "Asset Manager",
+                            ContentType = amDataset.ContentType
                         });
                     }
                 }
@@ -443,7 +446,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = emDataset.Id,
                             Nombre = emDataset.Name,
                             Descripcion = emDataset.Description ?? string.Empty,
-                            Module = "Event Manager"
+                            Module = "Event Manager",
+                            ContentType = emDataset.ContentType
                         });
                     }
                 }
@@ -617,7 +621,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetIM.First().Id,
                         Nombre = d.DatasetIM.First().Name,
                         Descripcion = d.DatasetIM.First().Description ?? string.Empty,
-                        Module = "Insight Monitor"
+                        Module = "Insight Monitor",
+                        ContentType = d.DatasetIM.First().ContentType
                     });
 
                 // Query para datasets UM
@@ -629,7 +634,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetUM.First().Id,
                         Nombre = d.DatasetUM.First().Name,
                         Descripcion = d.DatasetUM.First().Description ?? string.Empty,
-                        Module = "Urban Monitor"
+                        Module = "Urban Monitor",
+                        ContentType = d.DatasetUM.First().ContentType
                     });
 
                 // Query para datasets AM
@@ -641,7 +647,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetAM.First().Id_Dataset,
                         Nombre = d.DatasetAM.First().Nombre,
                         Descripcion = d.DatasetAM.First().Descripcion ?? string.Empty,
-                        Module = "Asset Manager"
+                        Module = "Asset Manager",
+                        ContentType = d.DatasetAM.First().ContentType
                     });
 
                 // Query para datasets EM
@@ -653,7 +660,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetEM.First().Id,
                         Nombre = d.DatasetEM.First().Name,
                         Descripcion = d.DatasetEM.First().Description ?? string.Empty,
-                        Module = "Event Manager"
+                        Module = "Event Manager",
+                        ContentType = d.DatasetEM.First().ContentType
                     });
 
                 // Combinar todas las consultas

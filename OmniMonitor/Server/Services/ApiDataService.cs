@@ -1049,8 +1049,6 @@ public class ApiDataService : IApiDataService
                 // Convertir el valor a string para comparar
                 string valueStr = value?.ToString() ?? "";
                 
-                Console.WriteLine($"[DEBUG] String filter comparison: valueStr='{valueStr}', condStr='{condStr}', match={valueStr == condStr}");
-                
                 switch (filter.Type)
                 {
                     case FilterType.Equals:
@@ -1152,7 +1150,6 @@ public class ApiDataService : IApiDataService
                     if (jee.ValueKind == System.Text.Json.JsonValueKind.String)
                     {
                         condEnum = jee.GetString() ?? "";
-                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement deserializado de '{jee.GetRawText()}' a '{condEnum}'");
                     }
                     else
                     {
@@ -1163,7 +1160,6 @@ public class ApiDataService : IApiDataService
                         {
                             condEnum = System.Text.RegularExpressions.Regex.Unescape(condEnum);
                         }
-                        Console.WriteLine($"[DEBUG] Enum/Equals: JsonElement raw '{jee.GetRawText()}' procesado a '{condEnum}'");
                     }
                 }
                 else
@@ -1179,7 +1175,6 @@ public class ApiDataService : IApiDataService
                 if (filter.Type == FilterType.Equals)
                 {
                     bool result = string.Equals(enumValueStr, condEnum, StringComparison.OrdinalIgnoreCase);
-                    Console.WriteLine($"[DEBUG] Enum/Equals: comparando '{enumValueStr}' con '{condEnum}', resultado={result}");
                     return result;
                 }
                 if (filter.Type == FilterType.NotEquals)

@@ -405,6 +405,8 @@ namespace OmniMonitor.Server.Controllers
                 if (page <= 0 || pageSize <= 0)
                     return BadRequest("La página y el tamaño deben ser mayores a 0.");
                 
+                if (page < 1) page = 1;
+
                 var response = await _kpiService.GetAllKpisPaginatedAsync(username, page, pageSize, query);
                 return Ok(response);
             }

@@ -53,13 +53,7 @@
                 </MudText>
             }
 
-            <!-- Footer -->
-            <div style="margin-top:auto; display:flex; justify-content:flex-end;">
-                <MudText Style="color:var(--card-text-secondary); font-size:0.7rem;">
-                    @Localizer["Actualizado"]: @(DateTime.Now.ToString("yyyy-MM-dd HH:mm"))
-                    <!-- @(Kpi.LastUpdated?.ToString("g") ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm")) -->
-                </MudText>
-            </div>
+            <!-- Footer (no 'Actualizado' porque no viene del backend) -->
         </MudCardContent>
     </MudCard>
 </MudPaper>
