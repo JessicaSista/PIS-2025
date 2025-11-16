@@ -98,10 +98,10 @@
                 
 
                 <MudText Typo="Typo.subtitle2">@Localizer["RecipientsSubtitle"]</MudText>
-                <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
-                    <MudTextField @bind-Value="_recipientInput" Placeholder="@Localizer[\"EmailPlaceholder\"]" Disabled="_submitting" Immediate="true" OnKeyDown="OnRecipientKeyDown" />
-                    <MudButton Variant="Variant.Outlined" OnClick="AddRecipient" Disabled="_submitting">@Localizer["AddButton"]</MudButton>
-                </MudStack>
+                <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+                    <MudTextField @bind-Value="_recipientInput" Placeholder="@Localizer["EmailPlaceholder"]" Disabled="_submitting" Immediate="true" OnKeyDown="OnRecipientKeyDown" />
+                    <MudButton Variant="Variant.Outlined" OnClick="AddRecipient" Disabled="_submitting">@Localizer["AddButton"]</MudButton>
+                </MudStack>
 
                 <MudChipSet T="string" MultiSelection="true">
                     @foreach (var mail in _recipients)

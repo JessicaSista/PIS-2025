@@ -4,6 +4,7 @@
 @using OmniMonitor.Shared.Dtos
 @using OmniMonitor.Client.Shared
 @using Microsoft.Extensions.Localization
+@using System.Globalization
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -34,7 +35,6 @@
 </MudStack>
 
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
-    @* ERROR CORREGIDO: Se elimina la cadena de comillas dobles y se usa solo la expresión @Localizer[...] *@
     <MudTextField @bind-Value="_search" 
                   Immediate="true" 
                   Placeholder="@Localizer["SearchPlaceholder"]" 
@@ -70,7 +70,7 @@
                 </MudTd>
             </RowTemplate>
             
-            @* COMENTADO: Bloque ChildRowContent (expansión) *@
+            
             @* <ChildRowContent>
                 <MudPaper Class="pa-3" Elevation="0">
                     <MudText Typo="Typo.subtitle2">Destinatarios</MudText>
@@ -103,7 +103,7 @@
         user-select: none; 
         -moz-user-select: none;
         -webkit-user-select: none;
-        cursor: default; /* Se cambia a default ya que RowClick está desactivado */
+        cursor: default;
     }
     .mud-table-row > td:last-child {
         cursor: default;
@@ -115,7 +115,6 @@
     private string _search = string.Empty;
     private bool _loading = true;
     private Dictionary<int, string> _reportNames = new();
-    // COMENTADO: HashSet para rastrear filas expandidas
     // private HashSet<int> _expanded = new(); 
 
     protected override async Task OnInitializedAsync()
@@ -241,13 +240,13 @@
                 }
                 
                 var candidateUtc = TimeZoneInfo.ConvertTimeToUtc(candidate, tz);
-                return candidateUtc.ToLocalTime().ToString("g");
+                return candidateUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
             }
 
             if (string.Equals(item.ScheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase) && item.IntervalMinutes.HasValue)
             {
                 var nextUtc = DateTime.UtcNow.AddMinutes(item.IntervalMinutes.Value);
-                return nextUtc.ToLocalTime().ToString("g");
+                return nextUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
             }
 
             return "-";
@@ -337,9 +336,7 @@
         }
     }
 
-    // Se eliminó la función TokenToSpanishDay ya que se usaba SharedLocalizer
 
-    // COMENTADO: Función RowClick
     // private void OnRowClick(TableRowClickEventArgs<ScheduledReportResponse> args)
     // {
     //      Console.WriteLine($"Row clicked: {args.Item.Id}");
@@ -353,6 +350,5 @@
     //      StateHasChanged();
     // }
 
-    // COMENTADO: Función IsExpanded
     // private bool IsExpanded(ScheduledReportResponse item) => _expanded.Contains(item.Id);
 }
