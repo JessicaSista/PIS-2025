@@ -130,4 +130,10 @@
   <data name="ErrorDeletingLink" xml:space="preserve">
     <value>Error al eliminar enlace</value>
   </data>
+  <data name="Public" xml:space="preserve">
+    <value>Público</value>
+  </data>
+  <data name="Private" xml:space="preserve">
+    <value>Privado</value>
+  </data>
 </root>

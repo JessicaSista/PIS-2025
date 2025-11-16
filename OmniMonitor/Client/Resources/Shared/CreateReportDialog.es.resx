@@ -49,52 +49,31 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="PageTitle" xml:space="preserve">
-    <value>Reports</value>
+  <data name="NameLabel" xml:space="preserve">
+    <value>Nombre del reporte</value>
   </data>
-  <data name="Title" xml:space="preserve">
-    <value>Reports</value>
+  <data name="DescriptionLabel" xml:space="preserve">
+    <value>Descripción</value>
   </data>
-  <data name="Description" xml:space="preserve">
-    <value>Manage and view your data reports</value>
+  <data name="CancelButton" xml:space="preserve">
+    <value>Cancelar</value>
   </data>
-  <data name="NewReportButton" xml:space="preserve">
-    <value>New Report</value>
+  <data name="SaveButton" xml:space="preserve">
+    <value>Guardar</value>
   </data>
-  <data name="SearchPlaceholder" xml:space="preserve">
-    <value>Search reports...</value>
+  <data name="NextButton" xml:space="preserve">
+    <value>Siguiente</value>
   </data>
-  <data name="DefaultReport1" xml:space="preserve">
-    <value>Sales Report</value>
+  <data name="NameRequired" xml:space="preserve">
+    <value>El nombre es obligatorio</value>
   </data>
-  <data name="DefaultReport1Desc" xml:space="preserve">
-    <value>Monthly sales summary</value>
+  <data name="NameExists" xml:space="preserve">
+    <value>Ya existe un reporte con ese nombre</value>
   </data>
-  <data name="DefaultReport2" xml:space="preserve">
-    <value>User Report</value>
+  <data name="NoChanges" xml:space="preserve">
+    <value>No hay cambios para guardar</value>
   </data>
-  <data name="DefaultReport2Desc" xml:space="preserve">
-    <value>Active users on the platform</value>
-  </data>
-  <data name="DefaultReport3" xml:space="preserve">
-    <value>Error Report</value>
-  </data>
-  <data name="DefaultReport3Desc" xml:space="preserve">
-    <value>Errors registered in the system</value>
-  </data>
-  <data name="NoReports" xml:space="preserve">
-    <value>No reports available</value>
-  </data>
-  <data name="EditAction" xml:space="preserve">
-    <value>Edit</value>
-  </data>
-  <data name="DeleteAction" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="CreateDialogTitle" xml:space="preserve">
-    <value>Create New Report</value>
-  </data>
-  <data name="EditDialogTitle" xml:space="preserve">
-    <value>Edit Report</value>
+  <data name="CreateError" xml:space="preserve">
+    <value>Error al crear el reporte: {0}</value>
   </data>
 </root>

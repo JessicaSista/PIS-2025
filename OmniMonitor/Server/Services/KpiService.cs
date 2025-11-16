@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -19,6 +19,7 @@ namespace OmniMonitor.Server.Services
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
         Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId);
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
+        Task<List<Kpi>> GetAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
         Task DeleteKpiAsync(int kpiId, string? username = null);
         Task<Kpi> UpdateKpiAsync(int kpiId, KpiRequest request, string? username = null);
@@ -469,6 +470,14 @@ namespace OmniMonitor.Server.Services
             }
 
             return results;
+        }
+
+        public async Task<List<Kpi>> GetAllKpisForUserAsync(string username)
+        {
+            // Obtener todos los KPIs del usuario desde la base de datos
+            return await _context.Kpi
+                .Where(k => k.Username == username)
+                .ToListAsync();
         }
 
         private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username)

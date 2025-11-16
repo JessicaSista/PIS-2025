@@ -273,6 +273,32 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        // Obtener todos los KPIs del usuario
+        [HttpGet("all-KPIs")]
+        [RequirePermission("Kpis.View")]
+        [ProducesResponseType(typeof(List<KpiResponse>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<Kpi>>> GetAllKpisnoCalculate()
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                List<Kpi> kpis = await _kpiService.GetAllKpisForUserAsync(username);
+                return Ok(kpis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetAllKpis: unexpected error");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
         [HttpGet("metrics/{module}")]
         [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<MetricInfo>), 200)]
