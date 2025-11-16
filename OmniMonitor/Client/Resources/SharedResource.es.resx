@@ -168,8 +168,6 @@
   <data name="datasets" xml:space="preserve">
     <value>datasets</value>
   </data>
-  <data name="RecordsLabel" xml:space="preserve">
-    <value>Registros:</value>
   <data name="ScheduledReportsTitle" xml:space="preserve">
     <value>Reportes programados</value>
   </data>

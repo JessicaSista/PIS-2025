@@ -1,9 +1,7 @@
 @using MudBlazor
-@using Microsoft.Extensions.Localization
 @inject ISnackbar Snackbar
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 @inject HttpClient Http
-@inject IStringLocalizer<CreateReportDialog> Localizer
 @using OmniMonitor.Shared.Dtos
 
 <MudForm @ref="_form">
@@ -13,7 +11,7 @@
                           Value="_name"
                           ValueChanged="OnNameChanged"
                           ValueExpression="@(() => _name)"
-                          Label="@Localizer["NameLabel"].Value"
+                          Label="Nombre del reporte"
                           Disabled="_isSubmitting"
                           Immediate="true"
                           Validation="@((string? value) => ValidateName(value))" />
@@ -21,15 +19,13 @@
                           Value="_description"
                           ValueChanged="OnDescriptionChanged"
                           ValueExpression="@(() => _description)"
-                          Label="@Localizer["DescriptionLabel"].Value"
+                          Label="Descripción"
                           Lines="3"
                           Disabled="_isSubmitting"
-                          Immediate="true"
-                          MaxLength="@DescriptionMaxLength"
-                          Counter="@DescriptionMaxLength" />
+                          Immediate="true" />
         </DialogContent>
         <DialogActions>
-            <MudButton OnClick="Cancel" Disabled="_isSubmitting">@Localizer["CancelButton"]</MudButton>
+            <MudButton OnClick="Cancel" Disabled="_isSubmitting">Cancelar</MudButton>
             <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_isSubmitting || !_formIsValid">@SubmitButtonText</MudButton>
         </DialogActions>
     </MudDialog>
@@ -62,15 +58,14 @@
     private bool _isSubmitting;
     private string _name = string.Empty;
     private string _description = string.Empty;
-    private const int DescriptionMaxLength = 250;
 
-    private string SubmitButtonText => (IsEditMode ? Localizer["SaveButton"] : Localizer["NextButton"]).Value;
+    private string SubmitButtonText => IsEditMode ? "Guardar" : "Siguiente";
 
     protected override void OnInitialized()
     {
         Username ??= string.Empty;
         _name = InitialName ?? string.Empty;
-        _description = EnforceMaxLength(InitialDescription ?? string.Empty);
+        _description = InitialDescription ?? string.Empty;
         UpdateFormState();
     }
 
@@ -86,7 +81,7 @@
 
     private Task OnDescriptionChanged(string value)
     {
-        _description = EnforceMaxLength(value ?? string.Empty);
+        _description = value ?? string.Empty;
         UpdateFormState();
         StateHasChanged();
         return Task.CompletedTask;
@@ -96,7 +91,7 @@
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            return Localizer["NameRequired"].Value;
+            return "El nombre es obligatorio";
         }
 
         var trimmed = value.Trim();
@@ -106,7 +101,7 @@
         {
             if (existing.Any(n => string.Equals(n?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)))
             {
-                return Localizer["NameExists"].Value;
+                return "Ya existe un reporte con ese nombre";
             }
         }
         else if (ReportId.HasValue)
@@ -115,7 +110,7 @@
             if (!string.Equals(initialNameTrimmed, trimmed, StringComparison.OrdinalIgnoreCase) &&
                 existing.Any(n => string.Equals(n?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)))
             {
-                return Localizer["NameExists"].Value;
+                return "Ya existe un reporte con ese nombre";
             }
         }
 
@@ -131,7 +126,7 @@
     private bool HasChanges()
     {
         var trimmedName = (_name ?? string.Empty).Trim();
-        var normalizedDescription = NormalizeDescription(_description);
+        var trimmedDescription = (_description ?? string.Empty).Trim();
 
         if (!IsEditMode)
         {
@@ -139,31 +134,10 @@
         }
 
         var initialNameTrimmed = (InitialName ?? string.Empty).Trim();
-        var initialDescriptionNormalized = NormalizeDescription(InitialDescription);
+        var initialDescriptionTrimmed = (InitialDescription ?? string.Empty).Trim();
 
         return !string.Equals(initialNameTrimmed, trimmedName, StringComparison.Ordinal) ||
-               !string.Equals(initialDescriptionNormalized, normalizedDescription, StringComparison.Ordinal);
-    }
-
-    private static string EnforceMaxLength(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Length <= DescriptionMaxLength ? value : value[..DescriptionMaxLength];
-    }
-
-    private static string NormalizeDescription(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        var trimmed = value.Trim();
-        return trimmed.Length <= DescriptionMaxLength ? trimmed : trimmed[..DescriptionMaxLength];
+               !string.Equals(initialDescriptionTrimmed, trimmedDescription, StringComparison.Ordinal);
     }
 
     private async Task Submit()
@@ -184,12 +158,11 @@
         try
         {
             var trimmedName = _name.Trim();
-            var normalizedDescription = NormalizeDescription(_description);
-            var trimmedDescription = string.IsNullOrEmpty(normalizedDescription) ? null : normalizedDescription;
+            var trimmedDescription = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim();
 
             if (!HasChanges())
             {
-                Snackbar.Add(Localizer["NoChanges"].Value, Severity.Warning);
+                Snackbar.Add("No hay cambios para guardar", Severity.Warning);
                 return;
             }
 
@@ -223,7 +196,8 @@
             }
             else
             {
-                Snackbar.Add(Localizer["CreateError", response.StatusCode].Value, Severity.Error);
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Error al crear el reporte: {response.StatusCode}", Severity.Error);
             }
         }
         finally

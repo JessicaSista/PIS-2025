@@ -12,10 +12,6 @@
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-::deep .theme-toggle-button {
-    margin-right: 4px;
-}
-
 ::deep .theme-toggle .mud-icon-root {
     color: var(--theme-toggle) !important;
 }
@@ -113,10 +109,6 @@
     ::deep .user-selector {
         min-width: 0;
         padding: 0 2px;
-    }
-
-    ::deep .theme-toggle-button {
-        margin-right: 4px;
     }
 
     /* Reduce un poco más el ícono de usuario si es necesario */
