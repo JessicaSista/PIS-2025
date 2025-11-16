@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -167,5 +167,14 @@
   </data>
   <data name="ErrorLoadingKpi" xml:space="preserve">
     <value>No se pudo cargar el dato del KPI.</value>
+  </data>
+  <data name="ofPreposition" xml:space="preserve">
+    <value>de</value>
+  </data>
+  <data name="Showing" xml:space="preserve">
+    <value>Mostrando</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Página</value>
   </data>
 </root>

@@ -189,4 +189,13 @@
   <data name="CancelButtonText" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="Showing" xml:space="preserve">
+    <value>Showing</value>
+  </data>
+  <data name="ofPreposition" xml:space="preserve">
+    <value>of</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Page</value>
+  </data>
 </root>

@@ -114,7 +114,7 @@
                                    Color="MudBlazor.Color.Primary" />
 
                     <MudText Typo="Typo.body2" Class="mx-3">
-                        @Localizer["Página"] @_currentPage @Localizer["de"] @_totalPages
+                        @Localizer["Page"] @_currentPage @Localizer["ofPreposition"] @_totalPages
                     </MudText>
 
                     <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
@@ -132,7 +132,7 @@
 
                 <MudStack Row Justify="Justify.Center" Class="mb-4">
                     <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
-                        @Localizer["Mostrando"] @_reportes.Count @Localizer["de"] @_totalCount
+                        @Localizer["Showing"] @_reportes.Count @Localizer["ofPreposition"] @_totalCount
                     </MudText>
                 </MudStack>
             </MudItem>
