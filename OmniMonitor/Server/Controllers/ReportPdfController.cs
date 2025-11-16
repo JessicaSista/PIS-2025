@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
 
 namespace OmniMonitor.Server.Controllers
