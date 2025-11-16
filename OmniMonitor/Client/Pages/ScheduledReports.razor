@@ -40,37 +40,22 @@
                 <MudText Typo="Typo.subtitle2">Total: @_items.Count</MudText>
             </ToolBarContent>
             <HeaderContent>
-                <MudTh>#</MudTh>
                 <MudTh>Reporte</MudTh>
-                <MudTh>Programación</MudTh>
-                <MudTh>Horario</MudTh>
-                <MudTh>Zona</MudTh>
+                <MudTh>Frecuencia</MudTh>
+                <MudTh>Hora</MudTh>
+                <MudTh>Próximo envío</MudTh>
                 <MudTh>Destinatarios</MudTh>
-                <MudTh>Asunto</MudTh>
-                <MudTh>Estado</MudTh>
-                <MudTh>Última ejecución</MudTh>
-                <MudTh></MudTh>
+                <MudTh>Creado el</MudTh>
+                <MudTh>Acciones</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="#">@context.Id</MudTd>
-                <MudTd DataLabel="Reporte">@context.ReportId</MudTd>
-                <MudTd DataLabel="Programación">@context.ScheduleType</MudTd>
-                <MudTd DataLabel="Horario">@GetScheduleDisplay(context)</MudTd>
-                <MudTd DataLabel="Zona">@context.TimeZone</MudTd>
-                <MudTd DataLabel="Destinatarios">@string.Join(", ", context.Recipients ?? new())</MudTd>
-                <MudTd DataLabel="Asunto">@context.Subject</MudTd>
-                <MudTd DataLabel="Estado">
-                    @if (context.IsActive)
-                    {
-                        <MudChip T="string" Color="MudBlazor.Color.Success" Variant="Variant.Filled" Dense="true">Activo</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="MudBlazor.Color.Default" Variant="Variant.Outlined" Dense="true">Inactivo</MudChip>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Última ejecución">@GetLastExecution(context)</MudTd>
-                <MudTd>
+                <MudTd DataLabel="Reporte">@GetReportName(context.ReportId)</MudTd>
+                <MudTd DataLabel="Frecuencia">@GetFrequencyDisplay(context)</MudTd>
+                <MudTd DataLabel="Hora">@GetHourDisplay(context)</MudTd>
+                <MudTd DataLabel="Próximo envío">@GetNextSendDisplay(context)</MudTd>
+                <MudTd DataLabel="Destinatarios">@(context.Recipients?.Count ?? 0)</MudTd>
+                <MudTd DataLabel="Creado el">-</MudTd>
+                <MudTd DataLabel="Acciones">
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="() => ConfirmDelete(context)" />
                 </MudTd>
             </RowTemplate>
@@ -85,6 +70,7 @@
     private List<ScheduledReportResponse> _items = new();
     private string _search = string.Empty;
     private bool _loading = true;
+    private Dictionary<int, string> _reportNames = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,6 +109,27 @@
             {
                 var data = await resp.Content.ReadFromJsonAsync<List<ScheduledReportResponse>>();
                 _items = data ?? new List<ScheduledReportResponse>();
+
+                // =======================================================
+                // 🛑 INICIO CÓDIGO DE DEPURACIÓN PARA DESTINATARIOS
+                // =======================================================
+                Console.WriteLine("--- DEBUG: PROGRAMACIONES DE REPORTE RECIBIDAS ---");
+                foreach (var item in _items)
+                {
+                    var recipientsList = item.Recipients != null && item.Recipients.Any()
+                        ? string.Join(", ", item.Recipients)
+                        : "(Ninguno / Lista nula o vacía)";
+
+                    // Asumo que tienes una propiedad 'Id' en ScheduledReportResponse
+                    Console.WriteLine($"ID: {item.Id}, Reporte: {GetReportName(item.ReportId)}, Destinatarios: [{item.Recipients?.Count ?? 0} total] -> {recipientsList}");
+                }
+                Console.WriteLine("-------------------------------------------------");
+                // =======================================================
+                // 🛑 FIN CÓDIGO DE DEPURACIÓN
+                // =======================================================
+                
+                // Cargar nombres de reportes para mostrar en la tabla
+                await EnsureReportNamesLoaded();
             }
             else if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -146,25 +153,109 @@
         }
     }
 
-    private string GetScheduleDisplay(ScheduledReportResponse item)
+    private string GetFrequencyDisplay(ScheduledReportResponse item)
     {
-        if (string.Equals(item.ScheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase))
-            return item.IntervalMinutes.HasValue ? $"Cada {item.IntervalMinutes} min" : "-";
-        if (string.Equals(item.ScheduleType, "Daily", StringComparison.OrdinalIgnoreCase))
-            return item.SendAtLocalTime ?? "-";
-        if (string.Equals(item.ScheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
-            return item.SendAtLocalTime ?? "-";
-        if (string.Equals(item.ScheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
-            return item.SendAtLocalTime ?? "-";
-        if (string.Equals(item.ScheduleType, "Cron", StringComparison.OrdinalIgnoreCase))
-            return item.AdvancedRule ?? "-";
+        return item.ScheduleType switch
+        {
+            var s when string.Equals(s, "Daily", StringComparison.OrdinalIgnoreCase) => "Diaria",
+            var s when string.Equals(s, "Weekly", StringComparison.OrdinalIgnoreCase) => "Semanal",
+            var s when string.Equals(s, "Monthly", StringComparison.OrdinalIgnoreCase) => "Mensual",
+            var s when string.Equals(s, "EveryNMinutes", StringComparison.OrdinalIgnoreCase) => item.IntervalMinutes.HasValue ? $"Cada {item.IntervalMinutes} min" : "Cada N min",
+            var s when string.Equals(s, "Cron", StringComparison.OrdinalIgnoreCase) => "Avanzada",
+            _ => item.ScheduleType
+        };
+    }
+
+    private string GetHourDisplay(ScheduledReportResponse item)
+    {
+        if (!string.IsNullOrWhiteSpace(item.SendAtLocalTime))
+            return $"{item.SendAtLocalTime} ({item.TimeZone})";
+        if (item.IntervalMinutes.HasValue)
+            return $"Cada {item.IntervalMinutes} min";
+        if (!string.IsNullOrWhiteSpace(item.AdvancedRule))
+            return item.AdvancedRule;
         return "-";
     }
 
-    private string GetLastExecution(ScheduledReportResponse item)
+    private string GetNextSendDisplay(ScheduledReportResponse item)
     {
-        if (item.LastExecution == null) return "-";
-        return item.LastExecution.Value.ToLocalTime().ToString("g");
+        try
+        {
+            var tz = GetTimeZone(item.TimeZone);
+            var nowTz = TimeZoneInfo.ConvertTime(DateTime.UtcNow, tz);
+
+            if (!string.IsNullOrWhiteSpace(item.SendAtLocalTime) && TimeSpan.TryParse(item.SendAtLocalTime, out var sendTs))
+            {
+                var candidate = new DateTime(nowTz.Year, nowTz.Month, nowTz.Day, sendTs.Hours, sendTs.Minutes, 0, DateTimeKind.Unspecified);
+                if (string.Equals(item.ScheduleType, "Daily", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (candidate <= nowTz) candidate = candidate.AddDays(1);
+                }
+                else if (string.Equals(item.ScheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (candidate <= nowTz) candidate = candidate.AddDays(7);
+                }
+                else if (string.Equals(item.ScheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (candidate <= nowTz) candidate = candidate.AddMonths(1);
+                }
+                var candidateUtc = TimeZoneInfo.ConvertTimeToUtc(candidate, tz);
+                return candidateUtc.ToLocalTime().ToString("g");
+            }
+
+            if (string.Equals(item.ScheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase) && item.IntervalMinutes.HasValue)
+            {
+                var nextUtc = DateTime.UtcNow.AddMinutes(item.IntervalMinutes.Value);
+                return nextUtc.ToLocalTime().ToString("g");
+            }
+
+            return "-";
+        }
+        catch
+        {
+            return "-";
+        }
+    }
+
+    private static TimeZoneInfo GetTimeZone(string? tzId)
+    {
+        if (!string.IsNullOrWhiteSpace(tzId))
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+            catch { }
+        }
+        return TimeZoneInfo.Local;
+    }
+
+    private async Task EnsureReportNamesLoaded()
+    {
+        try
+        {
+            // Evita recargas innecesarias si ya tenemos todos los IDs presentes
+            var missingIds = _items.Select(i => i.ReportId).Where(id => !_reportNames.ContainsKey(id)).Distinct().ToList();
+            if (missingIds.Count == 0) return;
+
+            var resp = await Http.GetAsync("/api/reports/GetAllReportsPaginated?page=1&pageSize=1000");
+            if (resp.IsSuccessStatusCode)
+            {
+                var page = await resp.Content.ReadFromJsonAsync<PaginatedReportDto>();
+                if (page?.Items != null)
+                {
+                    foreach (var r in page.Items)
+                    {
+                        if (!_reportNames.ContainsKey(r.Id))
+                            _reportNames[r.Id] = r.Name ?? $"Reporte {r.Id}";
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private string GetReportName(int id)
+    {
+        if (_reportNames.TryGetValue(id, out var name)) return name;
+        return $"Reporte {id}";
     }
 
     private async Task ConfirmDelete(ScheduledReportResponse item)

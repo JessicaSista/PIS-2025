@@ -4,6 +4,12 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
+<style>
+  .weekly-chip-selected {
+    border: 2px solid var(--mud-palette-primary) !important;
+  }
+</style>
+
 <MudForm @ref="_form" @bind-IsValid="_formValid" >
     <MudDialog>
         <DialogContent>
@@ -21,29 +27,83 @@
                         }
                     }
                 </MudSelect>
+                @if (_showErrors && !string.IsNullOrEmpty(_errReport))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errReport</MudText>
+                }
 
                 <MudSelect T="string" Label="Frecuencia" @bind-Value="_scheduleType" Required="true" Disabled="_submitting">
-                    <MudSelectItem T="string" Value="Daily">Diaria</MudSelectItem>
-                    <MudSelectItem T="string" Value="Weekly">Semanal</MudSelectItem>
-                    <MudSelectItem T="string" Value="Monthly">Mensual</MudSelectItem>
+                    <MudSelectItem T="string" Value=@("Daily")>Diaria</MudSelectItem>
+                    <MudSelectItem T="string" Value=@("Weekly")>Semanal</MudSelectItem>
+                    <MudSelectItem T="string" Value=@("Monthly")>Mensual</MudSelectItem>
                 </MudSelect>
+                @if (_showErrors && !string.IsNullOrEmpty(_errSchedule))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errSchedule</MudText>
+                }
 
-                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
-                    <MudTimePicker @bind-Time="_time" Label="Hora" AmPm="false" Disabled="_submitting" />
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Zona horaria: @_timeZone</MudText>
-                </MudStack>
+                @if (string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudText Typo="Typo.subtitle2">Día de la semana (Selección única)</MudText>
+                    
+                    <MudChipSet T="string" 
+                                SelectedValue="_weeklyDay"
+                                SelectedValueChanged="HandleWeeklyDayChange">
+                        <MudChip T="string" Value=@("MON") Class="@(_weeklyDay=="MON" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="MON" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="MON" ? Variant.Filled : Variant.Outlined)">Lun</MudChip>
+                        <MudChip T="string" Value=@("TUE") Class="@(_weeklyDay=="TUE" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="TUE" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="TUE" ? Variant.Filled : Variant.Outlined)">Mar</MudChip>
+                        <MudChip T="string" Value=@("WED") Class="@(_weeklyDay=="WED" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="WED" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="WED" ? Variant.Filled : Variant.Outlined)">Mié</MudChip>
+                        <MudChip T="string" Value=@("THU") Class="@(_weeklyDay=="THU" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="THU" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="THU" ? Variant.Filled : Variant.Outlined)">Jue</MudChip>
+                        <MudChip T="string" Value=@("FRI") Class="@(_weeklyDay=="FRI" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="FRI" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="FRI" ? Variant.Filled : Variant.Outlined)">Vie</MudChip>
+                        <MudChip T="string" Value=@("SAT") Class="@(_weeklyDay=="SAT" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="SAT" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="SAT" ? Variant.Filled : Variant.Outlined)">Sáb</MudChip>
+                        <MudChip T="string" Value=@("SUN") Class="@(_weeklyDay=="SUN" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="SUN" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="SUN" ? Variant.Filled : Variant.Outlined)">Dom</MudChip>
+                    </MudChipSet>
+                    @if (_showErrors && !string.IsNullOrEmpty(_errWeekly))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errWeekly</MudText>
+                    }
+                }
 
-                <MudText Typo="Typo.subtitle2">Destinatarios</MudText>
+                @if (string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudSelect T="int" Label="Día del mes" @bind-Value="_monthlyDay" Disabled="_submitting" Required="true">
+                        @for (int d = 1; d <= 31; d++)
+                        {
+                            <MudSelectItem T="int" Value="@d">@d</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (_showErrors && !string.IsNullOrEmpty(_errMonthly))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errMonthly</MudText>
+                    }
+                }
+
+                @if (!string.Equals(_scheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                        <MudTimePicker @bind-Time="_time" Label="Hora" AmPm="false" Disabled="_submitting" Required="true" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Zona horaria: @_timeZone</MudText>
+                    </MudStack>
+                    @if (_showErrors && !string.IsNullOrEmpty(_errTime))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errTime</MudText>
+                    }
+                }
+
+                <MudText Typo="Typo.subtitle2">Destinatarios (Mínimo uno)</MudText>
                 <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
                     <MudTextField @bind-Value="_recipientInput" Placeholder="email@dominio.com" Disabled="_submitting" Immediate="true" OnKeyDown="OnRecipientKeyDown" />
                     <MudButton Variant="Variant.Outlined" OnClick="AddRecipient" Disabled="_submitting">Agregar</MudButton>
                 </MudStack>
-                <MudChipSet @bind-SelectedValues="_dummySelection" MultiSelection="true">
+                <MudChipSet T="string" MultiSelection="true">
                     @foreach (var mail in _recipients)
                     {
                         <MudChip T="string" Value="@mail" OnClose="() => RemoveRecipient(mail)" Closeable="true">@mail</MudChip>
                     }
                 </MudChipSet>
+                @if (_showErrors && !string.IsNullOrEmpty(_errRecipients))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errRecipients</MudText>
+                }
 
                 <MudTextField T="string" Label="Asunto" @bind-Value="_subject" Disabled="_submitting" Immediate="true" />
                 <MudTextField T="string" Label="Mensaje" @bind-Value="_message" Lines="3" Disabled="_submitting" Immediate="true" />
@@ -51,7 +111,7 @@
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel" Disabled="_submitting">Cancelar</MudButton>
-            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_submitting || !_formValid">Programar</MudButton>
+            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_submitting">Programar</MudButton>
         </DialogActions>
     </MudDialog>
 </MudForm>
@@ -60,13 +120,38 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
     private MudForm? _form;
-    // Se elimina _formValid ya que la validación se manejará en el setter de las propiedades
+    private bool _formValid; 
     private bool _submitting;
+    private bool _showErrors;
 
     private List<SimpleReport>? _reports;
     
-    // CORRECCIÓN: Usamos backing fields con propiedades para ejecutar la lógica de validación y Subject al cambiar el valor.
+    // Backing fields
     private int _backingReportId;
+    private string _backingScheduleType = string.Empty;
+    
+    // Campos para la programación
+    private TimeSpan? _time;
+    private string _timeZone = TimeZoneInfo.Local.Id;
+
+    private string _recipientInput = string.Empty;
+    private List<string> _recipients = new(); 
+
+    private string _subject = string.Empty;
+    private string _message = string.Empty;
+    
+    private string _errReport = string.Empty;
+    private string _errSchedule = string.Empty;
+    private string _errTime = string.Empty;
+    private string _errRecipients = string.Empty;
+    private string _errWeekly = string.Empty;
+    private string _errMonthly = string.Empty;
+    // Campos para semanal y mensual
+    // MODIFICACIÓN: Cambiado de HashSet<string> a string
+    private string _weeklyDay = string.Empty;
+    private int _monthlyDay = 1;
+    
+    // Propiedades con setters para lógica de negocio
     private int _reportId 
     {
         get => _backingReportId;
@@ -79,7 +164,6 @@
         }
     }
 
-    private string _backingScheduleType = string.Empty;
     private string _scheduleType 
     {
         get => _backingScheduleType;
@@ -92,40 +176,28 @@
         }
     }
     
-    private TimeSpan? _time;
-    private string _timeZone = TimeZoneInfo.Local.Id;
-
-    private string _recipientInput = string.Empty;
-    private HashSet<string> _dummySelection = new();
-    private List<string> _recipients = new();
-
-    private string _subject = string.Empty;
-    private string _message = string.Empty;
+    // FUNCIÓN AÑADIDA PARA CORREGIR CS0103 y manejar la selección única
+    private void HandleWeeklyDayChange(string selectedDay)
+    {
+        _weeklyDay = selectedDay;
+        ValidateFormState();
+        StateHasChanged();
+    }
     
-    // Nueva propiedad para manejar la validación del botón
-    private bool _formValid => 
-        _reportId > 0 && 
-        !string.IsNullOrWhiteSpace(_scheduleType) && 
-        _time.HasValue && 
-        _recipients.Count > 0 && 
-        _recipients.All(IsValidEmail);
 
     protected override async Task OnInitializedAsync()
     {
         await LoadReports();
-        // Inicializa los valores para que _formValid se evalúe correctamente
-        _reportId = _reports?.FirstOrDefault()?.Id ?? 0;
         _scheduleType = "Daily";
         
+        _reportId = _reports?.FirstOrDefault()?.Id ?? 0;
+        
         UpdateSubjectSuggestion();
-        ValidateFormState(); // Se eliminó, se reemplazó por la propiedad _formValid
+        ValidateFormState(); 
     }
-
-    // ... (LoadReports permanece igual)
 
     private async Task LoadReports()
     {
-        // ... (Tu código de LoadReports) ...
         try
         {
             var resp = await Http.GetAsync("/api/reports/GetAllReportsPaginated?page=1&pageSize=1000");
@@ -134,9 +206,8 @@
                 var page = await resp.Content.ReadFromJsonAsync<PaginatedReportDto>();
                 _reports = page?.Items?.Select(x => new SimpleReport { Id = x.Id, Name = x.Name ?? $"Reporte {x.Id}" }).ToList() ?? new();
                 
-                // Asegurar que el ID se inicializa si hay reportes
                 _reportId = _reports.FirstOrDefault()?.Id ?? 0; 
-                UpdateSubjectSuggestion(); // Actualizar el subject inicial
+                UpdateSubjectSuggestion(); 
                 StateHasChanged();
             }
             else
@@ -154,11 +225,20 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    // Se eliminó la función ValidateFormState() ya que la lógica se movió a la propiedad _formValid
-    // (pero la mantengo para AddRecipient/RemoveRecipient)
     private void ValidateFormState()
     {
-        StateHasChanged(); // Forzar la reevaluación de la propiedad _formValid
+        _errReport = _reportId > 0 ? string.Empty : "Selecciona un reporte";
+        _errSchedule = !string.IsNullOrWhiteSpace(_scheduleType) ? string.Empty : "Selecciona una frecuencia";
+        var needsTime = !string.Equals(_scheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase);
+        _errTime = needsTime && !_time.HasValue ? "Ingresa la hora" : string.Empty;
+        _errRecipients = _recipients.Count > 0 && _recipients.All(IsValidEmail) ? string.Empty : "Agrega al menos un destinatario válido";
+        _errWeekly = string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(_weeklyDay) ? "Selecciona un día de la semana" : string.Empty;
+        _errMonthly = string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase) && !(_monthlyDay >= 1 && _monthlyDay <= 31) ? "Selecciona un día del mes" : string.Empty;
+
+        var baseValid = string.IsNullOrEmpty(_errReport) && string.IsNullOrEmpty(_errSchedule) && string.IsNullOrEmpty(_errTime) && string.IsNullOrEmpty(_errRecipients);
+        var scheduleValid = string.IsNullOrEmpty(_errWeekly) && string.IsNullOrEmpty(_errMonthly);
+        _formValid = baseValid && scheduleValid;
+        StateHasChanged(); 
     }
 
 
@@ -173,25 +253,73 @@
     {
         if (_form is not null) await _form.Validate();
         
-        // Usamos la propiedad _formValid que combina la validación del formulario y la validación manual.
-        if (!_formValid) return; 
+        ValidateFormState(); 
+
+        if (!_formValid)
+        {
+            _showErrors = true;
+            StateHasChanged();
+            return;
+        } 
 
         _submitting = true;
-        // ... (El resto del código de Submit permanece igual) ...
+        
+        var sendTimeFormatted = _time.HasValue 
+            ? _time.Value.Hours.ToString("D2") + ":" + _time.Value.Minutes.ToString("D2") 
+            : null;
+
+        // 2. Generar la regla avanzada (AdvancedRule) si aplica
+        string? advancedRule = null;
+        if (string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(_weeklyDay))
+            {
+                // Enviar MON/TUE/WED/THU/FRI/SAT/SUN
+                advancedRule = _weeklyDay; 
+            }
+        }
+        else if (string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+        {
+            // Enviar solo el número del día
+            advancedRule = _monthlyDay.ToString();
+        }
+
+
+        var payload = new ScheduledReportRequest
+        {
+            ReportId = _reportId,
+            ScheduleType = _scheduleType,
+            
+            SendAtLocalTime = sendTimeFormatted,
+            AdvancedRule = advancedRule,
+            
+            TimeZone = _timeZone,
+            Recipients = _recipients.ToList(), 
+            Subject = string.IsNullOrWhiteSpace(_subject) ?
+                ($"{_reports?.FirstOrDefault(r => r.Id == _reportId)?.Name ?? "Reporte"} - {_scheduleType}") : _subject,
+            Message = _message ?? string.Empty
+        };
+        
+        // =======================================================
+        // 🛑 DEBUG: VERIFICACIÓN DEL PAYLOAD ANTES DE ENVIAR
+        // =======================================================
+        Console.WriteLine("--- DEBUG: PAYLOAD DE ENVÍO (ScheduledReportRequest) ---");
+        Console.WriteLine($"ReportId: {payload.ReportId}");
+        Console.WriteLine($"ScheduleType: {payload.ScheduleType}");
+        Console.WriteLine($"AdvancedRule: {payload.AdvancedRule ?? "(null)"}");
+        Console.WriteLine($"SendAtLocalTime: {payload.SendAtLocalTime}");
+        Console.WriteLine($"TimeZone: {payload.TimeZone}");
+        
+        var recipientsList = payload.Recipients != null && payload.Recipients.Any()
+            ? string.Join(", ", payload.Recipients)
+            : "(Lista nula o vacía)";
+        
+        Console.WriteLine($"DESTINATARIOS: [{payload.Recipients?.Count ?? 0} total] -> {recipientsList}");
+        Console.WriteLine("---------------------------------------------------------");
+        // =======================================================
+
         try
         {
-            var payload = new ScheduledReportRequest
-            {
-                ReportId = _reportId,
-                ScheduleType = _scheduleType,
-                SendAtLocalTime = _time?.ToString(@"hh\\:mm"),
-                TimeZone = _timeZone,
-                Recipients = _recipients.ToList(),
-                Subject = string.IsNullOrWhiteSpace(_subject) ?
-                    ($"{_reports?.FirstOrDefault(r => r.Id == _reportId)?.Name ?? "Reporte"} - {_scheduleType}") : _subject,
-                Message = _message ?? string.Empty
-            };
-
             var resp = await Http.PostAsJsonAsync("/api/reports/scheduled-reports", payload);
             if (resp.IsSuccessStatusCode)
             {
@@ -201,7 +329,7 @@
             else
             {
                 var error = await resp.Content.ReadAsStringAsync();
-                Snackbar.Add($"Error al programar: {resp.StatusCode}", Severity.Error);
+                Snackbar.Add($"Error al programar: {resp.StatusCode} - {error}", Severity.Error);
             }
         }
         catch (Exception ex)
@@ -225,7 +353,6 @@
 
     private void AddRecipient()
     {
-        // ... (Tu código de AddRecipient) ...
         var email = (_recipientInput ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(email)) return;
         if (!IsValidEmail(email))
@@ -240,15 +367,14 @@
         }
         _recipients.Add(email);
         _recipientInput = string.Empty;
-        ValidateFormState(); // Forzará la reevaluación de _formValid
+        ValidateFormState(); 
         StateHasChanged();
     }
 
     private void RemoveRecipient(string email)
     {
-        // ... (Tu código de RemoveRecipient) ...
         _recipients.RemoveAll(e => string.Equals(e, email, StringComparison.OrdinalIgnoreCase));
-        ValidateFormState(); // Forzará la reevaluación de _formValid
+        ValidateFormState(); 
         StateHasChanged();
     }
 
