@@ -175,7 +175,7 @@
 
 
     private List<string> _chartTypes = new List<string>() { "line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar" };
-    private string _selectedChartType = "line";
+    private string _selectedChartType = "bar";
     private DateTime? _beginDate { get; set; }
     private TimeSpan? _beginHour { get; set; }
     private DateTime? _endDate { get; set; }
@@ -185,14 +185,14 @@
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
     private Dictionary<string, List<string>> _entityAttributes = new Dictionary<string, List<string>>
     {
-        { "Device", new List<string> { "LayerId", "IsActive", "SectorId", "TenantId"} },
-        { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
+        { "Device", new List<string> { "Name", "Source",  "LayerId", "IsActive", "SectorId", "ConnectionString", "TenantId", "LastDataReceived",} },
+        { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "Icon", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
+        { "Sensor", new List<string> { "Name", "DisplayName", "Type", "Integration", "LastUpdate", "LastValue", "LastPersisted"} },
         { "Group", new List<string> { "IsActive", "State", "TenantId" } },
-        { "Sensor", new List<string> { "DisplayName", "Type", "Integration", "LastUpdate", "LastPersisted"} },
 
         { "Zone", new List<string> { "Name", "Reference" } },
-        { "EventUM", new List<string> { "Date", "Type", "ApprovalState", "ReviewedAt" } },
-        { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
+        { "EventUM", new List<string> { "Name", "Date", "Type", "Location", "ApprovalState", "ReviewedAt" } },
+        { "New", new List<string> { "Title", "DatePublished", "Important", "StartDate", "EndDate", "Zone" } },
 
         { "EventAM", new List<string> { "EventTaskDto", "StartDate", "State", "Subject", "FinalizedDate", "TakenOn", "TakenBy", "AlertTime", "EndingReason", "Critical" } },
         { "Stock", new List<string> { "Name", "Quantity", "Provider", "Location", "Sku", "Minimum", "Bundle", "Supervisor", "UpdatedQuantity" } },
@@ -401,16 +401,6 @@
     {
         try
         {
-            AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            string? username = authState.User.Identity?.Name;
-            string? token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            if (string.IsNullOrEmpty(username))
-            {
-                Snackbar.Add(Localizer["UserNotFound"], Severity.Warning);
-                throw new InvalidOperationException("No se encontró el usuario autenticado.");
-            }
-
             if (module.Equals("Insight Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}");
@@ -446,6 +436,11 @@
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
 
                 return datasetFromApi.DatasetNews.Count > 0 ? "New" : "EventUM";
+                return datasetFromApi.ContentType switch
+                {
+                    "1" => "EventUM",
+                    "2" => "New",
+                };
             }
             else
             {

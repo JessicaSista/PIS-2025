@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -15,5 +15,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("areas")]
         public List<string>? Areas { get; set; }
+
+        public override string ToString() => Name;
     }
 }
