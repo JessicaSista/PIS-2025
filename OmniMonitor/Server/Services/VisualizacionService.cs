@@ -139,6 +139,9 @@ namespace OmniMonitor.Server.Services
 
         public async Task<VisualizationResponse> GetVisualizationDataAsync(VisualizationRequest req, string username)
         {
+            // Buscar el dataset por ID para verificar si es formal o no
+            var dataset = await _context.Set<DatasetIM>().FirstOrDefaultAsync(d => d.Id == req.datasetId);
+            
             var operand = new JoinOperand
             {
                 ModuleType = req.moduleType,
@@ -147,7 +150,18 @@ namespace OmniMonitor.Server.Services
                 JoinPropertyName = string.Empty
             };
 
-            var data = await _apiDataService.GetDataForOperand(operand, username);
+            List<object> data;
+            if (dataset?.Is_Dataset == "N")
+            {
+                // Dataset no formal - usar nueva función
+                data = await _apiDataService.GetNotFormalDataForOperand(operand, username);
+            }
+            else
+            {
+                // Dataset formal - usar función existente
+                var dynamicData = await _apiDataService.GetDataForOperand(operand, username);
+                data = dynamicData.Cast<object>().ToList();
+            }
             if (data == null || !data.Any())
                 return new VisualizationResponse { Type = "unknown", Values = new () };
 
@@ -191,6 +205,9 @@ namespace OmniMonitor.Server.Services
 
         public async Task<VisualizationResponse> GetVisualizationDataSinTokenAsync(VisualizationRequest req)
         {
+            // Buscar el dataset por ID para verificar si es formal o no
+            var dataset = await _context.Set<DatasetIM>().FirstOrDefaultAsync(d => d.Id == req.datasetId);
+            
             var operand = new JoinOperand
             {
                 ModuleType = req.moduleType,
@@ -199,7 +216,18 @@ namespace OmniMonitor.Server.Services
                 JoinPropertyName = string.Empty
             };
 
-            var data = await _apiDataService.GetDataForOperandSinToken(operand);
+            List<object> data;
+            if (dataset?.Is_Dataset == "N")
+            {
+                // Dataset no formal - usar nueva función
+                data = await _apiDataService.GetNotFormalDataForOperandSinToken(operand);
+            }
+            else
+            {
+                // Dataset formal - usar función existente
+                var dynamicData = await _apiDataService.GetDataForOperandSinToken(operand);
+                data = dynamicData.Cast<object>().ToList();
+            }
             if (data == null || !data.Any())
                 return new VisualizationResponse { Type = "unknown", Values = new () };
 

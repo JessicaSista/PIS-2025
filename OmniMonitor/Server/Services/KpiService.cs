@@ -58,6 +58,9 @@ namespace OmniMonitor.Server.Services
 
         public async Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null)
         {
+
+
+
             if (request == null)
                 throw new ArgumentNullException(nameof(request));
 
@@ -70,15 +73,24 @@ namespace OmniMonitor.Server.Services
             if (request.DatasetId == null)
                 throw new ArgumentException("DatasetId is required.");
 
+
+
             switch (request.SourceModule.ToUpperInvariant())
             {
                 case "IM":
-                    await ValidateImKpiRequestAsync(request, username);
+
+                    var dataset = await _context.Set<DatasetIM>().FindAsync(request.DatasetId);
+                    if (dataset?.Is_Dataset == "S")
+                    {
+                        await ValidateImKpiRequestAsync(request, username);
+                    }
+
                     break;
 
                //default:
                //    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
+
             var newKpi = new Kpi
             {
                 Name = request.Name,
@@ -96,17 +108,30 @@ namespace OmniMonitor.Server.Services
                 Type = request.Type
             };
 
+
+
+
             _context.Kpi.Add(newKpi);
             await _context.SaveChangesAsync();
+
 
             return newKpi;
         }
 
         private async Task ValidateImKpiRequestAsync(KpiRequest request, string? username)
         {
+
+
+
+
+
             // 1. ExtraInfo required
             if (string.IsNullOrEmpty(request.ExtraInfo))
+            {
+
                 throw new ArgumentException("ExtraInfo is required for IM KPIs.");
+            }
+
 
             // 2. Parse dates (accept both dateFrom/dateTo and startDate/endDate)
             DateTime dateFrom, dateTo;
@@ -114,61 +139,104 @@ namespace OmniMonitor.Server.Services
             {
                 var extra = JsonSerializer.Deserialize<Dictionary<string, string>>(request.ExtraInfo);
                 if (extra == null)
+                {
+
                     throw new FormatException("ExtraInfo could not be parsed.");
+                }
 
                 if (extra.ContainsKey("dateFrom") && extra.ContainsKey("dateTo"))
                 {
+
                     dateFrom = DateTime.Parse(extra["dateFrom"], null, System.Globalization.DateTimeStyles.RoundtripKind);
                     dateTo = DateTime.Parse(extra["dateTo"], null, System.Globalization.DateTimeStyles.RoundtripKind);
+
                 }
                 else
                 {
+
                     throw new ArgumentException("ExtraInfo must contain dateFrom/dateTo or startDate/endDate.");
                 }
             }
             catch (Exception ex) when (ex is JsonException || ex is FormatException || ex is ArgumentException)
             {
+
                 throw new ArgumentException($"Invalid ExtraInfo date format: {ex.Message}", ex);
             }
 
             // 2.1 Validate ordering: dateFrom must be <= dateTo
             if (dateFrom > dateTo)
+            {
+
                 throw new ArgumentException("Invalid date range: 'dateFrom' must be earlier than or equal to 'dateTo'.");
+            }
+
 
             // 3. Validate dataset exists (assumes DatasetIM is a DbSet in your context)
             var dataset = await _context.Set<DatasetIM>().FindAsync(request.DatasetId);
             if (dataset == null)
+            {
+
                 throw new InvalidOperationException($"Dataset with ID {request.DatasetId} not found.");
+            }
+
+
+
 
             // 4. Validate source and devices
             var source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
             if (source == null)
+            {
+
                 throw new InvalidOperationException($"Source with ID {dataset.Id_Source} not found.");
+            }
+
+
 
             if (source.Devices == null || source.Devices.Count == 0)
+            {
+
                 throw new InvalidOperationException($"No devices found for source {dataset.Id_Source}.");
+            }
+
 
             // 5. Validate sensor presence
             bool sensorFound = false;
             foreach (var deviceSummary in source.Devices)
             {
+
                 var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
-                if (device?.Sensors == null) continue;
+                if (device?.Sensors == null) 
+                {
+
+                    continue;
+                }
+
+
                 if (device.Sensors.Any(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase)))
                 {
+
                     sensorFound = true;
                     break;
                 }
             }
 
             if (!sensorFound)
+            {
+
                 throw new InvalidOperationException($"Sensor '{dataset.SensorName}' not found in source {dataset.Id_Source}.");
+            }
+
 
             // 6. Validate metric supported for IM
             var metric = request.Metric?.ToLowerInvariant();
             var supportedMetrics = new[] { "lastvalue", "average", "min", "max" };
             if (!supportedMetrics.Any(m => string.Equals(m, metric, StringComparison.OrdinalIgnoreCase)))
+            {
+
                 throw new ArgumentException($"Unsupported metric '{request.Metric}' for IM KPIs.");
+            }
+
+
         }
 
         public async Task DeleteKpiAsync(int kpiId, string? username = null)
@@ -421,12 +489,40 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateImKpiAsync(Kpi kpi, string username)
         {
+
+
+            
             // Obtener dataset asociado al KPI
             var dataset = await _datasetService.GetDatasetIMByIdAsync(kpi.DatasetId, kpi.Username);
 
             if (dataset == null)
-                throw new Exception($"No se encontró el dataset con ID {kpi.DatasetId} para el KPI {kpi.Name}");
+            {
 
+                throw new Exception($"No se encontró el dataset con ID {kpi.DatasetId} para el KPI {kpi.Name}");
+            }
+
+
+
+            // Verificar si es dataset formal (S) o no formal (N)
+            if (dataset.Is_Dataset == "S")
+            {
+                // Dataset formal - usar lógica existente
+                return await CalculateImFormalKpiAsync(kpi, dataset, username);
+            }
+            else if (dataset.Is_Dataset == "N")
+            {
+                // Dataset no formal - usar nueva lógica
+                return await CalculateImNKpiAsync(kpi, dataset, username);
+            }
+            else
+            {
+
+                throw new ArgumentException($"Tipo de dataset IM no reconocido: {dataset.Is_Dataset}");
+            }
+        }
+
+        private async Task<KpiResponse> CalculateImFormalKpiAsync(Kpi kpi, DatasetIM dataset, string username)
+        {
             KpiResponse? response;
 
             switch (kpi.Metric?.ToLower())
@@ -448,10 +544,243 @@ namespace OmniMonitor.Server.Services
                     break;
 
                 default:
-                    throw new ArgumentException($"Métrica no soportada para IM: {kpi.Metric}");
+                    throw new ArgumentException($"Métrica no soportada para IM formal: {kpi.Metric}");
             }
 
             return response;
+        }
+
+        private async Task<KpiResponse> CalculateImNKpiAsync(Kpi kpi, DatasetIM dataset, string username)
+        {
+
+
+
+
+
+
+            // Lógica para IM no formales según Type (similar a AM/EM/UM)
+            if (kpi.Type == 1) // Devices
+            {
+                // Buscar devices relacionados al dataset
+                List<OmniMonitor.Shared.Dtos.DeviceReduced> devicesData = new List<OmniMonitor.Shared.Dtos.DeviceReduced>();
+                
+                if (dataset.DatasetDevices != null && dataset.DatasetDevices.Any())
+                {
+
+                    // Dataset tiene devices específicos
+                    foreach (var deviceRef in dataset.DatasetDevices)
+                    {
+
+                        var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                        if (device != null)
+                        {
+
+                            
+                            // Para filtros específicos de Groups o Sensors, crear DeviceReduced adaptado
+                            string groupsValue = null;
+                            string sensorsValue = null;
+                            
+                            if (kpi.Atributo?.Equals("Groups", StringComparison.OrdinalIgnoreCase) == true && device.Groups != null)
+                            {
+                                var valorBuscado = kpi.ExtraInfo;
+
+                                
+                                if (!string.IsNullOrWhiteSpace(valorBuscado) && device.Groups.Any(g => g.Name.Equals(valorBuscado, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    groupsValue = valorBuscado; // Solo el valor que coincide
+
+                                }
+                                else if (device.Groups.Any())
+                                {
+                                    groupsValue = device.Groups.First().Name; // Primer valor si no hay coincidencia
+
+                                }
+                            }
+                            else if (kpi.Atributo?.Equals("Sensors", StringComparison.OrdinalIgnoreCase) == true && device.Sensors != null)
+                            {
+                                var valorBuscado = kpi.ExtraInfo;
+
+                                
+                                if (!string.IsNullOrWhiteSpace(valorBuscado) && device.Sensors.Any(s => s.Name.Equals(valorBuscado, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    sensorsValue = valorBuscado; // Solo el valor que coincide
+
+                                }
+                                else if (device.Sensors.Any())
+                                {
+                                    sensorsValue = device.Sensors.First().Name; // Primer valor si no hay coincidencia
+
+                                }
+                            }
+                            else
+                            {
+                                // Comportamiento normal para otros atributos
+                                groupsValue = device.Groups != null ? string.Join(", ", device.Groups.Select(g => g.Name)) : null;
+                                sensorsValue = device.Sensors != null ? string.Join(", ", device.Sensors.Select(s => s.Name)) : null;
+
+                            }
+                            
+                            devicesData.Add(new OmniMonitor.Shared.Dtos.DeviceReduced
+                            {
+                                Name = device.Name,
+                                ConnectionString = device.ConnectionString,
+                                Groups = groupsValue,
+                                Sensors = sensorsValue
+                            });
+                            
+
+                        }
+                    }
+                }
+                
+
+
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, devicesData);
+            }
+            else if (kpi.Type == 2) // Sources
+            {
+                // Buscar sources relacionados al dataset
+                List<OmniMonitor.Shared.Dtos.SourceReduced> sourcesData = new List<OmniMonitor.Shared.Dtos.SourceReduced>();
+                
+                if (dataset.DatasetSources != null && dataset.DatasetSources.Any())
+                {
+
+                    // Dataset tiene sources específicos
+                    foreach (var sourceRef in dataset.DatasetSources)
+                    {
+
+                        var source = await _sondaIMService.GetSourceById(sourceRef.Id_source, username);
+                        if (source != null)
+                        {
+
+                            
+                            // Para filtros específicos de Devices o Sensors, crear SourceReduced adaptado
+                            string devicesValue = null;
+                            string sensorsValue = null;
+                            
+                            if (kpi.Atributo?.Equals("Devices", StringComparison.OrdinalIgnoreCase) == true && source.Devices != null)
+                            {
+                                var valorBuscado = kpi.ExtraInfo;
+
+                                
+                                if (!string.IsNullOrWhiteSpace(valorBuscado) && source.Devices.Any(d => d.Name.Equals(valorBuscado, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    devicesValue = valorBuscado; // Solo el valor que coincide
+
+                                }
+                                else if (source.Devices.Any())
+                                {
+                                    devicesValue = source.Devices.First().Name; // Primer valor si no hay coincidencia
+
+                                }
+                            }
+                            else if (kpi.Atributo?.Equals("Sensors", StringComparison.OrdinalIgnoreCase) == true && source.Sensors != null)
+                            {
+                                var valorBuscado = kpi.ExtraInfo;
+
+                                
+                                if (!string.IsNullOrWhiteSpace(valorBuscado) && source.Sensors.Any(s => s.Name.Equals(valorBuscado, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    sensorsValue = valorBuscado; // Solo el valor que coincide
+
+                                }
+                                else if (source.Sensors.Any())
+                                {
+                                    sensorsValue = source.Sensors.First().Name; // Primer valor si no hay coincidencia
+
+                                }
+                            }
+                            else
+                            {
+                                // Comportamiento normal para otros atributos
+                                devicesValue = source.Devices != null ? string.Join(", ", source.Devices.Select(d => d.Name)) : null;
+                                sensorsValue = source.Sensors != null ? string.Join(", ", source.Sensors.Select(s => s.Name)) : null;
+
+                            }
+                            
+                            sourcesData.Add(new OmniMonitor.Shared.Dtos.SourceReduced
+                            {
+                                Name = source.Name,
+                                Description = source.Description,
+                                Icon = source.Icon,
+                                Active = source.IsActive.ToString(),
+                                Devices = devicesValue,
+                                Sensors = sensorsValue
+                            });
+                            
+
+                        }
+                    }
+                }
+                
+
+
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, sourcesData);
+            }
+            else if (kpi.Type == 3) // Sensors
+            {
+                // Buscar sensors relacionados al dataset
+                List<OmniMonitor.Shared.Dtos.SensorReduced> sensorsData = new List<OmniMonitor.Shared.Dtos.SensorReduced>();
+                
+                if (dataset.DatasetSensors != null && dataset.DatasetSensors.Any())
+                {
+
+                    // Dataset tiene sensors específicos filtrados
+                    var sensorNames = dataset.DatasetSensors.Select(s => s.SensorName).ToHashSet();
+                    
+                    // Buscar estos sensores en los devices disponibles
+                    List<Device> devicesForSensors = new List<Device>();
+                    
+                    if (dataset.DatasetDevices != null && dataset.DatasetDevices.Any())
+                    {
+
+                        // Si hay devices específicos, buscar sensores en esos devices
+                        foreach (var deviceRef in dataset.DatasetDevices)
+                        {
+                            var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                            if (device != null) 
+                            {
+                                devicesForSensors.Add(device);
+
+                            }
+                        }
+                    }
+                    
+                    // Extraer sensores que coincidan con los nombres del dataset
+                    foreach (var device in devicesForSensors)
+                    {
+                        if (device.Sensors != null)
+                        {
+                            foreach (var sensor in device.Sensors)
+                            {
+                                if (sensorNames.Contains(sensor.Name))
+                                {
+
+                                    sensorsData.Add(new OmniMonitor.Shared.Dtos.SensorReduced
+                                    {
+                                        Name = sensor.Name,
+                                        Type = sensor.Type,
+                                        LastValue = sensor.LastValue
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                
+
+
+                return await _kpiAMService.CalculateAmKpiAsync(kpi, username, sensorsData);
+            }
+            
+            // Otros tipos o default
+
+            return new KpiResponse
+            {
+                Name = kpi.Name,
+                ActualColor = kpi.DefaultColor,
+                Value = "Tipo de KPI IM no formal no soportado"
+            };
         }
 
 
@@ -1670,7 +1999,195 @@ namespace OmniMonitor.Server.Services
                     break;
                 
                 case "IM":
-                    throw new NotSupportedException("El módulo IM no soporta este tipo de consulta.");
+
+                    
+                    var datasetIM = await _context.DatasetsIM
+                        .Include(d => d.DatasetDevices)
+                        .Include(d => d.DatasetSources)
+                        .Include(d => d.DatasetSensors)
+                        .FirstOrDefaultAsync(d => d.Id == datasetId);
+                    if (datasetIM == null)
+                    {
+
+                        throw new ArgumentException($"No se encontró un dataset IM con ID {datasetId}.");
+                    }
+                    
+
+
+                    if (choice == 1) // Devices
+                    {
+                        // Obtener devices filtrados o asociados al dataset
+                        List<OmniMonitor.Shared.Dtos.DeviceReduced> devicesData = new List<OmniMonitor.Shared.Dtos.DeviceReduced>();
+                        
+                        if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                        {
+
+                            // Dataset tiene devices específicos
+                            foreach (var deviceRef in datasetIM.DatasetDevices)
+                            {
+
+                                var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                                if (device != null)
+                                {
+
+                                    devicesData.Add(new OmniMonitor.Shared.Dtos.DeviceReduced
+                                    {
+                                        Name = device.Name,
+                                        ConnectionString = device.ConnectionString,
+                                        Groups = device.Groups != null ? string.Join(", ", device.Groups.Select(g => g.Name)) : null,
+                                        Sensors = device.Sensors != null ? string.Join(", ", device.Sensors.Select(s => s.Name)) : null
+                                    });
+                                }
+                                else
+                                {
+
+                                }
+                            }
+                        }
+                        
+                        
+
+
+                        
+                        // Si el campo solicitado es "Sensors" o "Groups", extraer elementos individuales directamente
+                        if (campo.Equals("Sensors", StringComparison.OrdinalIgnoreCase) || 
+                            campo.Equals("Groups", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var allItems = new List<string>();
+                            
+                            if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                            {
+                                // Extraer de devices específicos
+                                foreach (var deviceRef in datasetIM.DatasetDevices)
+                                {
+                                    var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                                    if (device != null)
+                                    {
+                                        if (campo.Equals("Sensors", StringComparison.OrdinalIgnoreCase) && device.Sensors != null)
+                                        {
+                                            foreach (var sensor in device.Sensors)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(sensor.Name))
+                                                    allItems.Add(sensor.Name);
+                                            }
+                                        }
+                                        else if (campo.Equals("Groups", StringComparison.OrdinalIgnoreCase) && device.Groups != null)
+                                        {
+                                            foreach (var group in device.Groups)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(group.Name))
+                                                    allItems.Add(group.Name);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            
+                            fieldValues = allItems.Distinct().OrderBy(v => v).ToList();
+                        }
+                        else
+                        {
+                            // Para otros campos, usar el método normal con DeviceReduced
+                            fieldValues = await _kpiAMService.GetFieldValuesAsync(devicesData, campo);
+                        }
+                    }
+                    else if (choice == 2) // Sources
+                    {
+                        // Si el campo solicitado es "Devices" o "Sensors", extraer elementos individuales directamente
+                        if (campo.Equals("Devices", StringComparison.OrdinalIgnoreCase) || 
+                            campo.Equals("Sensors", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var allItems = new List<string>();
+                            
+                            if (datasetIM.DatasetSources != null && datasetIM.DatasetSources.Any())
+                            {
+                                // Extraer de sources específicos
+                                foreach (var sourceRef in datasetIM.DatasetSources)
+                                {
+                                    var source = await _sondaIMService.GetSourceById(sourceRef.Id_source, username);
+                                    if (source != null)
+                                    {
+                                        if (campo.Equals("Devices", StringComparison.OrdinalIgnoreCase) && source.Devices != null)
+                                        {
+                                            foreach (var device in source.Devices)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(device.Name))
+                                                    allItems.Add(device.Name);
+                                            }
+                                        }
+                                        else if (campo.Equals("Sensors", StringComparison.OrdinalIgnoreCase) && source.Sensors != null)
+                                        {
+                                            foreach (var sensor in source.Sensors)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(sensor.Name))
+                                                    allItems.Add(sensor.Name);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            fieldValues = allItems.Distinct().OrderBy(v => v).ToList();
+                        }
+                        else
+                        {
+                            // Para otros campos, usar el método normal con SourceReduced
+                            List<OmniMonitor.Shared.Dtos.SourceReduced> sourcesData = new List<OmniMonitor.Shared.Dtos.SourceReduced>();
+                            
+                            if (datasetIM.DatasetSources != null && datasetIM.DatasetSources.Any())
+                            {
+                                // Dataset tiene sources específicas filtradas
+                                foreach (var sourceRef in datasetIM.DatasetSources)
+                                {
+                                    var source = await _sondaIMService.GetSourceById(sourceRef.Id_source, username);
+                                    if (source != null)
+                                    {
+                                        sourcesData.Add(new OmniMonitor.Shared.Dtos.SourceReduced
+                                        {
+                                            Name = source.Name,
+                                            Description = source.Description,
+                                            Icon = source.Icon,
+                                            Active = source.IsActive.ToString(),
+                                            Devices = source.Devices != null ? string.Join(", ", source.Devices.Select(d => d.Name)) : null,
+                                            Sensors = source.Sensors != null ? string.Join(", ", source.Sensors.Select(s => s.Name)) : null
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            fieldValues = await _kpiAMService.GetFieldValuesAsync(sourcesData, campo);
+                        }
+                    }
+                    else if (choice == 3) // Sensors
+                    {
+                        List<OmniMonitor.Shared.Dtos.SensorReduced> sensorsData = new List<OmniMonitor.Shared.Dtos.SensorReduced>();
+                        
+                        if (datasetIM.DatasetSensors != null && datasetIM.DatasetSensors.Any())
+                        {
+                            // Dataset tiene sensors específicos filtrados
+                            // Necesitamos buscar los sensors por nombre en todos los devices del dataset
+                            var sensorNames = datasetIM.DatasetSensors.Select(s => s.SensorName).ToHashSet();
+                            
+                            // Obtener devices para buscar sensores
+                            List<Device> devicesForSensors = new List<Device>();
+                            
+                            if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                            {
+                                // Si hay devices específicos, buscar sensores en esos devices
+                                foreach (var deviceRef in datasetIM.DatasetDevices)
+                                {
+                                    var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                                    if (device != null) devicesForSensors.Add(device);
+                                }
+                            }
+                            
+                        }
+                        
+                        
+                        fieldValues = await _kpiAMService.GetFieldValuesAsync(sensorsData, campo);
+                    }
+                    break;
 
                 default:
                     throw new ArgumentException($"Módulo '{modulo}' no soportado.");

@@ -7,6 +7,8 @@ public interface IApiDataService
 {
     Task<IEnumerable<dynamic>> GetDataForOperand(JoinOperand operand, string username);
     Task<IEnumerable<dynamic>> GetDataForOperandSinToken(JoinOperand operand);
+    Task<List<object>> GetNotFormalDataForOperand(JoinOperand operand, string username);
+    Task<List<object>> GetNotFormalDataForOperandSinToken(JoinOperand operand);
 }
 
 public class ApiDataService : IApiDataService
@@ -767,6 +769,160 @@ public class ApiDataService : IApiDataService
                 filtered.Add(obj);
         }
         return filtered;
+    }
+
+    public async Task<List<object>> GetNotFormalDataForOperand(JoinOperand operand, string username)
+    {
+        var result = new List<object>();
+        
+        if (operand.ModuleType != ModuleType.InsightMonitor)
+            return result;
+
+        // Buscar el dataset no formal
+        var datasetIM = await _context.Set<DatasetIM>()
+            .Include(d => d.DatasetDevices)
+            .Include(d => d.DatasetSources)
+            .Include(d => d.DatasetSensors)
+            .FirstOrDefaultAsync(d => d.Id == operand.DatasetId);
+
+        if (datasetIM == null || datasetIM.Is_Dataset != "N")
+            return result;
+
+        switch (operand.EntityName)
+        {
+            case EntityName.Device:
+                if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                {
+                    foreach (var deviceRef in datasetIM.DatasetDevices)
+                    {
+                        var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                        if (device != null)
+                        {
+                            result.Add(device);
+                        }
+                    }
+                }
+                break;
+
+            case EntityName.Source:
+                if (datasetIM.DatasetSources != null && datasetIM.DatasetSources.Any())
+                {
+                    foreach (var sourceRef in datasetIM.DatasetSources)
+                    {
+                        var source = await _sondaIMService.GetSourceById(sourceRef.Id_source, username);
+                        if (source != null)
+                        {
+                            result.Add(source);
+                        }
+                    }
+                }
+                break;
+
+            case EntityName.Sensor:
+                if (datasetIM.DatasetSensors != null && datasetIM.DatasetSensors.Any())
+                {
+                    var sensorNames = datasetIM.DatasetSensors.Select(s => s.SensorName).ToHashSet();
+                    
+                    // Buscar sensores en los devices del dataset
+                    if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                    {
+                        foreach (var deviceRef in datasetIM.DatasetDevices)
+                        {
+                            var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, username);
+                            if (device?.Sensors != null)
+                            {
+                                foreach (var sensor in device.Sensors)
+                                {
+                                    if (sensorNames.Contains(sensor.Name))
+                                    {
+                                        result.Add(sensor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+
+        return result;
+    }
+
+    public async Task<List<object>> GetNotFormalDataForOperandSinToken(JoinOperand operand)
+    {
+        var result = new List<object>();
+        
+        if (operand.ModuleType != ModuleType.InsightMonitor)
+            return result;
+
+        // Buscar el dataset no formal
+        var datasetIM = await _context.Set<DatasetIM>()
+            .Include(d => d.DatasetDevices)
+            .Include(d => d.DatasetSources)
+            .Include(d => d.DatasetSensors)
+            .FirstOrDefaultAsync(d => d.Id == operand.DatasetId);
+
+        if (datasetIM == null || datasetIM.Is_Dataset != "N")
+            return result;
+
+        switch (operand.EntityName)
+        {
+            case EntityName.Device:
+                if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                {
+                    foreach (var deviceRef in datasetIM.DatasetDevices)
+                    {
+                        var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, PublicUsername);
+                        if (device != null)
+                        {
+                            result.Add(device);
+                        }
+                    }
+                }
+                break;
+
+            case EntityName.Source:
+                if (datasetIM.DatasetSources != null && datasetIM.DatasetSources.Any())
+                {
+                    foreach (var sourceRef in datasetIM.DatasetSources)
+                    {
+                        var source = await _sondaIMService.GetSourceById(sourceRef.Id_source, PublicUsername);
+                        if (source != null)
+                        {
+                            result.Add(source);
+                        }
+                    }
+                }
+                break;
+
+            case EntityName.Sensor:
+                if (datasetIM.DatasetSensors != null && datasetIM.DatasetSensors.Any())
+                {
+                    var sensorNames = datasetIM.DatasetSensors.Select(s => s.SensorName).ToHashSet();
+                    
+                    // Buscar sensores en los devices del dataset
+                    if (datasetIM.DatasetDevices != null && datasetIM.DatasetDevices.Any())
+                    {
+                        foreach (var deviceRef in datasetIM.DatasetDevices)
+                        {
+                            var device = await _sondaIMService.GetDeviceById(deviceRef.Id_device, PublicUsername);
+                            if (device?.Sensors != null)
+                            {
+                                foreach (var sensor in device.Sensors)
+                                {
+                                    if (sensorNames.Contains(sensor.Name))
+                                    {
+                                        result.Add(sensor);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+        }
+
+        return result;
     }
 
     private static bool MatchesFilterStatic(object value, FilterCondition filter)
