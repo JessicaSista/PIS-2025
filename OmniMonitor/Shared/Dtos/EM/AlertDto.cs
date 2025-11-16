@@ -7,12 +7,12 @@ namespace OmniMonitor.Shared.Dtos.EM
         public int AlertId { get; set; }
         public string AlertName { get; set; } = string.Empty;
         public int SourceId { get; set; }
-    public EMLocationDto? Location { get; set; }
-    public List<EMLocationDto> LocationHistory { get; set; } = new();
+        public EMLocationDto? Location { get; set; }
+        public List<EMLocationDto> LocationHistory { get; set; } = new();
         public string SourceAddress { get; set; } = string.Empty;
         public string AlertState { get; set; } = string.Empty;
         public AlertCategoryDto? AlertCategory { get; set; }
-    public string AlertData { get; set; } = string.Empty;
+        public string AlertData { get; set; } = string.Empty;
         [JsonPropertyName("creationDate")]
         public DateTime CreatedAt { get; set; }
         [JsonPropertyName("lastModification")]
