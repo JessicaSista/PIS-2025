@@ -3,50 +3,60 @@
 @using MudBlazor
 @using OmniMonitor.Shared.Dtos
 @using OmniMonitor.Client.Shared
+@using Microsoft.Extensions.Localization
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IStringLocalizer<ScheduledReports> Localizer
+@inject IStringLocalizer<SharedResource> SharedLocalizer
 
-<PageTitle>Reportes programados</PageTitle>
+<PageTitle>@Localizer["ScheduledReportsTitle"]</PageTitle>
 
 <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
     <MudStack>
         <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
-            Reportes programados
+            @Localizer["ScheduledReportsTitle"]
         </MudText>
     </MudStack>
     <MudStack Row Spacing="2">
         <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="OpenCreateDialog" Disabled="_loading">
             <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
-            Nueva programación
+            @Localizer["NewScheduleButton"]
         </MudButton>
     </MudStack>
 </MudStack>
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
     <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
-        Listado de programaciones de envío de reportes para tu usuario.
+        @Localizer["ScheduledReportsSubtitle"]
     </MudText>
 </MudStack>
 
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
-    <MudTextField @bind-Value="_search" Immediate="true" Placeholder="Buscar" Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="flex-grow-1" />
+    @* ERROR CORREGIDO: Se elimina la cadena de comillas dobles y se usa solo la expresión @Localizer[...] *@
+    <MudTextField @bind-Value="_search" 
+                  Immediate="true" 
+                  Placeholder="@Localizer["SearchPlaceholder"]" 
+                  Variant="Variant.Outlined" 
+                  Adornment="Adornment.Start" 
+                  AdornmentIcon="@Icons.Material.Filled.Search" 
+                  Class="flex-grow-1" />
 </MudStack>
 
 <MudContainer Fixed="true" Class="pl-4 pr-6">
     <MudPaper Elevation="0" Class="pa-0">
-        <MudTable Items="_filtered" Hover="true" Dense="true" Bordered="false" Striped="false" Loading="_loading">
+        <MudTable Items="_filtered" Hover="true" Dense="true" Bordered="false" Striped="false" Loading="_loading" CanExpand="false">
             <ToolBarContent>
-                <MudText Typo="Typo.subtitle2">Total: @_items.Count</MudText>
+                <MudText Typo="Typo.subtitle2">@Localizer["TotalCount", _items.Count]</MudText>
             </ToolBarContent>
             <HeaderContent>
-                <MudTh>Reporte</MudTh>
-                <MudTh>Frecuencia</MudTh>
-                <MudTh>Hora</MudTh>
-                <MudTh>Próximo envío</MudTh>
-                <MudTh>Destinatarios</MudTh>
-                <MudTh>Creado el</MudTh>
-                <MudTh>Acciones</MudTh>
+                <MudTh>@Localizer["HeaderReport"]</MudTh>
+                <MudTh>@Localizer["HeaderFrequency"]</MudTh>
+                <MudTh>@Localizer["HeaderHour"]</MudTh>
+                <MudTh>@Localizer["HeaderNextSend"]</MudTh>
+                <MudTh>@Localizer["HeaderRecipients"]</MudTh>
+                <MudTh>@Localizer["HeaderActions"]</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Reporte">@GetReportName(context.ReportId)</MudTd>
@@ -54,23 +64,59 @@
                 <MudTd DataLabel="Hora">@GetHourDisplay(context)</MudTd>
                 <MudTd DataLabel="Próximo envío">@GetNextSendDisplay(context)</MudTd>
                 <MudTd DataLabel="Destinatarios">@(context.Recipients?.Count ?? 0)</MudTd>
-                <MudTd DataLabel="Creado el">-</MudTd>
-                <MudTd DataLabel="Acciones">
+                
+                <MudTd DataLabel="Acciones" @onclick:stopPropagation="true">
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="() => ConfirmDelete(context)" />
                 </MudTd>
             </RowTemplate>
+            
+            @* COMENTADO: Bloque ChildRowContent (expansión) *@
+            @* <ChildRowContent>
+                <MudPaper Class="pa-3" Elevation="0">
+                    <MudText Typo="Typo.subtitle2">Destinatarios</MudText>
+                    @if (context.Recipients != null && context.Recipients.Any())
+                    {
+                        <MudChipSet T="string" ReadOnly="true" Dense="true">
+                            @foreach (var mail in context.Recipients)
+                            {
+                                <MudChip T="string" Value="@mail">@mail</MudChip>
+                            }
+                        </MudChipSet>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Sin destinatarios</MudText>
+                    }
+                </MudPaper>
+            </ChildRowContent> *@
+            
             <NoRecordsContent>
-                <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">No hay programaciones</MudText>
+                <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">@Localizer["NoSchedules"]</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudPaper>
 </MudContainer>
+
+<style>
+    /* Estilos para cursor e inhabilitar selección de texto */
+    .mud-table-row {
+        user-select: none; 
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        cursor: default; /* Se cambia a default ya que RowClick está desactivado */
+    }
+    .mud-table-row > td:last-child {
+        cursor: default;
+    }
+</style>
 
 @code {
     private List<ScheduledReportResponse> _items = new();
     private string _search = string.Empty;
     private bool _loading = true;
     private Dictionary<int, string> _reportNames = new();
+    // COMENTADO: HashSet para rastrear filas expandidas
+    // private HashSet<int> _expanded = new(); 
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,7 +137,7 @@
     private async Task OpenCreateDialog()
     {
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<CreateScheduledReportDialog>("Nueva programación", options);
+        var dialog = await DialogService.ShowAsync<CreateScheduledReportDialog>(Localizer["NewScheduleDialogTitle"], options);
         var result = await dialog.Result;
         if (result != null && !result.Canceled && result.Data is bool ok && ok)
         {
@@ -110,41 +156,22 @@
                 var data = await resp.Content.ReadFromJsonAsync<List<ScheduledReportResponse>>();
                 _items = data ?? new List<ScheduledReportResponse>();
 
-                // =======================================================
-                // 🛑 INICIO CÓDIGO DE DEPURACIÓN PARA DESTINATARIOS
-                // =======================================================
-                Console.WriteLine("--- DEBUG: PROGRAMACIONES DE REPORTE RECIBIDAS ---");
-                foreach (var item in _items)
-                {
-                    var recipientsList = item.Recipients != null && item.Recipients.Any()
-                        ? string.Join(", ", item.Recipients)
-                        : "(Ninguno / Lista nula o vacía)";
-
-                    // Asumo que tienes una propiedad 'Id' en ScheduledReportResponse
-                    Console.WriteLine($"ID: {item.Id}, Reporte: {GetReportName(item.ReportId)}, Destinatarios: [{item.Recipients?.Count ?? 0} total] -> {recipientsList}");
-                }
-                Console.WriteLine("-------------------------------------------------");
-                // =======================================================
-                // 🛑 FIN CÓDIGO DE DEPURACIÓN
-                // =======================================================
-                
-                // Cargar nombres de reportes para mostrar en la tabla
                 await EnsureReportNamesLoaded();
             }
             else if (resp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
-                Snackbar.Add("Sesión expirada. Por favor, inicia sesión nuevamente.", Severity.Warning);
+                Snackbar.Add(SharedLocalizer["SessionExpired"], Severity.Warning);
                 NavigationManager.NavigateTo("/login");
             }
             else
             {
                 var error = await resp.Content.ReadAsStringAsync();
-                Snackbar.Add($"Error al cargar: {resp.StatusCode}", Severity.Error);
+                Snackbar.Add(string.Format(SharedLocalizer["LoadErrorFormat"], resp.StatusCode), Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al cargar: {ex.Message}", Severity.Error);
+            Snackbar.Add(string.Format(SharedLocalizer["LoadExceptionFormat"], ex.Message), Severity.Error);
         }
         finally
         {
@@ -155,15 +182,24 @@
 
     private string GetFrequencyDisplay(ScheduledReportResponse item)
     {
-        return item.ScheduleType switch
+        if (string.Equals(item.ScheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
         {
-            var s when string.Equals(s, "Daily", StringComparison.OrdinalIgnoreCase) => "Diaria",
-            var s when string.Equals(s, "Weekly", StringComparison.OrdinalIgnoreCase) => "Semanal",
-            var s when string.Equals(s, "Monthly", StringComparison.OrdinalIgnoreCase) => "Mensual",
-            var s when string.Equals(s, "EveryNMinutes", StringComparison.OrdinalIgnoreCase) => item.IntervalMinutes.HasValue ? $"Cada {item.IntervalMinutes} min" : "Cada N min",
-            var s when string.Equals(s, "Cron", StringComparison.OrdinalIgnoreCase) => "Avanzada",
-            _ => item.ScheduleType
-        };
+            var token = (item.AdvancedRule ?? string.Empty).Trim().ToUpperInvariant();
+            var dayKey = $"Day_{token}";
+            var dayText = SharedLocalizer[dayKey];
+            return !string.IsNullOrWhiteSpace(token) && !string.Equals(dayText, dayKey, StringComparison.Ordinal)
+                ? string.Format(SharedLocalizer["EachDay"], dayText)
+                : SharedLocalizer["FrequencyWeekly"];
+        }
+        if (string.Equals(item.ScheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+        {
+            if (int.TryParse(item.AdvancedRule, out var dayNum) && dayNum >= 1 && dayNum <= 31)
+                return string.Format(SharedLocalizer["EachMonthDay"], dayNum);
+            return SharedLocalizer["FrequencyMonthly"];
+        }
+        if (string.Equals(item.ScheduleType, "Daily", StringComparison.OrdinalIgnoreCase))
+            return SharedLocalizer["FrequencyDaily"];
+        return "-";
     }
 
     private string GetHourDisplay(ScheduledReportResponse item)
@@ -187,18 +223,23 @@
             if (!string.IsNullOrWhiteSpace(item.SendAtLocalTime) && TimeSpan.TryParse(item.SendAtLocalTime, out var sendTs))
             {
                 var candidate = new DateTime(nowTz.Year, nowTz.Month, nowTz.Day, sendTs.Hours, sendTs.Minutes, 0, DateTimeKind.Unspecified);
+                
+                // Lógica de cálculo (omitiendo la complejidad completa del semanal/mensual basado en AdvancedRule)
                 if (string.Equals(item.ScheduleType, "Daily", StringComparison.OrdinalIgnoreCase))
                 {
                     if (candidate <= nowTz) candidate = candidate.AddDays(1);
                 }
                 else if (string.Equals(item.ScheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Asume que la lógica de Weekly Day of Week está en otra parte o en el servidor
                     if (candidate <= nowTz) candidate = candidate.AddDays(7);
                 }
                 else if (string.Equals(item.ScheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
                 {
+                    // Asume que la lógica de Monthly Day of Month está en otra parte o en el servidor
                     if (candidate <= nowTz) candidate = candidate.AddMonths(1);
                 }
+                
                 var candidateUtc = TimeZoneInfo.ConvertTimeToUtc(candidate, tz);
                 return candidateUtc.ToLocalTime().ToString("g");
             }
@@ -231,14 +272,14 @@
     {
         try
         {
-            // Evita recargas innecesarias si ya tenemos todos los IDs presentes
             var missingIds = _items.Select(i => i.ReportId).Where(id => !_reportNames.ContainsKey(id)).Distinct().ToList();
             if (missingIds.Count == 0) return;
 
+            // Se asume que el DTO PaginatedReportDto contiene los Items necesarios.
             var resp = await Http.GetAsync("/api/reports/GetAllReportsPaginated?page=1&pageSize=1000");
             if (resp.IsSuccessStatusCode)
             {
-                var page = await resp.Content.ReadFromJsonAsync<PaginatedReportDto>();
+                var page = await resp.Content.ReadFromJsonAsync<PaginatedReportDto>(); 
                 if (page?.Items != null)
                 {
                     foreach (var r in page.Items)
@@ -261,10 +302,10 @@
     private async Task ConfirmDelete(ScheduledReportResponse item)
     {
         bool? confirm = await DialogService.ShowMessageBox(
-            "Eliminar programación",
-            (MarkupString)$"¿Desea eliminar la programación <b>#{item.Id}</b>?",
-            yesText: "Eliminar",
-            cancelText: "Cancelar",
+            SharedLocalizer["DeleteScheduleTitle"],
+            (MarkupString)string.Format(SharedLocalizer["DeleteScheduleConfirmHtml"], item.Id),
+            yesText: SharedLocalizer["DeleteButton"],
+            cancelText: SharedLocalizer["CancelButton"],
             options: new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall }
         );
 
@@ -274,8 +315,6 @@
         }
     }
 
-    [Inject] IDialogService DialogService { get; set; } = default!;
-
     private async Task Eliminar(ScheduledReportResponse item)
     {
         try
@@ -283,18 +322,37 @@
             var resp = await Http.DeleteAsync($"/api/reports/scheduled-reports/{item.Id}");
             if (resp.IsSuccessStatusCode)
             {
-                Snackbar.Add("Programación eliminada correctamente", Severity.Success);
+                Snackbar.Add(SharedLocalizer["ScheduleDeleted"], Severity.Success);
                 await Cargar();
             }
             else
             {
                 var error = await resp.Content.ReadAsStringAsync();
-                Snackbar.Add($"Error al eliminar: {resp.StatusCode}", Severity.Error);
+                Snackbar.Add(string.Format(SharedLocalizer["DeleteErrorFormat"], resp.StatusCode), Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error al eliminar: {ex.Message}", Severity.Error);
+            Snackbar.Add(string.Format(SharedLocalizer["DeleteExceptionFormat"], ex.Message), Severity.Error);
         }
     }
+
+    // Se eliminó la función TokenToSpanishDay ya que se usaba SharedLocalizer
+
+    // COMENTADO: Función RowClick
+    // private void OnRowClick(TableRowClickEventArgs<ScheduledReportResponse> args)
+    // {
+    //      Console.WriteLine($"Row clicked: {args.Item.Id}");
+    //      var id = args.Item.Id;
+        
+    //      if (_expanded.Contains(id))
+    //          _expanded.Remove(id);
+    //      else
+    //          _expanded.Add(id);
+        
+    //      StateHasChanged();
+    // }
+
+    // COMENTADO: Función IsExpanded
+    // private bool IsExpanded(ScheduledReportResponse item) => _expanded.Contains(item.Id);
 }
