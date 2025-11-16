@@ -159,4 +159,13 @@
   <data name="Editar" xml:space="preserve">
     <value>Editar</value>
   </data>
+  <data name="LoadData" xml:space="preserve">
+    <value>Cargar dato</value>
+  </data>
+  <data name="LoadingData" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
+  <data name="ErrorLoadingKpi" xml:space="preserve">
+    <value>No se pudo cargar el dato del KPI.</value>
+  </data>
 </root>

@@ -9,6 +9,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject OmniMonitor.Client.Services.ThemeService ThemeService
 
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
@@ -72,7 +73,10 @@
         <div class="d-flex align-center">
             <!-- Buscador -->
             <MudTextField Immediate="true"
-                          @bind-Value="_searchQuery"
+                          DebounceInterval="300"
+                          Value="_searchQuery"
+                          ValueChanged="@(EventCallback.Factory.Create<string>(this, OnSearchChanged))"
+                          ValueExpression="() => _searchQuery"
                           Placeholder="@GetSearchPlaceholder()"
                           Variant="Variant.Outlined"
                           Adornment="Adornment.Start"
@@ -91,7 +95,7 @@
                            Size="MudBlazor.Size.Small"
                            Class="@($"tab-toggle-btn right {(_activeTabIndex == 1 ? "active" : "")}")"
                            OnClick="@(() => SetActiveTab(1))">
-                    @Localizer["Gráficas"]
+                    @Localizer["Graficas"]
                 </MudButton>
             </div>
         </div>
@@ -113,34 +117,120 @@
             }
             *@
         }
-        else if (_kpis != null && _kpis.Any())
+        else if (_kpiCards.Any())
         {
-            @foreach (var kpi in _kpis
-                    .Where(v => string.IsNullOrWhiteSpace(_searchQuery) ||
-                    v.Name.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)))
+            @foreach (var card in _kpiCards)
             {
-                <MudItem xs="12" sm="6" md="3" lg="3" @key="kpi" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
+                <MudItem xs="12" sm="6" md="3" lg="3" @key="@($"kpi-card-{card.Info.Id}")" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
                     <div style="position: relative;">
-                        <!-- KPI Card -->
-                        <KpiCard Kpi="kpi" />
-                        <!-- Menu -->
-                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                                 AnchorOrigin="Origin.TopRight"
+                        @if (card.Data != null)
+                        {
+                            <KpiCard Kpi="card.Data" />
+                        }
+                        else
+                        {
+                            var previewKpi = new KpiResponse
+                            {
+                                Id = card.Info.Id,
+                                Name = card.Info.Name,
+                                Description = card.Info.Description,
+                                ActualColor = card.Info.DefaultColor ?? "#00FFE7",
+                                Unit = "x",
+                                Value = null,
+                                DatasetName = card.Info.DatasetName
+                            };
+                            <KpiCard Kpi="previewKpi">
+                                <ValueTemplate>
+                                    <div style="display:flex; align-items:center; min-height:48px;">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Disabled="@card.IsLoading"
+                                                   OnClick="@(() => LoadKpiDataAsync(card))"
+                                                   EndIcon="@Icons.Material.Filled.CloudDownload"
+                                                   Style="@GetKpiLoadButtonStyle(card)">
+                                            @if (card.IsLoading)
+                                            {
+                                                <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
+                                                <MudText Class="ms-2">@Localizer["LoadingData"]</MudText>
+                                            }
+                                            else
+                                            {
+                                                @Localizer["LoadData"]
+                                            }
+                                        </MudButton>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(card.Error))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="MudBlazor.Color.Error">
+                                            @card.Error
+                                        </MudText>
+                                    }
+                                </ValueTemplate>
+                            </KpiCard>
+                        }
+
+                        <MudMenu AnchorOrigin="Origin.TopRight"
                                  TransformOrigin="Origin.TopRight"
                                  Class="position-absolute"
                                  Style="position:absolute; top:8px; right:8px; z-index:10; background-color:transparent;">
 
-                            <MudMenuItem OnClick="@(() => EditarKpi(kpi))">
-                                @Localizer["Editar"]
-                            </MudMenuItem>
+                            <ActivatorContent>
+                                <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                                               Style="@GetKpiMenuIconStyle(card)" />
+                            </ActivatorContent>
 
-                            <MudMenuItem OnClick="@(() => ConfirmEliminarKpi(kpi))">
-                                @Localizer["Eliminar"]
-                            </MudMenuItem>
+                            <ChildContent>
+                                <MudMenuItem OnClick="@(() => EditarKpi(card))">
+                                    <MudText Typo="Typo.body2">@Localizer["Editar"]</MudText>
+                                </MudMenuItem>
+
+                                <MudMenuItem OnClick="@(() => ConfirmEliminarKpi(card))">
+                                    <MudText Typo="Typo.body2" Color="MudBlazor.Color.Error">@Localizer["Eliminar"]</MudText>
+                                </MudMenuItem>
+                            </ChildContent>
                         </MudMenu>
                     </div>
                 </MudItem>
+            }
 
+            @if (_kpiTotalPages > 1)
+            {
+                <MudItem lg="12" md="12" xs="12" Class="@(_activeTabIndex != 0 ? "d-none" : "")">
+                    <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-4 mb-2">
+                        <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
+                                       Disabled="@(!_kpiHasPreviousPage)"
+                                       OnClick="@(() => GoToKpiPage(1))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                       Disabled="@(!_kpiHasPreviousPage)"
+                                       OnClick="@(() => GoToKpiPage(_kpiCurrentPage - 1))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+
+                        <MudText Typo="Typo.body2" Class="mx-3">
+                            @Localizer["Página"] @_kpiCurrentPage @Localizer["de"] @_kpiTotalPages
+                        </MudText>
+
+                        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                       Disabled="@(!_kpiHasNextPage)"
+                                       OnClick="@(() => GoToKpiPage(_kpiCurrentPage + 1))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+
+                        <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
+                                       Disabled="@(!_kpiHasNextPage)"
+                                       OnClick="@(() => GoToKpiPage(_kpiTotalPages))"
+                                       Size="MudBlazor.Size.Small"
+                                       Color="MudBlazor.Color.Primary" />
+                    </MudStack>
+
+                    <MudStack Row Justify="Justify.Center" Class="mb-4">
+                        <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                            @Localizer["Mostrando"] @_kpiCards.Count @Localizer["de"] @_kpiTotalCount
+                        </MudText>
+                    </MudStack>
+                </MudItem>
             }
         }
         else
@@ -177,7 +267,7 @@
                     <MudPaper Class="pa-4" Style="background-color: var(--card);">
                         <MudCard Elevation="0" Style="background-color: transparent; height: 450px">
 
-                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" visualization=@visualization VisualizationId="@visualization.IdVisualizacion" ShowIcon="true" ShowLastUpdatedInfo="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
+                            <ChartViewer OnDeleted="@(id => OnVisualizationDeleted(id))" visualization=@visualization VisualizationId="@visualization.IdVisualizacion" ShowIcon="true" ShowDatasetsInfo="true" retrieveOnInitialized="false" showCustomizationIcon="true" />
 
                         </MudCard>
                     </MudPaper>
@@ -190,13 +280,13 @@
                     <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
                         <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
                                        Disabled="@(!_hasPreviousPage)"
-                                       OnClick="@(() => GoToPage(1))"
+                                       OnClick="@(() => GoToChartPage(1))"
                                        Size="MudBlazor.Size.Small"
                                        Color="MudBlazor.Color.Primary" />
 
                         <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
                                        Disabled="@(!_hasPreviousPage)"
-                                       OnClick="@(() => GoToPage(_currentPage - 1))"
+                                       OnClick="@(() => GoToChartPage(_currentPage - 1))"
                                        Size="MudBlazor.Size.Small"
                                        Color="MudBlazor.Color.Primary" />
 
@@ -206,13 +296,13 @@
 
                         <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
                                        Disabled="@(!_hasNextPage)"
-                                       OnClick="@(() => GoToPage(_currentPage + 1))"
+                                       OnClick="@(() => GoToChartPage(_currentPage + 1))"
                                        Size="MudBlazor.Size.Small"
                                        Color="MudBlazor.Color.Primary" />
 
                         <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
                                        Disabled="@(!_hasNextPage)"
-                                       OnClick="@(() => GoToPage(_totalPages))"
+                                       OnClick="@(() => GoToChartPage(_totalPages))"
                                        Size="MudBlazor.Size.Small"
                                        Color="MudBlazor.Color.Primary" />
                     </MudStack>
@@ -242,11 +332,26 @@
 
 @code {
     private string _searchQuery = "";
+    private class KpiCardModel
+    {
+        public KpiSimpleDto Info { get; set; } = new();
+        public KpiResponse? Data { get; set; }
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
+    }
+
     private List<Visualizacion> _charts = new();
-    private List<KpiResponse> _kpis = new();
+    private List<KpiCardModel> _kpiCards = new();
     private bool _isLoadingKpis = false;
     private bool _isLoadingCharts = false;
     private int _activeTabIndex = 1;
+
+    private int _kpiCurrentPage = 1;
+    private int _kpiPageSize = 8;
+    private int _kpiTotalPages = 0;
+    private int _kpiTotalCount = 0;
+    private bool _kpiHasPreviousPage = false;
+    private bool _kpiHasNextPage = false;
 
     private int _currentPage = 1;
     private int _pageSize = 9;
@@ -257,6 +362,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Restaurar pestaña activa desde local storage (0 = KPIs, 1 = Gráficas)
+        try
+        {
+            var stored = await LocalStorage.GetItemAsync<int?>("visualizations_active_tab");
+            if (stored.HasValue && (stored.Value == 0 || stored.Value == 1))
+            {
+                _activeTabIndex = stored.Value;
+            }
+        }
+        catch
+        {
+            _activeTabIndex = 1;
+        }
+
         _isLoadingKpis = _isLoadingCharts = true;
         await LoadAllAsync();
     }
@@ -264,16 +383,25 @@
     private void SetActiveTab(int index)
     {
         _activeTabIndex = index;
+        // Persistir selección de pestaña
+        _ = LocalStorage.SetItemAsync("visualizations_active_tab", _activeTabIndex);
+        if (_activeTabIndex == 0 && !_kpiCards.Any() && !_isLoadingKpis)
+        {
+            _ = LoadKpisPage(true);
+        }
         StateHasChanged();
 
     }
+
+    private const string KpiIconLightColor = "#f5f5f5";
+    private const string KpiIconDarkColor = "#111111";
 
     private async Task LoadAllAsync()
     {
         try
         {
             _isLoadingKpis = _isLoadingCharts = true;
-            await Task.WhenAll(CargarKpisAsync(), CargarChartsAsync());
+            await Task.WhenAll(LoadKpisPage(true), CargarChartsAsync());
         }
         finally
         {
@@ -282,27 +410,165 @@
         }
     }
 
-    private async Task CargarKpisAsync()
+    private string GetKpiLoadButtonStyle(KpiCardModel card)
+    {
+        // Usar el mismo color base que pinta la card: ActualColor si hay datos, DefaultColor si está en preview
+        var rawColor = card.Data?.ActualColor ?? card.Info.DefaultColor ?? "#00FFE7";
+        var baseColor = NormalizeHex(rawColor);
+
+        string bg;
+        string fg;
+
+        if (IsNearWhiteHex(baseColor))
+        {
+            // Fondo casi blanco → botón gris suave y texto oscuro fijo
+            bg = "rgba(0,0,0,0.08)";
+            fg = "#111111";
+        }
+        else
+        {
+            // Aclarar el color base mezclándolo manualmente con blanco
+            var (lr, lg, lb) = LightenColor(baseColor, 0.4);
+            bg = $"rgb({lr},{lg},{lb})";
+
+            // Calcular luminancia del color aclarado para decidir color de texto
+            var dark = IsDarkFromRgb(lr, lg, lb);
+            fg = dark ? "#ffffff" : "#111111";
+        }
+
+        return $"background-color:{bg}; color:{fg};";
+    }
+
+    private static string NormalizeHex(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return "#00FFE7";
+        if (!hex.StartsWith("#")) hex = "#" + hex;
+        if (hex.Length == 4)
+        {
+            hex = "#" + string.Concat(hex.AsSpan(1).ToString().Select(c => $"{c}{c}"));
+        }
+        return hex;
+    }
+
+    private static bool IsDarkHex(string hex)
     {
         try
         {
-            _isLoadingKpis = true;
-            var url = "api/KPI/kpis";
+            hex = NormalizeHex(hex);
+            int r = Convert.ToInt32(hex.Substring(1, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(3, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(5, 2), 16);
+            double luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+            return luminance < 128;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
-            var response = await Http.GetAsync(url);
+    private static bool IsNearWhiteHex(string hex)
+    {
+        try
+        {
+            hex = NormalizeHex(hex);
+            int r = Convert.ToInt32(hex.Substring(1, 2), 16);
+            int g = Convert.ToInt32(hex.Substring(3, 2), 16);
+            int b = Convert.ToInt32(hex.Substring(5, 2), 16);
+            return r > 230 && g > 230 && b > 230;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static (int r, int g, int b) LightenColor(string hex, double factor)
+    {
+        hex = NormalizeHex(hex);
+        int r = Convert.ToInt32(hex.Substring(1, 2), 16);
+        int g = Convert.ToInt32(hex.Substring(3, 2), 16);
+        int b = Convert.ToInt32(hex.Substring(5, 2), 16);
+
+        int lr = (int)Math.Round(r + (255 - r) * factor);
+        int lg = (int)Math.Round(g + (255 - g) * factor);
+        int lb = (int)Math.Round(b + (255 - b) * factor);
+
+        lr = Math.Clamp(lr, 0, 255);
+        lg = Math.Clamp(lg, 0, 255);
+        lb = Math.Clamp(lb, 0, 255);
+
+        return (lr, lg, lb);
+    }
+
+    private static bool IsDarkFromRgb(int r, int g, int b)
+    {
+        double luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+        return luminance < 140;
+    }
+
+    private string GetKpiMenuIconStyle(KpiCardModel card)
+    {
+        // Usar el mismo color que se aplica al fondo de la card:
+        // - Si ya se cargaron datos, usamos ActualColor del KPI.
+        // - Si todavía está en modo "preview", usamos el DefaultColor.
+        var rawColor = card.Data?.ActualColor ?? card.Info.DefaultColor ?? "#00FFE7";
+        var baseColor = NormalizeHex(rawColor);
+        var isDarkBg = IsDarkHex(baseColor);
+
+        // Si el color del KPI es oscuro -> icono claro; si el color es claro -> icono oscuro.
+        string color = isDarkBg ? KpiIconLightColor : KpiIconDarkColor;
+
+        return $"color:{color};";
+    }
+
+    private async Task LoadKpisPage(bool resetPage = false)
+    {
+        if (resetPage)
+        {
+            _kpiCurrentPage = 1;
+        }
+
+        try
+        {
+            _isLoadingKpis = true;
+            var queryParam = string.IsNullOrWhiteSpace(_searchQuery)
+                ? string.Empty
+                : $"&query={Uri.EscapeDataString(_searchQuery)}";
+
+            var response = await Http.GetAsync($"api/Kpi/GetAllKpiDtoPaginated?page={_kpiCurrentPage}&pageSize={_kpiPageSize}{queryParam}");
             if (response.IsSuccessStatusCode)
             {
-                var kpisFromApi = await response.Content.ReadFromJsonAsync<List<KpiResponse>>();
-                _kpis = kpisFromApi ?? new();
+                var payload = await response.Content.ReadFromJsonAsync<KpiSimplePaginatedResponse>();
+                if (payload != null)
+                {
+                    if (payload.TotalPages > 0 && _kpiCurrentPage > payload.TotalPages)
+                    {
+                        _kpiCurrentPage = payload.TotalPages;
+                        await LoadKpisPage();
+                        return;
+                    }
+
+                    _kpiCards = payload.Items.Select(item => new KpiCardModel { Info = item }).ToList();
+                    _kpiTotalPages = payload.TotalPages;
+                    _kpiTotalCount = payload.TotalCount;
+                    _kpiHasPreviousPage = payload.HasPreviousPage;
+                    _kpiHasNextPage = payload.HasNextPage;
+                    _kpiCurrentPage = payload.Page;
+                }
+                else
+                {
+                    ResetKpiListing();
+                }
             }
             else
             {
-                _kpis = new();
+                ResetKpiListing();
             }
         }
-        catch (Exception ex)
+        catch
         {
-            _kpis = new();
+            ResetKpiListing();
         }
         finally
         {
@@ -352,7 +618,7 @@
             if (type == 1)
                 await CargarChartsAsync();
             else if (type == 2)
-                await CargarKpisAsync();
+                await LoadKpisPage();
 
             StateHasChanged();
         }
@@ -365,7 +631,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_kpis.Count > 0)
+        if (_kpiCards.Any())
         {
             await JS.InvokeVoidAsync("equalizeCardHeights");
         }
@@ -415,7 +681,7 @@
         // Do not clean or override the URL here. The dialog handles navigation/cleanup on Submit/Cancel.
         await dialogRef.Result;
 
-        await CargarKpisAsync();
+        await LoadKpisPage();
         StateHasChanged();
     }
 
@@ -441,17 +707,80 @@
         return dict.TryGetValue(key, out var v) ? v : null;
     }
 
-    private async Task EditarKpi(KpiResponse kpi)
+    private async Task OnSearchChanged(string value)
     {
+        _searchQuery = value;
+        await LoadKpisPage(resetPage: true);
+        StateHasChanged();
+    }
+
+    private async Task LoadKpiDataAsync(KpiCardModel card)
+    {
+        if (card == null || card.IsLoading) return;
+
+        card.IsLoading = true;
+        card.Error = null;
+        try
+        {
+            var response = await Http.GetAsync($"api/KPI/{card.Info.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                card.Data = await response.Content.ReadFromJsonAsync<KpiResponse>();
+            }
+            else
+            {
+                card.Error = Localizer["ErrorLoadingKpi"];
+            }
+        }
+        catch
+        {
+            card.Error = Localizer["ErrorLoadingKpi"];
+        }
+        finally
+        {
+            card.IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetKpiListing()
+    {
+        _kpiCards = new();
+        _kpiTotalPages = 0;
+        _kpiTotalCount = 0;
+        _kpiHasPreviousPage = false;
+        _kpiHasNextPage = false;
+    }
+
+    private async Task GoToKpiPage(int page)
+    {
+        if (page < 1 || (_kpiTotalPages > 0 && page > _kpiTotalPages)) return;
+        _kpiCurrentPage = page;
+        await LoadKpisPage();
+    }
+
+    private async Task EditarKpi(KpiCardModel card)
+    {
+        if (card == null) return;
+
+        if (card.Data == null)
+        {
+            await LoadKpiDataAsync(card);
+            if (card.Data == null)
+            {
+                Snackbar.Add(Localizer["ErrorLoadingKpi"], Severity.Error);
+                return;
+            }
+        }
 
         var parameters = new DialogParameters
         {
             ["ExistingKpi"] = new KpiResponse
             {
-                Id = kpi.Id,
-                Name = kpi.Name,
-                Description = kpi.Description,
-                ActualColor = kpi.ActualColor
+                Id = card.Data.Id,
+                Name = card.Data.Name,
+                Description = card.Data.Description,
+                ActualColor = card.Data.ActualColor
             }
         };
 
@@ -467,23 +796,22 @@
 
         var result = await dialogRef.Result;
 
-
         if (!result.Canceled)
         {
-            await CargarKpisAsync();
+            card.Data = null;
+            await LoadKpiDataAsync(card);
             StateHasChanged();
         }
-
     }
 
-    private async Task ConfirmEliminarKpi(KpiResponse kpi)
+    private async Task ConfirmEliminarKpi(KpiCardModel card)
     {
-        if (kpi is null) return;
+        if (card is null) return;
 
         var titulo = Localizer["Confirmación"];
         var mensaje = (MarkupString)string.Format(
             Localizer["PreguntaEliminar1"],
-            $"<b>{kpi.Name}</b>"
+            $"<b>{card.Data?.Name ?? card.Info.Name}</b>"
         );
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.ExtraSmall };
@@ -499,9 +827,9 @@
         if (result != true)
             return;
 
-        await EliminarKpiAsync(kpi.Id);
+        await EliminarKpiAsync(card.Info.Id);
 
-        StateHasChanged();
+        await LoadKpisPage();
     }
 
     private async Task EliminarKpiAsync(int kpiId)
@@ -515,7 +843,7 @@
 
             if (response.IsSuccessStatusCode)
             {
-                await CargarKpisAsync();
+                await LoadKpisPage();
                 Snackbar.Add(Localizer["KpiDeletedSuccess"], Severity.Success);
             }
             else if (response.StatusCode == HttpStatusCode.Forbidden)
@@ -525,7 +853,7 @@
             else if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 Snackbar.Add(Localizer["KpiNotFound"], Severity.Warning);
-                await CargarKpisAsync();
+                await LoadKpisPage();
             }
             else if (response.StatusCode == HttpStatusCode.BadRequest)
             {
@@ -554,7 +882,7 @@
         await CargarChartsAsync();
     }
 
-    private async Task GoToPage(int page)
+    private async Task GoToChartPage(int page)
     {
         if (page < 1 || page > _totalPages) return;
         _currentPage = page;

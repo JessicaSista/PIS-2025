@@ -246,7 +246,6 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(500)]
         public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetIMRequest request)
         {
-            Console.WriteLine("dsadas");
             try
             {
                 var username = User.Identity?.Name;

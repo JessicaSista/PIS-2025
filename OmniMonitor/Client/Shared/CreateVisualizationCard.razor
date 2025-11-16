@@ -5,6 +5,7 @@
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
 @using System.Globalization
+@using System.Net
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient Http
@@ -367,7 +368,16 @@
             if (!response.IsSuccessStatusCode)
             {
                 System.String error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    (error.Contains("visualización", StringComparison.OrdinalIgnoreCase) ||
+                     error.Contains("visualizacion", StringComparison.OrdinalIgnoreCase)))
+                {
+                    Snackbar.Add(Localizer["VisualizationNameDuplicate"], Severity.Error);
+                }
+                else
+                {
+                    Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
+                }
             }
             else
             {

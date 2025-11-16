@@ -594,8 +594,9 @@
                     {
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
-                        Descripcion = d.Description ?? Localizer["NoDescription"],
-                        Module = ModuleInsightMonitor
+                        Descripcion = d.Description ?? "Sin descripción",
+                        Module = ModuleInsightMonitor,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else
@@ -618,8 +619,9 @@
                     {
                         Id = d.Id_Dataset,
                         Nombre = d.Nombre ?? string.Empty,
-                        Descripcion = d.Descripcion ?? Localizer["NoDescription"],
-                        Module = ModuleAssetManager
+                        Descripcion = d.Descripcion ?? "Sin descripción",
+                        Module = ModuleAssetManager,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else
@@ -642,8 +644,9 @@
                     {
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
-                        Descripcion = d.Description ?? Localizer["NoDescription"],
-                        Module = ModuleUrbanMonitor
+                        Descripcion = d.Description ?? "Sin descripción",
+                        Module = ModuleUrbanMonitor,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else
@@ -666,8 +669,9 @@
                     {
                         Id = d.Id,
                         Nombre = d.Name ?? string.Empty,
-                        Descripcion = d.Description ?? Localizer["NoDescription"],
-                        Module = ModuleEventManager
+                        Descripcion = d.Description ?? "Sin descripción",
+                        Module = ModuleEventManager,
+                        ContentType = d.ContentType
                     }) ?? new List<DatasetDto>());
                 }
                 else

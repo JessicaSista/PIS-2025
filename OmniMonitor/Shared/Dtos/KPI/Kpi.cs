@@ -22,6 +22,9 @@ namespace OmniMonitor.Shared.Dtos
         [JsonPropertyName("datasetId")]
         public int DatasetId { get; set; }
 
+        // Navigation property to Datasets
+        public virtual Datasets? Dataset { get; set; }
+
         [JsonPropertyName("unit")]
         public string? Unit { get; set; }
 

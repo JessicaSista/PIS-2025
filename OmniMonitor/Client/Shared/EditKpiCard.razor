@@ -63,6 +63,9 @@
     private string _name = string.Empty;
     private string _description = string.Empty;
     private string _actualColor = "#FFFFFF";
+    private string _initialName = string.Empty;
+    private string _initialDescription = string.Empty;
+    private string _initialColor = "#FFFFFF";
     private bool _isSubmitting = false;
     private string? _serverError;
 
@@ -75,13 +78,26 @@
         _actualColor = string.IsNullOrWhiteSpace(ExistingKpi.ActualColor)
             ? "#FFFFFF"
             : ExistingKpi.ActualColor;
+        _initialName = _name;
+        _initialDescription = _description;
+        _initialColor = _actualColor;
     }
 
-    private bool IsFormValid => !string.IsNullOrWhiteSpace(_name);
+    private bool HasChanges =>
+        !string.Equals(_name, _initialName, StringComparison.Ordinal) ||
+        !string.Equals(_description ?? string.Empty, _initialDescription ?? string.Empty, StringComparison.Ordinal) ||
+        !string.Equals(_actualColor, _initialColor, StringComparison.Ordinal);
+
+    private bool IsFormValid => !string.IsNullOrWhiteSpace(_name) && HasChanges;
 
     private async Task Submit()
     {
         _serverError = null;
+        if (!HasChanges)
+        {
+            Snackbar.Add(Localizer["NoChanges"], Severity.Info);
+            return;
+        }
         _isSubmitting = true;
 
         var request = new
@@ -104,7 +120,16 @@
             else
             {
                 var err = await response.Content.ReadAsStringAsync();
-                _serverError = err;
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    err.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
+                    err.Contains("nombre", StringComparison.OrdinalIgnoreCase))
+                {
+                    _serverError = Localizer["KpiNameDuplicate"];
+                }
+                else
+                {
+                    _serverError = err;
+                }
                 Snackbar.Add(_serverError, Severity.Error);
             }
         }
