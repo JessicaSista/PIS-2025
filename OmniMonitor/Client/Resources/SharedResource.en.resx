@@ -168,4 +168,89 @@
   <data name="datasets" xml:space="preserve">
     <value>datasets</value>
   </data>
+  <data name="ScheduledReportsTitle" xml:space="preserve">
+    <value>Scheduled Reports</value>
+  </data>
+  <data name="SessionExpired" xml:space="preserve">
+    <value>Session expired. Please log in again.</value>
+  </data>
+  <data name="LoadErrorFormat" xml:space="preserve">
+    <value>Load error: {0}</value>
+  </data>
+  <data name="LoadExceptionFormat" xml:space="preserve">
+    <value>Load error: {0}</value>
+  </data>
+  <data name="DeleteScheduleTitle" xml:space="preserve">
+    <value>Delete schedule</value>
+  </data>
+  <data name="DeleteScheduleConfirmHtml" xml:space="preserve">
+    <value>Do you want to delete schedule &lt;b&gt;#{0}&lt;/b&gt;?</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ScheduleDeleted" xml:space="preserve">
+    <value>Schedule deleted successfully</value>
+  </data>
+  <data name="DeleteErrorFormat" xml:space="preserve">
+    <value>Delete error: {0}</value>
+  </data>
+  <data name="DeleteExceptionFormat" xml:space="preserve">
+    <value>Delete error: {0}</value>
+  </data>
+  <data name="FrequencyDaily" xml:space="preserve">
+    <value>Daily</value>
+  </data>
+  <data name="FrequencyWeekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+  <data name="FrequencyMonthly" xml:space="preserve">
+    <value>Monthly</value>
+  </data>
+  <data name="EachDay" xml:space="preserve">
+    <value>Every {0}</value>
+  </data>
+  <data name="EachMonthDay" xml:space="preserve">
+    <value>Every day {0}</value>
+  </data>
+  <data name="Day_MON" xml:space="preserve">
+    <value>Monday</value>
+  </data>
+  <data name="Day_TUE" xml:space="preserve">
+    <value>Tuesday</value>
+  </data>
+  <data name="Day_WED" xml:space="preserve">
+    <value>Wednesday</value>
+  </data>
+  <data name="Day_THU" xml:space="preserve">
+    <value>Thursday</value>
+  </data>
+  <data name="Day_FRI" xml:space="preserve">
+    <value>Friday</value>
+  </data>
+  <data name="Day_SAT" xml:space="preserve">
+    <value>Saturday</value>
+  </data>
+  <data name="Day_SUN" xml:space="preserve">
+    <value>Sunday</value>
+  </data>
+  <data name="ErrorLoadingReportsFormat" xml:space="preserve">
+    <value>Error loading reports: {0}</value>
+  </data>
+  <data name="ErrorLoadingReportsExceptionFormat" xml:space="preserve">
+    <value>Error loading reports: {0}</value>
+  </data>
+  <data name="NewScheduleDialogTitle" xml:space="preserve">
+    <value>New Schedule</value>
+  </data>
+  <data name="WeekdayShort_MON" xml:space="preserve"><value>Mon</value></data>
+  <data name="WeekdayShort_TUE" xml:space="preserve"><value>Tue</value></data>
+  <data name="WeekdayShort_WED" xml:space="preserve"><value>Wed</value></data>
+  <data name="WeekdayShort_THU" xml:space="preserve"><value>Thu</value></data>
+  <data name="WeekdayShort_FRI" xml:space="preserve"><value>Fri</value></data>
+  <data name="WeekdayShort_SAT" xml:space="preserve"><value>Sat</value></data>
+  <data name="WeekdayShort_SUN" xml:space="preserve"><value>Sun</value></data>
 </root>
