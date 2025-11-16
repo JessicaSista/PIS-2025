@@ -198,9 +198,9 @@
         { "Stock", new List<string> { "Name", "Quantity", "Provider", "Location", "Sku", "Minimum", "Bundle", "Supervisor", "UpdatedQuantity" } },
         { "Asset", new List<string> { "Name", "CreatedAt", "ExternalId", "Code", "Address", "Reference", "LifeTimeToDate", "TypeDto", "BundleDto", "BrandDto", "StateDto", "ModelDto", "ResponsibleDto", "ProviderDto", "Device", "DeliveredTo" } },
 
-        { "Alert", new List<string> { "AlertState", "CreatedAt" } },
-        { "EventEM", new List<string> { "Origin", "CreationDate", "State" } },
-        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
+        { "Alert", new List<string> { "AlertName", "SourceId", "Location", "SourceAddress", "AlertState", "AlertCategory", "AlertData", "CreatedAt", "ModifiedAt", "DeviceType", "StreamUrl", "FileExtension", } },
+        { "EventEM", new List<string> { "Name", "Origin", "CreationDate", "LastModification", "SourceType", "State", "Address", "Location", } },
+        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "TakenByName", "TakenByLastName", "EventDateTime",  "CreatedAt", "LastModification", "WorkZoneId", "WorkZoneName", "EventId", "EventName", "ExtensionSource", "Address", "Location", "Location", "Dangerous"} },
         { "Categoria", new List<string> { "Name", "Priority", "Protocol", "CategoryState", "Selected" } }
     };
 
@@ -427,7 +427,7 @@
 
                 if (datasetFromApi == null)
                 {
-                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                    throw new NullReferenceException("Error.");
                 }
                 return datasetFromApi.Type_Dataset switch
                 {
@@ -453,21 +453,14 @@
                 DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
 
                 if (datasetFromApi == null)
-                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                    throw new NullReferenceException("Error.");
 
-                List<System.String> Types = datasetFromApi.ContentType.Split(',').Select(s => s.Trim()).ToList();
-                if (Types.Contains("Extensions"))
+                return datasetFromApi.ContentType switch
                 {
-                    return "Extension";
-                }
-                else if (Types.Contains("Alerts"))
-                {
-                    return "Alert";
-                }
-                else
-                {
-                    return "EventEM";
-                }
+                    "Alerts" => "Alert",
+                    "Extensions" => "Extension",
+                    "Events" => "EventEM",
+                };
             }
         }
         catch (Exception ex)

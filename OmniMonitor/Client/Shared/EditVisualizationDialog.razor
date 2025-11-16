@@ -194,21 +194,24 @@
     private string _visualizationName { get; set; } = string.Empty;
     private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
-    private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
+    private Dictionary<string, List<string>> _entityAttributes = new Dictionary<string, List<string>>
     {
         { "Device", new List<string> { "LayerId", "IsActive", "SectorId", "TenantId"} },
         { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
         { "Group", new List<string> { "IsActive", "State", "TenantId" } },
         { "Sensor", new List<string> { "DisplayName", "Type", "Integration", "LastUpdate", "LastPersisted"} },
+
         { "Zone", new List<string> { "Name", "Reference" } },
         { "EventUM", new List<string> { "Date", "Type", "ApprovalState", "ReviewedAt" } },
         { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
-        { "EventAM", new List<string> { "undefined"} },
-        { "Stock", new List<string> { "Location", "BundleId" } },
+
+        { "EventAM", new List<string> { "EventTaskDto", "StartDate", "State", "Subject", "FinalizedDate", "TakenOn", "TakenBy", "AlertTime", "EndingReason", "Critical" } },
+        { "Stock", new List<string> { "Name", "Quantity", "Provider", "Location", "Sku", "Minimum", "Bundle", "Supervisor", "UpdatedQuantity" } },
         { "Asset", new List<string> { "Name", "CreatedAt", "ExternalId", "Code", "Address", "Reference", "LifeTimeToDate", "TypeDto", "BundleDto", "BrandDto", "StateDto", "ModelDto", "ResponsibleDto", "ProviderDto", "Device", "DeliveredTo" } },
-        { "Alert", new List<string> { "AlertState", "CreatedAt" } },
-        { "EventEM", new List<string> { "Origin", "CreationDate", "State" } },
-        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
+
+        { "Alert", new List<string> { "AlertName", "SourceId", "Location", "SourceAddress", "AlertState", "AlertCategory", "AlertData", "CreatedAt", "ModifiedAt", "DeviceType", "StreamUrl", "FileExtension", } },
+        { "EventEM", new List<string> { "Name", "Origin", "CreationDate", "LastModification", "SourceType", "State", "Address", "Location", } },
+        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "TakenByName", "TakenByLastName", "EventDateTime",  "CreatedAt", "LastModification", "WorkZoneId", "WorkZoneName", "EventId", "EventName", "ExtensionSource", "Address", "Location", "Location", "Dangerous"} },
         { "Categoria", new List<string> { "Name", "Priority", "Protocol", "CategoryState", "Selected" } }
     };
 

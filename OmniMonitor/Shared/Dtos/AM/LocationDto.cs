@@ -15,5 +15,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("radius")]
         public double? Radius { get; set; }
+
+        public override string ToString() => Type ?? String.Empty;
     }
 }
