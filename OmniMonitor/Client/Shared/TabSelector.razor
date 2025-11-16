@@ -1,4 +1,8 @@
 @using MudBlazor
+@using OmniMonitor.Client.Pages
+@using Microsoft.Extensions.Localization
+
+@inject IStringLocalizer<EditReport> Localizer
 
 <div class="tab-button-grid mb-4">
     <MudButton Class="tab-button"
@@ -14,7 +18,7 @@
                      Color="MudBlazor.Color.Primary"
                      Class="mt-1"
                      Style="font-weight:bold;">
-                Datasets
+                @Localizer["TabDatasets"]
             </MudText>
         </div>
     </MudButton>
@@ -32,7 +36,7 @@
                      Color="MudBlazor.Color.Primary"
                      Class="mt-1"
                      Style="font-weight:bold;">
-                Joins
+                @Localizer["TabJoins"]
             </MudText>
         </div>
     </MudButton>
@@ -50,7 +54,7 @@
                      Color="MudBlazor.Color.Primary"
                      Class="mt-1"
                      Style="font-weight:bold;">
-                Columnas
+                @Localizer["TabColumns"]
             </MudText>
         </div>
     </MudButton>
@@ -68,7 +72,7 @@
                      Color="MudBlazor.Color.Primary"
                      Class="mt-1"
                      Style="font-weight:bold;">
-                Filtros
+                @Localizer["TabFilters"]
             </MudText>
         </div>
     </MudButton>

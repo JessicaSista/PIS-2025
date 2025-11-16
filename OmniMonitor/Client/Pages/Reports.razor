@@ -74,12 +74,26 @@
         {
             @foreach (var reporte in _reportesFiltrados)
             {
-                <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
-                    <ReportCardComponent Reporte="reporte"
-                                       OnNavigate="@NavigateToEditarReporte"
-                                       OnEdit="@EditarReporte"
-                                       OnDelete="@ConfirmarEliminarReporte"
-                                       Class="flex-grow-1" />
+                <MudItem xs="12" sm="6" md="4">
+                    <div style="position: relative;">
+                        <ReportCardComponent Reporte="reporte"
+                                             OnNavigate="@NavigateToEditarReporte" />
+
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                 AnchorOrigin="Origin.TopRight"
+                                 TransformOrigin="Origin.TopRight"
+                                 Class="position-absolute"
+                                 Style="position:absolute; top:8px; right:8px;">
+
+                            <MudMenuItem OnClick="@(() => EditarReporte(reporte.Id))">
+                                @Localizer["EditAction"]
+                            </MudMenuItem>
+
+                            <MudMenuItem OnClick="@(() => ConfirmarEliminarReporte(reporte.Id))">
+                                @Localizer["DeleteAction"]
+                            </MudMenuItem>
+                        </MudMenu>
+                    </div>
                 </MudItem>
             }
         }
@@ -128,6 +142,7 @@
 </MudContainer>
 
 @code {
+    private const int DescriptionMaxLength = 250;
     private string _searchText = "";
     private List<ReporteDto> _reportes = new();
     private bool _isLoading = true;
@@ -222,7 +237,7 @@
             };
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Editar Reporte", parameters, options);
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>(Localizer["EditDialogTitle"].Value, parameters, options);
             var result = await dialog.Result;
 
             if (result == null || result.Canceled || result.Data is not CreateReportDialog.ReportDialogResult editResult)
@@ -231,20 +246,18 @@
             }
 
             var trimmedName = editResult.Name.Trim();
-            var trimmedDescription = string.IsNullOrWhiteSpace(editResult.Description)
-                ? null
-                : editResult.Description.Trim();
+            var normalizedDescription = NormalizeDescription(editResult.Description);
 
             var currentName = report.Name ?? string.Empty;
-            var currentDescription = report.Description ?? string.Empty;
+            var currentDescriptionNormalized = NormalizeDescription(report.Description);
             var hasNameChange = !string.Equals(currentName, trimmedName, StringComparison.Ordinal);
-            var hasDescriptionChange = !string.Equals(currentDescription, trimmedDescription ?? string.Empty, StringComparison.Ordinal);
+            var hasDescriptionChange = !string.Equals(currentDescriptionNormalized, normalizedDescription, StringComparison.Ordinal);
 
             if (hasNameChange || hasDescriptionChange)
             {
                 var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
                 var updateUrl =
-                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
+                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(normalizedDescription)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
 
                 var updateResponse = await Http.PutAsync(updateUrl, null);
                 if (updateResponse.IsSuccessStatusCode)
@@ -436,7 +449,7 @@
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Crear Nuevo Reporte", parameters, options);
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>(Localizer["CreateDialogTitle"].Value, parameters, options);
             var result = await dialog.Result;
             if (result == null)
             {
@@ -477,5 +490,16 @@
         if (page < 1 || page > _totalPages) return;
         _currentPage = page;
         await CargarReportes();
+    }
+
+    private static string NormalizeDescription(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= DescriptionMaxLength ? trimmed : trimmed[..DescriptionMaxLength];
     }
 }

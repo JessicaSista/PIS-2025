@@ -1,11 +1,15 @@
 @using MudBlazor
 @using OmniMonitor.Client.Pages
 @using OmniMonitor.Shared.Dtos
+@using Microsoft.Extensions.Localization
+@using System.Linq
+
+@inject IStringLocalizer<EditReport> Localizer
 
 <MudStack>
     <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
         <MudItem>
-            <MudText Typo="Typo.body1">Filtros por columna</MudText>
+            <MudText Typo="Typo.body1">@Localizer["FiltersTitle"]</MudText>
         </MudItem>
         <MudItem>
             <MudStack Row="true" Spacing="2">
@@ -14,7 +18,7 @@
                            Size="MudBlazor.Size.Small"
                            Style="border-color: var(--mud-palette-lines-default);"
                            OnClick="@(async () => await NotifyFilterAdd())">
-                    Agregar Filtro
+                    @Localizer["AddFilterButton"]
                 </MudButton>
             </MudStack>
         </MudItem>
@@ -28,7 +32,15 @@
                 <MudPaper @key="filter.Id" Class="pa-4" Elevation="1">
                     <MudGrid Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudItem>
-                            <MudText Typo="Typo.subtitle2">Filtro #@filter.Id</MudText>
+                            <MudStack>
+                                <MudText Typo="Typo.subtitle2">@Localizer["FilterNumber", filter.Id]</MudText>
+                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                    @Localizer["FilterDatasetLabel", filter.DatasetName, filter.ModuleName]
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="MudBlazor.Color.Secondary">
+                                    @Localizer["FilterAttributeLabel", filter.Entity, filter.PropertyName]
+                                </MudText>
+                            </MudStack>
                         </MudItem>
                         <MudItem>
                             <MudIconButton Icon="@Icons.Material.Filled.Delete"
@@ -40,46 +52,195 @@
                     <MudGrid Spacing="2" Class="mt-2">
                         <MudItem Xs="12" Sm="6">
                             <MudSelect T="string"
-                                       Label="Columna"
+                                       Label="@Localizer["FilterColumnLabel"]"
                                        PopoverClass="wider-popover"
-                                       @bind-Value="filter.Column">
-                                @foreach (var column in GetVisibleColumns())
+                                       Value="@filter.ColumnKey"
+                                       ValueChanged="@(async value => await OnColumnChanged(filter, value))">
+                                @foreach (var column in GetFilterableColumns())
                                 {
-                                    <MudSelectItem Value="@column.Name">@column.DisplayName</MudSelectItem>
+                                    <MudSelectItem Value="@column.FilterKey">@($"{column.GroupLabel} - {column.DisplayName}")</MudSelectItem>
                                 }
                             </MudSelect>
                         </MudItem>
 
                         <MudItem Xs="12" Sm="6">
-                            <MudSelect T="string" Label="Operador" @bind-Value="filter.Operator">
-                                <MudSelectItem Value="@OperatorEqual">Igual a (=)</MudSelectItem>
-                                <MudSelectItem Value="@OperatorGreater">Mayor a (&gt;)</MudSelectItem>
-                                <MudSelectItem Value="@OperatorLess">Menor a (&lt;)</MudSelectItem>
+                            <MudSelect T="FilterType"
+                                       Label="@Localizer["FilterOperatorLabel"]"
+                                       Value="@filter.FilterType"
+                                       ValueChanged="@(value => OnFilterTypeChanged(filter, value))">
+                                @foreach (var option in GetSupportedFilterTypes(filter.ValueType))
+                                {
+                                    <MudSelectItem Value="@option">@GetOperatorLabel(option)</MudSelectItem>
+                                }
                             </MudSelect>
                         </MudItem>
 
-                        <MudItem Xs="12">
-                            <MudTextField T="string" Label="Valor" @bind-Value="filter.Value" Clearable="true" />
-                        </MudItem>
+                        @switch (filter.ValueType)
+                        {
+                            case FilterValueType.String:
+                                {
+                                    <MudItem Xs="12">
+                                        <MudTextField T="string"
+                                                      Label="@Localizer["FilterValueLabel"]"
+                                                      @bind-Value="filter.StringValue"
+                                                      Clearable="true" />
+                                    </MudItem>
+                                    break;
+                                }
+                            case FilterValueType.Number:
+                                {
+                                    <MudItem Xs="12" Sm="6">
+                                        <MudNumericField TValue="double?"
+                                                         Label="@Localizer["FilterValueLabel"]"
+                                                         @bind-Value="filter.NumericValue" />
+                                    </MudItem>
+                                    @if (filter.FilterType == FilterType.Between)
+                                    {
+                                        <MudItem Xs="12" Sm="6">
+                                            <MudNumericField TValue="double?"
+                                                             Label="@Localizer["FilterValueToLabel"]"
+                                                             @bind-Value="filter.NumericValueTo" />
+                                        </MudItem>
+                                    }
+                                    break;
+                                }
+                            case FilterValueType.Date:
+                                {
+                                    if (filter.FilterType == FilterType.Between)
+                                    {
+                                        <MudItem Xs="12" Sm="6">
+                                            <MudDatePicker Label="@Localizer["FilterValueFromLabel"]"
+                                                           @bind-Date="filter.DateValue" />
+                                        </MudItem>
+                                        <MudItem Xs="12" Sm="6">
+                                            <MudDatePicker Label="@Localizer["FilterValueToLabel"]"
+                                                           @bind-Date="filter.DateValueTo" />
+                                        </MudItem>
+                                    }
+                                    else
+                                    {
+                                        <MudItem Xs="12">
+                                            <MudDatePicker Label="@Localizer["FilterValueLabel"]"
+                                                           @bind-Date="filter.DateValue" />
+                                        </MudItem>
+                                    }
+                                    break;
+                                }
+                            case FilterValueType.Boolean:
+                                {
+                                    <MudItem Xs="12" Sm="6">
+                                        <MudSelect T="bool?"
+                                                   Label="@Localizer["FilterValueLabel"]"
+                                                   Value="@filter.BooleanValue"
+                                                   ValueChanged="@(value => OnBooleanValueChanged(filter, value))">
+                                            <MudSelectItem Value="@true">@Localizer["BooleanTrueLabel"]</MudSelectItem>
+                                            <MudSelectItem Value="@false">@Localizer["BooleanFalseLabel"]</MudSelectItem>
+                                        </MudSelect>
+                                    </MudItem>
+                                    break;
+                                }
+                            case FilterValueType.Enum:
+                                {
+                                    var enumOptions = GetEnumOptions(filter);
+                                    if (filter.FilterType == FilterType.In)
+                                    {
+                                        <MudItem Xs="12">
+                                            <MudSelect T="string"
+                                                       MultiSelection="true"
+                                                       Label="@Localizer["FilterValueLabel"]"
+                                                       SelectedValues="@filter.EnumValues"
+                                                       SelectedValuesChanged="@(values => OnEnumValuesChanged(filter, values))">
+                                                @foreach (var option in enumOptions)
+                                                {
+                                                    <MudSelectItem Value="@option">@option</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                    }
+                                    else
+                                    {
+                                        if (enumOptions.Any())
+                                        {
+                                            <MudItem Xs="12" Sm="6">
+                                                <MudSelect T="string"
+                                                           Label="@Localizer["FilterValueLabel"]"
+                                                           Value="@filter.EnumValue"
+                                                           ValueChanged="@(value => OnEnumValueChanged(filter, value))">
+                                                    @foreach (var option in enumOptions)
+                                                    {
+                                                        <MudSelectItem Value="@option">@option</MudSelectItem>
+                                                    }
+                                                </MudSelect>
+                                            </MudItem>
+                                        }
+                                        else
+                                        {
+                                            <MudItem Xs="12">
+                                                <MudTextField T="string"
+                                                              Label="@Localizer["FilterValueLabel"]"
+                                                              @bind-Value="filter.EnumValue"
+                                                              Clearable="true" />
+                                            </MudItem>
+                                        }
+                                    }
+                                    break;
+                                }
+                        }
                     </MudGrid>
                 </MudPaper>
             }
+        }
+        else
+        {
+            <MudText Color="MudBlazor.Color.Secondary">@Localizer["NoFiltersDefined"]</MudText>
         }
     </MudStack>
 </MudStack>
 
 @code {
-    [Parameter] public List<EditReport.FilterDto> Filters { get; set; } = new();
+    [Parameter] public List<EditReport.FilterViewModel> Filters { get; set; } = new();
     [Parameter] public IReadOnlyList<EditReport.ColumnDefinition> AvailableColumns { get; set; } = Array.Empty<EditReport.ColumnDefinition>();
     [Parameter] public EventCallback OnFilterAdd { get; set; }
-    [Parameter] public EventCallback<EditReport.FilterDto> OnFilterRemove { get; set; }
+    [Parameter] public EventCallback<EditReport.FilterViewModel> OnFilterRemove { get; set; }
+    [Parameter] public EventCallback<(int FilterId, string ColumnKey)> OnFilterColumnChanged { get; set; }
 
-    private static readonly string OperatorEqual = "=";
-    private static readonly string OperatorGreater = ">";
-    private static readonly string OperatorLess = "<";
+    private IEnumerable<EditReport.ColumnDefinition> GetFilterableColumns() =>
+        AvailableColumns
+            .Where(c => c.IsVisible)
+            .GroupBy(c => c.FilterKey, StringComparer.Ordinal)
+            .Select(g => g.First())
+            .OrderBy(c => c.GroupLabel)
+            .ThenBy(c => c.DisplayName)
+            .ToList();
 
-    private IEnumerable<EditReport.ColumnDefinition> GetVisibleColumns() =>
-        AvailableColumns.Where(c => c.IsVisible);
+    private IReadOnlyList<FilterType> GetSupportedFilterTypes(FilterValueType valueType) => valueType switch
+    {
+        FilterValueType.String => new[] { FilterType.Contains, FilterType.Equals, FilterType.NotEquals, FilterType.StartsWith, FilterType.EndsWith },
+        FilterValueType.Number => new[] { FilterType.Equals, FilterType.NotEquals, FilterType.GreaterThan, FilterType.LessThan },
+        FilterValueType.Date => new[] { FilterType.Equals, FilterType.Between },
+        FilterValueType.Boolean => new[] { FilterType.Equals, FilterType.NotEquals },
+        FilterValueType.Enum => new[] { FilterType.Equals, FilterType.In },
+        _ => Array.Empty<FilterType>()
+    };
+
+    private string GetOperatorLabel(FilterType filterType) => filterType switch
+    {
+        FilterType.Equals => Localizer["OperatorEqualLabel"],
+        FilterType.NotEquals => Localizer["OperatorNotEqualLabel"],
+        FilterType.GreaterThan => Localizer["OperatorGreaterLabel"],
+        FilterType.LessThan => Localizer["OperatorLessLabel"],
+        FilterType.Contains => Localizer["OperatorContainsLabel"],
+        FilterType.StartsWith => Localizer["OperatorStartsWithLabel"],
+        FilterType.EndsWith => Localizer["OperatorEndsWithLabel"],
+        FilterType.Between => Localizer["OperatorBetweenLabel"],
+        FilterType.In => Localizer["OperatorInLabel"],
+        _ => filterType.ToString()
+    };
+
+    private IReadOnlyList<string> GetEnumOptions(EditReport.FilterViewModel filter) =>
+        filter.AvailableEnumOptions?.Any() == true
+            ? filter.AvailableEnumOptions
+            : Array.Empty<string>();
 
     private async Task NotifyFilterAdd()
     {
@@ -89,11 +250,84 @@
         }
     }
 
-    private async Task NotifyFilterRemove(EditReport.FilterDto filter)
+    private async Task NotifyFilterRemove(EditReport.FilterViewModel filter)
     {
         if (OnFilterRemove.HasDelegate)
         {
             await OnFilterRemove.InvokeAsync(filter);
         }
+    }
+
+    private async Task OnColumnChanged(EditReport.FilterViewModel filter, string? columnKey)
+    {
+        if (string.IsNullOrWhiteSpace(columnKey))
+        {
+            return;
+        }
+
+        filter.ColumnKey = columnKey;
+        if (OnFilterColumnChanged.HasDelegate)
+        {
+            await OnFilterColumnChanged.InvokeAsync((filter.Id, columnKey));
+        }
+    }
+
+    private void OnFilterTypeChanged(EditReport.FilterViewModel filter, FilterType newType)
+    {
+        if (filter.FilterType == newType)
+        {
+            return;
+        }
+
+        filter.FilterType = newType;
+        switch (filter.ValueType)
+        {
+            case FilterValueType.String:
+                filter.StringValueTo = null;
+                break;
+            case FilterValueType.Number:
+                if (newType != FilterType.Between)
+                {
+                    filter.NumericValueTo = null;
+                }
+                break;
+            case FilterValueType.Date:
+                if (newType != FilterType.Between)
+                {
+                    filter.DateValueTo = null;
+                }
+                break;
+            case FilterValueType.Enum:
+                if (newType == FilterType.In)
+                {
+                    filter.EnumValue = null;
+                }
+                else
+                {
+                    filter.EnumValues.Clear();
+                }
+                break;
+        }
+        StateHasChanged();
+    }
+
+    private void OnEnumValueChanged(EditReport.FilterViewModel filter, string? value)
+    {
+        filter.EnumValue = value;
+        StateHasChanged();
+    }
+
+    private void OnBooleanValueChanged(EditReport.FilterViewModel filter, bool? value)
+    {
+        filter.BooleanValue = value;
+        StateHasChanged();
+    }
+
+    private void OnEnumValuesChanged(EditReport.FilterViewModel filter, IEnumerable<string> values)
+    {
+        filter.EnumValues = values != null
+            ? new HashSet<string>(values.Where(v => !string.IsNullOrWhiteSpace(v)), StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        StateHasChanged();
     }
 }
