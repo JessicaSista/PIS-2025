@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
 
 namespace OmniMonitor.Server.Controllers
@@ -26,6 +27,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <param name="reportId">ID del reporte</param>
         /// <returns>Archivo PDF para descarga</returns>
+        [RequirePermission("Reports.Export")]
         [HttpGet("{reportId}/download-pdf")]
         [ProducesResponseType(typeof(FileResult), 200)]
         [ProducesResponseType(400)]
@@ -87,6 +89,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <param name="reportId">ID del reporte</param>
         /// <returns>Archivo PDF para vista previa</returns>
+        [RequirePermission("Reports.View")]
         [HttpGet("{reportId}/preview-pdf")]
         [ProducesResponseType(typeof(FileResult), 200)]
         [ProducesResponseType(400)]
@@ -146,6 +149,7 @@ namespace OmniMonitor.Server.Controllers
         /// </summary>
         /// <param name="reportId">ID del reporte</param>
         /// <returns>Información del reporte</returns>
+        [RequirePermission("Reports.View")]
         [HttpGet("{reportId}/pdf-info")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(404)]
