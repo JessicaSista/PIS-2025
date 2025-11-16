@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -52,5 +52,7 @@ public class Source
 
     [JsonPropertyName("sensors")]
     public List<Sensor>? Sensors { get; set; }
+
+    public override string ToString() => Name ?? string.Empty;
 
 }

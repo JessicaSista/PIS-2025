@@ -186,7 +186,7 @@
     public System.Int32 dashboardId { get; set; } = -1; //caso en el que se edita desde visualizaciones
 
     private List<string> _chartTypes = new List<string>() { "line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar" };
-    private string _selectedChartType = "line";
+    private string _selectedChartType = "bar";
     private DateTime? _beginDate { get; set; }
     private TimeSpan? _beginHour { get; set; }
     private DateTime? _endDate { get; set; }
@@ -202,8 +202,8 @@
         { "Sensor", new List<string> { "DisplayName", "Type", "Integration", "LastUpdate", "LastPersisted"} },
 
         { "Zone", new List<string> { "Name", "Reference" } },
-        { "EventUM", new List<string> { "Date", "Type", "ApprovalState", "ReviewedAt" } },
-        { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
+        { "EventUM", new List<string> { "Name", "Date", "Type", "Location", "ApprovalState", "ReviewedAt" } },
+        { "New", new List<string> { "Title", "DatePublished", "Important", "StartDate", "EndDate", "Zone" } },
 
         { "EventAM", new List<string> { "EventTaskDto", "StartDate", "State", "Subject", "FinalizedDate", "TakenOn", "TakenBy", "AlertTime", "EndingReason", "Critical" } },
         { "Stock", new List<string> { "Name", "Quantity", "Provider", "Location", "Sku", "Minimum", "Bundle", "Supervisor", "UpdatedQuantity" } },
@@ -473,15 +473,6 @@
     {
         try
         {
-            AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            string? username = authState.User.Identity?.Name;
-
-            if (string.IsNullOrEmpty(username))
-            {
-                Snackbar.Add(Localizer["UserNotFound"], Severity.Warning);
-                throw new InvalidOperationException("No se encontró el usuario autenticado.");
-            }
-
             if (module.Equals("Insight Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}");
@@ -497,9 +488,16 @@
                 DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
 
                 if (datasetFromApi == null)
-                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                {
+                    throw new NullReferenceException("Error.");
+                }
+                return datasetFromApi.Type_Dataset switch
+                {
+                    1 => "EventAM",
+                    2 => "Asset",
+                    3 => "Stock",
+                };
 
-                return datasetFromApi.Type_Dataset == 2 ? "Asset" : "EventAM";
             }
             else if (module.Equals("Urban Monitor"))
             {
@@ -510,6 +508,11 @@
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
 
                 return datasetFromApi.DatasetNews.Count > 0 ? "New" : "EventUM";
+                return datasetFromApi.ContentType switch
+                {
+                    "1" => "EventUM",
+                    "2" => "New",
+                };
             }
             else
             {
@@ -517,21 +520,14 @@
                 DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
 
                 if (datasetFromApi == null)
-                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                    throw new NullReferenceException("Error.");
 
-                List<System.String> Types = datasetFromApi.ContentType.Split(',').Select(s => s.Trim()).ToList();
-                if (Types.Contains("Extensions"))
+                return datasetFromApi.ContentType switch
                 {
-                    return "Extension";
-                }
-                else if (Types.Contains("Alerts"))
-                {
-                    return "Alert";
-                }
-                else
-                {
-                    return "EventEM";
-                }
+                    "Alerts" => "Alert",
+                    "Extensions" => "Extension",
+                    "Events" => "EventEM",
+                };
             }
         }
         catch (Exception ex)
