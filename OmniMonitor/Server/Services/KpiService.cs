@@ -18,6 +18,7 @@ namespace OmniMonitor.Server.Services
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
         Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId);
+        Task<KpiResponse> CalculateKpiDataAsync(KpiRequest kpiData, string username);
         Task<List<KpiResponse>> CalculateAllKpisForUserAsync(string username);
         Task<List<MetricInfo>> GetMetricInfoListAsync(string sourceModule);
         Task DeleteKpiAsync(int kpiId, string? username = null);
@@ -391,6 +392,55 @@ namespace OmniMonitor.Server.Services
 
             if (response == null)
                 throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
+
+            return response;
+        }
+
+        public async Task<KpiResponse> CalculateKpiDataAsync(KpiRequest kpiData, string username)
+        {
+            // Crear un objeto Kpi temporal a partir de los datos del request
+            var tempKpi = new Kpi
+            {
+                Name = kpiData.Name ?? "Temp KPI",
+                Description = kpiData.Description,
+                SourceModule = kpiData.SourceModule ?? "IM",
+                DatasetId = kpiData.DatasetId ?? 0,
+                Unit = kpiData.Unit,
+                Metric = kpiData.Metric,
+                Multiplier = kpiData.Multiplier ?? 1.0,
+                DefaultColor = kpiData.DefaultColor ?? "#000000",
+                Atributo = kpiData.Atributo ?? "",
+                ExtraInfo = kpiData.ExtraInfo,
+                Type = kpiData.Type,
+                Username = username
+            };
+
+            KpiResponse? response = null;
+
+            switch (tempKpi.SourceModule.ToUpper())
+            {
+                case "AM":
+                    response = await CalculateAmKpiAsync(tempKpi, username);
+                    break;
+
+                case "EM":
+                    response = await CalculateEmKpiAsync(tempKpi, username);
+                    break;
+
+                case "IM":
+                    response = await CalculateImKpiAsync(tempKpi, username);
+                    break;
+
+                case "UM":
+                    response = await CalculateUmKpiAsync(tempKpi, username);
+                    break;
+
+                default:
+                    throw new ArgumentException($"SourceModule no soportado: {tempKpi.SourceModule}");
+            }
+
+            if (response == null)
+                throw new Exception($"No se pudo calcular el KPI con los datos proporcionados");
 
             return response;
         }
