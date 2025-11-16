@@ -464,17 +464,7 @@
 
     private void Cancel()
     {
-        _mudDialog.Cancel();
-    }
-    
-    protected override async Task OnInitializedAsync()
-    {
-        DateTime today = DateTime.Today;
-        _beginDate = today;
-        _beginHour = new TimeSpan(0, 0, 0);
-        _endDate = today;
-        _endHour = new TimeSpan(23, 59, 0);
-
+        mudDialog.Cancel();
     }
 
     private void RemoveDataset(DatasetSelection ds)

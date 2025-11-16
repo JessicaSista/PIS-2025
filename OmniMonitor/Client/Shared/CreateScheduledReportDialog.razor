@@ -308,10 +308,21 @@
         }
 
 
+        var scheduleTypeToSend = _scheduleType;
+        if (!string.IsNullOrWhiteSpace(_scheduleType))
+        {
+            if (string.Equals(_scheduleType, "Daily", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+            {
+                scheduleTypeToSend = _scheduleType.ToUpperInvariant();
+            }
+        }
+
         var payload = new ScheduledReportRequest
         {
             ReportId = _reportId,
-            ScheduleType = _scheduleType,
+            ScheduleType = scheduleTypeToSend,
             
             SendAtLocalTime = sendTimeFormatted,
             AdvancedRule = advancedRule,
