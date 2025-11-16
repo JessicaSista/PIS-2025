@@ -79,7 +79,6 @@
         padding-left: 16px !important;
         padding-right: 16px !important;
     }
-
     .mud-container-maxwidth-lg {
         max-width: 100% !important;
     }
@@ -94,7 +93,7 @@
             @*
             @for (int i = 0; i < 8; i++)
             {
-                <MudItem xs="12" sm="6" md="4" lg="3"> 
+                <MudItem xs="12" sm="6" md="4" lg="4"> 
                     <MudCard>
                         <MudCardContent>
                             <MudSkeleton Height="150px" Width="100%" />
@@ -119,7 +118,7 @@
         {
             @foreach (var dashboard in filteredDashboards)
             {
-                <MudItem xs="12" sm="6" md="4" lg="3"> 
+                <MudItem xs="12" sm="6" md="4" lg="4">
                     <div style="position:relative;">
                         <DashboardCardComponent Dashboard="dashboard"
                                                 OnClick="@(() => OpenDashboard(dashboard.IdDashboard))" />
@@ -132,7 +131,6 @@
                             <MudMenuItem OnClick="@(() => EditDashboard(dashboard))">
                                 @Localizer["Editar"]
                             </MudMenuItem>
-
                             <MudMenuItem OnClick="@(() => ConfirmDelete(dashboard))">
                                 @Localizer["Eliminar"]
                             </MudMenuItem>
@@ -192,7 +190,7 @@
 
     // Variables de paginación
     private int currentPage = 1;
-    private int pageSize = 12;
+    private int pageSize = 9;
     private int totalPages = 0;
     private int totalCount = 0;
     private bool hasPreviousPage = false;

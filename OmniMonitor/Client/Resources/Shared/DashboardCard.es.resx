@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -122,5 +122,11 @@
   </data>
   <data name="NoDisminuirMas" xml:space="preserve">
     <value>No se puede disminuir más.</value>
+  </data>
+  <data name="EditCard" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="DeleteCard" xml:space="preserve">
+    <value>Eliminar</value>
   </data>
 </root>
