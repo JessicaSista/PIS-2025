@@ -219,15 +219,15 @@ public class ApiDataService : IApiDataService
                 switch (operand.EntityName)
                 {
                     case EntityName.EventEM:
-                        var resultingEvent = new List<dynamic>();
-                        foreach (var datasetEvent in datasetEM.DatasetEvents)
-                        {
-                            var eventDto = await _sondaEMService.GetEventById(datasetEvent.Id_event, username);
-                            if (eventDto != null)
-                            {
-                                resultingEvent.Add(eventDto);
-                            }
-                        }
+                        // Obtener todos los eventos de una vez en lugar de llamadas individuales
+                        var allEvents = await _sondaEMService.GetEvents(null, null, null, null, username);
+                        var eventIds = datasetEM.DatasetEvents.Select(de => de.Id_event).ToHashSet();
+                        
+                        var resultingEvent = allEvents
+                            .Where(evt => eventIds.Contains(evt.Id))
+                            .Cast<dynamic>()
+                            .ToList();
+                        
                         return resultingEvent;
 
                     case EntityName.Alert:
