@@ -170,6 +170,7 @@
   </data>
   <data name="RecordsLabel" xml:space="preserve">
     <value>Registros:</value>
+  </data>
   <data name="ScheduledReportsTitle" xml:space="preserve">
     <value>Reportes programados</value>
   </data>
