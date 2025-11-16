@@ -29,6 +29,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Create")]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetUM), 201)]
         [ProducesResponseType(400)]
@@ -105,6 +106,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("GetAllDatasets")]
         [ProducesResponseType(typeof(List<DatasetUM>), 200)]
         [ProducesResponseType(403)]
@@ -127,6 +129,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("GetDatasetById")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(403)]
@@ -152,6 +155,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Edit")]
         [HttpPut("with-filters/{datasetId}")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(400)]
@@ -232,6 +236,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
             [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+            [RequirePermission("Datasets.Edit")]
             [HttpPut("EditarUMFiltrado/{datasetId}")]
             [ProducesResponseType(typeof(DatasetUM), 200)]
             [ProducesResponseType(400)]
@@ -303,6 +308,7 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dataset.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Delete")]
         [HttpDelete("{datasetId}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(403)]

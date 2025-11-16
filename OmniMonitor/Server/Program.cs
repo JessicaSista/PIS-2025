@@ -138,6 +138,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Reports.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Edit")));
     options.AddPolicy("Reports.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Delete")));
     options.AddPolicy("Reports.Export", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Export")));
+    options.AddPolicy("Reports.Execute", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Execute")));
 
     // Módulo Sensors
     options.AddPolicy("Sensors.View", policy => policy.Requirements.Add(new PermissionRequirement("Sensors.View")));
