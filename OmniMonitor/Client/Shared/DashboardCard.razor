@@ -210,28 +210,10 @@
             }
         }
         else if (VisualizationType == 2) {
-            try
-            {
-                var resp = await Http.GetAsync($"api/KPI/{VisualizationId}");
-                if (!resp.IsSuccessStatusCode)
-                {
-                    var err = await resp.Content.ReadAsStringAsync();
-                    SnackbarService.Add(string.IsNullOrWhiteSpace(err) ? $"Error {resp.StatusCode}" : err, Severity.Warning);
-                    return;
-                }
-
-                var kpi = await resp.Content.ReadFromJsonAsync<KpiResponse>();
-                if (kpi is null)
-                {
-                    SnackbarService.Add("No se pudo obtener el KPI", Severity.Warning);
-                    return;
-                }
-
                 DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
                 DialogParameters parameters = new DialogParameters
                     {
-                        ["ExistingKpi"] = kpi,
-                        ["KpiId"] = 0
+                        ["KpiId"] = VisualizationId
                     };
                 IDialogReference? dialog = await DialogService.ShowAsync<EditKpiCard>("Editar KPI", parameters, options);
                 DialogResult? result = await dialog.Result;
@@ -251,11 +233,7 @@
                         SnackbarService.Add($"Error actualizando KPI: {ex.Message}", Severity.Warning);
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                SnackbarService.Add($"Error obteniendo KPI: {ex.Message}", Severity.Warning);
-            }
+            
         }
     }
 

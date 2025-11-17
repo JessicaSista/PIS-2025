@@ -127,6 +127,51 @@
 
         try
         {
+            // Preview flow before saving
+            Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+            var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                receiver: this,
+                callback: emptyHandler
+            );
+
+            var previewKpi = new KpiResponse
+            {
+                Id = ExistingKpi.Id,
+                Name = request.Name,
+                Description = request.Description,
+                ActualColor = request.DefaultColor,
+                Unit = ExistingKpi.Unit,
+                Value = ExistingKpi.Value,
+            };
+
+            var parameters = new DialogParameters
+            {
+                ["VisualizationType"] = 2,
+                ["OnVisualizationCreated"] = emptyEventCallback,
+                ["KpiData"] = previewKpi
+            };
+
+            var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                "Preview",
+                parameters,
+                options
+            );
+            DialogResult? dialogResult = await dialog.Result;
+
+            if (dialogResult.Canceled)
+            {
+                _isSubmitting = false;
+                return;
+            }
+
+            
             var url = $"api/KPI/{ExistingKpi.Id}";
             var response = await Http.PatchAsJsonAsync(url, request);
 

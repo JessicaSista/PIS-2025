@@ -13,11 +13,11 @@
                 {
                     if (VisualizationId != 0)
                     {
-                        <ChartViewer VisualizationId="VisualizationId" retrieveOnInitialized="true"/>
+                        <ChartViewer VisualizationId="VisualizationId" retrieveOnInitialized="@true"/>
                     }
                     else
                     {
-                        <ChartViewer VisualizationId="0" Visualization="ChartData" retrieveOnInitialized="true" />
+                        <ChartViewer VisualizationId="0" Visualization="ChartData" retrieveOnInitialized="@true" />
                     }
                 }
                 else if (VisualizationType == 2)

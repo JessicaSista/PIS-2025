@@ -21,10 +21,9 @@
         </MudText>
     </MudStack>
     <MudStack Row Spacing="2">
-        <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="OpenCreateDialog" Disabled="_loading">
-            <MudIcon Icon="@Icons.Material.Filled.Add" Class="mr-2" />
+        <AddButton OnClick="OpenCreateDialog" Disabled="_loading">
             @Localizer["NewScheduleButton"]
-        </MudButton>
+        </AddButton>
     </MudStack>
 </MudStack>
 

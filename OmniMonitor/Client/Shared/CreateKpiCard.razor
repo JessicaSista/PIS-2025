@@ -69,29 +69,13 @@
                         </div>
                     }
 
-                    <!-- Color -->
-                    <div style="display: flex; align-items: center; height: 100%;">
-                        <MudMenu AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter" OffsetY="true">
-                            <ActivatorContent>
-                                <MudTooltip Text="@_color">
-                                    <div style="
-                                                            width: 56.5px;
-                                                            height: 56.5px;
-                                                            border-radius: 6px;
-                                                            cursor: pointer;
-                                                            background-color:@_color;">
-                                    </div>
-                                </MudTooltip>
-                            </ActivatorContent>
-                            <ChildContent>
-                                <div style="padding: 8px; background: var(--card); border-radius: 8px;">
-                                    <MudColorPicker @bind-Text="_color"
-                                                    DisableAlpha="true"
-                                                    Variant="Variant.Outlined"
-                                                    Style="width: 220px;" />
-                                </div>
-                            </ChildContent>
-                        </MudMenu>
+                    <!-- Color (inline, same as EditKpiCard) -->
+                    <div style="display: flex; flex-direction: column; align-items: flex-start;">
+                        <MudColorPicker @bind-Text="_color"
+                                        Label="@Localizer["Color"]"
+                                        Variant="Variant.Outlined"
+                                        DisableAlpha="true"
+                                        Style="width:220px;" />
                     </div>
 
                 </div>
@@ -814,17 +798,33 @@
                 callback: emptyHandler
             );
 
+            // Calculate KPI value before preview
+            KpiResponse? kpiCalc = null;
+            try
+            {
+                var calcResp = await Http.PostAsJsonAsync("api/KPI/calculate", request);
+                if (calcResp.IsSuccessStatusCode)
+                {
+                    kpiCalc = await calcResp.Content.ReadFromJsonAsync<KpiResponse>();
+                }
+                else
+                {
+                    var err = await calcResp.Content.ReadAsStringAsync();
+                    Snackbar.Add(string.IsNullOrWhiteSpace(err) ? $"Error {calcResp.StatusCode}" : err, Severity.Warning);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error calculando KPI: {ex.Message}", Severity.Error);
+                return;
+            }
+
             DialogParameters parameters = new DialogParameters
             {
                 ["VisualizationType"] = 2,
                 ["OnVisualizationCreated"] = emptyEventCallback,
-                ["KpiData"] = new KpiResponse
-                {
-                    Name = request.Name,
-                    Description = request.Description,
-                    ActualColor = request.DefaultColor,
-                    Unit = request.Unit,
-                }
+                ["KpiData"] = kpiCalc
             };
 
 
