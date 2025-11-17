@@ -2,19 +2,9 @@
 @using OmniMonitor.Client.Services
 @inherits LayoutComponentBase
 @inject ThemeService ThemeService
+@* @inject IJSRuntime JSRuntime *@
 
 <MudSnackbarProvider />
-
-<!--<MudLayout Style="background: linear-gradient(to bottom, #0F1522, #20262F); min-height: 100vh;">
-    <MudStack Row Style="min-height: 100vh;">
-        <NavMenu />
-        <main>
-            @Body
-        </main>
-    </MudStack>
-</MudLayout> -->
-
-
 
 <div style="@ThemeService.CurrentThemeVariables">
     <MudThemeProvider Theme="ThemeService.CurrentTheme"
@@ -53,6 +43,8 @@
     private bool _drawerOpen = true;
     private bool _isThemeInitialized = false;
 
+    private bool _initialJsThemeSet = false;
+
     protected override async Task OnInitializedAsync()
     {
         await ThemeService.InitializeThemeAsync();
@@ -62,6 +54,24 @@
 
         ThemeService.OnThemeChange += ThemeChanged;
     }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender && !_initialJsThemeSet)
+    //     {
+    //         2. Ejecutar el JS Interop SOLO después del primer render (cuando JS está cargado)
+    //         try
+    //         {
+    //             await JSRuntime.InvokeVoidAsync("themeController.setThemeClass", ThemeService.CurrentMode.ToString());
+    //             _initialJsThemeSet = true;
+    //         }
+    //         catch (Exception ex)
+    //         {
+    //             Manejo de errores si la llamada aún falla (raro en OnAfterRenderAsync)
+    //             Console.WriteLine($"Error during initial theme set: {ex.Message}");
+    //         }
+    //     }
+    // }
 
     private void ThemeChanged()
     {

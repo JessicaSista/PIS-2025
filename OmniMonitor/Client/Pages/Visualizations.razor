@@ -62,46 +62,59 @@
 </style>
 
 
-<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge">
-    <MudItem Class="d-flex justify-space-between mb-4">
-        <MudText Typo="Typo.h4" Style="color: var(--text-primary);">@Localizer["Titulo"]</MudText>
-        <AddButton OnClick="OpenDialogCreateVisualization">@Localizer["AgregarVisualizacion"]</AddButton>
-    </MudItem>
+<!-- Header -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Style="color: var(--text-primary); font-weight: 500; font-family: Inter, Roboto, sans-serif;">
+            @Localizer["Titulo"]
+        </MudText>
+    </MudStack>
+    <AddButton OnClick="OpenDialogCreateVisualization">
+        @Localizer["AgregarVisualizacion"]
+    </AddButton>
+</MudStack>
 
-    <!-- Selector superior con buscador y tabs -->
-    <MudItem Class="d-flex align-center justify-space-between mt-4 mb-4">
-        <div class="d-flex align-center">
-            <!-- Buscador -->
-            <MudTextField Immediate="true"
-                          DebounceInterval="300"
-                          Value="_searchQuery"
-                          ValueChanged="@(EventCallback.Factory.Create<string>(this, OnSearchChanged))"
-                          ValueExpression="() => _searchQuery"
-                          Placeholder="@GetSearchPlaceholder()"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                          Style="width: 400px; margin-right: 16px;" />
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:var(--textColor-2); font-family: Inter, Roboto, sans-serif;">
+        @Localizer["Gestiona"]
+    </MudText>
+</MudStack>
 
-            <!-- Tabs pequeñas tipo toggle -->
-            <div class="tab-toggle-container">
-                <MudButton Variant="Variant.Text"
-                           Size="MudBlazor.Size.Small"
-                           Class="@($"tab-toggle-btn left {(_activeTabIndex == 0 ? "active" : "")}")"
-                           OnClick="@(() => SetActiveTab(0))">
-                    @Localizer["KPIs"]
-                </MudButton>
-                <MudButton Variant="Variant.Text"
-                           Size="MudBlazor.Size.Small"
-                           Class="@($"tab-toggle-btn right {(_activeTabIndex == 1 ? "active" : "")}")"
-                           OnClick="@(() => SetActiveTab(1))">
-                    @Localizer["Graficas"]
-                </MudButton>
-            </div>
+<!-- Selector superior con buscador y tabs -->
+<MudItem Class="d-flex align-center justify-space-between ml-4 mb-4 mr-6">
+    <div class="d-flex align-center">
+        <!-- Buscador -->
+        <MudTextField Immediate="true"
+                      DebounceInterval="300"
+                      Value="_searchQuery"
+                      ValueChanged="@(EventCallback.Factory.Create<string>(this, OnSearchChanged))"
+                      ValueExpression="() => _searchQuery"
+                      Placeholder="@GetSearchPlaceholder()"
+                      Variant="Variant.Outlined"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="width: 400px; margin-right: 16px;" />
+
+        <!-- Tabs pequeñas tipo toggle -->
+        <div class="tab-toggle-container">
+            <MudButton Variant="Variant.Text"
+                       Size="MudBlazor.Size.Small"
+                       Class="@($"tab-toggle-btn left {(_activeTabIndex == 0 ? "active" : "")}")"
+                       OnClick="@(() => SetActiveTab(0))">
+                @Localizer["KPIs"]
+            </MudButton>
+            <MudButton Variant="Variant.Text"
+                Size="MudBlazor.Size.Small"
+                       Class="@($"tab-toggle-btn right {(_activeTabIndex == 1 ? "active" : "")}")"
+                       OnClick="@(() => SetActiveTab(1))">
+                @Localizer["Graficas"]
+            </MudButton>
         </div>
-    </MudItem>
+    </div>
+</MudItem>
 
-
+<!-- Visualizations grid -->
+<MudContainer Class="pl-4 pr-6 mx-0">
     <MudGrid Spacing="4">
         <!-- Contenido KPIs -->
         @if (_isLoadingKpis)
@@ -324,9 +337,6 @@
             </MudItem>
         }
     </MudGrid>
-
-
-
 </MudContainer>
 
 
