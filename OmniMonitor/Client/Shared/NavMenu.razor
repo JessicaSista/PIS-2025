@@ -7,7 +7,6 @@
     <MudPaper Width="250px" Class="py-3" Elevation="0">
         
         <MudNavMenu>
-    
         @if (_drawerOpen)
         {
             <MudText Typo="Typo.body2" Class="px-4 mud-text-secondary">Principal</MudText>
@@ -40,18 +39,6 @@
             @if (_drawerOpen)
             {
                 <span class="ml-2">@SharedLocalizer["ScheduledReportsTitle"]</span>
-            }
-        </MudNavLink>
-        <MudNavLink Href="/create-scheduled-report" Icon=@Icons.Material.Filled.Schedule>
-            @if (_drawerOpen)
-            {
-                <span class="ml-2">create</span>
-            }
-        </MudNavLink>
-        <MudNavLink Href="/delete-scheduled-report" Icon=@Icons.Material.Filled.Schedule>
-            @if (_drawerOpen)
-            {
-                <span class="ml-2">Delete</span>
             }
         </MudNavLink>
               

@@ -14,31 +14,27 @@
             @{
                 if (VisualizationType == 1)
                 {
-                    <ChartViewer VisualizationId="VisualizationId"/>
+                    if (VisualizationId != 0)
+                    {
+                        <ChartViewer VisualizationId="VisualizationId" retrieveOnInitialized="@true"/>
+                    }
+                    else
+                    {
+                        <ChartViewer VisualizationId="0" Visualization="ChartData" retrieveOnInitialized="@true" />
+                    }
                 }
                 else if (VisualizationType == 2)
                 {
-                    <KpiViewer KpiId="VisualizationId" />
+                    if (VisualizationId != 0)
+                    {
+                        <KpiViewer KpiId="VisualizationId" />
+                    }
+                    else
+                    {    
+                        <KpiViewer Kpi="KpiData" />
+                    }
                 }
-
-            
-            
-            // JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
-            // System.String chartType = design.RootElement.GetProperty("ChartType").ToString();
-            // System.String datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.Name));
-
-            // <MudPaper Class="pa-6" Style="background-color: var(--card);">
-            //         <MudItem>
-            //             <VisualizationCard 
-            //                 visualizationTitle="@visualization.Nombre"
-            //                 visualizationDatasets="@datasetNames"
-            //                 lastUpdated="@DateTime.Now.ToString("g")" 
-            //                 dataCharts="@visualizationData"
-            //                 chartType="@chartType"/>
-            //         </MudItem>
-            // </MudPaper>
         }
-           
         </MudContainer>
     </DialogContent>
     <DialogActions>
@@ -52,11 +48,13 @@
     [CascadingParameter]
     IMudDialogInstance MudDialog { get; set; }
 
-    [Parameter] public System.Int32 dashboardId {get; set;}
-
-    [Parameter] public int VisualizationId { get; set; }
+    [Parameter] public int VisualizationId { get; set; } = 0;
 
     [Parameter] public int VisualizationType { get; set; } = new();
+
+    [Parameter] public KpiResponse KpiData { get; set; }
+
+    [Parameter] public Visualizacion ChartData { get; set; }
 
     [Parameter] public EventCallback<(int,int)> OnVisualizationCreated { get; set; }
 
@@ -65,12 +63,11 @@
     {
         MudDialog.Close(DialogResult.Cancel());
     }
-    
+
     private async Task Submit()
     {
         try
         {
-            
             await OnVisualizationCreated.InvokeAsync(ValueTuple.Create(VisualizationId, VisualizationType));
         }
         catch(Exception e)

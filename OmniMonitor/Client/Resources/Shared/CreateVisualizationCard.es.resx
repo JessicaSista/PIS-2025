@@ -282,4 +282,7 @@
   <data name="ModuleType" xml:space="preserve">
     <value>Tipo de Dataset</value>
   </data>
+  <data name="ErrorLoadingPreview" xml:space="preserve">
+    <value>Error al cargar la previsualización: {0}</value>
+  </data>
 </root>

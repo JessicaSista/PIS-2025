@@ -112,6 +112,8 @@
     //Parametros
     [Parameter] public int VisualizationId { get; set; }
 
+    [Parameter] public Visualizacion? Visualization { get; set; }
+
     // Para recargar la gráfica desde el exterior
     [Parameter]
     public int ChartReloadKey
@@ -133,7 +135,6 @@
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
     [Parameter] public bool showCustomizationIcon {get; set;} = false;
     [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
-    [Parameter] public Visualizacion visualization { get; set; } = null;
 
 
     private bool _dataRetrieved = false;
@@ -175,24 +176,33 @@
     {
         try
         {
-            if (visualization == null)
+            if (VisualizationId != 0)
             {
+
                 HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
 
                 if (response.IsSuccessStatusCode)
                 {
                     Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
-                    visualization = cardVisualization;
+                    if (cardVisualization != null)
+                    {
+                        Visualization = cardVisualization;
+                    }
                 }
             }
-            _title = visualization.Nombre;
+            else
+            {
+                Visualization = Visualization!;
+            }
 
-            JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
+            _title = Visualization.Nombre;
+
+            JsonDocument design = JsonDocument.Parse(Visualization.JsonDesign);
             _chartType = design.RootElement.GetProperty("ChartType").ToString();
             _seriesType = MapSeriesType(_chartType);
+            _datasetNames = string.Join(", ", Visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
 
-            _datasetNames = string.Join(", ", visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
-            if (retrieveOnInitialized)
+            if(retrieveOnInitialized)
             {
                 await RetrieveData();
             }
@@ -210,12 +220,12 @@
         var allData = new List<object>();
         try
         {
-            DateTime dateFrom = visualization.FechaDesde;
-            DateTime dateTo = visualization.FechaHasta;
+            DateTime dateFrom = Visualization.FechaDesde;
+            DateTime dateTo = Visualization.FechaHasta;
 
             List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
 
-            foreach (var grupoDataset in visualization.GrupoDatasets)
+            foreach (var grupoDataset in Visualization.GrupoDatasets)
             {
                 try
                 {
@@ -482,13 +492,13 @@
     private async Task OpenEditVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters{["currVisualization"] = visualization,};
+        DialogParameters parameters = new DialogParameters{["currVisualization"] = Visualization,};
         IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualización", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
         {
-            visualization = null;
+            Visualization = null;
             await DownloadVisualization();
             await RetrieveData();
             StateHasChanged();
@@ -505,7 +515,7 @@
             if(response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Visualizacion eliminada", Severity.Success);
-                await OnDeleted.InvokeAsync(visualization == null ? VisualizationId : visualization.IdVisualizacion);
+                await OnDeleted.InvokeAsync(Visualization == null ? VisualizationId : Visualization.IdVisualizacion);
             }
             else
             {

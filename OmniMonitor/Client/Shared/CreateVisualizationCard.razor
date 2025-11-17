@@ -174,9 +174,11 @@
     [Parameter]
     public string? NewDatasetModule { get; set; }
 
+    private CreateVisualizacionRequest _request;
 
     private List<string> _chartTypes = new List<string>() { "line", "bar", "area", "pie", "donut", "heatMap", "radialBar" };
     private string _selectedChartType = "line";
+
     private DateTime? _beginDate { get; set; }
     private TimeSpan? _beginHour { get; set; }
     private DateTime? _endDate { get; set; }
@@ -340,7 +342,7 @@
                 return;
             }
 
-            CreateVisualizacionRequest request = new CreateVisualizacionRequest
+            _request = new CreateVisualizacionRequest
             {
                 Nombre = _visualizationName,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
@@ -348,7 +350,7 @@
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
-                    JsonDiseño = JsonSerializer.Serialize(new Dictionary<string, object>
+                    JsonDiseño = JsonSerializer.Serialize( new Dictionary<string, object>
                     {
                         {"IdInModule", ds.Dataset.Id},
                         { "Multiplier", (double)ds.Multiplier },
@@ -362,8 +364,85 @@
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
                 FechaHasta = _endDate.Value.Date + _endHour.Value
             };
+            try
+            {
+                // Funcion vacía para el callback
+                Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+                var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                    receiver: this,
+                    callback: emptyHandler
+                );
 
-            HttpResponseMessage? response = await Http.PostAsJsonAsync("api/Visualizacion", request);
+                var tempVisualization = new Visualizacion
+                {
+                    Username = username,
+                    Nombre = _visualizationName,
+                    JsonDesign = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
+                    FechaDesde = _beginDate.Value.Date + _beginHour.Value,
+                    FechaHasta = _endDate.Value.Date + _endHour.Value,
+
+                    // Vacio por ser temporal
+                    IdVisualizacion = 0,
+
+                };
+
+                foreach (var datasetConfig in _request.Datasets)
+                {
+                    var nuevoGrupo = new GrupoDataset
+                    {
+                        DatasetId = datasetConfig.DatasetId,
+                        JsonDesign = datasetConfig.JsonDiseño,
+                    };
+                    tempVisualization.GrupoDatasets.Add(nuevoGrupo);
+                    
+                }
+
+                DialogParameters parameters = new DialogParameters
+                {
+                    ["VisualizationType"] = 1,
+                    ["OnVisualizationCreated"] = emptyEventCallback,
+                    ["ChartData"] = tempVisualization
+                };
+
+
+                DialogOptions options = new DialogOptions
+                {
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true
+                };
+
+                IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                    "Preview",
+                    parameters,
+                    options
+                );
+                DialogResult? dialogResult = await dialog.Result;
+
+                if (!dialogResult.Canceled)
+                {
+                    SubmitChart();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(Localizer["ErrorLoadingPreview", ex], Severity.Error);
+            }
+            
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorCreatingVisualization", ex], Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    private async Task SubmitChart()
+    {
+        try
+        {
+            HttpResponseMessage? response = await Http.PostAsJsonAsync("api/Visualizacion", _request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -384,12 +463,13 @@
                 mudDialog.Close(DialogResult.Ok(1));
                 Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
             }
+            
+            
         }
         catch (Exception ex)
         {
             Snackbar.Add(Localizer["ErrorCreatingVisualization", ex], Severity.Error);
         }
-        StateHasChanged();
     }
 
     private void Cancel()

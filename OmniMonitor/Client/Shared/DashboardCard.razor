@@ -74,7 +74,7 @@
         {
 
             <div class="d-flex flex-grow: 1; pa-5">
-                <KpiViewer KpiId="@VisualizationId"/>
+                <KpiViewer @key="_kpiViewerKey" KpiId="@VisualizationId"/>
             </div>
 
         }
@@ -113,6 +113,8 @@
 
     private int _chartViewerKey = 0; //cuando se modifica esta variable, el ChartViewer vuelve a pedir los datos
     private int _chartKey = 0; //cuando se modifica esta variable, la grafica se re-renderiza
+
+    private int _kpiViewerKey = 0; //cuando se modifica esta variable, el KpiViewer vuelve a pedir los datos
 
 
     protected override async Task OnInitializedAsync()
@@ -180,8 +182,7 @@
 
     private async Task OpenEditVisualizationDialog()
     {
-        //Provisionalmente si es KPI no hago nada
-        if (VisualizationType != 2) {
+        if (VisualizationType == 1) {
             DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
             DialogParameters parameters = new DialogParameters
                 {
@@ -207,6 +208,32 @@
                     SnackbarService.Add($"Error actualizando visualizacion: {ex.Message}", Severity.Warning);
                 }
             }
+        }
+        else if (VisualizationType == 2) {
+                DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
+                DialogParameters parameters = new DialogParameters
+                    {
+                        ["KpiId"] = VisualizationId
+                    };
+                IDialogReference? dialog = await DialogService.ShowAsync<EditKpiCard>("Editar KPI", parameters, options);
+                DialogResult? result = await dialog.Result;
+
+                if (result != null && !result.Canceled)
+                {
+                    try
+                    {
+                        _kpiViewerKey++;
+
+                        StateHasChanged();
+
+                        SnackbarService.Add("KPI actualizado", Severity.Success);
+                    }
+                    catch (Exception ex)
+                    {
+                        SnackbarService.Add($"Error actualizando KPI: {ex.Message}", Severity.Warning);
+                    }
+                }
+            
         }
     }
 

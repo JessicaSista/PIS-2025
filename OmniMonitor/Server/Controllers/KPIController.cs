@@ -141,6 +141,49 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Calcula el valor de un KPI sin crearlo en la base de datos.
+        /// </summary>
+        /// <param name="kpiData">Datos del KPI para calcular.</param>
+        /// <returns>Devuelve el valor calculado del KPI.</returns>
+        [HttpPost("calculate")]
+        [RequirePermission("Kpis.View")]
+        [ProducesResponseType(typeof(KpiResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<KpiResponse>> CalculateKpiData([FromBody] KpiRequest kpiData)
+        {
+            try
+            {
+                if (kpiData == null)
+                {
+                    return BadRequest("Los datos del KPI son requeridos.");
+                }
+
+                // Validar token y obtener usuario
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                // Calcular el valor del KPI sin guardarlo
+                KpiResponse kpiValue = await _kpiService.CalculateKpiDataAsync(kpiData, username);
+
+                return Ok(kpiValue);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "CalculateKpiData: argument error");
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "CalculateKpiData: unexpected error");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
         [AllowAnonymous]
         [HttpGet("getKpiSinToken")]
         [ProducesResponseType(typeof(KpiResponse), 200)]
