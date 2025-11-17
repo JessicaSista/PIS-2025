@@ -1210,15 +1210,17 @@ public class ReportService : IReportService
         if (!report.IsActive)
             return false;
 
+        var scheduleType = (report.ScheduleType ?? "").Trim().ToUpperInvariant();
+
         if (report.LastExecution.HasValue)
         {
             var lastLocal = TimeZoneInfo.ConvertTimeFromUtc(report.LastExecution.Value, tz);
 
-            if (report.ScheduleType != "ADVANCED" && lastLocal.Date == localNow.Date)
+            if (scheduleType != "ADVANCED" && lastLocal.Date == localNow.Date)
                 return false;
         }
 
-        switch (report.ScheduleType)
+        switch (scheduleType)
         {
             case "DAILY":
                 return localNow.TimeOfDay >= TimeSpan.Parse(report.SendAtLocalTime);
