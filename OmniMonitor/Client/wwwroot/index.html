@@ -71,6 +71,37 @@
     document.body.classList.add(themeClass);
 
 
+    window.downloadFileFromByteArray = (options) => {
+        if (!options || !options.base64Data) {
+            return;
+        }
+
+        try {
+            const byteCharacters = atob(options.base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: options.contentType || "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = options.fileName || "download";
+            anchor.style.display = "none";
+
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("downloadFileFromByteArray failed", error);
+        }
+    };
+
     window.equalizeCardHeights = () => {
         const cards = document.querySelectorAll('.dataset-card, .kpi-card');
         let max = 0;
