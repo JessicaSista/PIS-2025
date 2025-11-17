@@ -381,7 +381,6 @@ namespace OmniMonitor.Server.Controllers
                 if (request.IsDataset == "N" && request.Filters != null && request.Filters.Any())
                 {
                     // Validar filtros ANTES de actualizar
-                    var username = User.Identity?.Name;
                     if (string.IsNullOrWhiteSpace(username))
                         return BadRequest("Usuario no encontrado.");
 
