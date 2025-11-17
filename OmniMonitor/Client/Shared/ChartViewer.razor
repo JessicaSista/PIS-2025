@@ -200,7 +200,14 @@
             JsonDocument design = JsonDocument.Parse(Visualization.JsonDesign);
             _chartType = design.RootElement.GetProperty("ChartType").ToString();
             _seriesType = MapSeriesType(_chartType);
-            _datasetNames = string.Join(", ", Visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+            if (ShowDatasetsInfo)
+            {
+                _datasetNames = string.Join(", ", Visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+            }
+            else
+            {
+                _datasetNames = string.Empty;
+            }
 
             if(retrieveOnInitialized)
             {

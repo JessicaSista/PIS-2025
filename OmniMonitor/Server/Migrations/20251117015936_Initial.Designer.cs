@@ -12,8 +12,8 @@ using OmniMonitor.Server.Context;
 namespace OmniMonitor.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251115041656_inicial")]
-    partial class inicial
+    [Migration("20251117015936_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,21 +33,12 @@ namespace OmniMonitor.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<string>("JoinType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("LeftOperandId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("RightOperandId")
                         .HasColumnType("int");
@@ -64,43 +55,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("RightOperandId");
 
                     b.ToTable("CrossModuleJoins");
-                });
-
-            modelBuilder.Entity("DatasetReports", b =>
-                {
-                    b.Property<int>("ReportId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DatasetsOfReportsId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ReportId", "DatasetsOfReportsId");
-
-                    b.HasIndex("DatasetsOfReportsId");
-
-                    b.ToTable("DatasetReports");
-                });
-
-            modelBuilder.Entity("DatasetsOfReports", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ModuleType")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<int>("id_dataset")
-                        .HasMaxLength(256)
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DatasetsOfReports");
                 });
 
             modelBuilder.Entity("JoinOperand", b =>
@@ -383,27 +337,6 @@ namespace OmniMonitor.Server.Migrations
                     b.HasIndex("DatasetAMId");
 
                     b.ToTable("DatasetAsset");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DatasetId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Id_Category")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DatasetId");
-
-                    b.ToTable("DatasetCategory");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
@@ -916,6 +849,8 @@ namespace OmniMonitor.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("DatasetId");
+
                     b.ToTable("Kpi");
                 });
 
@@ -1129,6 +1064,14 @@ namespace OmniMonitor.Server.Migrations
                             Description = "Exportar reportes",
                             Module = "Reports",
                             Name = "Reports.Export"
+                        },
+                        new
+                        {
+                            Id = 52,
+                            Action = "Execute",
+                            Description = "Ejecutar reportes",
+                            Module = "Reports",
+                            Name = "Reports.Execute"
                         },
                         new
                         {
@@ -1553,174 +1496,180 @@ namespace OmniMonitor.Server.Migrations
                         new
                         {
                             Id = 23,
-                            PermissionId = 23,
+                            PermissionId = 52,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 24,
-                            PermissionId = 24,
+                            PermissionId = 23,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 25,
-                            PermissionId = 25,
+                            PermissionId = 24,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 26,
-                            PermissionId = 26,
+                            PermissionId = 25,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 27,
-                            PermissionId = 27,
+                            PermissionId = 26,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 28,
-                            PermissionId = 28,
+                            PermissionId = 27,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 29,
-                            PermissionId = 29,
+                            PermissionId = 28,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 30,
-                            PermissionId = 30,
+                            PermissionId = 29,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 31,
-                            PermissionId = 31,
+                            PermissionId = 30,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 32,
-                            PermissionId = 32,
+                            PermissionId = 31,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 33,
-                            PermissionId = 33,
+                            PermissionId = 32,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 34,
-                            PermissionId = 34,
+                            PermissionId = 33,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 35,
-                            PermissionId = 35,
+                            PermissionId = 34,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 36,
-                            PermissionId = 36,
+                            PermissionId = 35,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 37,
-                            PermissionId = 37,
+                            PermissionId = 36,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 38,
-                            PermissionId = 38,
+                            PermissionId = 37,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 39,
-                            PermissionId = 39,
+                            PermissionId = 38,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 40,
-                            PermissionId = 40,
+                            PermissionId = 39,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 41,
-                            PermissionId = 41,
+                            PermissionId = 40,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 42,
-                            PermissionId = 42,
+                            PermissionId = 41,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 43,
-                            PermissionId = 43,
+                            PermissionId = 42,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 44,
-                            PermissionId = 44,
+                            PermissionId = 43,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 45,
-                            PermissionId = 45,
+                            PermissionId = 44,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 46,
-                            PermissionId = 46,
+                            PermissionId = 45,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 47,
-                            PermissionId = 47,
+                            PermissionId = 46,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 48,
-                            PermissionId = 48,
+                            PermissionId = 47,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 49,
-                            PermissionId = 49,
+                            PermissionId = 48,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 50,
-                            PermissionId = 50,
+                            PermissionId = 49,
                             RoleId = 1
                         },
                         new
                         {
                             Id = 51,
+                            PermissionId = 50,
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            Id = 52,
                             PermissionId = 51,
                             RoleId = 1
                         });
@@ -1920,6 +1869,61 @@ namespace OmniMonitor.Server.Migrations
                     b.ToTable("Visualizaciones");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.ScheduledReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdvancedRule")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("IntervalMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastExecution")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RecipientsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ReportId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScheduleType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SendAtLocalTime")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ScheduledReports");
+                });
+
             modelBuilder.Entity("Report", b =>
                 {
                     b.Property<int>("Id")
@@ -1991,25 +1995,6 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("RightOperand");
                 });
 
-            modelBuilder.Entity("DatasetReports", b =>
-                {
-                    b.HasOne("DatasetsOfReports", "DatasetsOfReports")
-                        .WithMany()
-                        .HasForeignKey("DatasetsOfReportsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Report", "Report")
-                        .WithMany("DatasetsReports")
-                        .HasForeignKey("ReportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DatasetsOfReports");
-
-                    b.Navigation("Report");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.User", null)
@@ -2079,17 +2064,6 @@ namespace OmniMonitor.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("DatasetAM");
-                });
-
-            modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetCategory", b =>
-                {
-                    b.HasOne("OmniMonitor.Shared.Dtos.DatasetEM", "Dataset")
-                        .WithMany("DatasetCategory")
-                        .HasForeignKey("DatasetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dataset");
                 });
 
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.DatasetDevice", b =>
@@ -2272,6 +2246,17 @@ namespace OmniMonitor.Server.Migrations
                     b.Navigation("Visualizacion");
                 });
 
+            modelBuilder.Entity("OmniMonitor.Shared.Dtos.Kpi", b =>
+                {
+                    b.HasOne("OmniMonitor.Shared.Dtos.Datasets", "Dataset")
+                        .WithMany()
+                        .HasForeignKey("DatasetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Dataset");
+                });
+
             modelBuilder.Entity("OmniMonitor.Shared.Dtos.RolePermission", b =>
                 {
                     b.HasOne("OmniMonitor.Shared.Dtos.Permission", "Permission")
@@ -2366,8 +2351,6 @@ namespace OmniMonitor.Server.Migrations
                 {
                     b.Navigation("DatasetAlerts");
 
-                    b.Navigation("DatasetCategory");
-
                     b.Navigation("DatasetEvents");
 
                     b.Navigation("DatasetExtensions");
@@ -2431,8 +2414,6 @@ namespace OmniMonitor.Server.Migrations
 
             modelBuilder.Entity("Report", b =>
                 {
-                    b.Navigation("DatasetsReports");
-
                     b.Navigation("ReportJoins");
                 });
 #pragma warning restore 612, 618
