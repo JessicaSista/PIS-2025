@@ -183,6 +183,12 @@ public class SondaAMService : ISondaAMService
         if (string.IsNullOrWhiteSpace(responseBody))
             return new List<StockDto>();
 
+        // Log temporal para debug: ver si la respuesta contiene "categories"
+        if (responseBody.Contains("categor", StringComparison.OrdinalIgnoreCase))
+        {
+            System.Diagnostics.Debug.WriteLine($"[DEBUG GetAllStock] La respuesta contiene 'categor': {responseBody.Substring(0, Math.Min(500, responseBody.Length))}");
+        }
+
         // Detecta si la respuesta es un objeto (con 'results') o una lista directa
         var trimmed = responseBody.TrimStart();
         if (trimmed.StartsWith("{"))

@@ -66,17 +66,17 @@
     </MudStack>
 
     <!-- Toggle para elegir método: Tradicional o con Filtros -->
-    <MudText Typo="Typo.h6" Class="mb-1 mx-4">Método de creación</MudText>
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["MetodoCreacion"]</MudText>
     <MudStack Row Spacing="2" Class="mb-4 mx-4">
         <MudButton Variant="@(imUseFilters ? Variant.Outlined : Variant.Filled)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetImMethod(false)">
-            Método Tradicional
+            @Localizer["Metodo"]
         </MudButton>
         <MudButton Variant="@(imUseFilters ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetImMethod(true)">
-            Método con Filtros
+            @Localizer["MetodoFiltros"]
         </MudButton>
     </MudStack>
 
@@ -177,10 +177,10 @@
         <MudStack Row Spacing="2" Class="mb-1 mx-4">
             <MudButton Variant="@(imMode == 1 ? Variant.Filled : Variant.Outlined)" 
                        Color="MudBlazor.Color.Primary" 
-                       OnClick="() => SetImMode(1)">Device</MudButton>
+                       OnClick="() => SetImMode(1)">@Localizer["Dispositivo"]</MudButton>
             <MudButton Variant="@(imMode == 2 ? Variant.Filled : Variant.Outlined)" 
                        Color="MudBlazor.Color.Primary" 
-                       OnClick="() => SetImMode(2)">Source</MudButton>
+                       OnClick="() => SetImMode(2)">@Localizer["Fuente"]</MudButton>
             <MudButton Variant="@(imMode == 3 ? Variant.Filled : Variant.Outlined)" 
                        Color="MudBlazor.Color.Primary" 
                        OnClick="() => SetImMode(3)">Sensor</MudButton>
@@ -190,7 +190,7 @@
         {
             <!-- Sistema de Filtros -->
             <MudStack Class="mb-4 mx-4">
-                <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
                 
                 @if (imFilters.Count > 0)
                 {
@@ -214,7 +214,7 @@
                           Variant="Variant.Outlined" 
                           Color="MudBlazor.Color.Primary"
                           OnClick="OpenImFilterModal">
-                    Agregar Filtro
+                    @Localizer["AgregarFiltro"]
                 </MudButton>
             </MudStack>
         }
@@ -266,7 +266,7 @@
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
             @if (amFilters.Count > 0)
             {
@@ -280,7 +280,7 @@
                                 OnClose="() => RemoveFilter(filter)"
                                 CloseIcon="@Icons.Material.Filled.Close"
                                 Class="ma-1">
-                            <strong>@filter.AttributeName</strong>&nbsp;@GetFilterTypeDisplayName(filter.Type)&nbsp;@GetFilterValueDisplay(filter)
+                            @RenderFilterDisplay(filter)
                         </MudChip>
                     }
                 </MudPaper>
@@ -290,7 +290,7 @@
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -333,15 +333,15 @@
 
     <!-- Toggle de modo: Eventos, Noticias -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
-        <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(1)">Eventos</MudButton>
-        <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(2)">Noticias</MudButton>
+        <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(1)">@Localizer["Eventos"]</MudButton>
+        <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(2)">@Localizer["Noticias"]</MudButton>
     </MudStack>
 
     @if (umMode == 1 || umMode == 2)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
             @if (umFilters.Count > 0)
             {
@@ -365,7 +365,7 @@
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenUmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -408,16 +408,16 @@
 
     <!-- Toggle de modo: Alertas, Eventos, Extensiones -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
-        <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(1)">Alertas</MudButton>
-        <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(2)">Eventos</MudButton>
-        <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(3)">Extensiones</MudButton>
+        <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(1)">@Localizer["Alertas"]</MudButton>
+        <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(2)">@Localizer["Eventos"]</MudButton>
+        <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(3)">@Localizer["Extensiones"]</MudButton>
     </MudStack>
 
     @if (emMode == 1 || emMode == 2 || emMode == 3)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
             @if (emFilters.Count > 0)
             {
@@ -441,7 +441,7 @@
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenEmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -644,7 +644,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -728,9 +728,41 @@
         }
         else if (filter.Type == FilterType.In)
         {
-            if (filter.Condition is List<object> list)
+            // Manejar JsonElement (cuando viene de JSON deserializado)
+            if (filter.Condition is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                return $"({string.Join(", ", list)})";
+                var values = je.EnumerateArray()
+                    .Select(e => e.GetRawText().Trim('"'))
+                    .ToList();
+                return $"({string.Join(", ", values)})";
+            }
+            // Manejar List<string> (cuando viene directamente del modal)
+            else if (filter.Condition is List<string> stringList)
+            {
+                return $"({string.Join(", ", stringList)})";
+            }
+            // Manejar IEnumerable<string>
+            else if (filter.Condition is IEnumerable<string> stringEnumerable)
+            {
+                return $"({string.Join(", ", stringEnumerable)})";
+            }
+            // Manejar List<object>
+            else if (filter.Condition is List<object> objectList)
+            {
+                var stringValues = objectList.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar Array
+            else if (filter.Condition is Array arr)
+            {
+                var stringValues = arr.Cast<object>().Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar IEnumerable<object>
+            else if (filter.Condition is IEnumerable<object> enumerable)
+            {
+                var stringValues = enumerable.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
             }
             return filter.Condition.ToString() ?? "";
         }
@@ -1372,7 +1404,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1520,7 +1552,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1681,7 +1713,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)

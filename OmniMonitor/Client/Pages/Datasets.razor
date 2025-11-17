@@ -39,34 +39,8 @@
                   Variant="Variant.Outlined"
                   Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Filled.Search"
-                  Class="flex-grow-1 mr-3" />
-
-    <MudButton Variant="Variant.Outlined"
-               Color="MudBlazor.Color.Secondary"
-               StartIcon="@Icons.Material.Filled.FilterList"
-               Class="filter-button">
-        <span class="button-text-filter">@Localizer["Filtros"]</span>
-    </MudButton>
+                  Class="flex-grow-1" />
 </MudStack>
-
-<style>
-    @@media (max-width: 768px) {
-        .button-text-filter {
-            display: none !important;
-            width: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
- 
-        .filter-button .mud-button-icon-start,
-        .filter-button .mud-button-icon-start svg {
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin: 0 auto !important;
-        }
-    }
-</style>
 
 <MudContainer Fixed="true" Class="pl-4 pr-6">
     <MudGrid Spacing="3">

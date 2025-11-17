@@ -1,19 +1,21 @@
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
 @using Blazored.LocalStorage
+@using Microsoft.Extensions.Localization
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
+@inject IStringLocalizer<OmniMonitor.Client.Pages.Datasets> Localizer
 
 <MudDialog>
     <DialogContent>
         <MudContainer Style="max-width: 600px;">
-            <MudText Typo="Typo.h6" Class="mb-4">Crear Filtro</MudText>
+            <MudText Typo="Typo.h6" Class="mb-4">@Localizer["CrearFiltro"]</MudText>
 
             <!-- Select de Atributo -->
             <MudSelect T="string"
                        Value="@selectedAttribute"
                        ValueChanged="@OnAttributeChanged"
-                       Label="Atributo"
+                       Label="@Localizer["Atributo"]"
                        Variant="Variant.Outlined"
                        Required="true"
                        Class="mb-3 dark-field">
@@ -28,7 +30,7 @@
                 <!-- Select de Tipo de Filtro -->
                 <MudSelect T="FilterType"
                            @bind-Value="selectedFilterType"
-                           Label="Tipo de Filtro"
+                           Label="@Localizer["TipoDeFiltro"]"
                            Variant="Variant.Outlined"
                            Required="true"
                            Class="mb-3 dark-field">
@@ -44,7 +46,7 @@
                     @if (GetCurrentValueType() == FilterValueType.String)
                     {
                         <MudTextField @bind-Value="stringValue"
-                                     Label="Valor"
+                                     Label="@Localizer["Valor"]"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      Class="mb-3 dark-field" />
@@ -53,7 +55,7 @@
                     {
                         <MudNumericField T="double?" 
                                          @bind-Value="numberValue"
-                                         Label="Valor"
+                                         Label="@Localizer["Valor"]"
                                          Variant="Variant.Outlined"
                                          Required="true"
                                          Class="mb-3 dark-field" />
@@ -61,7 +63,7 @@
                     else if (GetCurrentValueType() == FilterValueType.Date)
                     {
                         <MudDatePicker @bind-Date="dateValue"
-                                      Label="Valor"
+                                      Label="@Localizer["Valor"]"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       Class="mb-3 dark-field" />
@@ -71,7 +73,7 @@
                         <MudSelect T="string"
                                    SelectedValues="selectedEnumValues"
                                    SelectedValuesChanged="OnEnumValuesChanged"
-                                   Label="Valores"
+                                   Label="@Localizer["Valores"]"
                                    Variant="Variant.Outlined"
                                    Required="true"
                                    MultiSelection="true"
@@ -84,7 +86,7 @@
                             else
                             {
                                 <MudSelectItem Value="@SELECT_ALL_MARKER">
-                                    <strong>@(AreAllSelected() ? "Deseleccionar Todos" : "Seleccionar Todos")</strong>
+                                    <strong>@(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])</strong>
                                 </MudSelectItem>
                                 @foreach (var option in enumOptions)
                                 {
@@ -95,7 +97,7 @@
                         @if (enumOptions.Count > 0)
                         {
                             <MudButton Variant="Variant.Text" Size="MudBlazor.Size.Small" OnClick="ToggleSelectAll" Class="mt-2">
-                                @(AreAllSelected() ? "Deseleccionar Todos" : "Seleccionar Todos")
+                                @(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])
                             </MudButton>
                         }
                         @if (enumOptions.Count == 0 && !string.IsNullOrEmpty(selectedAttribute))
@@ -109,7 +111,7 @@
                     {
                         <MudSelect T="bool?"
                                    @bind-Value="boolValue"
-                                   Label="Valor"
+                                   Label="@Localizer["Valor"]"
                                    Variant="Variant.Outlined"
                                    Required="true"
                                    Class="mb-3 dark-field">
@@ -125,13 +127,13 @@
                     {
                         <MudNumericField T="double?" 
                                          @bind-Value="numberValueFrom"
-                                         Label="Valor Desde"
+                                         Label="@Localizer["Desde"]"
                                          Variant="Variant.Outlined"
                                          Required="true"
                                          Class="mb-3 dark-field" />
                         <MudNumericField T="double?" 
                                          @bind-Value="numberValueTo"
-                                         Label="Valor Hasta"
+                                         Label="@Localizer["Hasta"]"
                                          Variant="Variant.Outlined"
                                          Required="true"
                                          Class="mb-3 dark-field" />
@@ -139,12 +141,12 @@
                     else if (GetCurrentValueType() == FilterValueType.Date)
                     {
                         <MudDatePicker @bind-Date="dateValueFrom"
-                                      Label="Valor Desde"
+                                      Label="@Localizer["Desde"]"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       Class="mb-3 dark-field" />
                         <MudDatePicker @bind-Date="dateValueTo"
-                                      Label="Valor Hasta"
+                                      Label="@Localizer["Hasta"]"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       Class="mb-3 dark-field" />
@@ -158,7 +160,7 @@
                     @if (GetCurrentValueType() == FilterValueType.String)
                     {
                         <MudTextField @bind-Value="inValuesString"
-                                     Label="Valores"
+                                     Label="@Localizer["Valores"]"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      HelperText="Ejemplo: valor1, valor2, valor3"
@@ -167,7 +169,7 @@
                     else if (GetCurrentValueType() == FilterValueType.Number)
                     {
                         <MudTextField @bind-Value="inValuesString"
-                                     Label="Valores"
+                                     Label="@Localizer["Valores"]"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      HelperText="Ejemplo: 1, 2, 3"
@@ -178,8 +180,8 @@
         </MudContainer>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(!CanSave)">Guardar</MudButton>
+        <MudButton OnClick="Cancel">@Localizer["Cancelar"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(!CanSave)">@Localizer["Guardar"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -350,15 +352,15 @@
     {
         return type switch
         {
-            FilterType.Equals => "Igual a",
-            FilterType.NotEquals => "Diferente de",
-            FilterType.GreaterThan => "Mayor que",
-            FilterType.LessThan => "Menor que",
-            FilterType.Contains => "Contiene",
+            FilterType.Equals => Localizer["IgualA"],
+            FilterType.NotEquals => Localizer["DiferenteDe"],
+            FilterType.GreaterThan => Localizer["MayorQue"],
+            FilterType.LessThan => Localizer["MenorQue"],
+            FilterType.Contains => Localizer["Contiene"],
             FilterType.StartsWith => "Comienza con",
             FilterType.EndsWith => "Termina con",
-            FilterType.In => "En (lista)",
-            FilterType.Between => "Entre",
+            FilterType.In => @Localizer["EnLista"],
+            FilterType.Between => @Localizer["Entre"],
             _ => type.ToString()
         };
     }
@@ -367,11 +369,11 @@
     {
         return type switch
         {
-            FilterValueType.String => "Texto",
-            FilterValueType.Number => "Número",
-            FilterValueType.Date => "Fecha",
-            FilterValueType.Enum => "Enum",
-            FilterValueType.Boolean => "Booleano",
+            FilterValueType.String => Localizer["Texto"],
+            FilterValueType.Number => Localizer["Numero"],
+            FilterValueType.Date => Localizer["Fecha"],
+            FilterValueType.Enum => Localizer["Enum"],
+            FilterValueType.Boolean => Localizer["Booleano"],
             _ => type.ToString()
         };
     }

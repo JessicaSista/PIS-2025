@@ -84,11 +84,11 @@ else if (selectedTipo == "Insight Monitor")
             <MudButton Variant="@(imMode == 1 ? Variant.Filled : Variant.Outlined)" 
                        Color="MudBlazor.Color.Primary" 
                        OnClick="() => SetImMode(1)"
-                       Disabled="@isEditingIM">Device</MudButton>
+                       Disabled="@isEditingIM">@Localizer["Dispositivo"]</MudButton>
             <MudButton Variant="@(imMode == 2 ? Variant.Filled : Variant.Outlined)" 
                        Color="MudBlazor.Color.Primary" 
                        OnClick="() => SetImMode(2)"
-                       Disabled="@isEditingIM">Source</MudButton>
+                       Disabled="@isEditingIM">@Localizer["Fuente"]</MudButton>
             <MudButton Variant="@(imMode == 3 ? Variant.Filled : Variant.Outlined)" 
                        Color="MudBlazor.Color.Primary" 
                        OnClick="() => SetImMode(3)"
@@ -99,7 +99,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             <!-- Sistema de Filtros -->
             <MudStack Class="mb-4 mx-4">
-                <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
                 
                 @if (imFilters.Count > 0)
                 {
@@ -123,7 +123,7 @@ else if (selectedTipo == "Insight Monitor")
                           Variant="Variant.Outlined" 
                           Color="MudBlazor.Color.Primary"
                           OnClick="OpenImFilterModal">
-                    Agregar Filtro
+                    @Localizer["AgregarFiltro"]
                 </MudButton>
             </MudStack>
         }
@@ -143,93 +143,93 @@ else if (selectedTipo == "Insight Monitor")
     else
     {
         <!-- Modo Original -->
-        <!-- Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
-        <MudStack Row Spacing="2" Class="mb-4 mx-4">
-            <!-- Fuente -->
-            <div style="width: 25%;">
-                <MudSelect T="int?"
-                           Value="@selectedSourceId"
-                           ValueChanged="@OnSourceChanged"
-                           Variant="Variant.Outlined"
-                           Clearable
-                           FullWidth="true"
-                           Label="@Localizer["SeleccionarFuente"]"
-                           Class="@($"dark-field")"
-                           Required="true">
-                    @foreach (var source in sources)
-                    {
-                        <MudSelectItem Value="@((int?)source.Id)">@source.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-
-            <!-- Grupo -->
-            <div style="width: 25%;">
-                <MudSelect T="int?"
-                           Value="@selectedGroupId"
-                           ValueChanged="@OnGroupChanged"
-                           Variant="Variant.Outlined"
-                           Clearable
-                           FullWidth="true"
-                           Label="@Localizer["SeleccionarGrupo"]"
-                           Class="dark-field">
-                    @foreach (var group in deviceGroups)
-                    {
-                        <MudSelectItem Value="@((int?)group.Id)">@group.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-
-            <!-- Dispositivo -->
-            <div style="width: 25%;">
-                <MudSelect T="int"
-                           SelectedValues="selectedDeviceIds"
-                           SelectedValuesChanged="OnSelectedDevicesChanged"
-                           Variant="Variant.Outlined"
-                           MultiSelection="true"
-                           Clearable
-                           FullWidth="true"
-                           Label="@Localizer["SeleccionarDispositivo"]"
-                           Class="dark-field"
-                           Disabled="@(!selectedSourceId.HasValue)"
-                           ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
-                    @foreach (var device in devices)
-                    {
-                        <MudSelectItem T="int" Value="@device.Id">@device.Name</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-
-            <!-- Sensor -->
-            <div style="width: 25%;">
-                <MudSelect T="string"
-                           @bind-Value="selectedSensor"
-                           Variant="Variant.Outlined"
-                           Clearable
-                           FullWidth="true"
-                           Label="@Localizer["SeleccionarSensor"]"
-                           Class="@($"dark-field")"
-                           Disabled="@(!selectedSourceId.HasValue)"
-                           Required="true">
-                    @foreach (var sensor in sensores)
-                    {
-                        <MudSelectItem Value="@sensor">@sensor</MudSelectItem>
-                    }
-                </MudSelect>
-            </div>
-        </MudStack>
-
-        <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
-            <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
-                @Localizer["Cancelar"]
-            </MudButton>
-            <MudButton OnClick="GuardarCambios"
-                       Variant="Variant.Filled"
-                       Color="MudBlazor.Color.Primary"
-                       Disabled="@(!selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
-                @Localizer["GuardarCambios"]
-            </MudButton>
+    <!-- Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
+    <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <!-- Fuente -->
+        <div style="width: 25%;">
+            <MudSelect T="int?"
+                       Value="@selectedSourceId"
+                       ValueChanged="@OnSourceChanged"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarFuente"]"
+                       Class="@($"dark-field")"
+                       Required="true">
+                @foreach (var source in sources)
+                {
+                    <MudSelectItem Value="@((int?)source.Id)">@source.Name</MudSelectItem>
+                }
+            </MudSelect>
         </div>
+
+        <!-- Grupo -->
+        <div style="width: 25%;">
+            <MudSelect T="int?"
+                       Value="@selectedGroupId"
+                       ValueChanged="@OnGroupChanged"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarGrupo"]"
+                       Class="dark-field">
+                @foreach (var group in deviceGroups)
+                {
+                    <MudSelectItem Value="@((int?)group.Id)">@group.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Dispositivo -->
+        <div style="width: 25%;">
+            <MudSelect T="int"
+                       SelectedValues="selectedDeviceIds"
+                       SelectedValuesChanged="OnSelectedDevicesChanged"
+                       Variant="Variant.Outlined"
+                       MultiSelection="true"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarDispositivo"]"
+                       Class="dark-field"
+                       Disabled="@(!selectedSourceId.HasValue)"
+                       ToStringFunc="@(id => devices.FirstOrDefault(d => d.Id == id)?.Name ?? id.ToString())">
+                @foreach (var device in devices)
+                {
+                    <MudSelectItem T="int" Value="@device.Id">@device.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+
+        <!-- Sensor -->
+        <div style="width: 25%;">
+            <MudSelect T="string"
+                       @bind-Value="selectedSensor"
+                       Variant="Variant.Outlined"
+                       Clearable
+                       FullWidth="true"
+                       Label="@Localizer["SeleccionarSensor"]"
+                       Class="@($"dark-field")"
+                       Disabled="@(!selectedSourceId.HasValue)"
+                       Required="true">
+                @foreach (var sensor in sensores)
+                {
+                    <MudSelectItem Value="@sensor">@sensor</MudSelectItem>
+                }
+            </MudSelect>
+        </div>
+    </MudStack>
+
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+            @Localizer["Cancelar"]
+        </MudButton>
+        <MudButton OnClick="GuardarCambios"
+                   Variant="Variant.Filled"
+                   Color="MudBlazor.Color.Primary"
+                   Disabled="@(!selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
+            @Localizer["GuardarCambios"]
+        </MudButton>
+    </div>
     }
 }
 
@@ -279,7 +279,7 @@ else if (selectedTipo == "Insight Monitor")
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
             @if (amFilters.Count > 0)
             {
@@ -303,7 +303,7 @@ else if (selectedTipo == "Insight Monitor")
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -352,18 +352,18 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetUmMode(1)"
-                   Disabled="@isEditingUM">Eventos</MudButton>
+                   Disabled="@isEditingUM">@Localizer["Eventos"]</MudButton>
         <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetUmMode(2)"
-                   Disabled="@isEditingUM">Noticias</MudButton>
+                   Disabled="@isEditingUM">@Localizer["Noticias"]</MudButton>
     </MudStack>
 
     @if (umMode == 1 || umMode == 2)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
             @if (umFilters.Count > 0)
             {
@@ -387,7 +387,7 @@ else if (selectedTipo == "Insight Monitor")
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenUmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -436,22 +436,22 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetEmMode(1)"
-                   Disabled="@isEditingEM">Alertas</MudButton>
+                   Disabled="@isEditingEM">@Localizer["Alertas"]</MudButton>
         <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetEmMode(2)"
-                   Disabled="@isEditingEM">Eventos</MudButton>
+                   Disabled="@isEditingEM">@Localizer["Eventos"]</MudButton>
         <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetEmMode(3)"
-                   Disabled="@isEditingEM">Extensiones</MudButton>
+                   Disabled="@isEditingEM">@Localizer["Extensiones"]</MudButton>
     </MudStack>
 
     @if (emMode == 1 || emMode == 2 || emMode == 3)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
             @if (emFilters.Count > 0)
             {
@@ -475,7 +475,7 @@ else if (selectedTipo == "Insight Monitor")
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenEmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -892,20 +892,20 @@ else if (selectedTipo == "Insight Monitor")
                     else
                     {
                         // Dataset original (método tradicional)
-                        selectedSourceId = existente.Id_Source;
-                        selectedGroupId = existente.Id_Group;
-                        selectedSensor = existente.SensorName ?? string.Empty;
+                    selectedSourceId = existente.Id_Source;
+                    selectedGroupId = existente.Id_Group;
+                    selectedSensor = existente.SensorName ?? string.Empty;
 
-                        selectedDeviceIds.Clear();
-                        if (existente.DatasetDevices != null && existente.DatasetDevices.Any())
-                        {
-                            selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
-                        }
-                        await Task.WhenAll(
-                            LoadSourcesAndGroups(),
-                            LoadDevices(),
-                            LoadSensors()
-                        );
+                    selectedDeviceIds.Clear();
+                    if (existente.DatasetDevices != null && existente.DatasetDevices.Any())
+                    {
+                        selectedDeviceIds = new HashSet<int>(existente.DatasetDevices.Select(dd => dd.Id_device));
+                    }
+                    await Task.WhenAll(
+                        LoadSourcesAndGroups(),
+                        LoadDevices(),
+                        LoadSensors()
+                    );
                     }
                     
                     return true;
@@ -1351,13 +1351,13 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
         {
             amFilters.Add(filter);
-            StateHasChanged();
+        StateHasChanged();
         }
     }
     
@@ -1435,9 +1435,41 @@ else if (selectedTipo == "Insight Monitor")
         }
         else if (filter.Type == FilterType.In)
         {
-            if (filter.Condition is List<object> list)
+            // Manejar JsonElement (cuando viene de JSON deserializado)
+            if (filter.Condition is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                return $"({string.Join(", ", list)})";
+                var values = je.EnumerateArray()
+                    .Select(e => e.GetRawText().Trim('"'))
+                    .ToList();
+                return $"({string.Join(", ", values)})";
+            }
+            // Manejar List<string> (cuando viene directamente del modal)
+            else if (filter.Condition is List<string> stringList)
+            {
+                return $"({string.Join(", ", stringList)})";
+            }
+            // Manejar IEnumerable<string>
+            else if (filter.Condition is IEnumerable<string> stringEnumerable)
+            {
+                return $"({string.Join(", ", stringEnumerable)})";
+            }
+            // Manejar List<object>
+            else if (filter.Condition is List<object> objectList)
+            {
+                var stringValues = objectList.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar Array
+            else if (filter.Condition is Array arr)
+            {
+                var stringValues = arr.Cast<object>().Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar IEnumerable<object>
+            else if (filter.Condition is IEnumerable<object> enumerable)
+            {
+                var stringValues = enumerable.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
             }
             return filter.Condition.ToString() ?? "";
         }
@@ -1464,7 +1496,7 @@ else if (selectedTipo == "Insight Monitor")
         builder.AddContent(6, GetFilterValueDisplay(filter));
         builder.CloseElement();
     };
-    
+
     private async Task InitializeAMLists()
     {
         try
@@ -1713,10 +1745,10 @@ else if (selectedTipo == "Insight Monitor")
         
         // Cargar atributos disponibles para la entidad seleccionada
         await LoadUmAvailableAttributes();
-        
+
         StateHasChanged();
     }
-    
+
     private async Task LoadUmAvailableAttributes()
     {
         try
@@ -1763,7 +1795,7 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1858,7 +1890,7 @@ else if (selectedTipo == "Insight Monitor")
                     selectedTipo = "Event Manager";
                     addName = existenteEM.Name ?? string.Empty;
                     addDesc = existenteEM.Description ?? string.Empty;
-                    
+
                     // Determinar el modo basado en ContentType
                     if (existenteEM.ContentType == "1") // Alertas
                     {
@@ -1881,13 +1913,13 @@ else if (selectedTipo == "Insight Monitor")
                     
                     // Cargar filtros si existen
                     if (!string.IsNullOrEmpty(existenteEM.Filters))
-                    {
-                        try
-                        {
+    {
+        try
+        {
                             emFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteEM.Filters) ?? new List<FilterCondition>();
-                        }
-                        catch (Exception ex)
-                        {
+        }
+        catch (Exception ex)
+        {
                             emFilters = new List<FilterCondition>();
                         }
                     }
@@ -1979,7 +2011,7 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -2126,7 +2158,7 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)

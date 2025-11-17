@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Shared.Dtos.AM;
 using OmniMonitor.Server.Attributes;
 using System.Collections.Generic;
 using System.Linq;
@@ -111,7 +112,6 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Bundle.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "BundleId", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Supervisor.Name", Tipo = FilterValueType.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Categories.Name", Tipo = FilterValueType.Enum });
                             break;
                     }
                     break;
@@ -313,6 +313,35 @@ namespace OmniMonitor.Server.Controllers
                     .ToList();
                 
                 return Ok(zoneNames);
+            }
+
+            // Caso especial: Device.Name para Asset en AM - obtener todos los devices directamente desde IM
+            // (Los devices en AM son los mismos que en IM, así que los obtenemos desde ahí)
+            if (modulo == "AM" && entidadId == 2 && atributo == "Device.Name")
+            {
+                var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                var deviceNames = allDevices
+                    .Where(d => d != null && !string.IsNullOrWhiteSpace(d.Name))
+                    .Select(d => d.Name)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+                
+                return Ok(deviceNames);
+            }
+
+            // Caso especial: Bundle.Name para Stock en AM - obtener todos los bundles directamente
+            if (modulo == "AM" && entidadId == 3 && atributo == "Bundle.Name")
+            {
+                var allBundles = await _sondaAMService.GetBundles(null, null, null, null, username);
+                var bundleNames = allBundles
+                    .Where(b => b != null && !string.IsNullOrWhiteSpace(b.Name))
+                    .Select(b => b.Name)
+                    .Distinct()
+                    .OrderBy(n => n)
+                    .ToList();
+                
+                return Ok(bundleNames);
             }
 
             // Caso especial: Devices.Name para Source en IM - obtener todos los devices directamente
