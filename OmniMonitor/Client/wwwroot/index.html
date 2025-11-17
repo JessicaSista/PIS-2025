@@ -14,6 +14,16 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <style>
+        .dark-theme {
+            background: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
+            background-repeat: no-repeat;
+            background-size: cover; 
+            background-attachment: fixed;
+        }
+    </style>
+
 </head>
 
 <body>
@@ -38,6 +48,29 @@
 </body>
 
 <script>
+    const themeKey = "currentThemeMode";
+
+    // Leer el valor del localStorage
+    let themePreferenceValue = localStorage.getItem(themeKey);
+
+    // Modo por defecto = oscuro
+    if (!themePreferenceValue) {
+        themePreferenceValue = "1";
+    }
+
+    // Convertir el valor numérico a la string de tema
+    let themeName;
+    if (themePreferenceValue === "0") {
+        themeName = "light"; // 0 = Light
+    } else {
+        themeName = "dark";  // 1 = Dark
+    }
+
+    // Crear y aplicar la clase
+    const themeClass = themeName + '-theme';
+    document.body.classList.add(themeClass);
+
+
     window.equalizeCardHeights = () => {
         const cards = document.querySelectorAll('.dataset-card, .kpi-card');
         let max = 0;
