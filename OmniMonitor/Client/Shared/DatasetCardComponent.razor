@@ -1,7 +1,5 @@
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
-@using Microsoft.Extensions.Localization
-@inject IStringLocalizer<SharedResource> SharedLocalizer
 
 <MudCard Class="dataset-card" @onclick="OnClick" 
          Style="width:100%; background-color:var(--card); border:1px solid #374151; border-radius:12px; cursor:pointer; padding:16px; display:flex; flex-direction:column; height:200px;">
@@ -15,11 +13,6 @@
                                 text-overflow: ellipsis;">@Dataset.Nombre</MudText>
                 <MudText Style="color:var(--card-text-secondary);font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:break-word;">@Description</MudText>
             </MudStack>
-        </MudStack>
-
-        <!-- Footer (actualizado) -->
-        <MudStack Row Justify="Justify.FlexEnd" Style="width:100%; margin-top:auto;">
-            <MudText Style="color:var(--card-text-secondary);font-size:0.7rem;">@SharedLocalizer["Actualizado"] @Dataset.FechaCreacion.ToString("yyyy-MM-dd HH:mm")</MudText>
         </MudStack>
 
     </MudCardContent>

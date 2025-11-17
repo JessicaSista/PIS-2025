@@ -7,6 +7,7 @@ using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Shared.Dtos.AM;
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -58,23 +59,27 @@ namespace OmniMonitor.Server.Controllers
                     req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
                     
-                    var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún asset. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún asset. El dataset no puede crearse sin resultados.");
+                        }
                     }
-                    
-                    // [CREATE AM DATASET] IDs de assets filtrados (log de consola removido).
-                    foreach (var asset in filtrados)
+                    else
                     {
-                        // [CREATE AM DATASET]   - Asset Id (log de consola removido).
+                        // Sin filtros: incluir todo
+                        filtrados = allAssets.Cast<object>();
                     }
                     
                     var assetIds = new List<string>();
-                    foreach (var asset in filtrados)
+                    foreach (var assetObj in filtrados)
                     {
-                        if (asset.Id != null)
+                        if (assetObj is AssetDto asset && asset.Id != null)
                         {
                             var idStr = asset.Id.ToString();
                             if (!string.IsNullOrEmpty(idStr))
@@ -93,28 +98,56 @@ namespace OmniMonitor.Server.Controllers
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
                     
-                    var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allEventTasks.Cast<object>();
                     }
                     
-                    req.Grupo_Event_Task_Instance_Ids = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
+                    req.Grupo_Event_Task_Instance_Ids = filtrados
+                        .OfType<EventTaskInstanceDto>()
+                        .Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0)
+                        .OfType<int>()
+                        .ToList();
                 }
                 else if (req.ContentType == "3") // Stock
                 {
                     req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
                     
-                    var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún Stock. El dataset no puede crearse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún Stock. El dataset no puede crearse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allStocks.Cast<object>();
                     }
                     
-                    req.StockIds = filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList();
+                    req.StockIds = filtrados
+                        .OfType<EventTaskInstanceStockDto>()
+                        .Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0)
+                        .OfType<int>()
+                        .ToList();
                 }
                 else
                 {
@@ -177,20 +210,30 @@ namespace OmniMonitor.Server.Controllers
                     req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
                     
-                    var filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún asset. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún asset. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allAssets.Cast<object>();
                     }
                     
                     if (req.Grupo_Asset_Ids == null) req.Grupo_Asset_Ids = new List<string>();
                     req.Grupo_Asset_Ids.Clear();
                     
                     var assetIds = new List<string>();
-                    foreach (var asset in filtrados)
+                    foreach (var assetObj in filtrados)
                     {
-                        if (asset.Id != null)
+                        if (assetObj is AssetDto asset && asset.Id != null)
                         {
                             var idStr = asset.Id.ToString();
                             if (!string.IsNullOrEmpty(idStr))
@@ -207,34 +250,60 @@ namespace OmniMonitor.Server.Controllers
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
                     
-                    var filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allEventTasks.Cast<object>();
                     }
                     
                     if (req.Grupo_Event_Task_Instance_Ids == null) req.Grupo_Event_Task_Instance_Ids = new List<int>();
                     req.Grupo_Event_Task_Instance_Ids.Clear();
-                    req.Grupo_Event_Task_Instance_Ids.AddRange(filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList());
+                    req.Grupo_Event_Task_Instance_Ids.AddRange(filtrados
+                        .OfType<EventTaskInstanceDto>()
+                        .Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else if (req.ContentType == "3") // Stock
                 {
                     req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
-                    // [EDIT AM DATASET] Total Stocks obtenidos (log de consola removido).
                     
-                    var filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
-                    // [EDIT AM DATASET] Stocks después de filtrar (log de consola removido).
-                    
-                    if (!filtrados.Any())
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
                     {
-                        return BadRequest("El filtro no encontró ningún Stock. El dataset no puede actualizarse sin resultados.");
+                        filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest("El filtro no encontró ningún Stock. El dataset no puede actualizarse sin resultados.");
+                        }
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = allStocks.Cast<object>();
                     }
                     
                     if (req.StockIds == null) req.StockIds = new List<int>();
                     req.StockIds.Clear();
-                    req.StockIds.AddRange(filtrados.Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0).OfType<int>().ToList());
+                    req.StockIds.AddRange(filtrados
+                        .OfType<EventTaskInstanceStockDto>()
+                        .Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0)
+                        .OfType<int>()
+                        .ToList());
                 }
                 else
                 {

@@ -1,19 +1,21 @@
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
 @using Blazored.LocalStorage
+@using Microsoft.Extensions.Localization
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
+@inject IStringLocalizer<OmniMonitor.Client.Pages.Datasets> Localizer
 
 <MudDialog>
     <DialogContent>
         <MudContainer Style="max-width: 600px;">
-            <MudText Typo="Typo.h6" Class="mb-4">Crear Filtro</MudText>
+            <MudText Typo="Typo.h6" Class="mb-4">@Localizer["CrearFiltro"]</MudText>
 
             <!-- Select de Atributo -->
             <MudSelect T="string"
                        Value="@selectedAttribute"
                        ValueChanged="@OnAttributeChanged"
-                       Label="Atributo"
+                       Label="@Localizer["Atributo"]"
                        Variant="Variant.Outlined"
                        Required="true"
                        Class="mb-3 dark-field">
@@ -28,7 +30,7 @@
                 <!-- Select de Tipo de Filtro -->
                 <MudSelect T="FilterType"
                            @bind-Value="selectedFilterType"
-                           Label="Tipo de Filtro"
+                           Label="@Localizer["TipoDeFiltro"]"
                            Variant="Variant.Outlined"
                            Required="true"
                            Class="mb-3 dark-field">
@@ -44,7 +46,7 @@
                     @if (GetCurrentValueType() == FilterValueType.String)
                     {
                         <MudTextField @bind-Value="stringValue"
-                                     Label="Valor"
+                                     Label="@Localizer["Valor"]"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      Class="mb-3 dark-field" />
@@ -53,7 +55,7 @@
                     {
                         <MudNumericField T="double?" 
                                          @bind-Value="numberValue"
-                                         Label="Valor"
+                                         Label="@Localizer["Valor"]"
                                          Variant="Variant.Outlined"
                                          Required="true"
                                          Class="mb-3 dark-field" />
@@ -61,7 +63,7 @@
                     else if (GetCurrentValueType() == FilterValueType.Date)
                     {
                         <MudDatePicker @bind-Date="dateValue"
-                                      Label="Valor"
+                                      Label="@Localizer["Valor"]"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       Class="mb-3 dark-field" />
@@ -69,30 +71,47 @@
                     else if (GetCurrentValueType() == FilterValueType.Enum)
                     {
                         <MudSelect T="string"
-                                   @bind-Value="enumValue"
-                                   Label="Valor"
+                                   SelectedValues="selectedEnumValues"
+                                   SelectedValuesChanged="OnEnumValuesChanged"
+                                   Label="@Localizer["Valores"]"
                                    Variant="Variant.Outlined"
                                    Required="true"
+                                   MultiSelection="true"
                                    Class="mb-3 dark-field"
                                    Disabled="@(enumOptions.Count == 0)">
                             @if (enumOptions.Count == 0)
                             {
-                                <MudSelectItem Value="@((string?)null)" Disabled="true">Cargando valores...</MudSelectItem>
+                                <MudSelectItem Value="@((string?)null)" Disabled="true">No hay valores disponibles</MudSelectItem>
                             }
                             else
                             {
+                                <MudSelectItem Value="@SELECT_ALL_MARKER">
+                                    <strong>@(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])</strong>
+                                </MudSelectItem>
                                 @foreach (var option in enumOptions)
                                 {
                                     <MudSelectItem Value="@option">@option</MudSelectItem>
                                 }
                             }
                         </MudSelect>
+                        @if (enumOptions.Count > 0)
+                        {
+                            <MudButton Variant="Variant.Text" Size="MudBlazor.Size.Small" OnClick="ToggleSelectAll" Class="mt-2">
+                                @(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])
+                            </MudButton>
+                        }
+                        @if (enumOptions.Count == 0 && !string.IsNullOrEmpty(selectedAttribute))
+                        {
+                            <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true">
+                                No se encontraron valores para el atributo "@selectedAttribute". Verifica que los datos tengan valores para este atributo.
+                            </MudAlert>
+                        }
                     }
                     else if (GetCurrentValueType() == FilterValueType.Boolean)
                     {
                         <MudSelect T="bool?"
                                    @bind-Value="boolValue"
-                                   Label="Valor"
+                                   Label="@Localizer["Valor"]"
                                    Variant="Variant.Outlined"
                                    Required="true"
                                    Class="mb-3 dark-field">
@@ -108,13 +127,13 @@
                     {
                         <MudNumericField T="double?" 
                                          @bind-Value="numberValueFrom"
-                                         Label="Valor Desde"
+                                         Label="@Localizer["Desde"]"
                                          Variant="Variant.Outlined"
                                          Required="true"
                                          Class="mb-3 dark-field" />
                         <MudNumericField T="double?" 
                                          @bind-Value="numberValueTo"
-                                         Label="Valor Hasta"
+                                         Label="@Localizer["Hasta"]"
                                          Variant="Variant.Outlined"
                                          Required="true"
                                          Class="mb-3 dark-field" />
@@ -122,26 +141,26 @@
                     else if (GetCurrentValueType() == FilterValueType.Date)
                     {
                         <MudDatePicker @bind-Date="dateValueFrom"
-                                      Label="Valor Desde"
+                                      Label="@Localizer["Desde"]"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       Class="mb-3 dark-field" />
                         <MudDatePicker @bind-Date="dateValueTo"
-                                      Label="Valor Hasta"
+                                      Label="@Localizer["Hasta"]"
                                       Variant="Variant.Outlined"
                                       Required="true"
                                       Class="mb-3 dark-field" />
                     }
                 }
 
-                <!-- Para In, permitir múltiples valores -->
-                @if (selectedFilterType == FilterType.In)
+                <!-- Para In, permitir múltiples valores (solo para String y Number, Enum ya usa select múltiple) -->
+                @if (selectedFilterType == FilterType.In && GetCurrentValueType() != FilterValueType.Enum)
                 {
                     <MudText Typo="Typo.body2" Class="mb-2">Valores (separados por coma):</MudText>
-                    @if (GetCurrentValueType() == FilterValueType.String || GetCurrentValueType() == FilterValueType.Enum)
+                    @if (GetCurrentValueType() == FilterValueType.String)
                     {
                         <MudTextField @bind-Value="inValuesString"
-                                     Label="Valores"
+                                     Label="@Localizer["Valores"]"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      HelperText="Ejemplo: valor1, valor2, valor3"
@@ -150,7 +169,7 @@
                     else if (GetCurrentValueType() == FilterValueType.Number)
                     {
                         <MudTextField @bind-Value="inValuesString"
-                                     Label="Valores"
+                                     Label="@Localizer["Valores"]"
                                      Variant="Variant.Outlined"
                                      Required="true"
                                      HelperText="Ejemplo: 1, 2, 3"
@@ -161,8 +180,8 @@
         </MudContainer>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(!CanSave)">Guardar</MudButton>
+        <MudButton OnClick="Cancel">@Localizer["Cancelar"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(!CanSave)">@Localizer["Guardar"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -172,15 +191,16 @@
     [Parameter] public List<PropiedadEntidadDto> AvailableAttributes { get; set; } = new();
     [Parameter] public string Modulo { get; set; } = string.Empty;
     [Parameter] public int EntidadId { get; set; }
-    [Parameter] public string Token { get; set; } = string.Empty;
 
+    private const string SELECT_ALL_MARKER = "__SELECT_ALL__";
+    
     private List<PropiedadEntidadDto> availableAttributes = new();
     private string selectedAttribute = string.Empty;
     private FilterType selectedFilterType = FilterType.Equals;
     private string stringValue = string.Empty;
     private double? numberValue;
     private DateTime? dateValue;
-    private string enumValue = string.Empty;
+    private HashSet<string> selectedEnumValues = new();
     private bool? boolValue;
     private double? numberValueFrom;
     private double? numberValueTo;
@@ -208,22 +228,34 @@
 
     private async Task LoadEnumOptions()
     {
-        if (string.IsNullOrEmpty(selectedAttribute) || string.IsNullOrEmpty(Token))
+        if (string.IsNullOrEmpty(selectedAttribute))
             return;
 
         try
         {
-            var url = $"api/DatasetFilter/GetAtributoValores?modulo={Uri.EscapeDataString(Modulo)}&entidadId={EntidadId}&atributo={Uri.EscapeDataString(selectedAttribute)}&token={Uri.EscapeDataString(Token)}";
+            enumOptions = new List<string>(); // Limpiar primero
+            var url = $"api/DatasetFilter/GetAtributoValores?modulo={Uri.EscapeDataString(Modulo)}&entidadId={EntidadId}&atributo={Uri.EscapeDataString(selectedAttribute)}";
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
-                var values = await response.Content.ReadFromJsonAsync<List<string>>();
-                enumOptions = values?.Select(v => v?.ToString() ?? string.Empty).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToList() ?? new List<string>();
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var values = System.Text.Json.JsonSerializer.Deserialize<List<string>>(jsonContent, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                enumOptions = values?.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().OrderBy(v => v).ToList() ?? new List<string>();
+            }
+            else
+            {
+                // Si hay error, intentar leer el mensaje de error
+                var errorContent = await response.Content.ReadAsStringAsync();
+                enumOptions = new List<string>();
             }
         }
         catch (Exception ex)
         {
             enumOptions = new List<string>();
+        }
+        finally
+        {
+            StateHasChanged(); // Forzar actualización de la UI
         }
     }
 
@@ -255,13 +287,52 @@
         stringValue = string.Empty;
         numberValue = null;
         dateValue = null;
-        enumValue = string.Empty;
+        selectedEnumValues.Clear();
         boolValue = null;
         numberValueFrom = null;
         numberValueTo = null;
         dateValueFrom = null;
         dateValueTo = null;
         inValuesString = string.Empty;
+    }
+
+    private void ToggleSelectAll()
+    {
+        if (AreAllSelected())
+        {
+            // Si ya están todos seleccionados, deseleccionar todos
+            selectedEnumValues.Clear();
+        }
+        else
+        {
+            // Si no están todos seleccionados, seleccionar todos
+            selectedEnumValues = new HashSet<string>(enumOptions);
+        }
+        StateHasChanged();
+    }
+
+    private bool AreAllSelected()
+    {
+        return enumOptions.Count > 0 && selectedEnumValues.Count == enumOptions.Count && 
+               enumOptions.All(opt => selectedEnumValues.Contains(opt));
+    }
+
+    private async Task OnEnumValuesChanged(IEnumerable<string> values)
+    {
+        var valuesList = values?.ToList() ?? new List<string>();
+        // Remover el marcador SELECT_ALL_MARKER si está presente (es solo un marcador, no un valor real)
+        var cleanValues = new HashSet<string>(valuesList.Where(v => v != SELECT_ALL_MARKER));
+        
+        // Si se seleccionó el marcador, activar Select All
+        if (valuesList.Contains(SELECT_ALL_MARKER))
+        {
+            ToggleSelectAll();
+        }
+        else
+        {
+            selectedEnumValues = cleanValues;
+            StateHasChanged();
+        }
     }
 
     private List<FilterType> GetAvailableFilterTypes(FilterValueType valueType)
@@ -281,15 +352,15 @@
     {
         return type switch
         {
-            FilterType.Equals => "Igual a",
-            FilterType.NotEquals => "Diferente de",
-            FilterType.GreaterThan => "Mayor que",
-            FilterType.LessThan => "Menor que",
-            FilterType.Contains => "Contiene",
+            FilterType.Equals => Localizer["IgualA"],
+            FilterType.NotEquals => Localizer["DiferenteDe"],
+            FilterType.GreaterThan => Localizer["MayorQue"],
+            FilterType.LessThan => Localizer["MenorQue"],
+            FilterType.Contains => Localizer["Contiene"],
             FilterType.StartsWith => "Comienza con",
             FilterType.EndsWith => "Termina con",
-            FilterType.In => "En (lista)",
-            FilterType.Between => "Entre",
+            FilterType.In => @Localizer["EnLista"],
+            FilterType.Between => @Localizer["Entre"],
             _ => type.ToString()
         };
     }
@@ -298,11 +369,11 @@
     {
         return type switch
         {
-            FilterValueType.String => "Texto",
-            FilterValueType.Number => "Número",
-            FilterValueType.Date => "Fecha",
-            FilterValueType.Enum => "Enum",
-            FilterValueType.Boolean => "Booleano",
+            FilterValueType.String => Localizer["Texto"],
+            FilterValueType.Number => Localizer["Numero"],
+            FilterValueType.Date => Localizer["Fecha"],
+            FilterValueType.Enum => Localizer["Enum"],
+            FilterValueType.Boolean => Localizer["Booleano"],
             _ => type.ToString()
         };
     }
@@ -340,6 +411,12 @@
 
             if (selectedFilterType == FilterType.In)
             {
+                // Para Enum, validar que haya valores seleccionados
+                if (valueType == FilterValueType.Enum)
+                {
+                    return selectedEnumValues != null && selectedEnumValues.Count > 0 && !selectedEnumValues.Contains("__SELECT_ALL__");
+                }
+                // Para String y Number, validar que haya texto en el campo
                 return !string.IsNullOrWhiteSpace(inValuesString);
             }
 
@@ -348,7 +425,7 @@
                 FilterValueType.String => !string.IsNullOrWhiteSpace(stringValue),
                 FilterValueType.Number => numberValue.HasValue,
                 FilterValueType.Date => dateValue.HasValue,
-                FilterValueType.Enum => !string.IsNullOrWhiteSpace(enumValue),
+                FilterValueType.Enum => selectedEnumValues != null && selectedEnumValues.Count > 0 && !selectedEnumValues.Contains(SELECT_ALL_MARKER),
                 FilterValueType.Boolean => boolValue.HasValue,
                 _ => false
             };
@@ -371,6 +448,24 @@
 
         object conditionValue;
 
+        // Para Enum, siempre usar FilterType.In con los valores seleccionados
+        if (attr.Tipo == FilterValueType.Enum)
+        {
+            var values = selectedEnumValues.Where(v => v != SELECT_ALL_MARKER).ToList();
+            conditionValue = values;
+            
+            var enumFilter = new FilterCondition
+            {
+                AttributeName = selectedAttribute,
+                Type = FilterType.In, // Siempre usar In para Enum
+                Condition = conditionValue,
+                ValueType = attr.Tipo
+            };
+
+            MudDialog.Close(DialogResult.Ok(enumFilter));
+            return;
+        }
+
         if (selectedFilterType == FilterType.Between)
         {
             if (attr.Tipo == FilterValueType.Number)
@@ -384,20 +479,30 @@
         }
         else if (selectedFilterType == FilterType.In)
         {
-            var values = inValuesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(v => v.Trim())
-                .ToList();
-            
-            if (attr.Tipo == FilterValueType.Number)
+            if (attr.Tipo == FilterValueType.Enum)
             {
-                conditionValue = values.Select(v => double.TryParse(v, out var num) ? num : (double?)null)
-                    .Where(v => v.HasValue)
-                    .Select(v => v!.Value)
-                    .ToList();
+                // Para Enum, usar los valores seleccionados del select múltiple
+                var values = selectedEnumValues.Where(v => v != SELECT_ALL_MARKER).ToList();
+                conditionValue = values;
             }
             else
             {
-                conditionValue = values;
+                // Para String y Number, usar el campo de texto separado por comas
+                var values = inValuesString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(v => v.Trim())
+                    .ToList();
+                
+                if (attr.Tipo == FilterValueType.Number)
+                {
+                    conditionValue = values.Select(v => double.TryParse(v, out var num) ? num : (double?)null)
+                        .Where(v => v.HasValue)
+                        .Select(v => v!.Value)
+                        .ToList();
+                }
+                else
+                {
+                    conditionValue = values;
+                }
             }
         }
         else
@@ -407,7 +512,6 @@
                 FilterValueType.String => stringValue,
                 FilterValueType.Number => numberValue!.Value,
                 FilterValueType.Date => dateValue!.Value,
-                FilterValueType.Enum => enumValue,
                 FilterValueType.Boolean => boolValue!.Value,
                 _ => stringValue
             };
