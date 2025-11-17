@@ -72,7 +72,7 @@
                 @if(_dataRetrieved){
                     @if (_seriesData.Any())
                     {
-                        <ApexChart @ref="_apexChart" @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
+                        <ApexChart @ref="_apexChart" @key="_chartKey" TItem="ChartPoint" Options="_chartOptions">
                             @foreach (DatasetSeries serie in _seriesData)
                             {
                                 <ApexPointSeries TItem="ChartPoint"
