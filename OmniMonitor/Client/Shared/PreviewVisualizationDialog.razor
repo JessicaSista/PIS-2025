@@ -1,9 +1,12 @@
+@using Microsoft.Extensions.Localization
+@using OmniMonitor.Client.Pages
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
 @inject IDialogService DialogService
 @inject HttpClient Http
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ISnackbar Snackbar
+@inject IStringLocalizer<Dashboards> Localizer
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <DialogContent>
@@ -35,8 +38,8 @@
         </MudContainer>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">Confirmar</MudButton>
+        <MudButton OnClick="Cancel">@Localizer["CancelButtonText"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">@Localizer["ConfirmButtonText"]</MudButton>
     </DialogActions>
 </MudDialog>
 

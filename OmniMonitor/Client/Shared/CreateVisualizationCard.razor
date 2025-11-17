@@ -5,6 +5,7 @@
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
 @using System.Globalization
+@using System.Net
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject HttpClient Http
@@ -175,7 +176,7 @@
 
     private CreateVisualizacionRequest _request;
 
-    private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar"};
+    private List<string> _chartTypes = new List<string>() { "line", "bar", "area", "pie", "donut", "heatMap", "radialBar" };
     private string _selectedChartType = "line";
 
     private DateTime? _beginDate { get; set; }
@@ -446,7 +447,16 @@
             if (!response.IsSuccessStatusCode)
             {
                 System.String error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    (error.Contains("visualización", StringComparison.OrdinalIgnoreCase) ||
+                     error.Contains("visualizacion", StringComparison.OrdinalIgnoreCase)))
+                {
+                    Snackbar.Add(Localizer["VisualizationNameDuplicate"], Severity.Error);
+                }
+                else
+                {
+                    Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
+                }
             }
             else
             {

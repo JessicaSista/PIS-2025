@@ -1,68 +1,37 @@
 @using OmniMonitor.Shared.Dtos
+@using OmniMonitor.Shared
 @using MudBlazor
-@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.Extensions.Localization
 
-<MudCard Class="@($"h-100 clickable-card {Class}")"
-         @onclick="NavigateToDetails"
-         Style="display:flex; flex-direction:column; background-color: var(--card); color: var(--mud-palette-text-primary); height: 100%; border: 1px solid var(--mud-palette-lines-inputs); border-radius: 8px; cursor: pointer;">
-    <MudCardHeader Style="padding: 16px 16px 0 16px; align-items:center;">
-        <div class="d-flex align-center mr-3"
-             style="width: 44px; height: 44px; background-color: var(--mud-palette-primary); border-radius: 6px; justify-content: center;">
-            <MudIcon Icon="@Icons.Material.Filled.Article" 
-                     Size="MudBlazor.Size.Large" 
-                     Color="MudBlazor.Color.Inherit"
-                     Style="font-size: 24px; color: var(--mud-palette-primary-text);" />
-        </div>
+@inject IStringLocalizer<SharedResource> SharedLocalizer
 
-        <MudText Typo="Typo.h6" Style="color: var(--mud-palette-text-primary);">@Reporte?.Nombre</MudText>
-        <MudSpacer />
+<MudCard @onclick="HandleCardClick"
+         Class="@Class"
+         Style="width:100%; background-color:var(--card); border:1px solid #374151; border-radius:12px; cursor:pointer; padding:16px; display:flex; flex-direction:column; height:200px;">
+    <MudCardContent Style="width:100%; display:flex; flex-direction:column; flex-grow:1;">
+        <MudStack Row AlignItems="AlignItems.Start" Spacing="0" Style="width:100%;">
+            <div style="width:44px; height:44px; background-color:var(--mud-palette-primary); border-radius:6px; display:flex; align-items:center; justify-content:center; margin-right:12px;">
+                <MudIcon Icon="@Icons.Material.Filled.Article"
+                         Size="MudBlazor.Size.Large"
+                         Color="MudBlazor.Color.Inherit"
+                         Style="font-size:24px; color:var(--mud-palette-primary-text);" />
+            </div>
 
-        <div @onclick:stopPropagation="true">
-            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                    Dense="true"
-                    Class="ml-auto"
-                    AnchorOrigin="Origin.TopRight"
-                    TransformOrigin="Origin.TopRight"
-                    Style="color: var(--mud-palette-text-secondary);">
-                <MudMenuItem OnClick="EditReport"
-                            Class="menu-item-edit"
-                            Style="color: #949FD0 !important; padding: 8px 16px !important;">
-                    <span style="font-weight: 800 !important; font-family: 'Inter', 'Roboto', sans-serif !important;">Editar</span>
-                </MudMenuItem>
+            <MudStack Style="width:100%; flex:1;" Spacing="0">
+                <MudText Style="color:var(--card-text-primary); font-weight:600; font-size:1.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                    @Reporte?.Nombre
+                </MudText>
+                <MudText Style="color:var(--card-text-secondary); font-size:1rem; white-space:normal; word-wrap:break-word; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; text-overflow:ellipsis;">
+                    @(!string.IsNullOrWhiteSpace(Reporte?.Descripcion) ? Reporte?.Descripcion : string.Empty)
+                </MudText>
+            </MudStack>
+        </MudStack>
 
-                <MudMenuItem OnClick="@(() => OnDelete.InvokeAsync(Reporte?.Id ?? 0))" 
-                            Class="menu-item-delete"
-                            Style="color: #F47F7F !important; padding: 8px 16px !important;">
-                    <span style="font-weight: 800 !important; font-family: 'Inter', 'Roboto', sans-serif !important;">Eliminar</span>
-                </MudMenuItem>
-            </MudMenu>
-        </div>
-
-    </MudCardHeader>
-
-    <MudCardContent Style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 16px;">
-        @if (!string.IsNullOrEmpty(Reporte?.Descripcion))
-        {
-            <MudText Typo="Typo.body2" Class="mb-4"
-                     Style="flex-grow: 1; overflow: hidden; text-overflow: ellipsis;
-                            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-                            color: var(--mud-palette-text-secondary);">
-                @Reporte.Descripcion
-            </MudText>
-        }
-        else
-        {
-            <div style="flex-grow: 1;"></div>
-        }
-
-        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="margin-top: auto;">
-            <MudText Typo="Typo.caption" Class="mt-2" Style="color: var(--mud-palette-text-secondary);">
-                @(Reporte?.FechaCreacion.ToShortDateString() ?? string.Empty)
-            </MudText>
-            <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary);">
-                @if (Reporte != null)
+        <MudStack Row Justify="Justify.SpaceBetween" Style="width:100%; margin-top:auto;">
+            <MudText Style="color:var(--card-text-secondary); font-size:0.7rem;">
+                @if (Reporte != null && Reporte.FechaCreacion != default)
                 {
-                    <text>Registros: @Reporte.RecordCount</text>
+                    <text>@SharedLocalizer["Actualizado"] @Reporte.FechaCreacion.ToString("yyyy-MM-dd HH:mm")</text>
                 }
             </MudText>
         </MudStack>
@@ -71,10 +40,8 @@
 
 @code {
     [Parameter] public ReporteDto? Reporte { get; set; }
-    [Parameter] public EventCallback<int> OnEdit { get; set; }
-    [Parameter] public EventCallback<int> OnDelete { get; set; }
     [Parameter] public EventCallback<int> OnNavigate { get; set; }
-    [Parameter] public string Class { get; set; } = "";
+    [Parameter] public string Class { get; set; } = string.Empty;
 
     [Inject] NavigationManager NavigationManager { get; set; } = default!;
 
@@ -83,22 +50,7 @@
         Reporte ??= new ReporteDto();
     }
 
-    private async Task EditReport()
-    {
-        if (Reporte?.Id > 0)
-        {
-            if (OnEdit.HasDelegate)
-            {
-                await OnEdit.InvokeAsync(Reporte.Id);
-            }
-            else
-            {
-                NavigationManager.NavigateTo($"/editarReporte/{Reporte.Id}");
-            }
-        }
-    }
-
-    private async Task NavigateToDetails(MouseEventArgs args)
+    private async Task HandleCardClick()
     {
         if (Reporte?.Id > 0)
         {

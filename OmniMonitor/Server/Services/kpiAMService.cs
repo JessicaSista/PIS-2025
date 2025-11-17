@@ -55,7 +55,7 @@ namespace OmniMonitor.Server.Services
         {
             KpiResponse response = null;
             if (items == null || items.Count == 0)
-                throw new ArgumentException("No se proporcion√≥ la lista de objetos para el KPI AM.");
+                return BuildEmptyResponse(kpi);
 
             switch (kpi.Metric?.ToLower())
             {
@@ -74,23 +74,28 @@ namespace OmniMonitor.Server.Services
             return response;
         }
 
-        // M√©todos gen√©ricos para operar sobre List<object>
+        // MÈtodos genÈricos para operar sobre List<object>
         private async Task<KpiResponse> CountStateGeneric<T>(Kpi kpi, List<T> items, string username)
         {
-            var estadoNecesario = kpi.ExtraInfo ?? "";
-            var atributo = kpi.Atributo ?? "";
-                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
-            int countFinal = (int)(count * (kpi.Multiplier ?? 1));
-            string color = kpi.DefaultColor;
+            var estadoNecesario = kpi.ExtraInfo ?? string.Empty;
+            var atributo = kpi.Atributo ?? string.Empty;
+            var coincidencias = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            var multiplier = kpi.Multiplier ?? 1d;
+            var valorFinal = Math.Round(coincidencias * multiplier, 2);
+
+            var color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color = GetColorForValue(kpi.ColorRanges, countFinal, kpi.DefaultColor);
+            {
+                color = GetColorForValue(kpi.ColorRanges, valorFinal, kpi.DefaultColor);
+            }
+
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "count",
-                Value = countFinal,
+                Value = valorFinal,
                 Unit = null,
                 ActualColor = color
             };
@@ -98,15 +103,20 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateAverageKpiGeneric<T>(Kpi kpi, List<T> items, string username)
         {
-            var estadoNecesario = kpi.ExtraInfo ?? "";
-            var atributo = kpi.Atributo ?? "";
-                int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
-            double porcentaje = (items.Count > 0) ? (double)count / items.Count * 100.0 : 0.0;
-            double porcentajeFormateado = Math.Round(porcentaje, 2);
-            double porcentajeFinal = Math.Round(porcentajeFormateado * (kpi.Multiplier ?? 1), 2);
-            string color = kpi.DefaultColor;
+            var estadoNecesario = kpi.ExtraInfo ?? string.Empty;
+            var atributo = kpi.Atributo ?? string.Empty;
+            var coincidencias = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+
+            double porcentajeBase = items.Count > 0 ? (double)coincidencias / items.Count * 100.0 : 0.0;
+            double porcentajeFormateado = Math.Round(porcentajeBase, 2);
+            double porcentajeFinal = Math.Round(porcentajeFormateado * (kpi.Multiplier ?? 1d), 2);
+
+            var color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
+            {
                 color = GetColorForValue(kpi.ColorRanges, porcentajeFinal, kpi.DefaultColor);
+            }
+
             return new KpiResponse
             {
                 Id = kpi.Id,
@@ -121,18 +131,21 @@ namespace OmniMonitor.Server.Services
 
         private async Task<KpiResponse> CalculateMinKpiGeneric<T>(Kpi kpi, List<T> items, string username)
         {
-            var estadoNecesario = kpi.ExtraInfo ?? "";
-            var atributo = kpi.Atributo ?? "";
+            var estadoNecesario = kpi.ExtraInfo ?? string.Empty;
+            var atributo = kpi.Atributo ?? string.Empty;
+
             if (items.Count == 1)
             {
-                string color = kpi.DefaultColor;
+                var colorUnico = kpi.DefaultColor;
                 if (!string.IsNullOrEmpty(kpi.ColorRanges))
                 {
-                    var val = GetAssetFieldValue(items[0], atributo);
-                    double numVal = 0;
-                    double.TryParse(val, out numVal);
-                    color = GetColorForValue(kpi.ColorRanges, numVal, kpi.DefaultColor);
+                    var valorTexto = GetAssetFieldValue(items[0], atributo);
+                    if (double.TryParse(valorTexto, out var numericValue))
+                    {
+                        colorUnico = GetColorForValue(kpi.ColorRanges, numericValue, kpi.DefaultColor);
+                    }
                 }
+
                 return new KpiResponse
                 {
                     Id = kpi.Id,
@@ -141,23 +154,29 @@ namespace OmniMonitor.Server.Services
                     Type = "state",
                     Value = GetAssetFieldValue(items[0], atributo) ?? "Desconocido",
                     Unit = null,
-                    ActualColor = color
+                    ActualColor = colorUnico
                 };
             }
-            int count = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
-            int countFinal = (int)(count * (kpi.Multiplier ?? 1));
-            string color2 = kpi.DefaultColor;
+
+            var coincidencias = items.Count(a => GetAssetFieldValue(a, atributo) == estadoNecesario);
+            var multiplier = kpi.Multiplier ?? 1d;
+            var valorFinal = Math.Round(coincidencias * multiplier, 2);
+
+            var color = kpi.DefaultColor;
             if (!string.IsNullOrEmpty(kpi.ColorRanges))
-                color2 = GetColorForValue(kpi.ColorRanges, countFinal, kpi.DefaultColor);
+            {
+                color = GetColorForValue(kpi.ColorRanges, valorFinal, kpi.DefaultColor);
+            }
+
             return new KpiResponse
             {
                 Id = kpi.Id,
                 Name = kpi.Name,
                 Description = kpi.Description,
                 Type = "state",
-                Value = countFinal,
+                Value = valorFinal,
                 Unit = null,
-                ActualColor = color2
+                ActualColor = color
             };
         }
 
@@ -230,6 +249,20 @@ namespace OmniMonitor.Server.Services
             public double min { get; set; }
             public double max { get; set; }
             public string color { get; set; }
+        }
+
+        private static KpiResponse BuildEmptyResponse(Kpi kpi)
+        {
+            return new KpiResponse
+            {
+                Id = kpi.Id,
+                Name = kpi.Name,
+                Description = kpi.Description,
+                ActualColor = kpi.DefaultColor,
+                Type = null,
+                Unit = null,
+                Value = null
+            };
         }
 
     }

@@ -495,9 +495,8 @@ namespace OmniMonitor.Server.Services
                         break;
                 }
             }
-            catch (JsonException ex)
+            catch (JsonException)
             {
-                Console.WriteLine($"Error deserializando filtros JSON en actualización: {ex.Message}");
             }
         }
 

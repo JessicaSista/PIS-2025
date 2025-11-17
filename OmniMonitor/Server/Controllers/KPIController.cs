@@ -100,13 +100,39 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Buscar KPI en la base de datos
-                KpiResponse kpi = await _kpiService.CalculateKpiValueAsync(id, username);
-                if (kpi == null)
+                try
                 {
-                    return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
-                }
+                    KpiResponse kpi = await _kpiService.CalculateKpiValueAsync(id, username);
+                    if (kpi == null)
+                    {
+                        return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                    }
 
-                return Ok(kpi);
+                    return Ok(kpi);
+                }
+                catch (Exception ex)
+                {
+                    // Si hay un error al calcular, intentar devolver un KPI con Value = null para mostrar "No data"
+                    _logger.LogWarning(ex, "GetKpiById: error calculating KPI id={Id}, returning no data response", id);
+                    try
+                    {
+                        var kpiDef = await _kpiService.GetKpiDefinitionAsync(id);
+                        var noDataResponse = new KpiResponse
+                        {
+                            Id = kpiDef.Id,
+                            Name = kpiDef.Name,
+                            Description = kpiDef.Description,
+                            ActualColor = kpiDef.DefaultColor,
+                            Unit = kpiDef.Unit,
+                            Value = null
+                        };
+                        return Ok(noDataResponse);
+                    }
+                    catch
+                    {
+                        return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -290,6 +316,32 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        // Obtener todos los KPIs del usuario
+        [HttpGet("all-KPIs")]
+        [RequirePermission("Kpis.View")]
+        [ProducesResponseType(typeof(List<KpiResponse>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(500)]
+        public async Task<ActionResult<List<Kpi>>> GetAllKpisnoCalculate()
+        {
+            try
+            {
+                var username = User.Identity?.Name;
+                if (string.IsNullOrEmpty(username))
+                {
+                    return BadRequest("Token inválido.");
+                }
+
+                List<Kpi> kpis = await _kpiService.GetAllKpisForUserAsync(username);
+                return Ok(kpis);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetAllKpis: unexpected error");
+                return StatusCode(500, $"Error interno: {ex.Message}");
+            }
+        }
+
         [HttpGet("metrics/{module}")]
         [RequirePermission("Kpis.View")]
         [ProducesResponseType(typeof(List<MetricInfo>), 200)]
@@ -448,6 +500,8 @@ namespace OmniMonitor.Server.Controllers
                 if (page <= 0 || pageSize <= 0)
                     return BadRequest("La página y el tamaño deben ser mayores a 0.");
                 
+                if (page < 1) page = 1;
+
                 var response = await _kpiService.GetAllKpisPaginatedAsync(username, page, pageSize, query);
                 return Ok(response);
             }

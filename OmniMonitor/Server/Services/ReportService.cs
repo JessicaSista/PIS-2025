@@ -490,13 +490,13 @@ public class ReportService : IReportService
         
         if (leftFilter?.Filters != null && leftFilter.Filters.Any())
         {
-            joinFilters.LeftOperandFilters = new OperandFilterConfig
+            var clonedLeftFilters = CloneFiltersForJoinOperand(leftFilter.Filters, joinConfig.LeftOperand.EntityName);
+            if (clonedLeftFilters.Any())
             {
-                Filters = leftFilter.Filters
-            };
-            // Log each left filter for visibility
-            foreach (var f in leftFilter.Filters)
-            {
+                joinFilters.LeftOperandFilters = new OperandFilterConfig
+                {
+                    Filters = clonedLeftFilters
+                };
             }
         }
 
@@ -507,13 +507,13 @@ public class ReportService : IReportService
         
         if (rightFilter?.Filters != null && rightFilter.Filters.Any())
         {
-            joinFilters.RightOperandFilters = new OperandFilterConfig
+            var clonedRightFilters = CloneFiltersForJoinOperand(rightFilter.Filters, joinConfig.RightOperand.EntityName);
+            if (clonedRightFilters.Any())
             {
-                Filters = rightFilter.Filters
-            };
-            // Log each right filter for visibility
-            foreach (var f in rightFilter.Filters)
-            {
+                joinFilters.RightOperandFilters = new OperandFilterConfig
+                {
+                    Filters = clonedRightFilters
+                };
             }
         }
 
@@ -524,6 +524,56 @@ public class ReportService : IReportService
         }
 
         return joinFilters;
+    }
+
+    private static List<FilterCondition> CloneFiltersForJoinOperand(IEnumerable<FilterCondition> filters, EntityName entity)
+    {
+        var cloned = new List<FilterCondition>();
+        if (filters == null)
+        {
+            return cloned;
+        }
+
+        var prefix = entity.ToString() + "_";
+
+        foreach (var filter in filters)
+        {
+            if (filter == null)
+            {
+                continue;
+            }
+
+            var attribute = filter.AttributeName ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(attribute) && attribute.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                attribute = attribute.Substring(prefix.Length);
+            }
+
+            if (string.IsNullOrWhiteSpace(attribute))
+            {
+                continue;
+            }
+
+            cloned.Add(new FilterCondition
+            {
+                AttributeName = attribute,
+                Type = filter.Type,
+                ValueType = filter.ValueType,
+                Condition = CloneFilterConditionValue(filter.Condition)
+            });
+        }
+
+        return cloned;
+    }
+
+    private static object CloneFilterConditionValue(object condition)
+    {
+        if (condition is JsonElement jsonElement)
+        {
+            return jsonElement.Clone();
+        }
+
+        return condition;
     }
 
     // ===================== PDF GENERATION METHODS =====================
@@ -1079,7 +1129,6 @@ public class ReportService : IReportService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error procesando reporte {report.Id}: {ex.Message}");
             }
         }
 
@@ -1124,7 +1173,6 @@ public class ReportService : IReportService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
         }
     }
 

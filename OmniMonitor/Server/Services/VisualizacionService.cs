@@ -37,6 +37,22 @@ namespace OmniMonitor.Server.Services
 
         }
 
+        private async Task EnsureUniqueNameAsync(string name, string username, int? excludeId = null)
+        {
+            var query = _context.Visualizaciones
+                .Where(v => v.Username == username && v.Nombre == name);
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(v => v.IdVisualizacion != excludeId.Value);
+            }
+
+            if (await query.AnyAsync())
+            {
+                throw new ArgumentException($"Ya existe una visualización con el nombre '{name}'.");
+            }
+        }
+
         /// <summary>
         /// Crea una nueva visualización y asocia los datasets correspondientes.
         /// </summary>
@@ -46,6 +62,8 @@ namespace OmniMonitor.Server.Services
             {
                 throw new ArgumentException("El nombre de usuario y el nombre de la visualización son obligatorios.");
             }
+
+            await EnsureUniqueNameAsync(request.Nombre, username);
 
             var nuevaVisualizacion = new Visualizacion
             {

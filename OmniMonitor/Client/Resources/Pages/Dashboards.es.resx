@@ -177,4 +177,25 @@
   <data name="GuardarCambios" xml:space="preserve">
     <value>Guardar Cambios</value>
   </data>
+  <data name="DashboardSavedSuccess" xml:space="preserve">
+    <value>Diseño del Dashboard guardado exitosamente.</value>
+  </data>
+  <data name="DashboardSaveError" xml:space="preserve">
+    <value>Error al guardar el diseño del dashboard.</value>
+  </data>
+  <data name="ConfirmButtonText" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="CancelButtonText" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Showing" xml:space="preserve">
+    <value>Mostrando</value>
+  </data>
+  <data name="ofPreposition" xml:space="preserve">
+    <value>de</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Página</value>
+  </data>
 </root>

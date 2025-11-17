@@ -148,6 +148,7 @@ namespace OmniMonitor.Server.Context
                 new Permission { Id = 20, Module = "Reports", Action = "Edit", Name = "Reports.Edit", Description = "Editar reportes" },
                 new Permission { Id = 21, Module = "Reports", Action = "Delete", Name = "Reports.Delete", Description = "Eliminar reportes" },
                 new Permission { Id = 22, Module = "Reports", Action = "Export", Name = "Reports.Export", Description = "Exportar reportes" },
+                new Permission { Id = 52, Module = "Reports", Action = "Execute", Name = "Reports.Execute", Description = "Ejecutar reportes" },
 
                 // Módulo Sensors (IM)
                 new Permission { Id = 23, Module = "Sensors", Action = "View", Name = "Sensors.View", Description = "Ver datos de sensores" },
@@ -396,6 +397,13 @@ namespace OmniMonitor.Server.Context
 
             builder.Entity<GrupoVisualizacion>()
                 .HasIndex(gv => gv.KpiId);
+
+            // Configurar relación Kpi -> Datasets
+            builder.Entity<Kpi>()
+                .HasOne(k => k.Dataset)
+                .WithMany()
+                .HasForeignKey(k => k.DatasetId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -93,16 +93,17 @@
             </MudCardContent>
 
 
-            <MudCardActions Class="d-block">
                 @if (ShowDatasetsInfo)
                 {
-                    <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
+                    <MudText Typo="Typo.body2"
+                             Style="color: var(--card-text-secondary);
+                                        margin-top:4px;
+                                        white-space: normal;
+                                        word-wrap: break-word;
+                                        overflow-wrap: break-word;">
+                        Datasets: @_datasetNames
+                    </MudText>
                 }
-                @if (ShowLastUpdatedInfo)
-                {
-                    
-                }
-            </MudCardActions>
         
 </MudItem>
 
@@ -131,7 +132,6 @@
     [Parameter] public bool ShowTitle { get; set; } = true;
     [Parameter] public bool ShowIcon { get; set; } = false;
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
-    [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
     [Parameter] public bool showCustomizationIcon {get; set;} = false;
     [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
