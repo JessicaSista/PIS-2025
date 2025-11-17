@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -39,6 +39,9 @@ namespace OmniMonitor.Shared.Dtos
 
     [JsonPropertyName("type")]
     public int? Type { get; set; }
+
+        [JsonPropertyName("liveEnabled")]
+        public bool? LiveEnabled { get; set; }
 
     }
 }

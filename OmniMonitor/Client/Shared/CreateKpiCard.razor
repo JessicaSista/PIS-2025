@@ -98,6 +98,12 @@
                               MaxLength="200"
                               Style="background: var(--card);" />
 
+                <!-- Live toggle -->
+                <MudStack Row AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.body2" Class="mr-2">@Localizer["Live"]</MudText>
+                    <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" Disabled="@(!_liveAllowedKpi)" />
+                </MudStack>
+
                 <!-- Module-specific UI -->
                 <!-- Si el módulo soporta métricas mostramos la select de métricas -->
                 @if (ModuleHasMetric)
@@ -324,6 +330,8 @@
     private bool _isTypeLocked = false;
     private bool _isFetchingAttributes = false;
     private bool _isFetchingAttributeValues = false;
+    private bool _liveEnabled = false;
+    private bool _liveAllowedKpi = false;
 
     private List<ColorRange> _colorRanges = new();
 
@@ -512,6 +520,8 @@
 
         // Si el módulo es AM/EM/UM asumimos dataset numérico (no hacemos la comprobación)
         var moduleCode = GetModuleCode(_selectedModuleName);
+        _liveAllowedKpi = !string.IsNullOrWhiteSpace(moduleCode) && (moduleCode.Equals("im", StringComparison.OrdinalIgnoreCase) || moduleCode.Equals("em", StringComparison.OrdinalIgnoreCase));
+        if (!_liveAllowedKpi) { _liveEnabled = false; }
         if (!string.IsNullOrWhiteSpace(moduleCode) &&
             (moduleCode.Equals("am", StringComparison.OrdinalIgnoreCase)
              || moduleCode.Equals("em", StringComparison.OrdinalIgnoreCase)
@@ -583,6 +593,7 @@
             "asset manager" => "am",
             "am" => "am",
             "event manager" => "em",
+            "event monitor" => "em",
             "em" => "em",
             "urban monitor" => "um",
             "um" => "um",
@@ -789,6 +800,12 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
+    private void OnLiveSwitchChanged(bool value)
+    {
+        if (!_liveAllowedKpi) { return; }
+        _liveEnabled = value;
+    }
+
     // 4) IsFormValid actualizado: exigir metrica para esos modulos
     private bool IsFormValid
     {
@@ -917,7 +934,8 @@
             SourceModule = GetModuleCode(_selectedModuleName)?.ToUpperInvariant() ?? _selectedModuleName,
             // Non-IM fields
             Atributo = !string.IsNullOrWhiteSpace(_selectedAtributo) ? _selectedAtributo : null,
-            Type = _selectedType
+            Type = _selectedType,
+            LiveEnabled = _liveEnabled && _liveAllowedKpi
         };
 
         _isSubmitting = true;

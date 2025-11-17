@@ -5,27 +5,47 @@
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
 @inject IStringLocalizer<VisualizationCard> Localizer
+@inject OmniMonitor.Client.Services.SignalR.KpiHubClient KpiHubClient
+@implements IAsyncDisposable
 
 <MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
     <MudCard Elevation="0"
              Style="background-color: transparent; display:flex; flex-direction:column; height:100%;">
         <MudCardContent Style="flex:1; display:flex; flex-direction:column;">
 
+            @if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Reconnecting)
+            {
+                <div style="align-self:flex-end; margin-bottom:4px;">
+                    <MudChip T="string" Color="MudBlazor.Color.Warning" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Reconnectingâ€¦</MudChip>
+                </div>
+            }
+            else if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Disconnected && _liveJoined)
+            {
+                <div style="align-self:flex-end; margin-bottom:4px;">
+                    <MudChip T="string" Color="MudBlazor.Color.Error" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Disconnected</MudChip>
+                </div>
+            }
+
             <!-- Name -->
             <MudTooltip Text="@Kpi.Name">
-                <MudText Class="mb-4"
-                         Typo="Typo.h6"
-                         Style="color: var(--card-text-primary);
-                                font-weight:600;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;">
-                    @Kpi.Name
-                </MudText>
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="mb-4">
+                    <MudText Typo="Typo.h6"
+                             Style="color: var(--card-text-primary);
+                                    font-weight:600;
+                                    white-space: nowrap;
+                                    overflow: hidden;
+                                    text-overflow: ellipsis;">
+                        @Kpi.Name
+                    </MudText>
+                    @if (LiveOn && (Kpi?.LiveEnabled ?? false))
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                    }
+                </MudStack>
             </MudTooltip>
 
             <!-- Value -->
-            @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "—")
+            @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "ï¿½")
             {
                 <MudText Typo="Typo.body2"
                          Style="color: var(--card-text-secondary); font-weight: bold;">
@@ -63,6 +83,8 @@
     public int KpiId { get; set; } = 0;
     [Parameter]
     public KpiResponse Kpi { get; set; } = new();
+    [CascadingParameter] public bool LiveOn { get; set; }
+    private DateTime _lastUpdatedAt = default;
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,6 +102,7 @@
                     if (kpiData != null)
                     {
                         Kpi = kpiData;
+                        _lastUpdatedAt = DateTime.Now;
                     }
                 }
                 else
@@ -91,9 +114,68 @@
             }
             catch (Exception ex)
             {
-                // Snackbar.Add("Error de conexión al obtener KPI.", Severity.Error);
+                // Snackbar.Add("Error de conexiï¿½n al obtener KPI.", Severity.Error);
+            }
+
+            await SetupLiveAsync();
+        }
+    }
+
+    private bool _liveJoined = false;
+    private OmniMonitor.Client.Services.SignalR.ConnectionState _connState = OmniMonitor.Client.Services.SignalR.ConnectionState.Connected;
+
+    private async Task SetupLiveAsync()
+    {
+        if (LiveOn && KpiId != 0 && (Kpi?.LiveEnabled ?? false))
+        {
+            try
+            {
+                KpiHubClient.ConnectionStateChanged += OnConnStateChanged;
+                KpiHubClient.KpiUpdated += OnKpiUpdated;
+                await KpiHubClient.JoinKpiAsync(KpiId);
+                _liveJoined = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Live join failed for KPI {KpiId}: {ex.Message}");
             }
         }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (KpiId == 0) return;
+        if (LiveOn && (Kpi?.LiveEnabled ?? false))
+        {
+            if (!_liveJoined)
+            {
+                await SetupLiveAsync();
+            }
+        }
+        else
+        {
+            if (_liveJoined)
+            {
+                try { await KpiHubClient.LeaveKpiAsync(KpiId); } catch { }
+                KpiHubClient.KpiUpdated -= OnKpiUpdated;
+                KpiHubClient.ConnectionStateChanged -= OnConnStateChanged;
+                _liveJoined = false;
+            }
+        }
+    }
+
+    private void OnKpiUpdated(KpiResponse resp)
+    {
+        if (resp == null || resp.Id != KpiId) return;
+        Kpi = resp;
+        _lastUpdatedAt = DateTime.Now;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnConnStateChanged(OmniMonitor.Client.Services.SignalR.ConnectionState state)
+    {
+        _connState = state;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private string CardStyle =>
@@ -127,5 +209,13 @@
         }
 
         return colorInput;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await KpiHubClient.LeaveKpiAsync(KpiId); } catch { }
+        KpiHubClient.KpiUpdated -= OnKpiUpdated;
+        KpiHubClient.ConnectionStateChanged -= OnConnStateChanged;
+        _liveJoined = false;
     }
 }

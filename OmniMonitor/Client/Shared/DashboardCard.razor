@@ -66,7 +66,7 @@
         {
             
 
-            <ChartViewer @key="_chartViewerKey" ChartReloadKey="@_chartKey" VisualizationId="VisualizationId" />
+            <ChartViewer @key="_chartViewerKey" ChartReloadKey="@_chartKey" VisualizationId="VisualizationId" LiveOn="LiveOn" />
             
 
         } 
@@ -85,6 +85,7 @@
 @code{
     //Parametro para saber el Breakpoint actual
     [CascadingParameter] public Breakpoint CurrentBreakpoint { get; set; }
+    [CascadingParameter] public bool LiveOn { get; set; }
 
     //Parametros
     [Parameter] public int dashboardId { get; set; }
