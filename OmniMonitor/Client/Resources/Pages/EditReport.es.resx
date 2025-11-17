@@ -70,6 +70,27 @@
   <data name="Pdf" xml:space="preserve">
     <value>PDF</value>
   </data>
+  <data name="DownloadingPdf" xml:space="preserve">
+    <value>Descargando...</value>
+  </data>
+  <data name="PdfDownloadUnauthorized" xml:space="preserve">
+    <value>Sesión expirada. Vuelve a iniciar sesión.</value>
+  </data>
+  <data name="PdfDownloadForbidden" xml:space="preserve">
+    <value>No tienes permisos para descargar este PDF.</value>
+  </data>
+  <data name="PdfDownloadFailed" xml:space="preserve">
+    <value>No se pudo descargar el PDF (código {0}).</value>
+  </data>
+  <data name="PdfDownloadEmpty" xml:space="preserve">
+    <value>No se generó contenido para el PDF.</value>
+  </data>
+  <data name="PdfDownloadSuccess" xml:space="preserve">
+    <value>Reporte descargado como PDF.</value>
+  </data>
+  <data name="PdfDownloadUnexpectedError" xml:space="preserve">
+    <value>Ocurrió un error al descargar el PDF.</value>
+  </data>
   <data name="DeleteReport" xml:space="preserve">
     <value>Eliminar reporte</value>
   </data>
