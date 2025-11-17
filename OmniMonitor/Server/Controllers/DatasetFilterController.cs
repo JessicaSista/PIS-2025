@@ -174,7 +174,7 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "IsActive", Tipo = FilterValueType.Boolean });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "SectorId", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "TenantId", Tipo = FilterValueType.Number });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Groups.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "LastDataReceived", Tipo = FilterValueType.Date });
                             break;
@@ -192,7 +192,7 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataSleepByDevice", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataInterval", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "OutputId", Tipo = FilterValueType.Number });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Devices.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Devices.Name", Tipo = FilterValueType.String });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
                             break;
                         case 3: // Sensor
