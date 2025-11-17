@@ -199,6 +199,7 @@
         { "Device", new List<string> { "Name", "Source",  "LayerId", "IsActive", "SectorId", "ConnectionString", "TenantId", "LastDataReceived",} },
         { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "Icon", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
         { "Sensor", new List<string> { "Name", "DisplayName", "Type", "Integration", "LastUpdate", "LastValue", "LastPersisted"} },
+        { "SensorData", new List<string> { "SensorData",} },
         { "Group", new List<string> { "IsActive", "State", "TenantId" } },
 
         { "Zone", new List<string> { "Name", "Reference" } },
@@ -274,7 +275,7 @@
     private async Task HandleNewDataset()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        IDialogReference? dialog = DialogService.Show<CreateDatasetDialog>("Crear nuevo dataset", options);
+        IDialogReference? dialog = DialogService.Show<CreateDatasetDialog>(String.Empty, options);
         DialogResult? result = await dialog.Result;
 
         if (!result.Canceled && result.Data != null)
@@ -529,7 +530,13 @@
 
                 if (datasetFromApi == null)
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
-                return datasetFromApi.ContentType == "0" ? "Sensor" : "Device";
+                return datasetFromApi.ContentType switch
+                {
+                    "1" => "Device",
+                    "2" => "Source",
+                    "3" => "Sensor",
+                    "0" => "SensorData",
+                };
             }
             else if (module.Equals("Asset Manager"))
             {
@@ -573,9 +580,9 @@
 
                 return datasetFromApi.ContentType switch
                 {
-                    "Alerts" => "Alert",
-                    "Extensions" => "Extension",
-                    "Events" => "EventEM",
+                    "Alert" => "Alert",
+                    "Extension" => "Extension",
+                    "Event" => "EventEM",
                 };
             }
         }
@@ -585,5 +592,4 @@
             return string.Empty;
         }
     }
-
 }
