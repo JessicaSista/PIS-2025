@@ -12,6 +12,8 @@
 @inject IStringLocalizer<ChartViewer> Localizer
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject OmniMonitor.Client.Services.SignalR.TelemetryHubClient TelemetryHubClient
+@implements IAsyncDisposable
 
 
 
@@ -34,7 +36,13 @@
         <CardHeaderContent>
             @if (ShowTitle)
             {
-                <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)">@_title</MudText>
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)">@_title</MudText>
+                    @if (LiveOn && visualization != null && visualization.LiveEnabled)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                    }
+                </MudStack>
             }
         </CardHeaderContent>
 
@@ -50,6 +58,14 @@
                     </MudMenuItem>
                 </MudMenu>
             }
+            @if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Reconnecting)
+            {
+                <MudChip T="string" Color="MudBlazor.Color.Warning" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Reconnecting…</MudChip>
+            }
+            else if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Disconnected && _liveJoined)
+            {
+                <MudChip T="string" Color="MudBlazor.Color.Error" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Disconnected</MudChip>
+            }
         </CardHeaderActions>
 
     </MudCardHeader>
@@ -60,16 +76,32 @@
         {
             @if (_seriesData.Any())
             {
-                <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
-                    @foreach (DatasetSeries serie in _seriesData)
+                <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="@ChartOptions">
+                    @if (_isTimeSeries)
                     {
-                        <ApexPointSeries TItem="ChartPoint"
-                                         Items="serie.Points"
-                                         Name="@serie.DatasetName"
-                                         SeriesType="@_seriesType"
-                                         XValue="@(p => p.X)"
-                                         YValue="@(p => (decimal)p.Y)"
-                                         Color="@serie.Color" />
+                        @foreach (DatasetSeries serie in _seriesData)
+                        {
+                            <ApexPointSeries TItem="ChartPoint"
+                                             Items="serie.Points"
+                                             Name="@serie.DatasetName"
+                                             SeriesType="@_seriesType"
+                                             XValue="@(p => p.T)"
+                                             YValue="@(p => (decimal)p.Y)"
+                                             Color="@serie.Color" />
+                        }
+                    }
+                    else
+                    {
+                        @foreach (DatasetSeries serie in _seriesData)
+                        {
+                            <ApexPointSeries TItem="ChartPoint"
+                                             Items="serie.Points"
+                                             Name="@serie.DatasetName"
+                                             SeriesType="@_seriesType"
+                                             XValue="@(p => p.X)"
+                                             YValue="@(p => (decimal)p.Y)"
+                                             Color="@serie.Color" />
+                        }
                     }
                 </ApexChart>
             }
@@ -114,6 +146,7 @@
 
     //Parametros
     [Parameter] public int VisualizationId { get; set; }
+    [Parameter] public bool LiveOn { get; set; } = false;
 
     // Para recargar la gráfica desde el exterior
     [Parameter]
@@ -154,7 +187,24 @@
     private string _chartType { get; set; } = "line";
     private List<object> _dataCharts { get; set; } = new();
     private ApexChart<ChartPoint>? _apexChart;
-    private readonly ApexChartOptions<ChartPoint> _chartOptions = new()
+    private bool _isTimeSeries = false;
+    private readonly ApexChartOptions<ChartPoint> _timeChartOptions = new()
+    {
+        Xaxis = new XAxis
+        {
+            Type = XAxisType.Datetime,
+            TickAmount = 4,
+            Labels = new XAxisLabels
+            {
+                Rotate = -35,
+                Style = new AxisLabelStyle
+                {
+                    FontSize = "8px"
+                },
+            }
+        }
+    };
+    private readonly ApexChartOptions<ChartPoint> _categoryChartOptions = new()
     {
         Xaxis = new XAxis
         {
@@ -169,10 +219,187 @@
             }
         }
     };
+    private ApexChartOptions<ChartPoint> ChartOptions => _isTimeSeries ? _timeChartOptions : _categoryChartOptions;
 
     protected override async Task OnInitializedAsync()
     {
         await DownloadVisualization();
+        await SetupLiveAsync();
+    }
+
+    private bool _liveJoined = false;
+    private OmniMonitor.Client.Services.SignalR.ConnectionState _connState = OmniMonitor.Client.Services.SignalR.ConnectionState.Connected;
+    private long _seq = 0;
+    private System.DateTime _lastUpdatedAt = default;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (visualization == null)
+        {
+            return;
+        }
+        if (LiveOn && visualization.LiveEnabled)
+        {
+            if (!_liveJoined)
+            {
+                try
+                {
+                    TelemetryHubClient.ConnectionStateChanged += OnConnStateChanged;
+                    TelemetryHubClient.TelemetryReceived += OnTelemetryPoint;
+                    await TelemetryHubClient.JoinVisualizationAsync(VisualizationId);
+                    _liveJoined = true;
+                }
+                catch { }
+            }
+        }
+        else
+        {
+            if (_liveJoined)
+            {
+                try { await TelemetryHubClient.LeaveVisualizationAsync(VisualizationId); } catch { }
+                TelemetryHubClient.TelemetryReceived -= OnTelemetryPoint;
+                TelemetryHubClient.ConnectionStateChanged -= OnConnStateChanged;
+                _liveJoined = false;
+            }
+        }
+    }
+
+    private async Task SetupLiveAsync()
+    {
+        if (visualization != null && visualization.LiveEnabled && LiveOn)
+        {
+            TelemetryHubClient.ConnectionStateChanged += OnConnStateChanged;
+            TelemetryHubClient.TelemetryReceived += OnTelemetryPoint;
+            await TelemetryHubClient.JoinVisualizationAsync(VisualizationId);
+            _liveJoined = true;
+        }
+    }
+
+    private void OnTelemetryPoint(OmniMonitor.Client.Services.SignalR.TelemetryPointMessage msg)
+    {
+        if (visualization == null) return;
+        if (msg.VisualizationId != VisualizationId) return;
+        _isTimeSeries = true;
+
+        var gd = visualization.GrupoDatasets.FirstOrDefault(g => g.DatasetId == msg.DatasetId);
+        if (gd == null) return;
+
+        decimal multiplier = 1;
+        string color = "#00FFE7";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(gd.JsonDesign);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("Multiplier", out var multProp) && multProp.ValueKind == System.Text.Json.JsonValueKind.Number)
+            {
+                multiplier = multProp.GetDecimal();
+            }
+            if (root.TryGetProperty("Color", out var colorProp) && colorProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                color = colorProp.GetString() ?? color;
+            }
+        }
+        catch { }
+
+        decimal y = 0;
+        if (msg.Value.HasValue)
+        {
+            y = (decimal)msg.Value.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(msg.Raw))
+        {
+            if (!decimal.TryParse(msg.Raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out y))
+            {
+                if (string.Equals(msg.Raw, "True", StringComparison.OrdinalIgnoreCase)) y = 1; else y = 0;
+            }
+        }
+        y *= multiplier;
+
+        string datasetName = gd.Dataset?.NameDataset ?? "Dataset";
+        string x = msg.Time.ToString("dd/MM/yyyy HH:mm:ss");
+
+        var serie = _seriesData.FirstOrDefault(s => s.DatasetName == datasetName);
+        if (serie == null)
+        {
+            serie = new DatasetSeries { DatasetName = datasetName, Color = color };
+            _seriesData.Add(serie);
+        }
+
+        int existingIdx = -1;
+        for (int i = serie.Points.Count - 1; i >= 0; i--)
+        {
+            if (serie.Points[i].X == x)
+            {
+                existingIdx = i;
+                break;
+            }
+        }
+
+        if (existingIdx >= 0)
+        {
+            var existing = serie.Points[existingIdx];
+            if (existing.Y == y)
+            {
+                return;
+            }
+            serie.Points[existingIdx] = new ChartPoint { X = x, Y = y, Seq = ++_seq, T = msg.Time };
+        }
+        else
+        {
+            serie.Points.Add(new ChartPoint { X = x, Y = y, Seq = ++_seq, T = msg.Time });
+        }
+
+        SortSeriesByTime(serie);
+        TrimSeriesToWindow();
+
+        _lastUpdatedAt = System.DateTime.Now;
+
+        _seriesData = _seriesData
+            .Select(s => new DatasetSeries { DatasetName = s.DatasetName, Color = s.Color, Points = s.Points.ToList() })
+            .ToList();
+
+        _chartKey++;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnConnStateChanged(OmniMonitor.Client.Services.SignalR.ConnectionState state)
+    {
+        _connState = state;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void TrimSeriesToWindow()
+    {
+        try
+        {
+            if (visualization == null) return;
+            System.TimeSpan span = visualization.FechaHasta - visualization.FechaDesde;
+            if (span.TotalSeconds <= 0) return;
+            System.DateTime thresholdLocal = System.DateTime.Now - span;
+            foreach (var s in _seriesData)
+            {
+                s.Points.RemoveAll(p => p.T != default && p.T < thresholdLocal);
+                const int MaxPoints = 1500;
+                if (s.Points.Count > MaxPoints)
+                {
+                    int toRemove = s.Points.Count - MaxPoints;
+                    s.Points.RemoveRange(0, System.Math.Min(toRemove, s.Points.Count));
+                }
+            }
+        }
+        catch { }
+    }
+
+    private static void SortSeriesByTime(DatasetSeries serie)
+    {
+        try
+        {
+            serie.Points = serie.Points
+                .OrderBy(p => p.T != default ? p.T : System.DateTime.MinValue)
+                .ThenBy(p => p.Seq)
+                .ToList();
+        }
+        catch { }
     }
 
     private async Task DownloadVisualization()
@@ -212,6 +439,7 @@
         _dataRetrieved = false;
         _retrievingData = true;
         StateHasChanged();
+        _isTimeSeries = false;
         var allData = new List<object>();
         try
         {
@@ -327,6 +555,7 @@
                             }
                         }
                         _seriesData = BuildSeriesFromData(allData);
+                        _isTimeSeries = true;
                     }
                     else
                     {
@@ -444,9 +673,10 @@
                     ? colorProp.GetString() ?? "#00FFE7"
                     : "#00FFE7";
 
-                System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
-                    ? tProp.GetDateTime().ToString("dd/MM/yyyy HH:mm")
-                    : null;
+                System.DateTime? tdt = root.TryGetProperty("Timestamp", out var tProp)
+                    ? tProp.GetDateTime()
+                    : (System.DateTime?)null;
+                System.String? timestamp = tdt.HasValue ? tdt.Value.ToString("dd/MM/yyyy HH:mm") : null;
 
                 double value = 0;
                 if (root.TryGetProperty("Value", out var vProp))
@@ -466,7 +696,9 @@
                 grouped[datasetName].Points.Add(new ChartPoint
                 {
                     X = timestamp ?? DateTime.Now.ToString("HH:mm"),
-                    Y = (decimal)value
+                    Y = (decimal)value,
+                    Seq = ++_seq,
+                    T = (tdt ?? DateTime.Now)
                 });
             }
             catch (Exception ex)
@@ -548,6 +780,16 @@
     {
         public System.String X { get; set; } = string.Empty;
         public decimal Y { get; set; }
+        public System.DateTime T { get; set; }
+        public long Seq { get; set; }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await TelemetryHubClient.LeaveVisualizationAsync(VisualizationId); } catch { }
+        TelemetryHubClient.TelemetryReceived -= OnTelemetryPoint;
+        TelemetryHubClient.ConnectionStateChanged -= OnConnStateChanged;
+        _liveJoined = false;
     }
 
 }
