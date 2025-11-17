@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Localization
 @using System.Text.Json;
+@using System.Threading.Tasks;
 @using Blazored.LocalStorage
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -16,6 +17,9 @@
 @inject IStringLocalizer<SharedResource> SharedLocalizer
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject OmniMonitor.Client.Services.SignalR.TelemetryHubClient TelemetryHubClient
+@inject OmniMonitor.Client.Services.SignalR.KpiHubClient KpiHubClient
+@implements IAsyncDisposable
 
 <PageTitle>Dashboards</PageTitle>
 
@@ -33,6 +37,10 @@
     </MudStack>
 
     <MudStack Row Spacing="2">
+        <MudStack Row AlignItems="AlignItems.Center" Class="mr-2">
+            <MudText Typo="Typo.body2" Class="mr-2">Live</MudText>
+            <MudSwitch T="bool" Value="@_liveOn" ValueChanged="OnLiveChanged" Color="MudBlazor.Color.Primary" Dense="true" />
+        </MudStack>
         <MudButton Variant="Variant.Outlined"
                    Color="MudBlazor.Color.Secondary"
                    StartIcon="@Icons.Material.Filled.Share"
@@ -55,13 +63,15 @@
     </MudText>
 </MudStack>
 
-<Dashboard CardsData=@(cardsData) 
-           dashboardId="@DashboardId" 
-           OnVisualizationCreated="HandleNewVisualization"
-           UsedVisualizations="@_visualizationsIDs"
-           UpdateCardSize="UpdateCardSize" 
-           RemoveCard="HandleDeleteVisualization">
-</Dashboard>
+<CascadingValue Value="@_liveOn">
+    <Dashboard CardsData=@(cardsData) 
+            dashboardId="@DashboardId" 
+            OnVisualizationCreated="HandleNewVisualization"
+            UsedVisualizations="@_visualizationsIDs"
+            UpdateCardSize="UpdateCardSize" 
+            RemoveCard="HandleDeleteVisualization">
+    </Dashboard>
+</CascadingValue>
 
 <style>
     @@media (max-width: 768px) {
@@ -91,7 +101,32 @@
 
     // ID, AnchoSm, AnchoMd, AnchoLg, Alto
     private List<(int Id, int CardType, int AnchoSm, int AnchoMd, int AnchoLg, int Alto)> cardsData = new List<(int, int, int, int, int, int)> { };
+    private bool _liveOn = false;
 
+    private void OnLiveChanged(bool v)
+    {
+        _liveOn = v;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var pair in _visualizationsIDs)
+        {
+            try
+            {
+                if (pair.Item2 == 2)
+                {
+                    await KpiHubClient.LeaveKpiAsync(pair.Item1);
+                }
+                else
+                {
+                    await TelemetryHubClient.LeaveVisualizationAsync(pair.Item1);
+                }
+            }
+            catch { }
+        }
+        try { await TelemetryHubClient.ShutdownIfIdleAsync(); } catch { }
+    }
 
     protected override async Task OnInitializedAsync()
     {

@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace OmniMonitor.Shared.Dtos;
 public class KpiResponse
@@ -27,5 +27,11 @@ public class KpiResponse
 
     [JsonPropertyName("datasetName")]
     public string? DatasetName { get; set; }
+    
+    [JsonPropertyName("sourceModule")]
+    public string? SourceModule { get; set; }
+
+    [JsonPropertyName("liveEnabled")]
+    public bool LiveEnabled { get; set; } = false;
 
 }

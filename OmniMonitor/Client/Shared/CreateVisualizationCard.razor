@@ -115,6 +115,11 @@
                       RequiredError="@Localizer["NameRequired"]"
                       Style="background: var(--card);" />
 
+        <MudStack Row AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.body2" Class="mr-2">@Localizer["Live"]</MudText>
+            <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" Disabled="@(!_liveAllowedVis)" />
+        </MudStack>
+
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["ChartType"]</MudText>
         <MudSelect T="string"
                    @bind-Value="_selectedChartType"
@@ -185,6 +190,9 @@
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
     private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
+    private bool _liveEnabled = false;
+    private bool _liveAllowedVis = false;
+
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
     private Dictionary<string, List<string>> _entityAttributes = new Dictionary<string, List<string>>
     {
@@ -258,6 +266,7 @@
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Info);
+        RecomputeLiveAllowed();
         StateHasChanged();
         return;
     }
@@ -362,7 +371,8 @@
                     })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
-                FechaHasta = _endDate.Value.Date + _endHour.Value
+                FechaHasta = _endDate.Value.Date + _endHour.Value,
+                LiveEnabled = _liveEnabled && _liveAllowedVis
             };
             try
             {
@@ -483,7 +493,28 @@
         if (found != null)
         {
             _selectedDatasets.Remove(found);
+            RecomputeLiveAllowed();
             StateHasChanged();
+        }
+    }
+
+    private void OnLiveSwitchChanged(bool value)
+    {
+        if (!_liveAllowedVis) { return; }
+        _liveEnabled = value;
+    }
+
+    private void RecomputeLiveAllowed()
+    {
+        _liveAllowedVis = _selectedDatasets.All(ds =>
+            !string.Equals(ds.Dataset.Module, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "AM", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "UM", StringComparison.OrdinalIgnoreCase)
+        );
+        if (!_liveAllowedVis)
+        {
+            _liveEnabled = false;
         }
     }
 

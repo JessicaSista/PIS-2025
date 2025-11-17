@@ -136,6 +136,17 @@ namespace OmniMonitor.Server.Services
                //default:
                //    throw new ArgumentException($"Unsupported SourceModule: {request.SourceModule}");
             }
+            bool requestedLive = request.LiveEnabled ?? false;
+            bool allowLive = requestedLive;
+            if (requestedLive)
+            {
+                string? module = request.SourceModule?.Trim().ToUpperInvariant();
+                if (module == "AM" || module == "UM")
+                {
+                    allowLive = false;
+                }
+            }
+
             var newKpi = new Kpi
             {
                 Name = request.Name,
@@ -150,7 +161,8 @@ namespace OmniMonitor.Server.Services
                 ExtraInfo = request.ExtraInfo,
                 Atributo = string.IsNullOrWhiteSpace(request.Atributo) ? string.Empty : request.Atributo,
                 Username = username ?? string.Empty,
-                Type = request.Type
+                Type = request.Type,
+                LiveEnabled = allowLive
             };
 
             _context.Kpi.Add(newKpi);
@@ -327,6 +339,19 @@ namespace OmniMonitor.Server.Services
             if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor.Trim();
             if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
             if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
+            if (request.LiveEnabled.HasValue)
+            {
+                bool requestedLive = request.LiveEnabled.Value;
+                string effectiveModule = (request.SourceModule ?? existingKpi.SourceModule)!.Trim().ToUpperInvariant();
+                if (requestedLive && (effectiveModule == "AM" || effectiveModule == "UM"))
+                {
+                    existingKpi.LiveEnabled = false;
+                }
+                else
+                {
+                    existingKpi.LiveEnabled = requestedLive;
+                }
+            }
 
             _context.Kpi.Update(existingKpi);
             await _context.SaveChangesAsync();
@@ -411,6 +436,8 @@ namespace OmniMonitor.Server.Services
                 throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
 
             response.DatasetName = await GetDatasetNameAsync(kpi.DatasetId);
+            response.LiveEnabled = kpi.LiveEnabled;
+            response.SourceModule = kpi.SourceModule;
             return response;
         }
 
@@ -445,6 +472,8 @@ namespace OmniMonitor.Server.Services
             if (response == null)
                 throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
 
+            response.LiveEnabled = kpi.LiveEnabled;
+            response.SourceModule = kpi.SourceModule;
             return response;
         }
 

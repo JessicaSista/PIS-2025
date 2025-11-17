@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -31,6 +31,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [Column("link")]
         public string? Link { get; set; }
+        public bool LiveEnabled { get; set; } = false;
 
         // Propiedad de navegación para la relación uno a muchos
         public virtual ICollection<GrupoDataset> GrupoDatasets { get; set; } = new List<GrupoDataset>();
