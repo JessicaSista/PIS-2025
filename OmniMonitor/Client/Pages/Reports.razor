@@ -16,9 +16,11 @@
 
 <PageTitle>@Localizer["Reportes"]</PageTitle>
 
+
+<!-- Header -->
 <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
     <MudStack>
-        <MudText Typo="Typo.h4" Class="page-title" Style="margin: 0;">
+        <MudText Typo="Typo.h4" Style="color: var(--text-primary); font-weight: 500; font-family: Inter, Roboto, sans-serif;">
             @Localizer["Title"]
         </MudText>
     </MudStack>
@@ -28,10 +30,12 @@
 </MudStack>
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
-    <MudText Typo="Typo.body1" Class="mb-4 page-subtitle">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:var(--textColor-2); font-family: Inter, Roboto, sans-serif;">
         @Localizer["Description"]
     </MudText>
 </MudStack>
+
+
 
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">
     <MudTextField @bind-Value="_searchText"

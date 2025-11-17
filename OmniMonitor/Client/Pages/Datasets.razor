@@ -19,17 +19,23 @@
 
 <PageTitle>Datasets</PageTitle>
 
-    <MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
-        <MudStack>
-            <MudText Typo="Typo.h4" Style=" font-weight: 500; font-family: Inter, Roboto, sans-serif;">Datasets</MudText>
-        </MudStack>
-        <AddButton OnClick="CrearDataset">
-            @Localizer["CrearDataset"]
-        </AddButton>
+<!-- Header -->
+<MudStack Row Justify="Justify.SpaceBetween" Class="mt-2 mx-4">
+    <MudStack>
+        <MudText Typo="Typo.h4" Style="color: var(--text-primary); font-weight: 500; font-family: Inter, Roboto, sans-serif;">
+            Datasets
+        </MudText>
     </MudStack>
-    <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
-        <MudText Typo="Typo.body1" Class="mb-4" Style="color: #a5a8b5; font-family: Inter, Roboto, sans-serif;">@Localizer["Gestiona"]</MudText>
-    </MudStack>
+    <AddButton OnClick="CrearDataset">
+        @Localizer["CrearDataset"]
+    </AddButton>
+</MudStack>
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-4">
+    <MudText Typo="Typo.body1" Class="mb-4" Style="color:var(--textColor-2); font-family: Inter, Roboto, sans-serif;">
+        @Localizer["Gestiona"]
+    </MudText>
+</MudStack>
 
 
 <MudStack Row Justify="Justify.SpaceBetween" Class="mb-4 ml-4 mr-6">

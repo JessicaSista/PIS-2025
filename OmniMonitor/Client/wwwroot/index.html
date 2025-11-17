@@ -7,21 +7,6 @@
     <title>OmniMonitor</title>
     <base href="/" />
     <link href="css/app.css" rel="stylesheet" />
-    <script>
-        (function () {
-            // Clave que usas en LocalStorage (debe coincidir con ThemeKey en C#)
-            const ThemeKey = "currentThemeMode";
-
-            // Lee el valor guardado de forma síncrona
-            const storedMode = localStorage.getItem(ThemeKey);
-
-            // Si el valor guardado es 'Dark', añade la clase 'dark-mode' al body inmediatamente.
-            // Esto activa las variables CSS del modo oscuro definidas en app.css.
-            if (storedMode === "Dark") {
-                document.body.classList.add('dark-mode');
-            }
-        })();
-    </script>
     <link rel="icon" type="image/jpg" href="LogoSonda.jpg" />
     <link href="OmniMonitor.Client.styles.css" rel="stylesheet" />
     <link href="manifest.json" rel="manifest" />
@@ -32,7 +17,7 @@
 </head>
 
 <body>
-    <div id="app">
+    <div id="app" style="background-color: transparent">
         <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />
             <circle r="40%" cx="50%" cy="50%" />
@@ -49,7 +34,7 @@
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="js/dnd-helpers.js"></script>
-    <script src="js/theme-interop.js"></script>
+    <!--<script src="js/theme-interop.js"></script>-->
 </body>
 
 <script>
