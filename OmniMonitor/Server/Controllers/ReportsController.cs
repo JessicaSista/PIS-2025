@@ -455,6 +455,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Create")]
         [HttpDelete("scheduled-reports/{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
@@ -475,81 +477,7 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        [HttpGet("run-scheduled")]
-        [ProducesResponseType(200)]
-        [ProducesResponseType(500)]
-        public async Task<IActionResult> RunScheduledReports()
-        {
-            try
-            {
-                // Ejecuta todas las programaciones activas que deban enviarse
-                await _reportService.ProcessScheduledReportsAsync();
-
-                return Ok(new { message = "Proceso de programaciones ejecutado correctamente." });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new
-                {
-                    message = "Error ejecutando programaciones.",
-                    details = ex.Message
-                });
-            }
-        }
-
-
-
-
-        [HttpGet("send-test")]
-        public async Task<IActionResult> SendTestEmail()
-        {
-            await _mailService.SendEmailAsync(
-                new() { "elbrunoconde@gmail.com" },
-                "Test desde OmniMonitor",
-                "Hola! Este es un test del MailService."
-            );
-
-            return Ok("Correo enviado con éxito 🚀");
-        }
-
-        [HttpGet("send-test-pdf")]
-        public async Task<IActionResult> SendTestEmailPDF()
-        {
-            try
-            {
-                using var ms = new MemoryStream();
-                var doc = new iTextSharp.text.Document(PageSize.A4);
-                PdfWriter.GetInstance(doc, ms);
-                doc.Open();
-                doc.Add(new Paragraph("📊 Reporte de prueba - OmniMonitor"));
-                doc.Add(new Paragraph("Este PDF fue generado automáticamente desde el endpoint GET."));
-                doc.Add(new Paragraph($"Fecha: {DateTime.Now}"));
-                doc.Close();
-
-                var pdfBytes = ms.ToArray();
-
-                var recipients = new List<string> { "elbrunoconde@gmail.com" };
-                var subject = "Reporte de prueba (GET)";
-                var message = "Hola! Este es un correo de prueba con un PDF adjunto válido.";
-
-                await _mailService.SendEmailAsync(
-                    recipients,
-                    subject,
-                    message,
-                    pdfAttachment: pdfBytes,
-                    pdfName: "reporte_prueba.pdf"
-                );
-
-                return Ok("Correo enviado correctamente ✅");
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error al enviar correo: {ex.Message}");
-            }
-        }
-
-
-
+    
 
 
     }
