@@ -435,7 +435,7 @@ namespace OmniMonitor.Server.Services
             if (response == null)
                 throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
 
-            response.DatasetName = await GetDatasetNameAsync(kpi.DatasetId);
+            response.DatasetName = await GetDatasetNameFromModuleAsync(kpi.DatasetId, kpi.SourceModule, username);
             response.LiveEnabled = kpi.LiveEnabled;
             response.SourceModule = kpi.SourceModule;
             return response;
@@ -472,6 +472,7 @@ namespace OmniMonitor.Server.Services
             if (response == null)
                 throw new Exception($"No se pudo calcular el KPI con ID {kpiId}");
 
+            response.DatasetName = await GetDatasetNameFromModuleAsync(kpi.DatasetId, kpi.SourceModule, kpi.Username ?? string.Empty);
             response.LiveEnabled = kpi.LiveEnabled;
             response.SourceModule = kpi.SourceModule;
             return response;
