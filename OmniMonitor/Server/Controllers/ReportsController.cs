@@ -335,7 +335,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("Reports.Execute")]
+        [RequirePermission("Reports.Export")]
         [HttpGet("{id}/execute")]
         [ProducesResponseType(typeof(List<dynamic>), 200)]
         [ProducesResponseType(404)]
