@@ -46,5 +46,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("userRoleBundleDtos")]
         public List<UserRoleBundleDto>? UserRoleBundleDtos { get; set; }
+
+        public override string ToString() => UserName ?? string.Empty;
     }
 }

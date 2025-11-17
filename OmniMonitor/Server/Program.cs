@@ -138,6 +138,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Reports.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Edit")));
     options.AddPolicy("Reports.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Delete")));
     options.AddPolicy("Reports.Export", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Export")));
+    options.AddPolicy("Reports.Execute", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Execute")));
 
     // Módulo Sensors
     options.AddPolicy("Sensors.View", policy => policy.Requirements.Add(new PermissionRequirement("Sensors.View")));
@@ -190,7 +191,7 @@ builder.Services.AddControllersWithViews()
 
     });
 builder.Services.AddRazorPages();
-
+builder.Services.AddScoped<IMailService, MailService>();
 builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
 builder.Services.AddScoped<ISondaUMService, SondaUMService>();
@@ -211,6 +212,8 @@ builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddScoped<IKpiAMService, KpiAMService>();
 builder.Services.AddScoped<IPasswordHasher<SharedLink>, PasswordHasher<SharedLink>>();
 builder.Services.AddHttpClient();
+
+builder.Services.AddHostedService<ScheduledReportWorker>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>

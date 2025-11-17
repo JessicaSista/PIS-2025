@@ -9,22 +9,25 @@
         <MudStack Spacing="3">
             <MudTextField @bind-Value="newDashboard.Nombre"
                           Label="@Localizer["Name"]"
+                          Placeholder="@Localizer["NamePlaceholder"]"
                           Variant="Variant.Outlined"
                           Required="true"
                           For="@(() => newDashboard.Nombre)"
+                          MaxLength="100"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
             <MudTextField @bind-Value="newDashboard.Descripcion"
                           Label="@Localizer["Description"]"
+                          Placeholder="@Localizer["DescriptionPlaceholder"]"
                           Variant="Variant.Outlined"
                           Lines="2"
                           For="@(() => newDashboard.Descripcion)"
-                          MaxLength="200"
+                          MaxLength="500"
                           Style="background: var(--card); color: var(--text-primary); border-color: var(--borde-drawer);" />
         </MudStack>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" OnClick="Confirm">@Localizer["Save"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" Disabled="@(!IsFormValid)" OnClick="Confirm">@Localizer["Save"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -37,7 +40,12 @@
 
     private DashboardDto newDashboard = new();
 
-    private bool IsFormValid => !string.IsNullOrWhiteSpace(newDashboard.Nombre);
+    private const int NameMax = 100;
+    private const int DescMax = 500;
+    private bool IsFormValid =>
+        !string.IsNullOrWhiteSpace(newDashboard.Nombre)
+        && newDashboard.Nombre.Length <= NameMax
+        && (newDashboard.Descripcion ?? string.Empty).Length <= DescMax;
 
     protected override void OnInitialized()
     {
@@ -50,6 +58,8 @@
 
     private async Task Confirm()
     {
+        if (!IsFormValid)
+            return;
         await OnConfirm.InvokeAsync(newDashboard);
         _mudDialog.Close(DialogResult.Ok(newDashboard));
     }

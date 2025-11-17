@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using Azure.Core;
+using Azure.Identity;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +16,7 @@ namespace OmniMonitor.Server.Services
 {
     public interface IVisualizacionService
     {
-    Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request);
+    Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request, string username);
     Task<List<Visualizacion>> GetAllVisualizacionesAsync(string username);
     Task<List<Visualizacion>> GetAllVisualizacionesPaginatedAsync(string username, int page, int pageSize, string? query = null);
     Task<int> GetVisualizacionesCountAsync(string username, string? query = null);
@@ -36,20 +37,38 @@ namespace OmniMonitor.Server.Services
 
         }
 
+        private async Task EnsureUniqueNameAsync(string name, string username, int? excludeId = null)
+        {
+            var query = _context.Visualizaciones
+                .Where(v => v.Username == username && v.Nombre == name);
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(v => v.IdVisualizacion != excludeId.Value);
+            }
+
+            if (await query.AnyAsync())
+            {
+                throw new ArgumentException($"Ya existe una visualización con el nombre '{name}'.");
+            }
+        }
+
         /// <summary>
         /// Crea una nueva visualización y asocia los datasets correspondientes.
         /// </summary>
-        public async Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request)
+        public async Task<Visualizacion> CreateVisualizacionAsync(CreateVisualizacionRequest request, string username)
         {
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
+            if (string.IsNullOrEmpty(request.Nombre))
             {
                 throw new ArgumentException("El nombre de usuario y el nombre de la visualización son obligatorios.");
             }
 
+            await EnsureUniqueNameAsync(request.Nombre, username);
+
             var nuevaVisualizacion = new Visualizacion
             {
                 Nombre = request.Nombre,
-                Username = request.Username,
+                Username = username,
                 FechaDesde = request.FechaDesde,
                 FechaHasta = request.FechaHasta,
                 JsonDesign = request.JsonDiseñoGeneral,
@@ -91,7 +110,7 @@ namespace OmniMonitor.Server.Services
         
         public async Task<List<Visualizacion>> GetAllVisualizacionesPaginatedAsync(string username, int page, int pageSize, string? query = null)
         {
-            var visualizacionesQuery = _context.Visualizaciones.Where(v => v.Username == username);
+            var visualizacionesQuery = _context.Visualizaciones.Include(v => v.GrupoDatasets).ThenInclude(gd => gd.Dataset).Where(v => v.Username == username);
             if (!string.IsNullOrWhiteSpace(query))
             {
                 var loweredQuery = query.ToLowerInvariant();
@@ -102,7 +121,6 @@ namespace OmniMonitor.Server.Services
                 .OrderByDescending(v => v.IdVisualizacion)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Include(v => v.GrupoDatasets)
                 .ToListAsync();
         }
 

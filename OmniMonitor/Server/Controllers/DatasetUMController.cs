@@ -28,48 +28,8 @@ namespace OmniMonitor.Server.Controllers
             _sondaUMService = sondaUMService;
         }
 
-        /// <summary>
-        /// Crea un nuevo dataset.
-        /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPost]
-        [ProducesResponseType(typeof(DatasetUM), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> CreateDataset([FromBody] CreateDatasetUMRequest request)
-        {
-            try
-            {
-                var username = User.Identity?.Name;
-
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
-                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetUM newDataset = await _datasetUMService.CreateDatasetUMAsync(request, dataset.Id);
-                await _datasetUMService.UpdateDatasetAsyncUM(dataset.Id, requestDataset, newDataset);
-                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
-            }
-        }
-
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Create")]
         [HttpPost("filtered")]
         [ProducesResponseType(typeof(DatasetUM), 201)]
         [ProducesResponseType(400)]
@@ -166,6 +126,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene todos los datasets para un usuario específico.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("GetAllDatasets")]
         [ProducesResponseType(typeof(List<DatasetUM>), 200)]
         [ProducesResponseType(403)]
@@ -188,6 +149,7 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene un dataset específico por su ID y nombre de usuario.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
         [HttpGet("GetDatasetById")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(403)]
@@ -213,6 +175,7 @@ namespace OmniMonitor.Server.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Edit")]
         [HttpPut("with-filters/{datasetId}")]
         [ProducesResponseType(typeof(DatasetUM), 200)]
         [ProducesResponseType(400)]
@@ -312,56 +275,8 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-        /// <summary>
-        /// Actualiza un dataset existente.
-        /// </summary>
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPut("{datasetId}")]
-        [ProducesResponseType(typeof(DatasetUM), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetUM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetUMRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                // Obtener el dataset existente para obtener el DatasetId
-                DatasetUM? existingDataset = await _datasetUMService.GetDatasetUMByIdForEditAsync(datasetId, request.Username);
-                if (existingDataset == null)
-                {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
-                }
-
-                // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.UrbanMonitor, existingDataset.DatasetId);
-
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.UrbanMonitor);
-                DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, request);
-                int id = updatedDataset.DatasetId;
-                Datasets dataset = await _datasetUMService.UpdateDatasetAsyncUM(id, requestDataset, updatedDataset);
-                return Ok(updatedDataset);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al actualizar el dataset: {ex.Message}");
-            }
-        }
-
             [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+            [RequirePermission("Datasets.Edit")]
             [HttpPut("EditarUMFiltrado/{datasetId}")]
             [ProducesResponseType(typeof(DatasetUM), 200)]
             [ProducesResponseType(400)]
@@ -411,7 +326,7 @@ namespace OmniMonitor.Server.Controllers
                         return BadRequest("ContentType inválido o no soportado");
                     }
 
-                    DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMAsync(datasetId, req);
+                    DatasetUM updatedDataset = await _datasetUMService.UpdateDatasetUMWithFiltersAsync(datasetId, req, request.Filters);
                     await _datasetUMService.UpdateDatasetAsyncUM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                     return Ok(updatedDataset);
                 }
@@ -433,6 +348,7 @@ namespace OmniMonitor.Server.Controllers
         /// Elimina un dataset.
         /// </summary>
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.Delete")]
         [HttpDelete("{datasetId}")]
         [ProducesResponseType(204)]
         [ProducesResponseType(403)]
@@ -513,7 +429,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = imDataset.Id,
                             Nombre = imDataset.Name,
                             Descripcion = imDataset.Description ?? string.Empty,
-                            Module = "Insight Monitor"
+                            Module = "Insight Monitor",
+                            ContentType = imDataset.ContentType
                         });
                     }
                 }
@@ -533,7 +450,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = umDataset.Id,
                             Nombre = umDataset.Name,
                             Descripcion = umDataset.Description ?? string.Empty,
-                            Module = "Urban Monitor"
+                            Module = "Urban Monitor",
+                            ContentType = umDataset.ContentType
                         });
                     }
                 }
@@ -553,7 +471,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = amDataset.Id_Dataset,
                             Nombre = amDataset.Nombre,
                             Descripcion = amDataset.Descripcion ?? string.Empty,
-                            Module = "Asset Manager"
+                            Module = "Asset Manager",
+                            ContentType = amDataset.ContentType
                         });
                     }
                 }
@@ -573,7 +492,8 @@ namespace OmniMonitor.Server.Controllers
                             Id = emDataset.Id,
                             Nombre = emDataset.Name,
                             Descripcion = emDataset.Description ?? string.Empty,
-                            Module = "Event Manager"
+                            Module = "Event Manager",
+                            ContentType = emDataset.ContentType
                         });
                     }
                 }
@@ -747,7 +667,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetIM.First().Id,
                         Nombre = d.DatasetIM.First().Name,
                         Descripcion = d.DatasetIM.First().Description ?? string.Empty,
-                        Module = "Insight Monitor"
+                        Module = "Insight Monitor",
+                        ContentType = d.DatasetIM.First().ContentType
                     });
 
                 // Query para datasets UM
@@ -759,7 +680,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetUM.First().Id,
                         Nombre = d.DatasetUM.First().Name,
                         Descripcion = d.DatasetUM.First().Description ?? string.Empty,
-                        Module = "Urban Monitor"
+                        Module = "Urban Monitor",
+                        ContentType = d.DatasetUM.First().ContentType
                     });
 
                 // Query para datasets AM
@@ -771,7 +693,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetAM.First().Id_Dataset,
                         Nombre = d.DatasetAM.First().Nombre,
                         Descripcion = d.DatasetAM.First().Descripcion ?? string.Empty,
-                        Module = "Asset Manager"
+                        Module = "Asset Manager",
+                        ContentType = d.DatasetAM.First().ContentType
                     });
 
                 // Query para datasets EM
@@ -783,7 +706,8 @@ namespace OmniMonitor.Server.Controllers
                         Id = d.DatasetEM.First().Id,
                         Nombre = d.DatasetEM.First().Name,
                         Descripcion = d.DatasetEM.First().Description ?? string.Empty,
-                        Module = "Event Manager"
+                        Module = "Event Manager",
+                        ContentType = d.DatasetEM.First().ContentType
                     });
 
                 // Combinar todas las consultas

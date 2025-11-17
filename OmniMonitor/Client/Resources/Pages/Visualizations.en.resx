@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -158,5 +158,23 @@
   </data>
   <data name="Editar" xml:space="preserve">
     <value>Edit</value>
+  </data>
+  <data name="LoadData" xml:space="preserve">
+    <value>Load data</value>
+  </data>
+  <data name="LoadingData" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="ErrorLoadingKpi" xml:space="preserve">
+    <value>Unable to load KPI data.</value>
+  </data>
+  <data name="ofPreposition" xml:space="preserve">
+    <value>of</value>
+  </data>
+  <data name="Showing" xml:space="preserve">
+    <value>Showing</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Page</value>
   </data>
 </root>

@@ -44,9 +44,10 @@
     else if (ActiveTab == "filtros")
     {
         <FilterSelector Filters="Filters"
-                        AvailableColumns="AvailableColumns"
-                        OnFilterAdd="OnFilterAdd"
-                        OnFilterRemove="OnFilterRemove" />
+                AvailableColumns="AvailableColumns"
+                OnFilterAdd="OnFilterAdd"
+                OnFilterRemove="OnFilterRemove"
+                OnFilterColumnChanged="OnFilterColumnChanged" />
     }
 </MudPaper>
 
@@ -60,7 +61,7 @@
     [Parameter] public EventCallback<DatasetDto> OnDatasetToggle { get; set; }
     [Parameter] public Func<DatasetDto, bool>? IsDatasetSelected { get; set; }
     [Parameter] public Func<DatasetDto, EntityName>? ResolveSelectedEntity { get; set; }
-    [Parameter] public Func<string?, IEnumerable<EntityName>>? ResolveEntityOptions { get; set; }
+    [Parameter] public Func<DatasetDto, IEnumerable<EntityName>>? ResolveEntityOptions { get; set; }
     [Parameter] public EventCallback<DatasetSelector.EntitySelectionChangedArgs> OnDatasetEntityChanged { get; set; }
     [Parameter] public string DatasetSearchText { get; set; } = string.Empty;
     [Parameter] public EventCallback<string> OnDatasetSearchTextChanged { get; set; }
@@ -80,9 +81,10 @@
     [Parameter] public Func<string?, IEnumerable<string>>? ResolvePropertyNamesForDataset { get; set; }
     [Parameter] public EventCallback<EditReport.JoinDto> OnJoinDatasetsChanged { get; set; }
 
-    [Parameter] public List<EditReport.FilterDto> Filters { get; set; } = new();
+    [Parameter] public List<EditReport.FilterViewModel> Filters { get; set; } = new();
     [Parameter] public EventCallback OnFilterAdd { get; set; }
-    [Parameter] public EventCallback<EditReport.FilterDto> OnFilterRemove { get; set; }
+    [Parameter] public EventCallback<EditReport.FilterViewModel> OnFilterRemove { get; set; }
+    [Parameter] public EventCallback<(int FilterId, string ColumnKey)> OnFilterColumnChanged { get; set; }
 
     private async Task SetActiveTab(string tab)
     {

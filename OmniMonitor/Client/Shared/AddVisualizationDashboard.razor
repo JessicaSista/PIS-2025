@@ -7,12 +7,14 @@
 @inject HttpClient Http
 @inject IDialogService DialogService
 @inject ILocalStorageService LocalStorage
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<AddVisualizationDashboard> Localizer
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
             <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
-            Nueva Visualizacion
+            @Localizer["NuevaVisualizacionTitulo"]
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -23,15 +25,29 @@
                 Color="MudBlazor.Color.Inherit"
                 Size="MudBlazor.Size.Large"
                 Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)">
-        Nueva visualización
+        @Localizer["NuevaVisualizacionBoton"]
     </MudButton>
 
     <MudDivider DividerType="MudBlazor.DividerType.Middle" Class="mt-5 mb-6" />
 
-    <MudText Typo="MudBlazor.Typo.h6" Class="mb-2" Style="color: var(--text-primary);">Visualizaciones existentes</MudText>
+    <MudText Typo="MudBlazor.Typo.h6" Class="mb-2" Style="color: var(--text-primary);">@Localizer["VisualizacionesExistentes"]</MudText>
 
+    @{
+        var availableVisualizations = _visualizations.Where(v => !UsedVisualizations.Contains((v.IdVisualizacion,1))).ToList();
+        var availableKpis = _kpiResponses.Where(k => !UsedVisualizations.Contains((k.Id,2))).ToList();
+    }
+
+    @if (!availableVisualizations.Any() && !availableKpis.Any())
+    {
+        <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
+            <MudText Typo="MudBlazor.Typo.body2" Class="mt-2" Style="color: var(--text-primary); opacity: 0.8;">@Localizer["NoVisualizacionesDisponibles"]</MudText>
+        </MudStack>
+    }
+
+    @if (availableVisualizations.Any())
+    {
     <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
-        @foreach(Visualizacion visualization in _visualizations){
+        @foreach(Visualizacion visualization in availableVisualizations){
             JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString();
             <MudButton FullWidth="true"
@@ -46,9 +62,12 @@
             </MudButton>
         }
     </MudStack>
+    }
 
+    @if (availableKpis.Any())
+    {
     <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
-        @foreach(KpiResponse kpi in _kpiResponses){
+        @foreach(KpiSimpleDto kpi in availableKpis){
             @* JsonDocument design = JsonDocument.Parse(visualization.JsonDesign);
             System.String chartType = design.RootElement.GetProperty("ChartType").ToString(); *@
             <MudButton FullWidth="true"
@@ -63,6 +82,7 @@
             </MudButton>
         }
     </MudStack>
+    }
 </DialogContent>
 </MudDialog>
 
@@ -71,12 +91,13 @@
     [CascadingParameter]  private IMudDialogInstance MudDialog { get; set; }
 
     [Parameter] [Required] public System.Int32 dashboardId {get; set;}
+    [Parameter] public List<(int,int)> UsedVisualizations { get; set; } = new List<(int,int)>();
 
     [Parameter] public EventCallback<(int,int)> OnVisualizationCreated { get; set; }
 
     private List<Visualizacion> _visualizations = new List<Visualizacion>();
 
-    private List<KpiResponse> _kpiResponses = new List<KpiResponse>();
+    private List<KpiSimpleDto> _kpiResponses = new List<KpiSimpleDto>();
 
     private void Submit() => MudDialog.Close(DialogResult.Ok(true));
 
@@ -108,7 +129,7 @@
             };
 
             IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
-                "Preview", 
+                Localizer["PreviewTitulo"], 
                 parameters, 
                 options
             );
@@ -122,14 +143,14 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add("No se pudo cargar la previsualización: " + ex.Message, Severity.Error);
+            Snackbar.Add(Localizer["ErrorCargarPreview"] + ": " + ex.Message, Severity.Error);
         }
     }
 
     private async Task OpenCreateVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>("Crear Visualización", options);
+        IDialogReference? dialog = await DialogService.ShowAsync<CreateVisualizationCard>(Localizer["CrearVisualizacionTitulo"], options);
         DialogResult? result = await dialog.Result;
         
         if (!result.Canceled)
@@ -170,13 +191,13 @@
                 }
             }
 
-            HttpResponseMessage? kpiResponse = await Http.GetAsync("api/KPI/kpis");
+            HttpResponseMessage? kpiResponse = await Http.GetAsync("api/Kpi/GetAllKpiDtoPaginated?page=1&pageSize=1000");
             if (kpiResponse.IsSuccessStatusCode)
             {
-                var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<List<KpiResponse>>();
+                var kpisFromApi = await kpiResponse.Content.ReadFromJsonAsync<KpiSimplePaginatedResponse>();
                 if (kpisFromApi != null)
                 {
-                    _kpiResponses = kpisFromApi;
+                    _kpiResponses = kpisFromApi.Items;
                 }
             }
         }

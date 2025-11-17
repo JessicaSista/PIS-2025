@@ -1246,7 +1246,6 @@ else if (selectedTipo == "Insight Monitor")
             var request = new CreateDatasetIMRequest
             {
                 Name = addName,
-                Username = username,
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
@@ -1678,7 +1677,6 @@ else if (selectedTipo == "Insight Monitor")
             var filteredRequest = new CreateDatasetAMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = amFilters
             };
 
@@ -1852,7 +1850,6 @@ else if (selectedTipo == "Insight Monitor")
             var filteredRequest = new CreateDatasetUMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = umFilters
             };
 
@@ -2069,7 +2066,6 @@ else if (selectedTipo == "Insight Monitor")
             var filteredRequest = new CreateDatasetEMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = emFilters
             };
 

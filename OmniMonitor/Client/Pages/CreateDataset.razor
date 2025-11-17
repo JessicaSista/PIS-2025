@@ -1082,7 +1082,6 @@
             var filteredRequest = new CreateDatasetAMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = amFilters
             };
 
@@ -1283,7 +1282,6 @@
             var request = new CreateDatasetIMRequest
             {
                 Name = addName,
-                Username = username,
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
@@ -1461,7 +1459,6 @@
             var filteredRequest = new CreateDatasetUMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = umFilters
             };
 
@@ -1610,7 +1607,6 @@
             var filteredRequest = new CreateDatasetEMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = emFilters
             };
 

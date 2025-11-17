@@ -31,44 +31,6 @@ namespace OmniMonitor.Server.Controllers
             _sondaAMService = sondaAMService;
         }
 
-        /// <summary>
-        /// Crea un nuevo DatasetAM.
-        /// </summary>
-        [HttpPost]
-        [RequirePermission("Datasets.Create")]
-        [ProducesResponseType(typeof(DatasetAM), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetAM>> CreateDatasetAM([FromBody] CreateDatasetAMRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var requestDataset = new CreateDatasetRequest(request.Nombre, request.Username, ModuleType.AssetManager);
-                Datasets newDataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetAM newDatasetAM = await _datasetAmService.CreateDatasetAMAsync(request, newDataset.Id);
-                await _datasetUMService.UpdateDatasetAsyncAM(newDataset.Id, requestDataset, newDatasetAM);
-
-                return CreatedAtAction(nameof(GetDatasetAMByIdForEdit), new { id = newDatasetAM.Id_Dataset, username = newDatasetAM.Username }, newDatasetAM);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al crear el DatasetAM: {ex.Message}");
-            }
-        }
-                /// <summary>
         [HttpPost("filtered")]
         [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetAM), 201)]
@@ -91,8 +53,10 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 // Validar filtros ANTES de crear el dataset general
+                // Mapear ContentType a Type_Dataset
                 if (req.ContentType == "2") // Asset
                 {
+                    req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
                     
                     // Si hay filtros, aplicarlos y validar que haya resultados
@@ -112,15 +76,6 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = allAssets.Cast<object>();
                     }
                     
-                    Console.WriteLine($"[CREATE AM DATASET] IDs de assets filtrados:");
-                    foreach (var assetObj in filtrados)
-                    {
-                        if (assetObj is AssetDto asset)
-                        {
-                            Console.WriteLine($"[CREATE AM DATASET]   - Asset Id: {asset.Id} (tipo: {asset.Id?.GetType().Name})");
-                        }
-                    }
-                    
                     var assetIds = new List<string>();
                     foreach (var assetObj in filtrados)
                     {
@@ -135,10 +90,11 @@ namespace OmniMonitor.Server.Controllers
                     }
                     req.Grupo_Asset_Ids = assetIds;
                     
-                    Console.WriteLine($"[CREATE AM DATASET] Grupo_Asset_Ids asignado: {string.Join(", ", req.Grupo_Asset_Ids ?? new List<string>())}");
+                    // [CREATE AM DATASET] Grupo_Asset_Ids asignado (log de consola removido).
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
+                    req.Type_Dataset = 1; // Establecer Type_Dataset para EventTask
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
                     
@@ -167,6 +123,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "3") // Stock
                 {
+                    req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
                     
                     // Si hay filtros, aplicarlos y validar que haya resultados
@@ -247,8 +204,10 @@ namespace OmniMonitor.Server.Controllers
                 var requestDataset = new CreateDatasetRequest(req.Nombre, req.Username, ModuleType.AssetManager);
 
                 // Validar filtros ANTES de actualizar el dataset
+                // Mapear ContentType a Type_Dataset
                 if (req.ContentType == "2") // Asset
                 {
+                    req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
                     
                     // Si hay filtros, aplicarlos y validar que haya resultados
@@ -287,6 +246,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "1") // EventTask
                 {
+                    req.Type_Dataset = 1; // Establecer Type_Dataset para EventTask
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
                     
@@ -317,8 +277,8 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else if (req.ContentType == "3") // Stock
                 {
+                    req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
-                    Console.WriteLine($"[EDIT AM DATASET] Total Stocks obtenidos: {allStocks.Count()}");
                     
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
@@ -336,7 +296,6 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allStocks.Cast<object>();
                     }
-                    Console.WriteLine($"[EDIT AM DATASET] Stocks después de filtrar: {filtrados.Count()}");
                     
                     if (req.StockIds == null) req.StockIds = new List<int>();
                     req.StockIds.Clear();
@@ -441,51 +400,6 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al obtener el DatasetAM para edición: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Actualiza un DatasetAM existente.
-        /// </summary>
-        [HttpPut("{id}")]
-        [RequirePermission("Datasets.Edit")]
-        [ProducesResponseType(typeof(DatasetAM), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetAM>> UpdateDatasetAM(int id, [FromBody] CreateDatasetAMRequest request)
-        {
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                DatasetAM? existingDataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, request.Username);
-                if (existingDataset == null)
-                {
-                    return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {request.Username}.");
-                }
-                await _datasetUMService.ValidateDatasetNameAsync(request.Nombre, request.Username, ModuleType.AssetManager, existingDataset.DatasetId);
-
-                // Llamar al servicio que incluye la validación de nombres únicos
-                DatasetAM updatedDataset = await _datasetAmService.UpdateDatasetAMAsync(existingDataset, request);
-                var requestDataset = new CreateDatasetRequest(request.Nombre, request.Username, ModuleType.AssetManager);
-                Datasets newDataset = await _datasetUMService.UpdateDatasetAsyncAM(updatedDataset.DatasetId, requestDataset, updatedDataset);
-                return Ok(updatedDataset);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al actualizar el DatasetAM: {ex.Message}");
             }
         }
 

@@ -31,55 +31,6 @@ namespace OmniMonitor.Server.Controllers
             _context = context;
         }
 
-        /// <summary>
-        /// Crea un nuevo dataset EM.
-        /// </summary>
-        [HttpPost]
-        [RequirePermission("Datasets.Create")]
-        [ProducesResponseType(typeof(DatasetEM), 201)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(403)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> CreateDataset([FromBody] CreateDatasetEMRequest request)
-        {
-            try
-            {
-                if (request == null)
-                {
-                    return BadRequest("El cuerpo de la petición no puede estar vacío.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.Name))
-                {
-                    return BadRequest("El nombre del dataset es requerido.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.Username))
-                {
-                    return BadRequest("El nombre de usuario es requerido.");
-                }
-
-                if (string.IsNullOrWhiteSpace(request.IsDataset))
-                {
-                    return BadRequest("El tipo de dataset es requerido.");
-                }
-
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
-                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetEM createdDataset = await _datasetEMService.CreateDatasetEMAsync(request, dataset.Id);
-                await _datasetUMService.UpdateDatasetAsyncEM(dataset.Id, requestDataset, createdDataset);
-                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = createdDataset.Id, username = createdDataset.Username }, createdDataset);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
-            }
-        }
-
         [HttpPost("filtered")]
         [RequirePermission("Datasets.Create")]
         [ProducesResponseType(typeof(DatasetEM), 201)]
@@ -392,41 +343,6 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Actualiza un dataset EM existente.
-        /// </summary>
-        [HttpPut("{datasetId}")]
-        [RequirePermission("Datasets.Edit")]
-        [ProducesResponseType(typeof(DatasetEM), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetEM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetEMRequest request)
-        {
-            try
-            {
-                DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, request.Username);
-                if (existingDataset == null)
-                {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
-                }
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.EventManager, existingDataset.DatasetId);
-
-                DatasetEM updatedDataset = await _datasetEMService.UpdateDatasetEMAsync(datasetId, request);
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.EventManager);
-                Datasets dataset = await _datasetUMService.UpdateDatasetAsyncEM(updatedDataset.DatasetId, requestDataset, updatedDataset);
-                return Ok(updatedDataset);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Error interno al actualizar el dataset: {ex.Message}" });
             }
         }
 

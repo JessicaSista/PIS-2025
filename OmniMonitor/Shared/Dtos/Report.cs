@@ -1,4 +1,4 @@
-﻿using OmniMonitor.Shared.Dtos;
+using OmniMonitor.Shared.Dtos;
 using System.ComponentModel.DataAnnotations;
 
 public class Report
@@ -16,8 +16,6 @@ public class Report
     [Required]
     [MaxLength(256)]
     public string Username { get; set; } = string.Empty;
-
-    public virtual ICollection<DatasetReports> DatasetsReports { get; set; } = new List<DatasetReports>();
     public virtual ICollection<ReportJoin> ReportJoins { get; set; } = new List<ReportJoin>();
     [Required]
     public string JSON_config { get; set; } = "{}";

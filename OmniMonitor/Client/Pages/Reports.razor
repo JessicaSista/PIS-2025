@@ -74,22 +74,85 @@
         {
             @foreach (var reporte in _reportesFiltrados)
             {
-                <MudItem xs="12" sm="12" md="4" lg="4" Class="d-flex">
-                    <ReportCardComponent Reporte="reporte"
-                                       OnNavigate="@NavigateToEditarReporte"
-                                       OnEdit="@EditarReporte"
-                                       OnDelete="@ConfirmarEliminarReporte"
-                                       Class="flex-grow-1" />
+                <MudItem xs="12" sm="6" md="4">
+                    <div style="position: relative;">
+                        <ReportCardComponent Reporte="reporte"
+                                             OnNavigate="@NavigateToEditarReporte" />
+
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                 AnchorOrigin="Origin.TopRight"
+                                 TransformOrigin="Origin.TopRight"
+                                 Class="position-absolute"
+                                 Style="position:absolute; top:8px; right:8px;">
+
+                            <MudMenuItem OnClick="@(() => EditarReporte(reporte.Id))">
+                                @Localizer["EditAction"]
+                            </MudMenuItem>
+
+                            <MudMenuItem OnClick="@(() => ConfirmarEliminarReporte(reporte.Id))">
+                                @Localizer["DeleteAction"]
+                            </MudMenuItem>
+                        </MudMenu>
+                    </div>
                 </MudItem>
             }
         }
+        @if (_totalPages > 1)
+        {
+            <MudItem lg="12" md="12" xs="12">
+                <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
+                                   Disabled="@(!_hasPreviousPage)"
+                                   OnClick="@(() => GoToPage(1))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                                   Disabled="@(!_hasPreviousPage)"
+                                   OnClick="@(() => GoToPage(_currentPage - 1))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+
+                    <MudText Typo="Typo.body2" Class="mx-3">
+                        @Localizer["Page"] @_currentPage @Localizer["ofPreposition"] @_totalPages
+                    </MudText>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                                   Disabled="@(!_hasNextPage)"
+                                   OnClick="@(() => GoToPage(_currentPage + 1))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowRight"
+                                   Disabled="@(!_hasNextPage)"
+                                   OnClick="@(() => GoToPage(_totalPages))"
+                                   Size="MudBlazor.Size.Small"
+                                   Color="MudBlazor.Color.Primary" />
+                </MudStack>
+
+                <MudStack Row Justify="Justify.Center" Class="mb-4">
+                    <MudText Typo="Typo.caption" Style="color: #a5a8b5;">
+                        @Localizer["Showing"] @_reportes.Count @Localizer["ofPreposition"] @_totalCount
+                    </MudText>
+                </MudStack>
+            </MudItem>
+        }
     </MudGrid>
+
 </MudContainer>
 
 @code {
+    private const int DescriptionMaxLength = 250;
     private string _searchText = "";
     private List<ReporteDto> _reportes = new();
     private bool _isLoading = true;
+
+    private int _currentPage = 1;
+    private int _pageSize = 9;
+    private int _totalPages = 0;
+    private int _totalCount = 0;
+    private bool _hasPreviousPage = false;
+    private bool _hasNextPage = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -174,7 +237,7 @@
             };
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Editar Reporte", parameters, options);
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>(Localizer["EditDialogTitle"].Value, parameters, options);
             var result = await dialog.Result;
 
             if (result == null || result.Canceled || result.Data is not CreateReportDialog.ReportDialogResult editResult)
@@ -183,20 +246,18 @@
             }
 
             var trimmedName = editResult.Name.Trim();
-            var trimmedDescription = string.IsNullOrWhiteSpace(editResult.Description)
-                ? null
-                : editResult.Description.Trim();
+            var normalizedDescription = NormalizeDescription(editResult.Description);
 
             var currentName = report.Name ?? string.Empty;
-            var currentDescription = report.Description ?? string.Empty;
+            var currentDescriptionNormalized = NormalizeDescription(report.Description);
             var hasNameChange = !string.Equals(currentName, trimmedName, StringComparison.Ordinal);
-            var hasDescriptionChange = !string.Equals(currentDescription, trimmedDescription ?? string.Empty, StringComparison.Ordinal);
+            var hasDescriptionChange = !string.Equals(currentDescriptionNormalized, normalizedDescription, StringComparison.Ordinal);
 
             if (hasNameChange || hasDescriptionChange)
             {
                 var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
                 var updateUrl =
-                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(trimmedDescription ?? string.Empty)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
+                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(normalizedDescription)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
 
                 var updateResponse = await Http.PutAsync(updateUrl, null);
                 if (updateResponse.IsSuccessStatusCode)
@@ -267,6 +328,10 @@
             if (response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Reporte eliminado correctamente", Severity.Success);
+                if(_reportes.Count == 1 && _currentPage > 1)
+                {
+                    _currentPage--;
+                }
                 await CargarReportes();
                 await GuardarReportes();
             }
@@ -316,24 +381,27 @@
                 return;
             }
 
-            string? token = await LocalStorage.GetItemAsync<string>("authToken");
-            if (string.IsNullOrEmpty(token))
-            {
-                Snackbar.Add("No se encontró el token de autenticación", Severity.Error);
-                return;
-            }
-
-            var response = await Http.GetAsync($"api/reports/by-user");
+            var response = await Http.GetAsync($"/api/reports/GetAllReportsPaginated?page={_currentPage}&pageSize={_pageSize}");
 
             if (response.IsSuccessStatusCode)
             {
-                var reportsFromApi = await response.Content.ReadFromJsonAsync<List<Report>>();
-                _reportes = reportsFromApi?.Select(d => new ReporteDto
+                var result = await response.Content.ReadFromJsonAsync<PaginatedReportDto>();
+                if(result != null)
                 {
-                    Id = d.Id,
-                    Nombre = d.Name,
-                    Descripcion = d.Description ?? string.Empty
-                }).ToList() ?? new List<ReporteDto>();
+                    _totalCount = result.TotalCount;
+                    _totalPages = result.TotalPages;
+                    _currentPage = result.Page;
+                    _hasPreviousPage = result.HasPreviousPage;
+                    _hasNextPage = result.HasNextPage;
+
+                    _reportes = result.Items.Select(d => new ReporteDto
+                        {
+                            Id = d.Id,
+                            Nombre = d.Name,
+                            Descripcion = d.Description ?? string.Empty
+                        }).ToList() ?? new List<ReporteDto>();
+                }
+
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
@@ -381,7 +449,7 @@
 
             var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-            var dialog = await DialogService.ShowAsync<CreateReportDialog>("Crear Nuevo Reporte", parameters, options);
+            var dialog = await DialogService.ShowAsync<CreateReportDialog>(Localizer["CreateDialogTitle"].Value, parameters, options);
             var result = await dialog.Result;
             if (result == null)
             {
@@ -415,5 +483,23 @@
         {
             Snackbar.Add($"Error al crear el reporte: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task GoToPage(int page)
+    {
+        if (page < 1 || page > _totalPages) return;
+        _currentPage = page;
+        await CargarReportes();
+    }
+
+    private static string NormalizeDescription(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        var trimmed = value.Trim();
+        return trimmed.Length <= DescriptionMaxLength ? trimmed : trimmed[..DescriptionMaxLength];
     }
 }

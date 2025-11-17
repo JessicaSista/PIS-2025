@@ -12,13 +12,13 @@ namespace OmniMonitor.Server.Services
 {
     public interface IDatasetService
     {
-        Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset);
-        Task<DatasetIM> CreateDatasetIMFilteredAsync(CreateDatasetIMRequest request, int dataset);
+        Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset, string username);
+        Task<DatasetIM> CreateDatasetIMFilteredAsync(CreateDatasetIMRequest request, int dataset, string username);
         Task<List<DatasetIM>> GetAllDatasetsIMAsync(string username);
         Task<DatasetIM?> GetDatasetIMByIdAsync(int datasetId, string username);
         Task<DatasetIM?> GetDatasetIMByIdForEditAsync(int datasetId, string username);
         Task<DatasetIM?> GetDatasetIMByIdForEditAsyncSinToken(int datasetId);
-        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request);
+        Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request, string username);
         Task DeleteDatasetIMAsync(int datasetId, string username);
         Task<string?> IdentifyDatasetModuleAsync(int datasetId, string username);
     }
@@ -37,25 +37,25 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Crea un nuevo dataset, ya sea uno formal ('S') o uno interno para un solo elemento ('N').
         /// </summary>
-        public async Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset)
+        public async Task<DatasetIM> CreateDatasetIMAsync(CreateDatasetIMRequest request, int dataset, string username)
         {
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Name))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(request.Name))
             {
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
             }
 
             // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
             var existingDataset = await _context.DatasetsIM
-                .FirstOrDefaultAsync(d => d.Username == request.Username && d.Name == request.Name);
+                .FirstOrDefaultAsync(d => d.Username == username && d.Name == request.Name);
             
             if (existingDataset != null)
             {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{request.Username}'.");
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{username}'.");
             }
 
             var newDataset = new DatasetIM
             {
-                Username = request.Username,
+                Username = username,
                 Name = request.Name,
                 Description = request.Description,
                 Is_Dataset = request.IsDataset,
@@ -103,9 +103,9 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Crea un nuevo dataset no formal aplicando filtros JSON y persistiendo los elementos filtrados.
         /// </summary>
-        public async Task<DatasetIM> CreateDatasetIMFilteredAsync(CreateDatasetIMRequest request, int dataset)
+        public async Task<DatasetIM> CreateDatasetIMFilteredAsync(CreateDatasetIMRequest request, int dataset, string username)
         {
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Name))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(request.Name))
             {
                 throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
             }
@@ -123,16 +123,16 @@ namespace OmniMonitor.Server.Services
 
             // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
             var existingDataset = await _context.DatasetsIM
-                .FirstOrDefaultAsync(d => d.Username == request.Username && d.Name == request.Name);
+                .FirstOrDefaultAsync(d => d.Username == username && d.Name == request.Name);
             
             if (existingDataset != null)
             {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{request.Username}'.");
+                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{username}'.");
             }
 
             var newDataset = new DatasetIM
             {
-                Username = request.Username,
+                Username = username,
                 Name = request.Name,
                 Description = request.Description,
                 Is_Dataset = "N", // Siempre no formal
@@ -148,13 +148,13 @@ namespace OmniMonitor.Server.Services
             switch (request.ContentType)
             {
                 case "1": // Device
-                    await ProcessAndPersistDevices(newDataset, filters, request.Username);
+                    await ProcessAndPersistDevices(newDataset, filters, username);
                     break;
                 case "2": // Source
-                    await ProcessAndPersistSources(newDataset, filters, request.Username);
+                    await ProcessAndPersistSources(newDataset, filters, username);
                     break;
                 case "3": // Sensor
-                    await ProcessAndPersistSensors(newDataset, filters, request.Username);
+                    await ProcessAndPersistSensors(newDataset, filters, username);
                     break;
                 default:
                     throw new ArgumentException("ContentType no válido para datasets filtrados.");
@@ -425,7 +425,7 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Actualiza un dataset existente.
         /// </summary>
-        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request)
+        public async Task<DatasetIM> UpdateDatasetIMAsync(DatasetIM dataset, CreateDatasetIMRequest request, string username)
         {
             if (dataset == null)
             {
@@ -481,7 +481,7 @@ namespace OmniMonitor.Server.Services
                 if ((request.Filters != null && request.Filters.Any()) || !string.IsNullOrEmpty(request.JsonFilters))
                 {
                     // Procesar y persistir elementos filtrados
-                    await ProcessFilteredRelationsForUpdate(dataset, request);
+                    await ProcessFilteredRelationsForUpdate(dataset, request, username);
                 }
                 else if (request.DeviceIds != null && request.DeviceIds.Any())
                 {
@@ -536,7 +536,7 @@ namespace OmniMonitor.Server.Services
             dataset.DatasetSensors.Clear();
         }
 
-        private async Task ProcessFilteredRelationsForUpdate(DatasetIM dataset, CreateDatasetIMRequest request)
+        private async Task ProcessFilteredRelationsForUpdate(DatasetIM dataset, CreateDatasetIMRequest request, string username)
         {
             try
             {
@@ -560,19 +560,18 @@ namespace OmniMonitor.Server.Services
                 switch (request.ContentType)
                 {
                     case "1": // Device
-                        await ProcessAndPersistDevices(dataset, filters, request.Username);
+                        await ProcessAndPersistDevices(dataset, filters, username);
                         break;
                     case "2": // Source
-                        await ProcessAndPersistSources(dataset, filters, request.Username);
+                        await ProcessAndPersistSources(dataset, filters, username);
                         break;
                     case "3": // Sensor
-                        await ProcessAndPersistSensors(dataset, filters, request.Username);
+                        await ProcessAndPersistSensors(dataset, filters, username);
                         break;
                 }
             }
-            catch (JsonException ex)
+            catch (JsonException)
             {
-                Console.WriteLine($"Error deserializando filtros JSON en actualización: {ex.Message}");
             }
         }
 

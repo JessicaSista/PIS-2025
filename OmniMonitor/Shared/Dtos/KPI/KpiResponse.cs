@@ -25,4 +25,7 @@ public class KpiResponse
     [JsonPropertyName("unit")]
     public object? Unit { get; set; }
 
+    [JsonPropertyName("datasetName")]
+    public string? DatasetName { get; set; }
+
 }

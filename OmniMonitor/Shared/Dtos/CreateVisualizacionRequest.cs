@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -11,9 +11,6 @@ namespace OmniMonitor.Shared.Dtos
     {
         [Required]
         public string Nombre { get; set; }
-
-        [Required]
-        public string Username { get; set; }
 
         public DateTime FechaDesde { get; set; }
         public DateTime FechaHasta { get; set; }
