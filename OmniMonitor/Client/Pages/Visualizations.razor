@@ -276,7 +276,7 @@
             }
             @if (_totalPages > 1)
             {
-                <MudItem lg="12" md="12" xs="12">
+                <MudItem lg="12" md="12" xs="12" Class="@(_activeTabIndex != 1 ? "d-none" : "")">
                     <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center" Class="mt-6 mb-4">
                         <MudIconButton Icon="@Icons.Material.Filled.KeyboardDoubleArrowLeft"
                                        Disabled="@(!_hasPreviousPage)"
