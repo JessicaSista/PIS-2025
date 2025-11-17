@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
@@ -284,6 +285,42 @@ namespace OmniMonitor.Server.Controllers
                 visualizacion.FechaHasta = request.FechaHasta;
                 visualizacion.JsonDesign = request.JsonDiseñoGeneral;
                 visualizacion.Link = request.Link;
+                bool requestedLive = request.LiveEnabled ?? visualizacion.LiveEnabled;
+                bool allowLive = requestedLive;
+                if (requestedLive && request.Datasets != null && request.Datasets.Any())
+                {
+                    foreach (var ds in request.Datasets)
+                    {
+                        try
+                        {
+                            using JsonDocument doc = JsonDocument.Parse(ds.JsonDiseño);
+                            if (doc.RootElement.TryGetProperty("Module", out JsonElement modEl))
+                            {
+                                string? module = modEl.GetString()?.Trim();
+                                if (string.IsNullOrWhiteSpace(module)
+                                    || string.Equals(module, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(module, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(module, "AM", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(module, "UM", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    allowLive = false;
+                                    break;
+                                }
+                            }
+                            else
+                            {
+                                allowLive = false;
+                                break;
+                            }
+                        }
+                        catch
+                        {
+                            allowLive = false;
+                            break;
+                        }
+                    }
+                }
+                visualizacion.LiveEnabled = allowLive;
 
                 // --- Sincronizar GrupoDatasets ---
                 var requestDatasetIds = request.Datasets.Select(ds => ds.DatasetId).ToHashSet();

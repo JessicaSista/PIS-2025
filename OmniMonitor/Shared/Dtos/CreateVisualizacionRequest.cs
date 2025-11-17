@@ -18,6 +18,8 @@ namespace OmniMonitor.Shared.Dtos
         public string JsonDiseñoGeneral { get; set; }
 
         public string? Link { get; set; }
+        
+        public bool? LiveEnabled { get; set; }
 
         public List<DatasetConfig> Datasets { get; set; } = new List<DatasetConfig>();
     }

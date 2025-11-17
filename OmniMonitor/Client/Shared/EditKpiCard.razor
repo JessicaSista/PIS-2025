@@ -3,6 +3,7 @@
 @using Blazored.LocalStorage
 @using Microsoft.Extensions.Localization
 @using Microsoft.AspNetCore.Components
+@using System.Net.Http.Json
 @using MudBlazor
 @using System.Net
 
@@ -45,6 +46,17 @@
                             DisableAlpha="true"
                             Style="width:220px;" />
 
+            <MudStack Row AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body2" Class="mr-2">@Localizer["Live"]</MudText>
+                @if (_liveAllowed)
+                {
+                    <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" />
+                }
+                else
+                {
+                    <MudSwitch T="bool" Value="@_liveEnabled" Color="MudBlazor.Color.Primary" Dense="true" Disabled="true" />
+                }
+            </MudStack>
 
 
         </MudStack>
@@ -73,6 +85,8 @@
     private string _initialColor = "#FFFFFF";
     private bool _isSubmitting = false;
     private string? _serverError;
+    private bool _liveEnabled = false;
+    private bool _liveAllowed = false;
 
 
 
@@ -115,6 +129,65 @@
         _initialName = _name;
         _initialDescription = _description;
         _initialColor = _actualColor;
+        _liveEnabled = ExistingKpi.LiveEnabled;
+        RecomputeLiveAllowed();
+
+        if (string.IsNullOrWhiteSpace(ExistingKpi.SourceModule))
+        {
+            try
+            {
+                var fresh = await Http.GetFromJsonAsync<KpiResponse>($"api/KPI/{ExistingKpi.Id}");
+                if (fresh != null)
+                {
+                    var code = GetModuleCode(fresh.SourceModule);
+                    _liveAllowed = (code == "im" || code == "em");
+                    _liveEnabled = _liveAllowed && fresh.LiveEnabled;
+                    ExistingKpi.SourceModule = fresh.SourceModule;
+                    ExistingKpi.LiveEnabled = fresh.LiveEnabled;
+                    RecomputeLiveAllowed();
+                }
+            }
+            catch { }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Ensure gating reflects the latest parameter values (like EditVisualization does after loading currVisualization)
+        _liveEnabled = ExistingKpi.LiveEnabled;
+        RecomputeLiveAllowed();
+    }
+
+    
+
+    private string? GetModuleCode(string? moduleLong)
+    {
+        if (string.IsNullOrWhiteSpace(moduleLong)) return null;
+        var s = moduleLong.Trim().ToLowerInvariant();
+        // substring-based classification
+        if (s.Contains("insight")) return "im";
+        if (s.Contains("event")) return "em";
+        if (s.Contains("asset")) return "am";
+        if (s.Contains("urban")) return "um";
+        // exact fallbacks
+        return s switch
+        {
+            "am" => "am",
+            "em" => "em",
+            "um" => "um",
+            "im" => "im",
+            _ => s
+        };
+    }
+
+    private void RecomputeLiveAllowed()
+    {
+        var code = GetModuleCode(ExistingKpi.SourceModule);
+        _liveAllowed = (code == "im" || code == "em");
+        if (!_liveAllowed)
+        {
+            _liveEnabled = false;
+        }
     }
 
     private bool HasChanges =>
@@ -123,6 +196,12 @@
         !string.Equals(_actualColor, _initialColor, StringComparison.Ordinal);
 
     private bool IsFormValid => !string.IsNullOrWhiteSpace(_name) && HasChanges;
+
+    private void OnLiveSwitchChanged(bool value)
+    {
+        if (!_liveAllowed) { return; }
+        _liveEnabled = value;
+    }
 
     private async Task Submit()
     {
@@ -138,7 +217,8 @@
         {
             Name = _name.Trim(),
             Description = _description?.Trim(),
-            DefaultColor = _actualColor
+            DefaultColor = _actualColor,
+            LiveEnabled = _liveEnabled && _liveAllowed
         };
 
         try

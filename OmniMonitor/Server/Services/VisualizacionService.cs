@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Azure.Core;
 using Azure.Identity;
+using System.Text.Json;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -64,6 +65,41 @@ namespace OmniMonitor.Server.Services
             }
 
             await EnsureUniqueNameAsync(request.Nombre, username);
+            bool requestedLive = request.LiveEnabled ?? false;
+            bool allowLive = requestedLive;
+            if (requestedLive && request.Datasets != null && request.Datasets.Any())
+            {
+                foreach (var dsCfg in request.Datasets)
+                {
+                    try
+                    {
+                        using JsonDocument doc = JsonDocument.Parse(dsCfg.JsonDiseño);
+                        if (doc.RootElement.TryGetProperty("Module", out JsonElement modEl))
+                        {
+                            string? module = modEl.GetString()?.Trim();
+                            if (string.Equals(module, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(module, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(module, "AM", StringComparison.OrdinalIgnoreCase)
+                                || string.Equals(module, "UM", StringComparison.OrdinalIgnoreCase))
+                            {
+                                allowLive = false;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            allowLive = false;
+                            break;
+                        }
+                    }
+                    catch
+                    {
+                        // On parse error, be conservative: disable live
+                        allowLive = false;
+                        break;
+                    }
+                }
+            }
 
             var nuevaVisualizacion = new Visualizacion
             {
@@ -72,7 +108,8 @@ namespace OmniMonitor.Server.Services
                 FechaDesde = request.FechaDesde,
                 FechaHasta = request.FechaHasta,
                 JsonDesign = request.JsonDiseñoGeneral,
-                Link = request.Link
+                Link = request.Link,
+                LiveEnabled = allowLive
             };
 
             // Añadir los datasets asociados a la visualización

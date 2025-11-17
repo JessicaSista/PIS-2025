@@ -114,6 +114,11 @@
                       RequiredError="@Localizer["NameRequired"]"
                       Style="background: var(--card);" />
 
+        <MudStack Row AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.body2" Class="mr-2">@Localizer["Live"]</MudText>
+            <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" Disabled="@(!_liveAllowedVis)" />
+        </MudStack>
+
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["ChartType"]</MudText>
         <MudSelect T="string"
                    @bind-Value="_selectedChartType"
@@ -193,6 +198,8 @@
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
     private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
+    private bool _liveEnabled = false;
+    private bool _liveAllowedVis = false;
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
     private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
     {
@@ -347,6 +354,7 @@
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Info);
+        RecomputeLiveAllowed();
         StateHasChanged();
         return;
     }
@@ -435,7 +443,8 @@
                     })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
-                FechaHasta = _endDate.Value.Date + _endHour.Value
+                FechaHasta = _endDate.Value.Date + _endHour.Value,
+                LiveEnabled = _liveEnabled && _liveAllowedVis
             };
 
             try
@@ -524,9 +533,28 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
+    
+
     private void RemoveDataset(DatasetSelection item)
     {
         _selectedDatasets.Remove(item);
+        RecomputeLiveAllowed();
+    }
+    
+    private void OnLiveSwitchChanged(bool value)
+    {
+        if (!_liveAllowedVis) { return; }
+        _liveEnabled = value;
+    }
+    
+    public class DatasetSelection
+    {
+        public DatasetDtoGenerico Dataset { get; set; } = new();
+        public System.String DisplayName { get; set; } = System.String.Empty;
+        public System.String Entity { get; set; } = System.String.Empty;
+        public System.String EntityAttribute { get; set; } = System.String.Empty;
+        public decimal Multiplier { get; set; }
+        public string Color { get; set; } = "rgb(0, 255, 231)";
     }
 
     private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
@@ -598,6 +626,20 @@
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             return string.Empty;
+        }
+    }
+
+    private void RecomputeLiveAllowed()
+    {
+        _liveAllowedVis = _selectedDatasets.All(ds =>
+            !string.Equals(ds.Dataset.Module, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "AM", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "UM", StringComparison.OrdinalIgnoreCase)
+        );
+        if (!_liveAllowedVis)
+        {
+            _liveEnabled = false;
         }
     }
 
