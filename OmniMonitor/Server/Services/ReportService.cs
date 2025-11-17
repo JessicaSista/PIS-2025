@@ -1210,7 +1210,6 @@ public class ReportService : IReportService
         if (!report.IsActive)
             return false;
 
-
         var scheduleType = (report.ScheduleType ?? "").Trim().ToUpperInvariant();
 
         if (report.LastExecution.HasValue)
