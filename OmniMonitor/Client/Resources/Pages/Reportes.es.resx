@@ -153,4 +153,25 @@
   <data name="NoReports" xml:space="preserve">
     <value>No se encontraron resultados para tu búsqueda</value>
   </data>
+  <data name="DeleteDialogTitle" xml:space="preserve">
+    <value>Confirmar eliminación</value>
+  </data>
+  <data name="DeleteDialogQuestion" xml:space="preserve">
+    <value>¿Quiere eliminar el reporte?</value>
+  </data>
+  <data name="DeleteDialogConfirm" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="DeleteDialogCancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Showing" xml:space="preserve">
+    <value>Mostrando</value>
+  </data>
+  <data name="ofPreposition" xml:space="preserve">
+    <value>de</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Página</value>
+  </data>
 </root>

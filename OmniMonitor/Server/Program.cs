@@ -1,12 +1,14 @@
 using System.Text;
 using System.Threading.Tasks;
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OmniMonitor.Server.Hubs;
 
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Server.Context;
@@ -23,6 +25,7 @@ builder.Logging.ClearProviders();
 builder.Logging.AddDebug();
 builder.Logging.AddConsole();
 builder.Services.Configure<ApiConfig>(builder.Configuration);
+builder.Services.Configure<OmniMonitor.Server.Configuration.LiveOptions>(builder.Configuration.GetSection("Live"));
 
 if (OperatingSystem.IsWindows())
 {
@@ -51,19 +54,53 @@ builder.Services.AddIdentityCore<User>(options => {
 .AddSignInManager<SignInManager<User>>()
 .AddDefaultTokenProviders();
 
+// For APIs and Hubs, avoid redirects to /Account/Login on 401 challenges (use 401 instead)
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnRedirectToLogin = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/hubs") || context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+});
+
 string corsPolicy = "CORSPolicy";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: corsPolicy,
-    policy =>
+    options.AddPolicy(name: corsPolicy, policy =>
     {
-        policy.WithOrigins(builder.Configuration.GetSection("CORS").Get<string[]>()!)
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        var origins = builder.Configuration.GetSection("CORS").Get<string[]>() ?? Array.Empty<string>();
+        if (origins.Contains("*"))
+        {
+            policy
+                .SetIsOriginAllowed(_ => true)
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+            // Do not call AllowCredentials when allowing any origin
+        }
+        else
+        {
+            policy
+                .WithOrigins(origins)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        }
     });
 });
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+// --- JWT AUTHENTICATION SERVICES WITH DEBUGGING ---
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
 
@@ -82,6 +119,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    (path.StartsWithSegments("/hubs/telemetry") || path.StartsWithSegments("/hubs/kpi")))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            },
             OnTokenValidated = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
@@ -138,6 +186,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Reports.Edit", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Edit")));
     options.AddPolicy("Reports.Delete", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Delete")));
     options.AddPolicy("Reports.Export", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Export")));
+    options.AddPolicy("Reports.Execute", policy => policy.Requirements.Add(new PermissionRequirement("Reports.Execute")));
 
     // Módulo Sensors
     options.AddPolicy("Sensors.View", policy => policy.Requirements.Add(new PermissionRequirement("Sensors.View")));
@@ -190,6 +239,8 @@ builder.Services.AddControllersWithViews()
 
     });
 builder.Services.AddRazorPages();
+builder.Services.AddScoped<IMailService, MailService>();
+builder.Services.AddSignalR();
 
 builder.Services.AddScoped<ISondaAuthService, SondaAuthService>();
 builder.Services.AddScoped<ISondaIMService, SondaIMService>();
@@ -211,6 +262,10 @@ builder.Services.AddScoped<IKpiService, KpiService>();
 builder.Services.AddScoped<IKpiAMService, KpiAMService>();
 builder.Services.AddScoped<IPasswordHasher<SharedLink>, PasswordHasher<SharedLink>>();
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<OmniMonitor.Server.Live.ILiveSubscriptionRegistry, OmniMonitor.Server.Live.LiveSubscriptionRegistry>();
+builder.Services.AddHostedService<OmniMonitor.Server.Live.LivePollingHostedService>();
+
+builder.Services.AddHostedService<ScheduledReportWorker>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -359,6 +414,8 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllers();
+app.MapHub<TelemetryHub>("/hubs/telemetry");
+app.MapHub<KpiHub>("/hubs/kpi");
 app.MapFallbackToFile("index.html");
 
 app.Run();

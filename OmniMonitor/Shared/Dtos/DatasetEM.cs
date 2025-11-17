@@ -38,7 +38,6 @@ namespace OmniMonitor.Shared.Dtos
         public virtual ICollection<DatasetExtension> DatasetExtensions { get; set; } = new List<DatasetExtension>();
 
         // Relación con los resources seleccionados explícitamente
-        public virtual ICollection<DatasetCategory> DatasetCategory { get; set; } = new List<DatasetCategory>();
         public int DatasetId { get; set; }  // Clave foránea
         
         /// <summary>

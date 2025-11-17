@@ -1,9 +1,3 @@
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject ISnackbar Snackbar
-@inject HttpClient Http
-@inject IDialogService DialogService
-@inject NavigationManager Nav
-@inject VisualizationDraftService DraftService
 @using OmniMonitor.Shared.Dtos
 @using OmniMonitor.Client.Services
 @using System.Text.Json;
@@ -11,13 +5,19 @@
 @using Blazored.LocalStorage;
 @using Microsoft.AspNetCore.Components;
 @using System.Globalization
-@inject IStringLocalizer<CreateVisualizationCard> Localizer
+@using System.Net
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient Http
+@inject IDialogService DialogService
 @inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<CreateVisualizationCard> Localizer
 
 <MudDialog Style="background-color: var(--fondo-dialog)">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
-            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1"/>
+            <MudIcon Icon="@Icons.Material.Filled.Settings" Class="mb-n1" />
             @Localizer["AddVisualisationTitle"]
         </MudText>
     </TitleContent>
@@ -30,7 +30,7 @@
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Dataset"]</MudText>
                         <MudText Typo="Typo.body1">@dsItem.Dataset.Nombre</MudText>
                     </MudItem>
-                    
+
                     <MudItem Lg="3" Sm="3" Xs="12" Class="pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">Nombre a mostrar</MudText>
                         <MudTextField @bind-Value="dsItem.DisplayName" Variant="Variant.Outlined" Dense="true">@dsItem.DisplayName</MudTextField>
@@ -51,22 +51,22 @@
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Multiplier"]</MudText>
-                        <MudNumericField HideSpinButtons="true" 
-                                        Immediate = "true"
-                                        @bind-Value="dsItem.Multiplier" 
-                                        Variant="Variant.Outlined"
-                                        Culture="@(new CultureInfo("en-US"))"
-                                        Step=".2M"
-                                        Validation="@((decimal m) => m == 0 ? "No puede ser 0" : null)" />
+                        <MudNumericField HideSpinButtons="true"
+                                         Immediate="true"
+                                         @bind-Value="dsItem.Multiplier"
+                                         Variant="Variant.Outlined"
+                                         Culture="@(new CultureInfo("en-US"))"
+                                         Step=".2M"
+                                         Validation="@((decimal m) => m == 0 ? "<> 0" : null)" />
                     </MudItem>
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Color"]</MudText>
-                        <MudColorPicker @bind-Text="dsItem.Color" Style="@($"color: {dsItem.Color};")" Placeholder="Seleccionar color" Variant="Variant.Outlined"/>
+                        <MudColorPicker @bind-Text="dsItem.Color" Style="@($"color: {dsItem.Color};")" Placeholder="Seleccionar color" Variant="Variant.Outlined" />
                     </MudItem>
                     <MudItem Lg="1" Sm="1" Xs="2" Class="d-flex align-items-center">
                         <MudButton OnClick="@(() => RemoveDataset(dsItem))">
-                            <MudIcon Icon="@Icons.Material.Filled.Close" 
+                            <MudIcon Icon="@Icons.Material.Filled.Close"
                                      Color="MudBlazor.Color.Error" />
                         </MudButton>
                     </MudItem>
@@ -75,30 +75,54 @@
         </MudStack>
         <MudGrid Class="mt-0 mb-5">
             <MudItem lg="12" xs="12">
-                <MudButton OnClick="OpenAddDatasetModal" 
-                        FullWidth="true"
-                        Variant="Variant.Outlined" 
-                        StartIcon="@Icons.Material.Filled.AddCircleOutline" 
-                        Color="MudBlazor.Color.Inherit"
-                        Size="MudBlazor.Size.Large"
-                        Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
-                        Disabled="false">
+                <MudButton OnClick="OpenAddDatasetModal"
+                           FullWidth="true"
+                           Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.AddCircleOutline"
+                           Color="MudBlazor.Color.Inherit"
+                           Size="MudBlazor.Size.Large"
+                           Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                           Disabled="false">
                     @Localizer["AddDataset"]
+                </MudButton>
+
+                <MudButton OnClick="OpenSelectDashboardLinkModal"
+                           FullWidth="true"
+                           Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
+                           StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Link : Icons.Material.Filled.AddLink)"
+                           Color="MudBlazor.Color.Inherit"
+                           Size="MudBlazor.Size.Large"
+                           Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                           Disabled="false">
+
+                    @if (_selectedDashboard != null)
+                    {
+                        <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}")</MudText>
+                    }
+                    else
+                    {
+                        @Localizer["AddDashboard"]
+                    }
                 </MudButton>
             </MudItem>
         </MudGrid>
 
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["VisualisationName"]</MudText>
-        <MudTextField Class="mb-2" @bind-Value="_visualizationName" T="string"  
+        <MudTextField T="string" Class="mb-2" @bind-Value="_visualizationName"
                       Label="@Localizer["Name"]"
                       Variant="Variant.Outlined"
                       Required="true"
                       RequiredError="@Localizer["NameRequired"]"
                       Style="background: var(--card);" />
 
+        <MudStack Row AlignItems="AlignItems.Center" Class="mb-2">
+            <MudText Typo="Typo.body2" Class="mr-2">@Localizer["Live"]</MudText>
+            <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" Disabled="@(!_liveAllowedVis)" />
+        </MudStack>
+
         <MudText Typo="Typo.h6" Style="color: var(--text-primary);">@Localizer["ChartType"]</MudText>
-        <MudSelect T="string" 
-                   @bind-Value="_selectedChartType" 
+        <MudSelect T="string"
+                   @bind-Value="_selectedChartType"
                    Variant="Variant.Outlined"
                    Margin="Margin.Normal"
                    Dense="true"
@@ -109,7 +133,7 @@
             }
         </MudSelect>
 
-        <MudDivider DividerType="DividerType.Middle" Class="mt-5 mb-10"/>
+        <MudDivider DividerType="DividerType.Middle" Class="mt-5 mb-10" />
 
         <MudGrid>
             <MudItem xs="12" sm="6">
@@ -144,18 +168,20 @@
 
 @code {
     [CascadingParameter]
-    public required IMudDialogInstance _mudDialog { get; set; }
+    public required IMudDialogInstance mudDialog { get; set; }
 
     [Parameter]
     public string? ReturnTo { get; set; }
 
     [Parameter]
     public int? NewDatasetId { get; set; }
-    
+
     [Parameter]
     public string? NewDatasetModule { get; set; }
 
-    private List<string> _chartTypes = new List<string>() {"line", "bar", "area", "pie", "donut", "heatMap", "radar", "radialBar"};
+    private CreateVisualizacionRequest _request;
+
+    private List<string> _chartTypes = new List<string>() { "line", "bar", "area", "pie", "donut", "heatMap", "radialBar" };
     private string _selectedChartType = "line";
 
     private DateTime? _beginDate { get; set; }
@@ -163,26 +189,42 @@
     private DateTime? _endDate { get; set; }
     private TimeSpan? _endHour { get; set; }
     private string _visualizationName { get; set; } = string.Empty;
+    private DashboardSummaryResponse _selectedDashboard { get; set; } = null;
+    private bool _liveEnabled = false;
+    private bool _liveAllowedVis = false;
 
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
-
-    private Dictionary<System.String, List<System.String>> _entityAttributes = new Dictionary<System.String, List<System.String>>
+    private Dictionary<string, List<string>> _entityAttributes = new Dictionary<string, List<string>>
     {
         { "Device", new List<string> { "LayerId", "IsActive", "SectorId", "TenantId"} },
         { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
         { "Group", new List<string> { "IsActive", "State", "TenantId" } },
         { "Sensor", new List<string> { "DisplayName", "Type", "Integration", "LastUpdate", "LastPersisted"} },
+
         { "Zone", new List<string> { "Name", "Reference" } },
         { "EventUM", new List<string> { "Date", "Type", "ApprovalState", "ReviewedAt" } },
         { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
-        { "EventAM", new List<string> { "undefined"} },
-        { "Stock", new List<string> { "Location", "BundleId" } },
-        { "Asset", new List<string> { "CreatedAt", "BundleId" } },
+
+        { "EventAM", new List<string> { "EventTaskDto", "StartDate", "State", "Subject", "FinalizedDate", "TakenOn", "TakenBy", "AlertTime", "EndingReason", "Critical" } },
+        { "Stock", new List<string> { "Name", "Quantity", "Provider", "Location", "Sku", "Minimum", "Bundle", "Supervisor", "UpdatedQuantity" } },
+        { "Asset", new List<string> { "Name", "CreatedAt", "ExternalId", "Code", "Address", "Reference", "LifeTimeToDate", "TypeDto", "BundleDto", "BrandDto", "StateDto", "ModelDto", "ResponsibleDto", "ProviderDto", "Device", "DeliveredTo" } },
+
         { "Alert", new List<string> { "AlertState", "CreatedAt" } },
         { "EventEM", new List<string> { "Origin", "CreationDate", "State" } },
         { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
         { "Categoria", new List<string> { "Name", "Priority", "Protocol", "CategoryState", "Selected" } }
     };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        DateTime today = DateTime.Today;
+        _beginDate = today;
+        _beginHour = new TimeSpan(0, 0, 0);
+        _endDate = today;
+        _endHour = new TimeSpan(23, 59, 0);
+
+    }
 
     private async Task OpenAddDatasetModal()
     {
@@ -194,6 +236,17 @@
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         await DialogService.ShowAsync<AddDatasetModal>(Localizer["AddDataset"], parameters, options);
+    }
+
+    private async Task OpenSelectDashboardLinkModal()
+    {
+        var parameters = new DialogParameters
+        {
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<SelectDashboardLink>(Localizer["AddDashboard"], parameters, options);
     }
 
     private async Task HandleDatasetSelected(DatasetDtoGenerico dataset)
@@ -213,6 +266,7 @@
             Color = "rgb(0, 255, 231)"
         });
         Snackbar.Add(Localizer["DatasetAdded"], Severity.Info);
+        RecomputeLiveAllowed();
         StateHasChanged();
         return;
     }
@@ -230,6 +284,14 @@
                 await HandleDatasetSelected(newDataset);
             }
         }
+    }
+
+    private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
+    {
+        _selectedDashboard = dashboard;
+        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        StateHasChanged();
+        return;
     }
 
     private bool ValidateSubmission()
@@ -276,7 +338,7 @@
         {
             return;
         }
-        
+
         try
         {
             AuthenticationState authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -285,15 +347,15 @@
             if (string.IsNullOrEmpty(username))
             {
                 Snackbar.Add(Localizer["UserNotFound"], Severity.Error);
-            
+
                 return;
             }
 
-            CreateVisualizacionRequest request = new CreateVisualizacionRequest
+            _request = new CreateVisualizacionRequest
             {
                 Nombre = _visualizationName,
-                Username = username,
                 JsonDiseñoGeneral = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
+                Link = _selectedDashboard == null ? null : $" { _selectedDashboard.IdDashboard},{ _selectedDashboard.Nombre}",
                 Datasets = _selectedDatasets.Select(ds => new DatasetConfig
                 {
                     DatasetId = ds.Dataset.IdGenerico,
@@ -309,21 +371,75 @@
                     })
                 }).ToList(),
                 FechaDesde = _beginDate.Value.Date + _beginHour.Value,
-                FechaHasta = _endDate.Value.Date + _endHour.Value
+                FechaHasta = _endDate.Value.Date + _endHour.Value,
+                LiveEnabled = _liveEnabled && _liveAllowedVis
             };
-
-            HttpResponseMessage? response = await Http.PostAsJsonAsync("api/Visualizacion", request);
-
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                System.String error = await response.Content.ReadAsStringAsync();
-                Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
+                // Funcion vacía para el callback
+                Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+                var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                    receiver: this,
+                    callback: emptyHandler
+                );
+
+                var tempVisualization = new Visualizacion
+                {
+                    Username = username,
+                    Nombre = _visualizationName,
+                    JsonDesign = "{ \"ChartType\": \"" + _selectedChartType + "\" }",
+                    FechaDesde = _beginDate.Value.Date + _beginHour.Value,
+                    FechaHasta = _endDate.Value.Date + _endHour.Value,
+
+                    // Vacio por ser temporal
+                    IdVisualizacion = 0,
+
+                };
+
+                foreach (var datasetConfig in _request.Datasets)
+                {
+                    var nuevoGrupo = new GrupoDataset
+                    {
+                        DatasetId = datasetConfig.DatasetId,
+                        JsonDesign = datasetConfig.JsonDiseño,
+                    };
+                    tempVisualization.GrupoDatasets.Add(nuevoGrupo);
+                    
+                }
+
+                DialogParameters parameters = new DialogParameters
+                {
+                    ["VisualizationType"] = 1,
+                    ["OnVisualizationCreated"] = emptyEventCallback,
+                    ["ChartData"] = tempVisualization
+                };
+
+
+                DialogOptions options = new DialogOptions
+                {
+                    CloseOnEscapeKey = true,
+                    MaxWidth = MaxWidth.Medium,
+                    FullWidth = true
+                };
+
+                IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                    "Preview",
+                    parameters,
+                    options
+                );
+                DialogResult? dialogResult = await dialog.Result;
+
+                if (!dialogResult.Canceled)
+                {
+                    SubmitChart();
+                }
+
             }
-            else
+            catch (Exception ex)
             {
-                _mudDialog.Close(DialogResult.Ok(1));
-                Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
+                Snackbar.Add(Localizer["ErrorLoadingPreview", ex], Severity.Error);
             }
+            
         }
         catch (Exception ex)
         {
@@ -331,31 +447,76 @@
         }
         StateHasChanged();
     }
-    
+
+    private async Task SubmitChart()
+    {
+        try
+        {
+            HttpResponseMessage? response = await Http.PostAsJsonAsync("api/Visualizacion", _request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                System.String error = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    (error.Contains("visualización", StringComparison.OrdinalIgnoreCase) ||
+                     error.Contains("visualizacion", StringComparison.OrdinalIgnoreCase)))
+                {
+                    Snackbar.Add(Localizer["VisualizationNameDuplicate"], Severity.Error);
+                }
+                else
+                {
+                    Snackbar.Add(Localizer["ErrorCreatingVisualization", error], Severity.Error);
+                }
+            }
+            else
+            {
+                mudDialog.Close(DialogResult.Ok(1));
+                Snackbar.Add(Localizer["VisualizationCreated"], Severity.Success);
+            }
+            
+            
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(Localizer["ErrorCreatingVisualization", ex], Severity.Error);
+        }
+    }
+
     private void Cancel()
     {
-        _mudDialog.Cancel();
+        mudDialog.Cancel();
     }
-    
-    protected override async Task OnInitializedAsync()
-    {
-        DateTime today = DateTime.Today;
-        _beginDate = today;
-        _beginHour = new TimeSpan(0, 0, 0);
-        _endDate = today;
-        _endHour = new TimeSpan(23, 59, 0);
 
-    }
-    
     private void RemoveDataset(DatasetSelection ds)
     {
         var found = _selectedDatasets.FirstOrDefault(x => x.Dataset.IdGenerico == ds.Dataset.IdGenerico);
         if (found != null)
         {
             _selectedDatasets.Remove(found);
+            RecomputeLiveAllowed();
             StateHasChanged();
         }
-    }   
+    }
+
+    private void OnLiveSwitchChanged(bool value)
+    {
+        if (!_liveAllowedVis) { return; }
+        _liveEnabled = value;
+    }
+
+    private void RecomputeLiveAllowed()
+    {
+        _liveAllowedVis = _selectedDatasets.All(ds =>
+            !string.Equals(ds.Dataset.Module, "Asset Manager", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "Urban Monitor", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "AM", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(ds.Dataset.Module, "UM", StringComparison.OrdinalIgnoreCase)
+        );
+        if (!_liveAllowedVis)
+        {
+            _liveEnabled = false;
+        }
+    }
 
     private async Task<string> GetEntityFromDatasetAsync(System.Int32 datasetId, System.String module)
     {
@@ -371,7 +532,7 @@
                 throw new InvalidOperationException("No se encontró el usuario autenticado.");
             }
 
-            if(module.Equals("Insight Monitor"))
+            if (module.Equals("Insight Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}");
                 DatasetIM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetIM>();
@@ -380,17 +541,24 @@
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
                 return datasetFromApi.ContentType == "0" ? "Sensor" : "Device";
             }
-            else if(module.Equals("Asset Manager"))
+            else if (module.Equals("Asset Manager"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"api/DatasetAM/GetDatasetAmById?id={datasetId}");
                 DatasetAM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetAM>();
 
                 if (datasetFromApi == null)
+                {
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                }
+                return datasetFromApi.Type_Dataset switch
+                {
+                    1 => "EventAM",
+                    2 => "Asset",
+                    3 => "Stock",
+                };
 
-                return datasetFromApi.Type_Dataset == 2 ? "Asset" : "EventAM";
             }
-            else if(module.Equals("Urban Monitor"))
+            else if (module.Equals("Urban Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"api/DatasetUM/GetDatasetById?datasetId={datasetId}");
                 DatasetUM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetUM>();
@@ -407,13 +575,14 @@
 
                 if (datasetFromApi == null)
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
-                
+
                 List<System.String> Types = datasetFromApi.ContentType.Split(',').Select(s => s.Trim()).ToList();
-                if(Types.Contains("Extensions"))
+                if (Types.Contains("Extensions"))
                 {
                     return "Extension";
                 }
-                else if(Types.Contains("Alerts")){
+                else if (Types.Contains("Alerts"))
+                {
                     return "Alert";
                 }
                 else

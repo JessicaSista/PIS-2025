@@ -7,14 +7,12 @@ namespace OmniMonitor.Server.Services
 {
     public interface IDatasetEMService
     {
-        Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request,int dataset);
         Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetEM>> GetAllDatasetsEMAsync(string username);
         Task<DatasetEM?> GetDatasetEMByIdAsync(int datasetId, string username);
         Task<DatasetEM?> GetDatasetEMByIdAsyncSinToken(int datasetId);
         Task<DatasetEM?> GetDatasetEMByIdForEditAsync(int datasetId, string username);
         Task DeleteDatasetEMAsync(int datasetId, string username);
-        Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request);
         Task<DatasetEM> UpdateDatasetEMWithFiltersAsync(int datasetId, CreateDatasetEMRequest request, List<FilterCondition> filters);
     }
 
@@ -27,34 +25,6 @@ namespace OmniMonitor.Server.Services
         {
             _context = context;
             _sondaEMService = sondaEMService;
-        }
-
-        /// <summary>
-        /// Crea un nuevo dataset EM.
-        /// </summary>
-        public async Task<DatasetEM> CreateDatasetEMAsync(CreateDatasetEMRequest request, int dataset)
-        {
-            await ValidateDuplicateName(request.Name, request.Username);
-
-            var newDataset = new DatasetEM
-            {
-                Name = request.Name,
-                Description = request.Description,
-                Username = request.Username,
-                Is_Dataset = request.IsDataset,
-                DatasetId = dataset,
-                ContentType = GetContentType(request).ToString()
-            };
-
-            // Save dataset first to generate the ID
-            _context.DatasetsEM.Add(newDataset);
-            await _context.SaveChangesAsync();
-
-            // Now update relations with the generated dataset.Id
-            UpdateRelationsFromRequest(newDataset, request);
-            await _context.SaveChangesAsync();
-
-            return newDataset;
         }
 
         /// <summary>
@@ -77,7 +47,6 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                 .Include(d => d.DatasetCategory)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
@@ -87,8 +56,7 @@ namespace OmniMonitor.Server.Services
             if (dataset.Is_Dataset == "S" &&
                 !dataset.DatasetAlerts.Any() &&
                 !dataset.DatasetEvents.Any() &&
-                !dataset.DatasetExtensions.Any() &&
-                 !dataset.DatasetCategory.Any())
+                !dataset.DatasetExtensions.Any())
             {
                 // Obtener usuario y credenciales
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
@@ -149,7 +117,6 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetCategory)
                 .FirstOrDefaultAsync(d => d.Id == datasetId);
         }
 
@@ -162,62 +129,7 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetCategory)
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-        }
-
-        /// <summary>
-        /// Actualiza un dataset existente.
-        /// </summary>
-        public async Task<DatasetEM> UpdateDatasetEMAsync(int datasetId, CreateDatasetEMRequest request)
-        {
-            var existingDataset = await _context.DatasetsEM
-                .Include(d => d.DatasetAlerts)
-                .Include(d => d.DatasetEvents)
-                .Include(d => d.DatasetExtensions)
-                .Include(d => d.DatasetCategory)
-                .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
-
-            if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
-
-            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncEM)
-
-            // Actualizar campos básicos
-            existingDataset.Name = request.Name;
-            existingDataset.Description = request.Description;
-            existingDataset.Is_Dataset = request.IsDataset;
-            existingDataset.ContentType = GetContentType(request).ToString();
-            /*existingDataset.Id_Alert = request.AlertId;
-            existingDataset.Id_Event = request.EventId;
-            existingDataset.Id_Extension = request.ExtensionId;
-            existingDataset.Id_Category = request.CategoryId;
-            existingDataset.AlertState = request.AlertState;
-            existingDataset.EventState = request.EventState;
-            existingDataset.ExtensionState = request.ExtensionState;
-            existingDataset.CategoryState = request.CategoryState;
-            
-            // Marcar campos nullable como modificados si es necesario
-            _context.Entry(existingDataset).Property(d => d.Id_Alert).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Event).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Extension).IsModified = true;
-            _context.Entry(existingDataset).Property(d => d.Id_Category).IsModified = true;*/
-            
-            _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
-            _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
-            _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
-            _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
-
-            existingDataset.DatasetAlerts.Clear();
-            existingDataset.DatasetEvents.Clear();
-            existingDataset.DatasetExtensions.Clear();
-            existingDataset.DatasetCategory.Clear();
-
-            // Agregar nuevas relaciones
-            UpdateRelationsFromRequest(existingDataset, request);
-
-            await _context.SaveChangesAsync();
-            return existingDataset;
         }
 
         /// <summary>
@@ -262,25 +174,56 @@ namespace OmniMonitor.Server.Services
                     Id_extension = id 
                 }).ToList();
             }
-            
-            if (request.CategoryIds?.Any() == true)
-            {
-                dataset.DatasetCategory = request.CategoryIds.Select(id => new DatasetCategory 
-                { 
-                    DatasetId = dataset.Id, 
-                    Id_Category = id 
-                }).ToList();
-            }
         }
 
-        private static DatasetContentType GetContentType(CreateDatasetEMRequest r)
+        private static string GetContentType(CreateDatasetEMRequest r)
         {
-            DatasetContentType type = DatasetContentType.None;
-            if (r.AlertIds?.Any() == true) type |= DatasetContentType.Alerts;
-            if (r.EventIds?.Any() == true) type |= DatasetContentType.Events;
-            if (r.ExtensionIds?.Any() == true) type |= DatasetContentType.Extensions;
-            if (r.CategoryIds?.Any() == true) type |= DatasetContentType.Category;
-            return type;
+            // Si ContentType ya está establecido en el request (viene del frontend), usarlo directamente
+            // Esto es importante para datasets creados con filtros donde el ContentType viene como "1", "2", "3"
+            if (!string.IsNullOrEmpty(r.ContentType) && r.ContentType != "0")
+            {
+                // Mapear ContentType numérico a string descriptivo
+                if (r.ContentType == "1")
+                {
+                    return "Alert";
+                }
+                if (r.ContentType == "2")
+                {
+                    return "Event";
+                }
+                if (r.ContentType == "3")
+                {
+                    return "Extension";
+                }
+                if (r.ContentType == "4")
+                {
+                    return "Category";
+                }
+                // Si ya viene como string descriptivo, usarlo directamente
+                return r.ContentType;
+            }
+            
+            // Si no hay ContentType en el request, determinar el tipo principal según los datos que contiene
+            // Prioridad: Alerts > Events > Extensions > Category
+            if (r.AlertIds?.Any() == true)
+            {
+                return "Alert";
+            }
+            if (r.EventIds?.Any() == true)
+            {
+                return "Event";
+            }
+            if (r.ExtensionIds?.Any() == true)
+            {
+                return "Extension";
+            }
+            if (r.CategoryIds?.Any() == true)
+            {
+                return "Category";
+            }
+            
+            // Si no tiene ningún tipo específico, devolver "0" para datasets formales
+            return r.IsDataset == "S" ? "0" : null;
         }
 
         private async Task ValidateDuplicateName(string name, string username, int? excludeId = null)
@@ -306,7 +249,7 @@ namespace OmniMonitor.Server.Services
                 Description = request.Description,
                 Is_Dataset = request.IsDataset,
                 DatasetId = dataset,
-                ContentType = GetContentType(request).ToString(),
+                ContentType = GetContentType(request),
                 Filters = filtersJson // Almacenar los filtros como JSON
             };
 
@@ -336,19 +279,17 @@ namespace OmniMonitor.Server.Services
             existingDataset.Name = request.Name;
             existingDataset.Description = request.Description;
             existingDataset.Is_Dataset = request.IsDataset;
-            existingDataset.ContentType = GetContentType(request).ToString();
+            existingDataset.ContentType = GetContentType(request);
             existingDataset.Filters = filtersJson; // Actualizar los filtros
 
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
-            _context.DatasetCategory.RemoveRange(existingDataset.DatasetCategory);
             
 
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
             existingDataset.DatasetExtensions.Clear();
-            existingDataset.DatasetCategory.Clear();
 
             // Agregar nuevas relaciones
             UpdateRelationsFromRequest(existingDataset, request);

@@ -2,6 +2,8 @@
 @using System.Net.Http.Json
 @using Blazored.LocalStorage
 @using Microsoft.Extensions.Localization
+@using Microsoft.AspNetCore.Components
+@using System.Net.Http.Json
 @using MudBlazor
 @using System.Net
 
@@ -9,6 +11,7 @@
 @inject ISnackbar Snackbar
 @inject ILocalStorageService LocalStorage
 @inject IStringLocalizer<CreateVisualizationCard> Localizer
+@inject IDialogService DialogService
 
 <MudDialog Style="background-color: var(--fondo-dialog); max-width: 450px">
     <TitleContent>
@@ -43,6 +46,17 @@
                             DisableAlpha="true"
                             Style="width:220px;" />
 
+            <MudStack Row AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body2" Class="mr-2">@Localizer["Live"]</MudText>
+                @if (_liveAllowed)
+                {
+                    <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" />
+                }
+                else
+                {
+                    <MudSwitch T="bool" Value="@_liveEnabled" Color="MudBlazor.Color.Primary" Dense="true" Disabled="true" />
+                }
+            </MudStack>
 
 
         </MudStack>
@@ -58,41 +72,202 @@
 
 @code {
     [CascadingParameter] public required IMudDialogInstance _mudDialog { get; set; }
+
+    [Parameter] public required int KpiId { get; set; } = 0;
+
     [Parameter] public required KpiResponse ExistingKpi { get; set; }
 
     private string _name = string.Empty;
     private string _description = string.Empty;
     private string _actualColor = "#FFFFFF";
+    private string _initialName = string.Empty;
+    private string _initialDescription = string.Empty;
+    private string _initialColor = "#FFFFFF";
     private bool _isSubmitting = false;
     private string? _serverError;
+    private bool _liveEnabled = false;
+    private bool _liveAllowed = false;
 
 
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        if (KpiId != 0)
+        {
+            try
+            {
+                var resp = await Http.GetAsync($"api/KPI/{KpiId}");
+                if (resp.IsSuccessStatusCode)
+                {
+                    var kpi = await resp.Content.ReadFromJsonAsync<KpiResponse>();
+                    if (kpi is not null)
+                    {
+                        ExistingKpi = kpi;
+                    }
+                    else
+                    {
+                        _serverError = "No se pudo obtener los datos del KPI";
+                    }
+                }
+                else
+                {
+                    var err = await resp.Content.ReadAsStringAsync();
+                    _serverError = string.IsNullOrWhiteSpace(err) ? $"Error {resp.StatusCode}" : err;
+                }
+            }
+            catch (Exception ex)
+            {
+                _serverError = ex.Message;
+            }
+        }
+
         _name = ExistingKpi.Name ?? string.Empty;
         _description = ExistingKpi.Description ?? string.Empty;
         _actualColor = string.IsNullOrWhiteSpace(ExistingKpi.ActualColor)
             ? "#FFFFFF"
             : ExistingKpi.ActualColor;
+        _initialName = _name;
+        _initialDescription = _description;
+        _initialColor = _actualColor;
+        _liveEnabled = ExistingKpi.LiveEnabled;
+        RecomputeLiveAllowed();
+
+        if (string.IsNullOrWhiteSpace(ExistingKpi.SourceModule))
+        {
+            try
+            {
+                var fresh = await Http.GetFromJsonAsync<KpiResponse>($"api/KPI/{ExistingKpi.Id}");
+                if (fresh != null)
+                {
+                    var code = GetModuleCode(fresh.SourceModule);
+                    _liveAllowed = (code == "im" || code == "em");
+                    _liveEnabled = _liveAllowed && fresh.LiveEnabled;
+                    ExistingKpi.SourceModule = fresh.SourceModule;
+                    ExistingKpi.LiveEnabled = fresh.LiveEnabled;
+                    RecomputeLiveAllowed();
+                }
+            }
+            catch { }
+        }
     }
 
-    private bool IsFormValid => !string.IsNullOrWhiteSpace(_name);
+    protected override void OnParametersSet()
+    {
+        // Ensure gating reflects the latest parameter values (like EditVisualization does after loading currVisualization)
+        _liveEnabled = ExistingKpi.LiveEnabled;
+        RecomputeLiveAllowed();
+    }
+
+    
+
+    private string? GetModuleCode(string? moduleLong)
+    {
+        if (string.IsNullOrWhiteSpace(moduleLong)) return null;
+        var s = moduleLong.Trim().ToLowerInvariant();
+        // substring-based classification
+        if (s.Contains("insight")) return "im";
+        if (s.Contains("event")) return "em";
+        if (s.Contains("asset")) return "am";
+        if (s.Contains("urban")) return "um";
+        // exact fallbacks
+        return s switch
+        {
+            "am" => "am",
+            "em" => "em",
+            "um" => "um",
+            "im" => "im",
+            _ => s
+        };
+    }
+
+    private void RecomputeLiveAllowed()
+    {
+        var code = GetModuleCode(ExistingKpi.SourceModule);
+        _liveAllowed = (code == "im" || code == "em");
+        if (!_liveAllowed)
+        {
+            _liveEnabled = false;
+        }
+    }
+
+    private bool HasChanges =>
+        !string.Equals(_name, _initialName, StringComparison.Ordinal) ||
+        !string.Equals(_description ?? string.Empty, _initialDescription ?? string.Empty, StringComparison.Ordinal) ||
+        !string.Equals(_actualColor, _initialColor, StringComparison.Ordinal);
+
+    private bool IsFormValid => !string.IsNullOrWhiteSpace(_name) && HasChanges;
+
+    private void OnLiveSwitchChanged(bool value)
+    {
+        if (!_liveAllowed) { return; }
+        _liveEnabled = value;
+    }
 
     private async Task Submit()
     {
         _serverError = null;
+        if (!HasChanges)
+        {
+            Snackbar.Add(Localizer["NoChanges"], Severity.Info);
+            return;
+        }
         _isSubmitting = true;
 
         var request = new
         {
             Name = _name.Trim(),
             Description = _description?.Trim(),
-            DefaultColor = _actualColor
+            DefaultColor = _actualColor,
+            LiveEnabled = _liveEnabled && _liveAllowed
         };
 
         try
         {
+            // Preview flow before saving
+            Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+            var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                receiver: this,
+                callback: emptyHandler
+            );
+
+            var previewKpi = new KpiResponse
+            {
+                Id = ExistingKpi.Id,
+                Name = request.Name,
+                Description = request.Description,
+                ActualColor = request.DefaultColor,
+                Unit = ExistingKpi.Unit,
+                Value = ExistingKpi.Value,
+            };
+
+            var parameters = new DialogParameters
+            {
+                ["VisualizationType"] = 2,
+                ["OnVisualizationCreated"] = emptyEventCallback,
+                ["KpiData"] = previewKpi
+            };
+
+            var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                "Preview",
+                parameters,
+                options
+            );
+            DialogResult? dialogResult = await dialog.Result;
+
+            if (dialogResult.Canceled)
+            {
+                _isSubmitting = false;
+                return;
+            }
+
+            
             var url = $"api/KPI/{ExistingKpi.Id}";
             var response = await Http.PatchAsJsonAsync(url, request);
 
@@ -104,7 +279,16 @@
             else
             {
                 var err = await response.Content.ReadAsStringAsync();
-                _serverError = err;
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    err.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
+                    err.Contains("nombre", StringComparison.OrdinalIgnoreCase))
+                {
+                    _serverError = Localizer["KpiNameDuplicate"];
+                }
+                else
+                {
+                    _serverError = err;
+                }
                 Snackbar.Add(_serverError, Severity.Error);
             }
         }

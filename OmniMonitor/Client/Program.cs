@@ -51,6 +51,9 @@ builder.Services.AddScoped<VisualizationDraftService>();
 
 builder.Services.AddScoped<ShareLinkService>();
 
+builder.Services.AddScoped<OmniMonitor.Client.Services.SignalR.TelemetryHubClient>();
+builder.Services.AddScoped<OmniMonitor.Client.Services.SignalR.KpiHubClient>();
+
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 // Configure JSON serialization options to handle enums as strings

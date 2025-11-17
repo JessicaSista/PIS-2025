@@ -258,4 +258,97 @@
   <data name="NoResultados" xml:space="preserve">
     <value>No se encontraron resultados para tu búsqueda</value>
   </data>
+  <data name="Metodo" xml:space="preserve">
+    <value>Método Tradicional</value>
+  </data>
+  <data name="MetodoFiltros" xml:space="preserve">
+    <value>Método con Filtros</value>
+  </data>
+  <data name="MetodoCreacion" xml:space="preserve">
+    <value>Método de Creación</value>
+  </data>
+  <data name="AgregarFiltro" xml:space="preserve">
+    <value>Agregar Filtros</value>
+  </data>
+  <data name="Eventos" xml:space="preserve">
+    <value>Eventos</value>
+  </data>
+  <data name="Noticias" xml:space="preserve">
+    <value>Noticias</value>
+  </data>
+  <data name="Alertas" xml:space="preserve">
+    <value>Alertas</value>
+  </data>
+  <data name="Extensiones" xml:space="preserve">
+    <value>Extensiones</value>
+  </data>
+  <data name="CrearFiltro" xml:space="preserve">
+    <value>Crear Filtro</value>
+  </data>
+  <data name="Atributo" xml:space="preserve">
+    <value>Atributo</value>
+  </data>
+  <data name="TipoDeFiltro" xml:space="preserve">
+    <value>Tipo de Filtro</value>
+  </data>
+  <data name="Valores" xml:space="preserve">
+    <value>Valores</value>
+  </data>
+  <data name="IgualA" xml:space="preserve">
+    <value>Igual a</value>
+  </data>
+  <data name="MayorQue" xml:space="preserve">
+    <value>Mayor que</value>
+  </data>
+  <data name="MenorQue" xml:space="preserve">
+    <value>Menor que</value>
+  </data>
+  <data name="DiferenteDe" xml:space="preserve">
+    <value>Diferente de</value>
+  </data>
+  <data name="Contiene" xml:space="preserve">
+    <value>Contiene</value>
+  </data>
+  <data name="EnLista" xml:space="preserve">
+    <value>En (lista)</value>
+  </data>
+  <data name="Entre" xml:space="preserve">
+    <value>Entre</value>
+  </data>
+  <data name="Desde" xml:space="preserve">
+    <value>Desde</value>
+  </data>
+  <data name="Hasta" xml:space="preserve">
+    <value>Hasta</value>
+  </data>
+  <data name="DeseleccionarTodos" xml:space="preserve">
+    <value>Deseleccionar Todos</value>
+  </data>
+  <data name="Texto" xml:space="preserve">
+    <value>Texto</value>
+  </data>
+  <data name="Numero" xml:space="preserve">
+    <value>Número</value>
+  </data>
+  <data name="Fecha" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Booleano" xml:space="preserve">
+    <value>Booleano</value>
+  </data>
+  <data name="Guardar" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Enum" xml:space="preserve">
+    <value>Enum</value>
+  </data>
+  <data name="Dispositivo" xml:space="preserve">
+    <value>Dispositivo</value>
+  </data>
+  <data name="Fuente" xml:space="preserve">
+    <value>Fuente</value>
+  </data>
+  <data name="Valor" xml:space="preserve">
+    <value>Valor</value>
+  </data>
 </root>

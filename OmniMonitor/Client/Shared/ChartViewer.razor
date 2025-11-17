@@ -9,9 +9,11 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject HttpClient Http
+@inject IStringLocalizer<ChartViewer> Localizer
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
-
+@inject OmniMonitor.Client.Services.SignalR.TelemetryHubClient TelemetryHubClient
+@implements IAsyncDisposable
 
 
 <MudItem Style="background-color: transparent; display:flex; flex-direction:column; height: 100%">
@@ -30,8 +32,14 @@
                     }
                 </CardHeaderAvatar>
                 <CardHeaderContent>
-                    @if (ShowTitle) {   
-                        <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)" >@_title</MudText>
+                    @if (ShowTitle) {
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.h6" Style="color: var(--card-t+ext-primary)">@_title</MudText>
+                            @if (LiveOn && Visualization != null && Visualization.LiveEnabled)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                            }
+                        </MudStack>
                     }
                 </CardHeaderContent>
 
@@ -40,12 +48,20 @@
                     {
                         <MudMenu Icon="@Icons.Material.Filled.MoreVert">
                             <MudMenuItem OnClick="@(() => OpenEditVisualizationDialog())">
-                                <MudText Typo="Typo.body2">Editar</MudText>
+                        <MudText Typo="Typo.body2">@Localizer["Edit"]</MudText>
                             </MudMenuItem>
                             <MudMenuItem OnClick="@(() => DeleteVisualization())">
-                                <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>Eliminar</MudText>
+                        <MudText Typo="Typo.body2" Color=@MudBlazor.Color.Error>@Localizer["Delete"]</MudText>
                             </MudMenuItem>
                         </MudMenu>
+                    }
+                    @if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Reconnecting)
+                    {
+                        <MudChip T="string" Color="MudBlazor.Color.Warning" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Reconnecting‚Ä¶</MudChip>
+                    }
+                    else if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Disconnected && _liveJoined)
+                    {
+                        <MudChip T="string" Color="MudBlazor.Color.Error" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Disconnected</MudChip>
                     }
                 </CardHeaderActions>
                 
@@ -56,14 +72,14 @@
                 @if(_dataRetrieved){
                     @if (_seriesData.Any())
                     {
-                        <ApexChart @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
+                        <ApexChart @ref="_apexChart" @key="_chartKey" TItem="ChartPoint" Height="270" Options="_chartOptions">
                             @foreach (DatasetSeries serie in _seriesData)
                             {
                                 <ApexPointSeries TItem="ChartPoint"
                                                 Items="serie.Points"
                                                 Name="@serie.DatasetName"
                                                 SeriesType="@_seriesType"
-                                                XValue="@(p => p.X)"
+                                                XValue="@(p => p.T)"
                                                 YValue="@(p => (decimal)p.Y)"
                                                 Color="@serie.Color" />
                             }
@@ -71,7 +87,7 @@
                     }
                     else
                     {
-                        <MudText>No se encontraron datos</MudText>
+                        <MudText>@Localizer["NoDataFound"]</MudText>
                     }
                 }
                 else{
@@ -80,11 +96,11 @@
                             @if (_retrievingData)
                             {
                                 <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true"/>
-                                <MudText Class="ms-2">Cargando...</MudText>
+                        <MudText Class="ms-2">@Localizer["Loading"].</MudText>
                             }
                             else
                             {
-                                <MudText>Cargar Datos</MudText>
+                        <MudText>@Localizer["LoadData"]</MudText>
                             }
                         </MudButton>
                     </MudContainer>
@@ -92,16 +108,17 @@
             </MudCardContent>
 
 
-            <MudCardActions Class="d-block">
                 @if (ShowDatasetsInfo)
                 {
-                    <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
+                    <MudText Typo="Typo.body2"
+                             Style="color: var(--card-text-secondary);
+                                        margin-top:4px;
+                                        white-space: normal;
+                                        word-wrap: break-word;
+                                        overflow-wrap: break-word;">
+                        Datasets: @_datasetNames
+                    </MudText>
                 }
-                @if (ShowLastUpdatedInfo)
-                {
-                    
-                }
-            </MudCardActions>
         
 </MudItem>
 
@@ -109,8 +126,11 @@
 
     //Parametros
     [Parameter] public int VisualizationId { get; set; }
+    [Parameter] public bool LiveOn { get; set; }
 
-    // Para recargar la gr·fica desde el exterior
+    [Parameter] public Visualizacion? Visualization { get; set; }
+
+    // Para recargar la gr√°fica desde el exterior
     [Parameter]
     public int ChartReloadKey
     {
@@ -128,13 +148,11 @@
     [Parameter] public bool ShowTitle { get; set; } = true;
     [Parameter] public bool ShowIcon { get; set; } = false;
     [Parameter] public bool ShowDatasetsInfo { get; set; } = false;
-    [Parameter] public bool ShowLastUpdatedInfo { get; set; } = false;
     [Parameter] public bool retrieveOnInitialized {get; set;} = true;
     [Parameter] public bool showCustomizationIcon {get; set;} = false;
     [Parameter] public EventCallback<System.Int32> OnDeleted { get; set; }
 
-    // Local Variables
-    private Visualizacion _visualization {get; set;}
+
     private bool _dataRetrieved = false;
     private bool _retrievingData = false;
     private string _authenticatedUser = string.Empty;
@@ -142,6 +160,7 @@
 
     private System.String _title { get; set; } = string.Empty;
     private System.String _datasetNames { get; set; } = string.Empty;
+    private DateTime _lastUpdatedAt = default;
 
     // Chart Variables
     private SeriesType _seriesType = SeriesType.Line;
@@ -153,6 +172,7 @@
     {
         Xaxis = new XAxis
         {
+            Type = XAxisType.Datetime,
             TickAmount = 4,
             Labels = new XAxisLabels
             {
@@ -168,29 +188,235 @@
     protected override async Task OnInitializedAsync()
     {
         await DownloadVisualization();
+        await SetupLiveAsync();
+    }
+
+    private bool _liveJoined = false;
+    private OmniMonitor.Client.Services.SignalR.ConnectionState _connState = OmniMonitor.Client.Services.SignalR.ConnectionState.Connected;
+    private long _seq = 0;
+
+    private async Task SetupLiveAsync()
+    {
+        if (Visualization != null && Visualization.LiveEnabled && LiveOn)
+        {
+            TelemetryHubClient.ConnectionStateChanged += OnConnStateChanged;
+            TelemetryHubClient.TelemetryReceived += OnTelemetryPoint;
+            await TelemetryHubClient.JoinVisualizationAsync(VisualizationId);
+            _liveJoined = true;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Visualization == null)
+        {
+            return;
+        }
+        if (LiveOn && Visualization.LiveEnabled)
+        {
+            if (!_liveJoined)
+            {
+                try
+                {
+                    TelemetryHubClient.ConnectionStateChanged += OnConnStateChanged;
+                    TelemetryHubClient.TelemetryReceived += OnTelemetryPoint;
+                    await TelemetryHubClient.JoinVisualizationAsync(VisualizationId);
+                    _liveJoined = true;
+                }
+                catch { }
+            }
+        }
+        else
+        {
+            if (_liveJoined)
+            {
+                try { await TelemetryHubClient.LeaveVisualizationAsync(VisualizationId); } catch { }
+                TelemetryHubClient.TelemetryReceived -= OnTelemetryPoint;
+                TelemetryHubClient.ConnectionStateChanged -= OnConnStateChanged;
+                _liveJoined = false;
+            }
+        }
+    }
+
+    private void OnTelemetryPoint(OmniMonitor.Client.Services.SignalR.TelemetryPointMessage msg)
+    {
+        if (Visualization == null) return;
+        if (msg.VisualizationId != VisualizationId) return;
+
+        var gd = Visualization.GrupoDatasets.FirstOrDefault(g => g.DatasetId == msg.DatasetId);
+        if (gd == null) return;
+
+        decimal multiplier = 1;
+        string color = "#00FFE7";
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(gd.JsonDesign);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("Multiplier", out var multProp) && multProp.ValueKind == System.Text.Json.JsonValueKind.Number)
+            {
+                multiplier = multProp.GetDecimal();
+            }
+            if (root.TryGetProperty("Color", out var colorProp) && colorProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                color = colorProp.GetString() ?? color;
+            }
+        }
+        catch { }
+
+        decimal y = 0;
+        if (msg.Value.HasValue)
+        {
+            y = (decimal)msg.Value.Value;
+        }
+        else if (!string.IsNullOrWhiteSpace(msg.Raw))
+        {
+            if (!decimal.TryParse(msg.Raw, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out y))
+            {
+                if (string.Equals(msg.Raw, "True", StringComparison.OrdinalIgnoreCase)) y = 1;
+                else y = 0;
+            }
+        }
+        y *= multiplier;
+
+        string datasetName = gd.Dataset?.NameDataset ?? "Dataset";
+        string x = msg.Time.ToString("dd/MM/yyyy HH:mm:ss");
+
+        var serie = _seriesData.FirstOrDefault(s => s.DatasetName == datasetName);
+        if (serie == null)
+        {
+            serie = new DatasetSeries { DatasetName = datasetName, Color = color };
+            _seriesData.Add(serie);
+        }
+        // If an existing point for this second exists anywhere, update it instead of appending
+        int existingIdx = -1;
+        for (int i = serie.Points.Count - 1; i >= 0; i--)
+        {
+            if (serie.Points[i].X == x)
+            {
+                existingIdx = i;
+                break;
+            }
+        }
+
+        if (existingIdx >= 0)
+        {
+            var existing = serie.Points[existingIdx];
+            if (existing.Y == y)
+            {
+                return; // exact duplicate
+            }
+            serie.Points[existingIdx] = new ChartPoint { X = x, Y = y, Seq = ++_seq, T = msg.Time };
+        }
+        else
+        {
+            serie.Points.Add(new ChartPoint { X = x, Y = y, Seq = ++_seq, T = msg.Time });
+        }
+        SortSeriesByTime(serie);
+
+        TrimSeriesToWindow();
+
+        _lastUpdatedAt = DateTime.Now;
+
+        _seriesData = _seriesData
+            .Select(s => new DatasetSeries { DatasetName = s.DatasetName, Color = s.Color, Points = s.Points.ToList() })
+            .ToList();
+
+        _chartKey++;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnConnStateChanged(OmniMonitor.Client.Services.SignalR.ConnectionState state)
+    {
+        _connState = state;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void TrimSeriesToWindow()
+    {
+        try
+        {
+            if (Visualization == null) return;
+            TimeSpan span = Visualization.FechaHasta - Visualization.FechaDesde;
+            if (span.TotalSeconds <= 0) return;
+            DateTime thresholdLocal = DateTime.Now - span;
+            foreach (var s in _seriesData)
+            {
+                // Remove older points and cap length
+                s.Points.RemoveAll(p => p.T != default && p.T < thresholdLocal);
+                const int MaxPoints = 1500;
+                if (s.Points.Count > MaxPoints)
+                {
+                    int toRemove = s.Points.Count - MaxPoints;
+                    s.Points.RemoveRange(0, Math.Min(toRemove, s.Points.Count));
+                }
+            }
+        }
+        catch { }
+    }
+
+    private static void SortSeriesByTime(DatasetSeries serie)
+    {
+        try
+        {
+            serie.Points = serie.Points
+                .OrderBy(p => p.T != default ? p.T : DateTime.MinValue)
+                .ThenBy(p => p.Seq)
+                .ToList();
+        }
+        catch { }
+    }
+
+    private static bool TryParsePointTime(string x, out DateTime dt)
+    {
+        return DateTime.TryParseExact(x, "dd/MM/yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt)
+            || DateTime.TryParseExact(x, "dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await TelemetryHubClient.LeaveVisualizationAsync(VisualizationId); } catch { }
+        TelemetryHubClient.TelemetryReceived -= OnTelemetryPoint;
+        TelemetryHubClient.ConnectionStateChanged -= OnConnStateChanged;
+        _liveJoined = false;
     }
 
     private async Task DownloadVisualization()
     {
         try
         {
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
-
-            if (response.IsSuccessStatusCode)
+            if (VisualizationId != 0)
             {
-                Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
-                _visualization = cardVisualization;
-                if (cardVisualization != null)
+
+                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
+
+                if (response.IsSuccessStatusCode)
                 {
-                    _title = cardVisualization.Nombre;
-
-                    JsonDocument design = JsonDocument.Parse(cardVisualization.JsonDesign);
-                    _chartType = design.RootElement.GetProperty("ChartType").ToString();
-                    _seriesType = MapSeriesType(_chartType);
-
-                    _datasetNames = string.Join(", ", cardVisualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+                    Visualizacion? cardVisualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                    if (cardVisualization != null)
+                    {
+                        Visualization = cardVisualization;
+                    }
                 }
             }
+            else
+            {
+                Visualization = Visualization!;
+            }
+
+            _title = Visualization.Nombre;
+
+            JsonDocument design = JsonDocument.Parse(Visualization.JsonDesign);
+            _chartType = design.RootElement.GetProperty("ChartType").ToString();
+            _seriesType = MapSeriesType(_chartType);
+            if (ShowDatasetsInfo)
+            {
+                _datasetNames = string.Join(", ", Visualization.GrupoDatasets.Select(gd => gd.Dataset.NameDataset));
+            }
+            else
+            {
+                _datasetNames = string.Empty;
+            }
+
             if(retrieveOnInitialized)
             {
                 await RetrieveData();
@@ -209,22 +435,22 @@
         var allData = new List<object>();
         try
         {
-            DateTime dateFrom = _visualization.FechaDesde;
-            DateTime dateTo = _visualization.FechaHasta;
+            DateTime dateFrom = Visualization.FechaDesde;
+            DateTime dateTo = Visualization.FechaHasta;
 
             List<(System.String, System.String, decimal, List<VisualizationValue>)> tmpDataDatasets = new ();
 
-            foreach (var grupoDataset in _visualization.GrupoDatasets)
+            foreach (var grupoDataset in Visualization.GrupoDatasets)
             {
                 try
                 {
                     decimal multiplier = 1;
-                    System.String color = "#00FFE7";
-                    System.String attribute = String.Empty;
-                    System.String module = String.Empty;
-                    System.String entity = String.Empty;
-                    System.String displayName = String.Empty;
-                    System.Int32 idInModule = 0;
+                    string color = "#00FFE7";
+                    string attribute = String.Empty;
+                    string module = String.Empty;
+                    string entity = String.Empty;
+                    string displayName = String.Empty;
+                    int idInModule = 0;
 
                     if (!string.IsNullOrEmpty(grupoDataset.JsonDesign))
                     {
@@ -302,7 +528,7 @@
                                                             Timestamp = data.Time,
                                                             Value = numericValue * multiplier,
                                                             Color = color,
-                                                            DatasetName = dataset.Name,
+                                                            DatasetName = grupoDataset.Dataset.NameDataset,
                                                             SensorName = dataset.SensorName,
                                                             DeviceId = datasetDevice.Id_device
                                                         });
@@ -333,9 +559,9 @@
                             dateFrom = dateFrom,
                             dateTo = dateTo
                         };
-                        HttpResponseMessage? result = await Http.PostAsJsonAsync("api/Visualizacion/visualization-data", req);
+                        HttpResponseMessage? result = await Http.PostAsJsonAsync($"api/Visualizacion/visualization-data", req);
                         VisualizationResponse? visualizationResponse = await result.Content.ReadFromJsonAsync<VisualizationResponse>();
-                        
+
                         tmpDataDatasets.Add((displayName, color, multiplier, visualizationResponse.Values));
                     }
                 }
@@ -381,6 +607,7 @@
             }
             _retrievingData = false;
             _dataRetrieved = true;
+            _lastUpdatedAt = DateTime.Now;
             StateHasChanged();
         }
         catch (Exception ex)
@@ -424,9 +651,10 @@
                     ? colorProp.GetString() ?? "#00FFE7"
                     : "#00FFE7";
 
-                System.String? timestamp = root.TryGetProperty("Timestamp", out var tProp)
-                    ? tProp.GetDateTime().ToString("dd/MM/yyyy HH:mm")
-                    : null;
+                DateTime? tdt = root.TryGetProperty("Timestamp", out var tProp)
+                    ? tProp.GetDateTime()
+                    : (DateTime?)null;
+                System.String? timestamp = tdt.HasValue ? tdt.Value.ToString("dd/MM/yyyy HH:mm:ss") : null;
 
                 double value = 0;
                 if (root.TryGetProperty("Value", out var vProp))
@@ -445,8 +673,10 @@
 
                 grouped[datasetName].Points.Add(new ChartPoint
                 {
-                    X = timestamp ?? DateTime.Now.ToString("HH:mm"),
-                    Y = (decimal)value
+                    X = timestamp ?? DateTime.Now.ToString("HH:mm:ss"),
+                    Y = (decimal)value,
+                    Seq = ++_seq,
+                    T = (tdt ?? DateTime.Now)
                 });
             }
             catch (Exception ex)
@@ -481,17 +711,18 @@
     private async Task OpenEditVisualizationDialog()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium };
-        DialogParameters parameters = new DialogParameters{["currVisualization"] = _visualization,};
-        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar VisualizaciÛn", parameters, options);
+        DialogParameters parameters = new DialogParameters{["currVisualization"] = Visualization,};
+        IDialogReference? dialog = await DialogService.ShowAsync<EditVisualizationDialog>("Editar Visualizaci√≥n", parameters, options);
         DialogResult? result = await dialog.Result;
 
         if (result != null && !result.Canceled)
         {
+            Visualization = null;
             await DownloadVisualization();
             await RetrieveData();
             StateHasChanged();
             _chartKey++;
-            Snackbar.Add("VisualizaciÛn actualizada", Severity.Success);
+            Snackbar.Add("Visualizaci√≥n actualizada", Severity.Success);
         }
     }
 
@@ -503,7 +734,7 @@
             if(response.IsSuccessStatusCode)
             {
                 Snackbar.Add("Visualizacion eliminada", Severity.Success);
-                await OnDeleted.InvokeAsync(_visualization == null ? VisualizationId : _visualization.IdVisualizacion);
+                await OnDeleted.InvokeAsync(Visualization == null ? VisualizationId : Visualization.IdVisualizacion);
             }
             else
             {
@@ -527,6 +758,8 @@
     {
         public System.String X { get; set; } = string.Empty;
         public decimal Y { get; set; }
+        public System.DateTime T { get; set; }
+        public long Seq { get; set; }
     }
 
 }

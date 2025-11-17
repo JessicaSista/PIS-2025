@@ -43,14 +43,15 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetIM newDataset = await _datasetService.CreateDatasetIMAsync(request, dataset.Id);
+                DatasetIM newDataset = await _datasetService.CreateDatasetIMAsync(request, dataset.Id, username);
                 await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
@@ -82,6 +83,7 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -92,21 +94,133 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest("Este endpoint es solo para datasets no formales (IsDataset = 'N'). Use el endpoint regular para datasets formales.");
                 }
 
-                if (request.Filters == null || !request.Filters.Any())
+                // Permitir datasets sin filtros (se crearán vacíos)
+                if (request.Filters == null)
                 {
-                    return BadRequest("Los filtros son obligatorios para datasets filtrados.");
+                    request.Filters = new List<FilterCondition>();
                 }
 
-                // Convertir la lista de filtros a JSON
-                request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                if (string.IsNullOrWhiteSpace(username))
+                    return BadRequest("Usuario no encontrado.");
 
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
-                Datasets dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id);
-                await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
+                // Validar filtros ANTES de crear el dataset general
+                IEnumerable<object> entidades = Enumerable.Empty<object>();
+                string entidadNombre = "";
+                
+                if (request.ContentType == "1") // Device
+                {
+                    entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    entidadNombre = "dispositivo";
+                }
+                else if (request.ContentType == "2") // Source
+                {
+                    var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                    
+                    // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
+                    bool needsDevices = request.Filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
+                    bool needsSensors = request.Filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
+                    
+                    if (needsDevices || needsSensors)
+                    {
+                        // Poblar Devices para cada Source
+                        foreach (var source in sources)
+                        {
+                            if (source != null)
+                            {
+                                var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
+                                source.Devices = devices;
+                                
+                                // Si también se necesitan Sensors, extraerlos de los devices
+                                if (needsSensors && devices.Any())
+                                {
+                                    var sensors = devices
+                                        .Where(d => d.Sensors != null)
+                                        .SelectMany(d => d.Sensors!)
+                                        .DistinctBy(s => s.Name)
+                                        .ToList();
+                                    source.Sensors = sensors;
+                                }
+                            }
+                        }
+                    }
+                    
+                    entidades = sources;
+                    entidadNombre = "fuente";
+                }
+                else if (request.ContentType == "3") // Sensor
+                {
+                    var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    var allSensors = allDevices
+                        .Where(d => d.Sensors != null)
+                        .SelectMany(d => d.Sensors!)
+                        .GroupBy(s => s.Name)
+                        .Select(g => g.First())
+                        .Cast<object>()
+                        .ToList();
+                    entidades = allSensors;
+                    entidadNombre = "sensor";
+                }
+                else
+                {
+                    return BadRequest("ContentType inválido o no soportado");
+                }
 
-                // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
-                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+                // Si hay filtros, aplicarlos y validar que haya resultados
+                // Si no hay filtros, incluir todo (no filtrar)
+                IEnumerable<object> filtrados;
+                if (request.Filters != null && request.Filters.Any())
+                {
+                    filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filters);
+                    // Si hay filtros pero no hay resultados, no crear el dataset
+                    if (!filtrados.Any())
+                    {
+                        return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede crearse sin resultados.");
+                    }
+                    request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                }
+                else
+                {
+                    // Sin filtros: incluir todo
+                    filtrados = entidades;
+                    request.JsonFilters = "[]";
+                }
+
+                // Crear el dataset general
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
+                Datasets dataset = null;
+                try
+                {
+                    dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
+                    
+                    // Esta llamada validará nuevamente los filtros y lanzará excepción si no hay resultados
+                    DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id, username);
+                    await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
+                    
+                    // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
+                    return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+                }
+                catch (Exception)
+                {
+                    // Si falla la creación del dataset IM, eliminar el dataset general que se creó
+                    if (dataset != null)
+                    {
+                        try
+                        {
+                            var datasetToDelete = await _context.Datasets.FindAsync(dataset.Id);
+                            if (datasetToDelete != null)
+                            {
+                                _context.Datasets.Remove(datasetToDelete);
+                                await _context.SaveChangesAsync();
+                            }
+                        }
+                        catch
+                        {
+                            // Si falla la eliminación, registrar el error pero no lanzar excepción
+                            // para que el error original se propague
+                        }
+                    }
+                    throw;
+                }
             }
             catch (ArgumentException ex)
             {
@@ -118,7 +232,12 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al crear el dataset filtrado: {ex.Message}");
+                var errorMessage = $"Error interno al crear el dataset filtrado: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    errorMessage += $" | Inner Exception: {ex.InnerException.Message}";
+                }
+                return StatusCode(500, errorMessage);
             }
         }
 
@@ -246,29 +365,107 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
+                var username = User.Identity?.Name;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
                 }
 
-                DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, request.Username);
+                DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (existingDataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
                 }
 
-                // Si es un dataset no formal y tiene filtros, convertir a JSON
+                // Si es un dataset no formal y tiene filtros, validar que encuentren resultados
                 if (request.IsDataset == "N" && request.Filters != null && request.Filters.Any())
                 {
-                    request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                    // Validar filtros ANTES de actualizar
+                    if (string.IsNullOrWhiteSpace(username))
+                        return BadRequest("Usuario no encontrado.");
+
+                    IEnumerable<object> entidades = Enumerable.Empty<object>();
+                    string entidadNombre = "";
+                    
+                    if (request.ContentType == "1") // Device
+                    {
+                        entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        entidadNombre = "dispositivo";
+                    }
+                    else if (request.ContentType == "2") // Source
+                    {
+                        var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+                        
+                        // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
+                        bool needsDevices = request.Filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
+                        bool needsSensors = request.Filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
+                        
+                        if (needsDevices || needsSensors)
+                        {
+                            foreach (var source in sources)
+                            {
+                                if (source != null)
+                                {
+                                    var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
+                                    source.Devices = devices;
+                                    
+                                    if (needsSensors && devices.Any())
+                                    {
+                                        var sensors = devices
+                                            .Where(d => d.Sensors != null)
+                                            .SelectMany(d => d.Sensors!)
+                                            .DistinctBy(s => s.Name)
+                                            .ToList();
+                                        source.Sensors = sensors;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        entidades = sources;
+                        entidadNombre = "fuente";
+                    }
+                    else if (request.ContentType == "3") // Sensor
+                    {
+                        var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        var allSensors = allDevices
+                            .Where(d => d.Sensors != null)
+                            .SelectMany(d => d.Sensors!)
+                            .GroupBy(s => s.Name)
+                            .Select(g => g.First())
+                            .Cast<object>()
+                            .ToList();
+                        entidades = allSensors;
+                        entidadNombre = "sensor";
+                    }
+
+                    // Si hay filtros, aplicarlos y validar que haya resultados
+                    // Si no hay filtros, incluir todo (no filtrar)
+                    IEnumerable<object> filtrados;
+                    if (request.Filters != null && request.Filters.Any())
+                    {
+                        filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filters);
+                        // Si hay filtros pero no hay resultados, no actualizar el dataset
+                        if (!filtrados.Any())
+                        {
+                            return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede actualizarse sin resultados.");
+                        }
+                        request.JsonFilters = JsonSerializer.Serialize(request.Filters);
+                    }
+                    else
+                    {
+                        // Sin filtros: incluir todo
+                        filtrados = entidades;
+                        request.JsonFilters = "[]";
+                    }
                 }
 
                 // Primero validar el nombre en la tabla general antes de actualizar cualquier tabla
-                await _datasetUMService.ValidateDatasetNameAsync(request.Name, request.Username, ModuleType.InsightMonitor, existingDataset.DatasetId);
+                await _datasetUMService.ValidateDatasetNameAsync(request.Name, username, ModuleType.InsightMonitor, existingDataset.DatasetId);
 
                 // Actualizar la tabla específica del módulo
-                DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request);
-                var requestDataset = new CreateDatasetRequest(request.Name, request.Username, ModuleType.InsightMonitor);
+                DatasetIM updatedDataset = await _datasetService.UpdateDatasetIMAsync(existingDataset, request, username);
+                var requestDataset = new CreateDatasetRequest(request.Name, username, ModuleType.InsightMonitor);
                 Datasets dataset = await _datasetUMService.UpdateDatasetAsyncIM(updatedDataset.DatasetId, requestDataset, updatedDataset);
                 return Ok(updatedDataset);
             }

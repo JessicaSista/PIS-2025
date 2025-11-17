@@ -13,13 +13,11 @@ namespace OmniMonitor.Server.Services
     {
     Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username);
     Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username);
-        Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset);
         Task<DatasetAM> CreateDatasetAMWithFiltersAsync(CreateDatasetAMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username);
         Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username);
         Task<DatasetAM?> GetDatasetAMByIdAsyncSinToken(int id);
         Task<DatasetAM?> GetDatasetAMByIdForEditAsync(int id, string username);
-        Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request);
         Task<DatasetAM> UpdateDatasetAMWithFiltersAsync(int datasetId, CreateDatasetAMRequest request, List<FilterCondition> filters);
         Task DeleteDatasetAMAsync(int id, string username);
     }
@@ -33,81 +31,6 @@ namespace OmniMonitor.Server.Services
         {
             _context = context;
             _sondaAMService = sondaAMService;
-        }
-
-        public async Task<DatasetAM> CreateDatasetAMAsync(CreateDatasetAMRequest request, int dataset)
-        {
-            if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
-            {
-                throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
-            }
-
-            var existingDataset = await _context.DatasetAM
-                .FirstOrDefaultAsync(d => d.Username == request.Username && d.Nombre == request.Nombre);
-
-            if (existingDataset != null)
-            {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
-            }
-
-            var newDatasetAM = new DatasetAM
-            {
-                Username = request.Username,
-                Nombre = request.Nombre,
-                Descripcion = request.Descripcion,
-                Is_Dataset = request.IsDataset,
-                DatasetId = dataset,
-                Type_Dataset = request.Type_Dataset,
-                Id_Event_Task = request.Type_Dataset == 1 ? request.Id_Event_Task : null,
-                Id_Asset_Type = request.Type_Dataset == 2 ? request.Id_Asset_Type : null
-            };
-
-            if (request.IsDataset == "S")
-            {
-                newDatasetAM.ContentType = "0"; // Dataset formal
-            }
-            else
-            {
-                newDatasetAM.ContentType = request.ContentType; // 1=device, 2=source, 3=sensor
-            }
-
-            if (request.Type_Dataset == 1 && request.Grupo_Event_Task_Instance_Ids != null)
-            {
-                newDatasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
-                foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
-                {
-                    newDatasetAM.Grupo_Event_Task_Instance.Add(new DatasetEventTaskInstance
-                    {
-                        Id_Event_Task_Instance = eventTaskInstanceId
-                    });
-                }
-            }
-            else if (request.Type_Dataset == 2 && request.Grupo_Asset_Ids != null && request.Grupo_Asset_Ids.Any())
-            {
-                newDatasetAM.Grupo_Asset = new List<DatasetAsset>();
-                foreach (var id in request.Grupo_Asset_Ids)
-                {
-                    if (!string.IsNullOrEmpty(id))
-                    {
-                        newDatasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = id });
-                    }
-                }
-            }
-            else if (request.Type_Dataset == 3 && request.StockIds != null)
-            {
-                newDatasetAM.Grupo_Stock = new List<DatasetStock>();
-                foreach (var stockId in request.StockIds)
-                {
-                    newDatasetAM.Grupo_Stock.Add(new DatasetStock { Id_Stock = stockId });
-                }
-            }
-            else
-            {
-            }
-
-            _context.DatasetAM.Add(newDatasetAM);
-            await _context.SaveChangesAsync();
-            return newDatasetAM;
         }
 
         public async Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username)
@@ -237,79 +160,6 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.Grupo_Asset)
                 .Include(d => d.Grupo_Stock)
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
-        }
-
-        public async Task<DatasetAM> UpdateDatasetAMAsync(DatasetAM datasetAM, CreateDatasetAMRequest request)
-        {
-
-            if (datasetAM == null)
-                throw new InvalidOperationException($"No se encontró el DatasetAM con ID {datasetAM.Id_Dataset}.");
-
-            // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncAM)
-
-            // Actualiza los campos simples
-            datasetAM.Nombre = request.Nombre;
-            datasetAM.Descripcion = request.Descripcion;
-            datasetAM.Type_Dataset = request.Type_Dataset;
-            datasetAM.Id_Event_Task = request.Id_Event_Task;
-            datasetAM.Id_Asset_Type = request.Id_Asset_Type;
-            datasetAM.Is_Dataset = request.IsDataset;
-            datasetAM.ContentType = request.ContentType;
-
-            if (datasetAM.Grupo_Event_Task_Instance != null && datasetAM.Grupo_Event_Task_Instance.Any())
-            {
-                foreach (var eventTaskInstance in datasetAM.Grupo_Event_Task_Instance)
-                {
-                    if (eventTaskInstance.Grupo_Stock != null && eventTaskInstance.Grupo_Stock.Any())
-                    {
-                        _context.Set<DatasetStock>().RemoveRange(eventTaskInstance.Grupo_Stock);
-                    }
-                }
-                _context.Set<DatasetEventTaskInstance>().RemoveRange(datasetAM.Grupo_Event_Task_Instance);
-                datasetAM.Grupo_Event_Task_Instance.Clear();
-            }
-
-            // Agregar los nuevos event task instances y stocks
-            if (request.Grupo_Event_Task_Instance_Ids != null && request.Grupo_Event_Task_Instance_Ids.Any())
-            {
-                datasetAM.Grupo_Event_Task_Instance = new List<DatasetEventTaskInstance>();
-                foreach (var eventTaskInstanceId in request.Grupo_Event_Task_Instance_Ids)
-                {
-                    var newEventTaskInstance = new DatasetEventTaskInstance
-                    {
-                        Id_Event_Task_Instance = eventTaskInstanceId,
-                        Grupo_Stock = new List<DatasetStock>()
-                    };
-                    if (request.StockIds != null && request.StockIds.Any())
-                    {
-                        foreach (var stockId in request.StockIds)
-                        {
-                            newEventTaskInstance.Grupo_Stock.Add(new DatasetStock { Id_Stock = stockId });
-                        }
-                    }
-                    datasetAM.Grupo_Event_Task_Instance.Add(newEventTaskInstance);
-                }
-            }
-
-            if (datasetAM.Grupo_Asset != null && datasetAM.Grupo_Asset.Any())
-            {
-                _context.Set<DatasetAsset>().RemoveRange(datasetAM.Grupo_Asset);
-                datasetAM.Grupo_Asset.Clear();
-            }
-
-            // Agregar los nuevos assets
-            if (request.Grupo_Asset_Ids != null && request.Grupo_Asset_Ids.Any())
-            {
-                datasetAM.Grupo_Asset = new List<DatasetAsset>();
-                foreach (var idAsset in request.Grupo_Asset_Ids)
-                {
-                    datasetAM.Grupo_Asset.Add(new DatasetAsset { Id_Asset = idAsset });
-                }
-            }
-
-            _context.DatasetAM.Update(datasetAM);
-            await _context.SaveChangesAsync();
-            return datasetAM;
         }
 
         public async Task DeleteDatasetAMAsync(int id, string username)
@@ -456,7 +306,24 @@ namespace OmniMonitor.Server.Services
 
             if (request.IsDataset == "S")
             {
-                newDatasetAM.ContentType = "0"; // Dataset formal
+                // Para datasets formales, establecer ContentType según Type_Dataset
+                // Type_Dataset: 1 = EventTask, 2 = Asset, 3 = Stock
+                if (request.Type_Dataset == 1)
+                {
+                    newDatasetAM.ContentType = "EventTask";
+                }
+                else if (request.Type_Dataset == 2)
+                {
+                    newDatasetAM.ContentType = "Asset";
+                }
+                else if (request.Type_Dataset == 3)
+                {
+                    newDatasetAM.ContentType = "Stock";
+                }
+                else
+                {
+                    newDatasetAM.ContentType = "0"; // Fallback
+                }
             }
             else
             {
@@ -523,7 +390,24 @@ namespace OmniMonitor.Server.Services
 
             if (request.IsDataset == "S")
             {
-                existingDataset.ContentType = "0"; // Dataset formal
+                // Para datasets formales, establecer ContentType según Type_Dataset
+                // Type_Dataset: 1 = EventTask, 2 = Asset, 3 = Stock
+                if (request.Type_Dataset == 1)
+                {
+                    existingDataset.ContentType = "EventTask";
+                }
+                else if (request.Type_Dataset == 2)
+                {
+                    existingDataset.ContentType = "Asset";
+                }
+                else if (request.Type_Dataset == 3)
+                {
+                    existingDataset.ContentType = "Stock";
+                }
+                else
+                {
+                    existingDataset.ContentType = "0"; // Fallback
+                }
             }
             else
             {

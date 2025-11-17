@@ -255,4 +255,34 @@
   <data name="KpiUpdatedSuccess" xml:space="preserve">
     <value>KPI actualizado correctamente.</value>
   </data>
+  <data name="AddDashboard" xml:space="preserve">
+    <value>Agregar link a dashboard</value>
+  </data>
+  <data name="DashboardLinked" xml:space="preserve">
+    <value>Dashboard seleccionado:</value>
+  </data>
+  <data name="ClickForSelectOther" xml:space="preserve">
+    <value>Haga clic para cambiar su elección</value>
+  </data>
+  <data name="DashboardLinkAdded" xml:space="preserve">
+    <value>Link agregado</value>
+  </data>
+  <data name="ColorRangeInvalid" xml:space="preserve">
+    <value>El valor mínimo debe ser menor o igual al máximo.</value>
+  </data>
+  <data name="KpiNameDuplicate" xml:space="preserve">
+    <value>Ya existe un KPI con ese nombre. Elige uno diferente.</value>
+  </data>
+  <data name="VisualizationNameDuplicate" xml:space="preserve">
+    <value>Ya existe una visualización con ese nombre. Elige otro.</value>
+  </data>
+  <data name="NoChanges" xml:space="preserve">
+    <value>No hay cambios para guardar.</value>
+  </data>
+  <data name="ModuleType" xml:space="preserve">
+    <value>Tipo de Dataset</value>
+  </data>
+  <data name="ErrorLoadingPreview" xml:space="preserve">
+    <value>Error al cargar la previsualización: {0}</value>
+  </data>
 </root>

@@ -1,0 +1,130 @@
+@using Blazored.LocalStorage
+@using Microsoft.Extensions.Localization
+@using System.Text.Json
+@using OmniMonitor.Shared.Dtos
+
+@inject HttpClient Http
+@inject ILocalStorageService LocalStorage
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SelectDashboardLink> Localizer
+
+<MudDialog Style="background-color: var(--fondo-dialog)">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color: var(--text-primary);">
+            <MudIcon Icon="@Icons.Material.Filled.Link" Class="mb-n1" />
+            @Localizer["SelectDashboard"]
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3" Style="background-color: var(--card)" Class="px-4 py-8">
+            @if (_isLoading)
+            {
+                <MudText Typo="Typo.body2">@Localizer["Loading"]</MudText>
+            }
+            else if (_dashboards.Count == 0)
+            {
+                <MudText Typo="Typo.body2">@Localizer["NoDashboardsFound"]</MudText>
+            }
+            else
+            {
+                @foreach (DashboardSummaryResponse dashboard in _dashboards)
+                {
+                    <MudButton FullWidth="true"
+                               Variant="MudBlazor.Variant.Outlined"
+                               OnClick="@(() => SelectDashboard(dashboard))"
+                               Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
+                               Class="pa-0">
+                        <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)" />
+                            <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@dashboard.Nombre</MudText>
+                        </MudStack>
+                    </MudButton>
+                }
+            }
+        </MudStack>
+        <MudButton Disabled="@(!_hasNextPage)" OnClick="LoadMoreDashboards">@Localizer["LoadMore"]</MudButton>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    public required IMudDialogInstance mudDialog { get; set; }
+
+    [Parameter]
+    public EventCallback<DashboardSummaryResponse> OnDashboardSelected { get; set; }
+
+    private List<DashboardSummaryResponse> _dashboards = new List<DashboardSummaryResponse>();
+    private bool _isLoading = true;
+
+    private int _currentPage = 1;
+    private int _pageSize = 12;
+    private bool _hasNextPage = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            string requestUrl = $"api/Dashboard/GetAllDashboardsPaginated?page={_currentPage}&pageSize={_pageSize}";
+            PaginatedDashboardDto result = await Http.GetFromJsonAsync<PaginatedDashboardDto>(requestUrl);
+
+            if (result != null)
+            {
+                _dashboards = result.Items ?? new List<DashboardSummaryResponse>();
+                _currentPage = result.Page;
+                _hasNextPage = result.HasNextPage;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(string.Format(Localizer["ErrorFetchingDashboards"], ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadMoreDashboards()
+    {
+        _isLoading = true;
+        _currentPage++;
+        try
+        {
+            string requestUrl = $"api/Dashboard/GetAllDashboardsPaginated?page={_currentPage}&pageSize={_pageSize}";
+            PaginatedDashboardDto result = await Http.GetFromJsonAsync<PaginatedDashboardDto>(requestUrl);
+            if (result != null && result.Items != null)
+            {
+                _dashboards.AddRange(result.Items);
+                _hasNextPage = result.HasNextPage;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(string.Format(Localizer["ErrorFetchingDashboards"], ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SelectDashboard(DashboardSummaryResponse dashboard)
+    {
+        if (OnDashboardSelected.HasDelegate)
+        {
+            await OnDashboardSelected.InvokeAsync(dashboard);
+        }
+        mudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        mudDialog.Cancel();
+    }
+}

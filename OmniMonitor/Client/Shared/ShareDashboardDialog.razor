@@ -70,7 +70,10 @@
                             <MudStack Row AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mud-width-full">
                                 <MudStack>
                                     <MudText Typo="Typo.body2">@url</MudText>
-                                    <MudText Typo="Typo.caption">@Localizer["Created"]: @link.CreatedAt.ToLocalTime()</MudText>
+                                    <MudText Typo="Typo.caption">
+                                        @Localizer["Created"]: @link.CreatedAt.ToLocalTime()
+                                        · @(link.Visibility == "Public" ? Localizer["Public"] : Localizer["Private"])
+                                    </MudText>
                                 </MudStack>
                                 <MudStack Row Spacing="1">
                                     <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="MudBlazor.Color.Default" OnClick="() => CopyText(url)" />

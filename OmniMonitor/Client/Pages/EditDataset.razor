@@ -76,6 +76,73 @@ else if (selectedTipo == "Insight Monitor")
                       Required="true" />
     </MudStack>
 
+    @if (isImFiltered)
+    {
+        <!-- Modo Filtrado -->
+        <!-- Toggle de modo: Device, Source, Sensor -->
+        <MudStack Row Spacing="2" Class="mb-1 mx-4">
+            <MudButton Variant="@(imMode == 1 ? Variant.Filled : Variant.Outlined)" 
+                       Color="MudBlazor.Color.Primary" 
+                       OnClick="() => SetImMode(1)"
+                       Disabled="@isEditingIM">@Localizer["Dispositivo"]</MudButton>
+            <MudButton Variant="@(imMode == 2 ? Variant.Filled : Variant.Outlined)" 
+                       Color="MudBlazor.Color.Primary" 
+                       OnClick="() => SetImMode(2)"
+                       Disabled="@isEditingIM">@Localizer["Fuente"]</MudButton>
+            <MudButton Variant="@(imMode == 3 ? Variant.Filled : Variant.Outlined)" 
+                       Color="MudBlazor.Color.Primary" 
+                       OnClick="() => SetImMode(3)"
+                       Disabled="@isEditingIM">Sensor</MudButton>
+        </MudStack>
+
+        @if (imMode == 1 || imMode == 2 || imMode == 3)
+        {
+            <!-- Sistema de Filtros -->
+            <MudStack Class="mb-4 mx-4">
+                <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
+                
+                @if (imFilters.Count > 0)
+                {
+                    <MudPaper Elevation="1" Class="pa-3 mb-3">
+                        @foreach (var filter in imFilters)
+                        {
+                            <MudChip T="FilterCondition"
+                                    Size="MudBlazor.Size.Small" 
+                                    Color="MudBlazor.Color.Primary" 
+                                    Variant="Variant.Filled"
+                                    OnClose="() => RemoveImFilter(filter)"
+                                    CloseIcon="@Icons.Material.Filled.Close"
+                                    Class="ma-1">
+                                @RenderFilterDisplay(filter)
+                            </MudChip>
+                        }
+                    </MudPaper>
+                }
+
+                <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                          Variant="Variant.Outlined" 
+                          Color="MudBlazor.Color.Primary"
+                          OnClick="OpenImFilterModal">
+                    @Localizer["AgregarFiltro"]
+                </MudButton>
+            </MudStack>
+        }
+
+        <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+            <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
+                @Localizer["Cancelar"]
+            </MudButton>
+            <MudButton OnClick="GuardarCambiosIM"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       Disabled="@(!CanSaveIM)">
+                @Localizer["GuardarCambios"]
+            </MudButton>
+        </div>
+    }
+    else
+    {
+        <!-- Modo Original -->
     <!-- Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
     <MudStack Row Spacing="2" Class="mb-4 mx-4">
         <!-- Fuente -->
@@ -163,6 +230,7 @@ else if (selectedTipo == "Insight Monitor")
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
+    }
 }
 
 @if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Asset Manager")
@@ -211,15 +279,9 @@ else if (selectedTipo == "Insight Monitor")
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
-            @if (amFilters.Count == 0)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-3">
-                    No hay filtros configurados. Agrega al menos un filtro para actualizar el dataset.
-                </MudAlert>
-            }
-            else
+            @if (amFilters.Count > 0)
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     @foreach (var filter in amFilters)
@@ -241,7 +303,7 @@ else if (selectedTipo == "Insight Monitor")
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -290,26 +352,20 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetUmMode(1)"
-                   Disabled="@isEditingUM">Eventos</MudButton>
+                   Disabled="@isEditingUM">@Localizer["Eventos"]</MudButton>
         <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetUmMode(2)"
-                   Disabled="@isEditingUM">Noticias</MudButton>
+                   Disabled="@isEditingUM">@Localizer["Noticias"]</MudButton>
     </MudStack>
 
     @if (umMode == 1 || umMode == 2)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
-            @if (umFilters.Count == 0)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-3">
-                    No hay filtros configurados. Agrega al menos un filtro para actualizar el dataset.
-                </MudAlert>
-            }
-            else
+            @if (umFilters.Count > 0)
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     @foreach (var filter in umFilters)
@@ -331,7 +387,7 @@ else if (selectedTipo == "Insight Monitor")
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenUmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -380,30 +436,24 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetEmMode(1)"
-                   Disabled="@isEditingEM">Alertas</MudButton>
+                   Disabled="@isEditingEM">@Localizer["Alertas"]</MudButton>
         <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetEmMode(2)"
-                   Disabled="@isEditingEM">Eventos</MudButton>
+                   Disabled="@isEditingEM">@Localizer["Eventos"]</MudButton>
         <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" 
                    Color="MudBlazor.Color.Primary" 
                    OnClick="() => SetEmMode(3)"
-                   Disabled="@isEditingEM">Extensiones</MudButton>
+                   Disabled="@isEditingEM">@Localizer["Extensiones"]</MudButton>
     </MudStack>
 
     @if (emMode == 1 || emMode == 2 || emMode == 3)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
-            @if (emFilters.Count == 0)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-3">
-                    No hay filtros configurados. Agrega al menos un filtro para actualizar el dataset.
-                </MudAlert>
-            }
-            else
+            @if (emFilters.Count > 0)
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     @foreach (var filter in emFilters)
@@ -425,7 +475,7 @@ else if (selectedTipo == "Insight Monitor")
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenEmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -516,6 +566,16 @@ else if (selectedTipo == "Insight Monitor")
     private List<FilterCondition> emFilters = new();
     private List<PropiedadEntidadDto> emAvailableAttributes = new();
 
+    // IM UI State
+    // imMode: 1 = Device, 2 = Source, 3 = Sensor
+    private int imMode = 1;
+    private bool isEditingIM = false; // Indica si estamos editando un dataset IM (para bloquear cambio de modo)
+    private bool isImFiltered = false; // Indica si el dataset es de tipo filtrado (Is_Dataset = "N" con filtros)
+    
+    // Filtros para IM
+    private List<FilterCondition> imFilters = new();
+    private List<PropiedadEntidadDto> imAvailableAttributes = new();
+
     private bool EnableStocksSelect => selectedEventTaskInstanceIds.Count == 1;
 
     private bool CanSaveUM
@@ -523,8 +583,8 @@ else if (selectedTipo == "Insight Monitor")
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            // Requiere al menos un filtro
-            return umFilters.Count > 0;
+            // Permite actualizar sin filtros
+            return true;
         }
     }
     
@@ -534,8 +594,8 @@ else if (selectedTipo == "Insight Monitor")
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            // Requiere al menos un filtro
-            return amFilters.Count > 0;
+            // Permite actualizar sin filtros
+            return true;
         }
     }
 
@@ -559,8 +619,18 @@ else if (selectedTipo == "Insight Monitor")
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            // Requiere al menos un filtro
-            return emFilters.Count > 0;
+            // Permite actualizar sin filtros
+            return true;
+        }
+    }
+
+    private bool CanSaveIM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            // Permite actualizar sin filtros
+            return true;
         }
     }
 
@@ -651,6 +721,13 @@ else if (selectedTipo == "Insight Monitor")
         emFilters.Clear();
         emAvailableAttributes.Clear();
         isEditingEM = false;
+        
+        // Clear Insight Monitor
+        imMode = 1;
+        imFilters.Clear();
+        imAvailableAttributes.Clear();
+        isEditingIM = false;
+        isImFiltered = false;
     }
 
     private async Task LoadDataset()
@@ -767,6 +844,54 @@ else if (selectedTipo == "Insight Monitor")
                     addName = existente.Name ?? string.Empty;
                     addDesc = existente.Description ?? string.Empty;
                     
+                    // Determinar si es un dataset filtrado
+                    isImFiltered = existente.Is_Dataset == "N" && !string.IsNullOrEmpty(existente.JsonFilters);
+                    isEditingIM = true; // Bloquear cambio de modo al editar
+                    
+                    if (isImFiltered)
+                    {
+                        // Dataset con filtros
+                        // Determinar el modo basado en ContentType
+                        if (existente.ContentType == "1") // Device
+                        {
+                            imMode = 1;
+                        }
+                        else if (existente.ContentType == "2") // Source
+                        {
+                            imMode = 2;
+                        }
+                        else if (existente.ContentType == "3") // Sensor
+                        {
+                            imMode = 3;
+                        }
+                        else
+                        {
+                            imMode = 1; // Default
+                        }
+                        
+                        // Cargar filtros si existen
+                        if (!string.IsNullOrEmpty(existente.JsonFilters))
+                        {
+                            try
+                            {
+                                imFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existente.JsonFilters) ?? new List<FilterCondition>();
+                            }
+                            catch (Exception ex)
+                            {
+                                imFilters = new List<FilterCondition>();
+                            }
+                        }
+                        else
+                        {
+                            imFilters = new List<FilterCondition>();
+                        }
+                        
+                        // Cargar atributos disponibles
+                        await LoadImAvailableAttributes();
+                    }
+                    else
+                    {
+                        // Dataset original (método tradicional)
                     selectedSourceId = existente.Id_Source;
                     selectedGroupId = existente.Id_Group;
                     selectedSensor = existente.SensorName ?? string.Empty;
@@ -781,6 +906,7 @@ else if (selectedTipo == "Insight Monitor")
                         LoadDevices(),
                         LoadSensors()
                     );
+                    }
                     
                     return true;
                 }
@@ -1120,7 +1246,6 @@ else if (selectedTipo == "Insight Monitor")
             var request = new CreateDatasetIMRequest
             {
                 Name = addName,
-                Username = username,
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
@@ -1215,8 +1340,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             { x => x.AvailableAttributes, availableAttributes },
             { x => x.Modulo, "AM" },
-            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } }
         };
         
         var options = new DialogOptions 
@@ -1226,13 +1350,13 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
         {
             amFilters.Add(filter);
-            StateHasChanged();
+        StateHasChanged();
         }
     }
     
@@ -1310,9 +1434,41 @@ else if (selectedTipo == "Insight Monitor")
         }
         else if (filter.Type == FilterType.In)
         {
-            if (filter.Condition is List<object> list)
+            // Manejar JsonElement (cuando viene de JSON deserializado)
+            if (filter.Condition is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                return $"({string.Join(", ", list)})";
+                var values = je.EnumerateArray()
+                    .Select(e => e.GetRawText().Trim('"'))
+                    .ToList();
+                return $"({string.Join(", ", values)})";
+            }
+            // Manejar List<string> (cuando viene directamente del modal)
+            else if (filter.Condition is List<string> stringList)
+            {
+                return $"({string.Join(", ", stringList)})";
+            }
+            // Manejar IEnumerable<string>
+            else if (filter.Condition is IEnumerable<string> stringEnumerable)
+            {
+                return $"({string.Join(", ", stringEnumerable)})";
+            }
+            // Manejar List<object>
+            else if (filter.Condition is List<object> objectList)
+            {
+                var stringValues = objectList.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar Array
+            else if (filter.Condition is Array arr)
+            {
+                var stringValues = arr.Cast<object>().Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar IEnumerable<object>
+            else if (filter.Condition is IEnumerable<object> enumerable)
+            {
+                var stringValues = enumerable.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
             }
             return filter.Condition.ToString() ?? "";
         }
@@ -1339,7 +1495,7 @@ else if (selectedTipo == "Insight Monitor")
         builder.AddContent(6, GetFilterValueDisplay(filter));
         builder.CloseElement();
     };
-    
+
     private async Task InitializeAMLists()
     {
         try
@@ -1499,11 +1655,6 @@ else if (selectedTipo == "Insight Monitor")
                 ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (amFilters.Count == 0)
-            {
-                ShowError("Debe agregar al menos un filtro para actualizar el dataset.");
-                return;
-            }
 
             var contentType = amMode switch
             {
@@ -1526,7 +1677,6 @@ else if (selectedTipo == "Insight Monitor")
             var filteredRequest = new CreateDatasetAMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = amFilters
             };
 
@@ -1593,10 +1743,10 @@ else if (selectedTipo == "Insight Monitor")
         
         // Cargar atributos disponibles para la entidad seleccionada
         await LoadUmAvailableAttributes();
-        
+
         StateHasChanged();
     }
-    
+
     private async Task LoadUmAvailableAttributes()
     {
         try
@@ -1633,8 +1783,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             { x => x.AvailableAttributes, umAvailableAttributes },
             { x => x.Modulo, "UM" },
-            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } }
         };
         
         var options = new DialogOptions 
@@ -1644,7 +1793,7 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1681,11 +1830,6 @@ else if (selectedTipo == "Insight Monitor")
                 ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (umFilters.Count == 0)
-            {
-                ShowError("Debe agregar al menos un filtro para actualizar el dataset.");
-                return;
-            }
 
             var contentType = umMode switch
             {
@@ -1706,7 +1850,6 @@ else if (selectedTipo == "Insight Monitor")
             var filteredRequest = new CreateDatasetUMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = umFilters
             };
 
@@ -1744,7 +1887,7 @@ else if (selectedTipo == "Insight Monitor")
                     selectedTipo = "Event Manager";
                     addName = existenteEM.Name ?? string.Empty;
                     addDesc = existenteEM.Description ?? string.Empty;
-                    
+
                     // Determinar el modo basado en ContentType
                     if (existenteEM.ContentType == "1") // Alertas
                     {
@@ -1767,13 +1910,13 @@ else if (selectedTipo == "Insight Monitor")
                     
                     // Cargar filtros si existen
                     if (!string.IsNullOrEmpty(existenteEM.Filters))
-                    {
-                        try
-                        {
+    {
+        try
+        {
                             emFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteEM.Filters) ?? new List<FilterCondition>();
-                        }
-                        catch (Exception ex)
-                        {
+        }
+        catch (Exception ex)
+        {
                             emFilters = new List<FilterCondition>();
                         }
                     }
@@ -1855,8 +1998,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             { x => x.AvailableAttributes, emAvailableAttributes },
             { x => x.Modulo, "EM" },
-            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } }
         };
         
         var options = new DialogOptions 
@@ -1866,7 +2008,7 @@ else if (selectedTipo == "Insight Monitor")
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1903,11 +2045,6 @@ else if (selectedTipo == "Insight Monitor")
                 ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (emFilters.Count == 0)
-            {
-                ShowError("Debe agregar al menos un filtro para actualizar el dataset.");
-                return;
-            }
 
             var contentType = emMode switch
             {
@@ -1929,7 +2066,6 @@ else if (selectedTipo == "Insight Monitor")
             var filteredRequest = new CreateDatasetEMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = emFilters
             };
 
@@ -1949,6 +2085,147 @@ else if (selectedTipo == "Insight Monitor")
         catch (Exception ex)
         {
             ShowError($"No se pudo actualizar el dataset EM: {ex.Message}");
+        }
+    }
+
+    // ====== Insight Monitor Methods ======
+
+    private async Task SetImMode(int mode)
+    {
+        // No permitir cambiar el modo si estamos editando
+        if (isEditingIM) return;
+        
+        if (imMode == mode) return;
+        imMode = mode;
+        // Reset filtros y atributos cuando cambia el modo
+        imFilters.Clear();
+        imAvailableAttributes.Clear();
+        
+        // Cargar atributos disponibles para la entidad seleccionada
+        await LoadImAvailableAttributes();
+        
+        StateHasChanged();
+    }
+    
+    private async Task LoadImAvailableAttributes()
+    {
+        try
+        {
+            var entidadId = imMode switch
+            {
+                1 => 1, // Device
+                2 => 2, // Source
+                3 => 3, // Sensor
+                _ => 1
+            };
+            
+            var url = $"api/DatasetFilter/FiltrarPorModuloYEntidad?modulo=IM&entidadId={entidadId}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                imAvailableAttributes = await response.Content.ReadFromJsonAsync<List<PropiedadEntidadDto>>() ?? new List<PropiedadEntidadDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando atributos: {ex.Message}");
+            imAvailableAttributes = new List<PropiedadEntidadDto>();
+        }
+    }
+    
+    private async Task OpenImFilterModal()
+    {
+        if (imAvailableAttributes.Count == 0)
+        {
+            await LoadImAvailableAttributes();
+        }
+        
+        var parameters = new DialogParameters<FilterModal>
+        {
+            { x => x.AvailableAttributes, imAvailableAttributes },
+            { x => x.Modulo, "IM" },
+            { x => x.EntidadId, imMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FilterCondition filter)
+        {
+            imFilters.Add(filter);
+            StateHasChanged();
+        }
+    }
+    
+    private void RemoveImFilter(FilterCondition filter)
+    {
+        imFilters.Remove(filter);
+        StateHasChanged();
+    }
+
+    private async Task GuardarCambiosIM()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al actualizar el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+
+            var contentType = imMode switch
+            {
+                1 => "1", // Device
+                2 => "2", // Source
+                3 => "3", // Sensor
+                _ => "1"
+            };
+
+            var request = new CreateDatasetIMRequest
+            {
+                Name = addName,
+                Description = addDesc,
+                IsDataset = "N", // Dataset no formal cuando se usa con filtros
+                ContentType = contentType,
+                Filters = imFilters
+            };
+
+            var response = await Http.PutAsJsonAsync($"api/Dataset/{id}", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var updatedDataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
+                ShowSuccess($"Dataset '{updatedDataset?.Name}' {Localizer["Actualizado"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"No se pudo actualizar el dataset IM: {ex.Message}");
         }
     }
 }

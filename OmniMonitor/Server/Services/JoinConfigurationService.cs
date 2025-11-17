@@ -56,8 +56,6 @@ public class JoinConfigurationService : IJoinConfigurationService
         // 4. Create the main CrossModuleJoin entity
         var joinDefinition = new CrossModuleJoin
         {
-            Name = request.Name,
-            Description = request.Description,
             Username = username,
             JoinType = request.JoinType,
             LeftOperandId = leftOperand.Id,
@@ -286,8 +284,6 @@ public class JoinConfigurationService : IJoinConfigurationService
         .Select(j => new CrossModuleJoinDto
         {
             Id = j.Id,
-            Name = j.Name,
-            Description = j.Description,
             JoinType = j.JoinType,
             LeftOperand = new JoinOperandDto
             {

@@ -65,9 +65,25 @@
                       Required="true" />
     </MudStack>
 
-
-    <!-- Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
+    <!-- Toggle para elegir método: Tradicional o con Filtros -->
+    <MudText Typo="Typo.h6" Class="mb-1 mx-4">@Localizer["MetodoCreacion"]</MudText>
     <MudStack Row Spacing="2" Class="mb-4 mx-4">
+        <MudButton Variant="@(imUseFilters ? Variant.Outlined : Variant.Filled)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetImMethod(false)">
+            @Localizer["Metodo"]
+        </MudButton>
+        <MudButton Variant="@(imUseFilters ? Variant.Filled : Variant.Outlined)" 
+                   Color="MudBlazor.Color.Primary" 
+                   OnClick="() => SetImMethod(true)">
+            @Localizer["MetodoFiltros"]
+        </MudButton>
+    </MudStack>
+
+    @if (!imUseFilters)
+    {
+        <!-- Método Tradicional: Cuatro selects en la misma línea: Fuente, Grupo, Dispositivo y Sensor -->
+        <MudStack Row Spacing="2" Class="mb-4 mx-4">
 
         <!-- Fuente -->
         <div style="width: 25%;">
@@ -146,15 +162,72 @@
         </div>
     </MudStack>
 
-    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton OnClick="GuardarDataset"
-                   Variant="Variant.Filled"
-                   Color="MudBlazor.Color.Primary"
-                   Disabled="@(! selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) )">
-            @Localizer["GuardarDataset"]
-        </MudButton>
+        <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
+            <MudButton OnClick="GuardarDataset"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       Disabled="@(! selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) )">
+                @Localizer["GuardarDataset"]
+            </MudButton>
+        </div>
+    }
+    else
+    {
+        <!-- Método con Filtros: Toggle de modo: Device, Source, Sensor -->
+        <MudStack Row Spacing="2" Class="mb-1 mx-4">
+            <MudButton Variant="@(imMode == 1 ? Variant.Filled : Variant.Outlined)" 
+                       Color="MudBlazor.Color.Primary" 
+                       OnClick="() => SetImMode(1)">@Localizer["Dispositivo"]</MudButton>
+            <MudButton Variant="@(imMode == 2 ? Variant.Filled : Variant.Outlined)" 
+                       Color="MudBlazor.Color.Primary" 
+                       OnClick="() => SetImMode(2)">@Localizer["Fuente"]</MudButton>
+            <MudButton Variant="@(imMode == 3 ? Variant.Filled : Variant.Outlined)" 
+                       Color="MudBlazor.Color.Primary" 
+                       OnClick="() => SetImMode(3)">Sensor</MudButton>
+        </MudStack>
 
-    </div>
+        @if (imMode == 1 || imMode == 2 || imMode == 3)
+        {
+            <!-- Sistema de Filtros -->
+            <MudStack Class="mb-4 mx-4">
+                <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
+                
+                @if (imFilters.Count > 0)
+                {
+                    <MudPaper Elevation="1" Class="pa-3 mb-3">
+                        @foreach (var filter in imFilters)
+                        {
+                            <MudChip T="FilterCondition"
+                                    Size="MudBlazor.Size.Small" 
+                                    Color="MudBlazor.Color.Primary" 
+                                    Variant="Variant.Filled"
+                                    OnClose="() => RemoveImFilter(filter)"
+                                    CloseIcon="@Icons.Material.Filled.Close"
+                                    Class="ma-1">
+                                @RenderFilterDisplay(filter)
+                            </MudChip>
+                        }
+                    </MudPaper>
+                }
+
+                <MudButton StartIcon="@Icons.Material.Filled.Add" 
+                          Variant="Variant.Outlined" 
+                          Color="MudBlazor.Color.Primary"
+                          OnClick="OpenImFilterModal">
+                    @Localizer["AgregarFiltro"]
+                </MudButton>
+            </MudStack>
+        }
+
+        <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
+            <MudButton OnClick="GuardarDatasetIMFiltered"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       Disabled="@(!CanSaveIM)">
+                @Localizer["GuardarDataset"]
+            </MudButton>
+        </div>
+    }
 }
 
 @if (!string.IsNullOrEmpty(selectedTipo) && selectedTipo == "Asset Manager")
@@ -193,15 +266,9 @@
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
-            @if (amFilters.Count == 0)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-3">
-                    No hay filtros configurados. Agrega al menos un filtro para crear el dataset.
-                </MudAlert>
-            }
-            else
+            @if (amFilters.Count > 0)
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     @foreach (var filter in amFilters)
@@ -213,7 +280,7 @@
                                 OnClose="() => RemoveFilter(filter)"
                                 CloseIcon="@Icons.Material.Filled.Close"
                                 Class="ma-1">
-                            <strong>@filter.AttributeName</strong>&nbsp;@GetFilterTypeDisplayName(filter.Type)&nbsp;@GetFilterValueDisplay(filter)
+                            @RenderFilterDisplay(filter)
                         </MudChip>
                     }
                 </MudPaper>
@@ -223,7 +290,7 @@
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -266,23 +333,17 @@
 
     <!-- Toggle de modo: Eventos, Noticias -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
-        <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(1)">Eventos</MudButton>
-        <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(2)">Noticias</MudButton>
+        <MudButton Variant="@(umMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(1)">@Localizer["Eventos"]</MudButton>
+        <MudButton Variant="@(umMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetUmMode(2)">@Localizer["Noticias"]</MudButton>
     </MudStack>
 
     @if (umMode == 1 || umMode == 2)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
-            @if (umFilters.Count == 0)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-3">
-                    No hay filtros configurados. Agrega al menos un filtro para crear el dataset.
-                </MudAlert>
-            }
-            else
+            @if (umFilters.Count > 0)
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     @foreach (var filter in umFilters)
@@ -304,7 +365,7 @@
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenUmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -347,24 +408,18 @@
 
     <!-- Toggle de modo: Alertas, Eventos, Extensiones -->
     <MudStack Row Spacing="2" Class="mb-1 mx-4">
-        <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(1)">Alertas</MudButton>
-        <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(2)">Eventos</MudButton>
-        <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(3)">Extensiones</MudButton>
+        <MudButton Variant="@(emMode == 1 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(1)">@Localizer["Alertas"]</MudButton>
+        <MudButton Variant="@(emMode == 2 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(2)">@Localizer["Eventos"]</MudButton>
+        <MudButton Variant="@(emMode == 3 ? Variant.Filled : Variant.Outlined)" Color="MudBlazor.Color.Primary" OnClick="() => SetEmMode(3)">@Localizer["Extensiones"]</MudButton>
     </MudStack>
 
     @if (emMode == 1 || emMode == 2 || emMode == 3)
     {
         <!-- Sistema de Filtros -->
         <MudStack Class="mb-4 mx-4">
-            <MudText Typo="Typo.h6" Class="mb-2">Filtros</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2">@Localizer["Filtros"]</MudText>
             
-            @if (emFilters.Count == 0)
-            {
-                <MudAlert Severity="Severity.Info" Class="mb-3">
-                    No hay filtros configurados. Agrega al menos un filtro para crear el dataset.
-                </MudAlert>
-            }
-            else
+            @if (emFilters.Count > 0)
             {
                 <MudPaper Elevation="1" Class="pa-3 mb-3">
                     @foreach (var filter in emFilters)
@@ -386,7 +441,7 @@
                       Variant="Variant.Outlined" 
                       Color="MudBlazor.Color.Primary"
                       OnClick="OpenEmFilterModal">
-                Agregar Filtro
+                @Localizer["AgregarFiltro"]
             </MudButton>
         </MudStack>
     }
@@ -462,6 +517,16 @@
     private List<FilterCondition> emFilters = new();
     private List<PropiedadEntidadDto> emAvailableAttributes = new();
 
+    // IM UI State
+    // imUseFilters: false = Método tradicional, true = Método con filtros
+    private bool imUseFilters = false;
+    // imMode: 1 = Device, 2 = Source, 3 = Sensor
+    private int imMode = 1;
+    
+    // Filtros para IM
+    private List<FilterCondition> imFilters = new();
+    private List<PropiedadEntidadDto> imAvailableAttributes = new();
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -498,6 +563,12 @@
     {
         selectedTipo = tipo ?? "Insight Monitor";
         
+        // Resetear estado de IM cuando se cambia de módulo
+        imUseFilters = false;
+        imMode = 1;
+        imFilters.Clear();
+        imAvailableAttributes.Clear();
+        
         // Cargar atributos cuando se selecciona UM o EM
         if (selectedTipo == "Urban Monitor")
         {
@@ -507,6 +578,7 @@
         {
             await LoadEmAvailableAttributes();
         }
+        // Para IM, solo cargar atributos si se activa el método con filtros
         
         StateHasChanged();
     }
@@ -562,8 +634,7 @@
         {
             { x => x.AvailableAttributes, availableAttributes },
             { x => x.Modulo, "AM" },
-            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, amMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 2 } }
         };
         
         var options = new DialogOptions 
@@ -573,7 +644,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -657,9 +728,41 @@
         }
         else if (filter.Type == FilterType.In)
         {
-            if (filter.Condition is List<object> list)
+            // Manejar JsonElement (cuando viene de JSON deserializado)
+            if (filter.Condition is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
-                return $"({string.Join(", ", list)})";
+                var values = je.EnumerateArray()
+                    .Select(e => e.GetRawText().Trim('"'))
+                    .ToList();
+                return $"({string.Join(", ", values)})";
+            }
+            // Manejar List<string> (cuando viene directamente del modal)
+            else if (filter.Condition is List<string> stringList)
+            {
+                return $"({string.Join(", ", stringList)})";
+            }
+            // Manejar IEnumerable<string>
+            else if (filter.Condition is IEnumerable<string> stringEnumerable)
+            {
+                return $"({string.Join(", ", stringEnumerable)})";
+            }
+            // Manejar List<object>
+            else if (filter.Condition is List<object> objectList)
+            {
+                var stringValues = objectList.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar Array
+            else if (filter.Condition is Array arr)
+            {
+                var stringValues = arr.Cast<object>().Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
+            }
+            // Manejar IEnumerable<object>
+            else if (filter.Condition is IEnumerable<object> enumerable)
+            {
+                var stringValues = enumerable.Select(o => o?.ToString() ?? "").ToList();
+                return $"({string.Join(", ", stringValues)})";
             }
             return filter.Condition.ToString() ?? "";
         }
@@ -746,8 +849,8 @@
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            // Requiere al menos un filtro
-            return amFilters.Count > 0;
+            // Permite crear sin filtros
+            return true;
         }
     }
 
@@ -758,8 +861,8 @@
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            // Requiere al menos un filtro
-            return umFilters.Count > 0;
+            // Permite crear sin filtros
+            return true;
         }
     }
 
@@ -781,8 +884,18 @@
         get
         {
             if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
-            // Requiere al menos un filtro
-            return emFilters.Count > 0;
+            // Permite crear sin filtros
+            return true;
+        }
+    }
+
+    private bool CanSaveIM
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(addName) || string.IsNullOrWhiteSpace(addDesc)) return false;
+            // Permite crear sin filtros
+            return true;
         }
     }
 
@@ -947,11 +1060,6 @@
                 ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (amFilters.Count == 0)
-            {
-                ShowError("Debe agregar al menos un filtro para crear el dataset.");
-                return;
-            }
 
             var contentType = amMode switch
             {
@@ -974,7 +1082,6 @@
             var filteredRequest = new CreateDatasetAMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = amFilters
             };
 
@@ -1175,7 +1282,6 @@
             var request = new CreateDatasetIMRequest
             {
                 Name = addName,
-                Username = username,
                 Description = addDesc,
                 IsDataset = "S",
                 ContentType = "0",
@@ -1286,8 +1392,7 @@
         {
             { x => x.AvailableAttributes, umAvailableAttributes },
             { x => x.Modulo, "UM" },
-            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, umMode switch { 1 => 1, 2 => 2, _ => 1 } }
         };
         
         var options = new DialogOptions 
@@ -1297,7 +1402,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1334,11 +1439,6 @@
                 ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (umFilters.Count == 0)
-            {
-                ShowError("Debe agregar al menos un filtro para crear el dataset.");
-                return;
-            }
 
             var contentType = umMode switch
             {
@@ -1359,7 +1459,6 @@
             var filteredRequest = new CreateDatasetUMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = umFilters
             };
 
@@ -1440,8 +1539,7 @@
         {
             { x => x.AvailableAttributes, emAvailableAttributes },
             { x => x.Modulo, "EM" },
-            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } },
-            { x => x.Token, authToken }
+            { x => x.EntidadId, emMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } }
         };
         
         var options = new DialogOptions 
@@ -1451,7 +1549,7 @@
             CloseButton = true
         };
         
-        var dialog = await DialogService.ShowAsync<FilterModal>("Crear Filtro", parameters, options);
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is FilterCondition filter)
@@ -1488,11 +1586,6 @@
                 ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
                 return;
             }
-            if (emFilters.Count == 0)
-            {
-                ShowError("Debe agregar al menos un filtro para crear el dataset.");
-                return;
-            }
 
             var contentType = emMode switch
             {
@@ -1514,7 +1607,6 @@
             var filteredRequest = new CreateDatasetEMFilteredRequest
             {
                 DatasetRequest = datasetRequest,
-                Token = authToken,
                 Filters = emFilters
             };
 
@@ -1536,6 +1628,162 @@
             ShowError($"No se pudo crear el dataset EM: {ex.Message}");
         }
     }
+
+    // ====== Insight Monitor Methods (con filtros) ======
+
+    private async Task SetImMethod(bool useFilters)
+    {
+        if (imUseFilters == useFilters) return;
+        imUseFilters = useFilters;
+        
+        if (useFilters)
+        {
+            // Reset filtros y atributos cuando se activa el método con filtros
+            imFilters.Clear();
+            imAvailableAttributes.Clear();
+            // Cargar atributos disponibles para la entidad seleccionada
+            await LoadImAvailableAttributes();
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task SetImMode(int mode)
+    {
+        if (imMode == mode) return;
+        imMode = mode;
+        // Reset filtros y atributos cuando cambia el modo
+        imFilters.Clear();
+        imAvailableAttributes.Clear();
+        
+        // Cargar atributos disponibles para la entidad seleccionada
+        await LoadImAvailableAttributes();
+        
+        StateHasChanged();
+    }
+    
+    private async Task LoadImAvailableAttributes()
+    {
+        try
+        {
+            var entidadId = imMode switch
+            {
+                1 => 1, // Device
+                2 => 2, // Source
+                3 => 3, // Sensor
+                _ => 1
+            };
+            
+            var url = $"api/DatasetFilter/FiltrarPorModuloYEntidad?modulo=IM&entidadId={entidadId}";
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                imAvailableAttributes = await response.Content.ReadFromJsonAsync<List<PropiedadEntidadDto>>() ?? new List<PropiedadEntidadDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"Error cargando atributos: {ex.Message}");
+            imAvailableAttributes = new List<PropiedadEntidadDto>();
+        }
+    }
+    
+    private async Task OpenImFilterModal()
+    {
+        if (imAvailableAttributes.Count == 0)
+        {
+            await LoadImAvailableAttributes();
+        }
+        
+        var parameters = new DialogParameters<FilterModal>
+        {
+            { x => x.AvailableAttributes, imAvailableAttributes },
+            { x => x.Modulo, "IM" },
+            { x => x.EntidadId, imMode switch { 1 => 1, 2 => 2, 3 => 3, _ => 1 } }
+        };
+        
+        var options = new DialogOptions 
+        { 
+            MaxWidth = MaxWidth.Medium, 
+            FullWidth = true,
+            CloseButton = true
+        };
+        
+        var dialog = await DialogService.ShowAsync<FilterModal>(Localizer["CrearFiltro"], parameters, options);
+        var result = await dialog.Result;
+        
+        if (!result.Canceled && result.Data is FilterCondition filter)
+        {
+            imFilters.Add(filter);
+            StateHasChanged();
+        }
+    }
+    
+    private void RemoveImFilter(FilterCondition filter)
+    {
+        imFilters.Remove(filter);
+        StateHasChanged();
+    }
+
+    private async Task GuardarDatasetIMFiltered()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+            if (string.IsNullOrEmpty(username))
+            {
+                ShowError("No se pudo obtener el usuario actual");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addDesc))
+            {
+                ShowError("La descripción es obligatoria");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(addName))
+            {
+                ShowError("Error al crear el dataset: El nombre del dataset es obligatorio.");
+                return;
+            }
+
+            var contentType = imMode switch
+            {
+                1 => "1", // Device
+                2 => "2", // Source
+                3 => "3", // Sensor
+                _ => "1"
+            };
+
+            var request = new CreateDatasetIMRequest
+            {
+                Name = addName,
+                Description = addDesc,
+                IsDataset = "N", // Dataset no formal cuando se usa con filtros
+                ContentType = contentType,
+                Filters = imFilters
+            };
+
+            var response = await Http.PostAsJsonAsync($"api/Dataset/filtered", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var newDataset = await response.Content.ReadFromJsonAsync<DatasetIM>();
+                ShowSuccess($"'{newDataset.Name}' {Localizer["DatasetCreadoExito"]}");
+                Nav.NavigateTo("/datasets");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ShowError(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError($"{Localizer["NoSePudoCrear"]} {ex.Message}");
+        }
+    }
+
         private static Dictionary<string, string> ParseQueryString(string? query)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

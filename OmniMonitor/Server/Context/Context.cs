@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 using OmniMonitor.Server.Models;
+using OmniMonitor.Shared;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Context
@@ -18,8 +19,6 @@ namespace OmniMonitor.Server.Context
 
         // Add this line inside your ApplicationDbContext.cs
 
-        // Entidades del sistema de roles y permisos
-        // public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
 
         public DbSet<Role> Roles { get; set; }
@@ -54,8 +53,6 @@ namespace OmniMonitor.Server.Context
 
         public DbSet<DatasetExtension> DatasetExtensions { get; set; }
 
-        public DbSet<DatasetCategory> DatasetCategory { get; set; }
-
         public DbSet<Visualizacion> Visualizaciones { get; set; }
 
         public DbSet<GrupoDataset> GrupoDatasets { get; set; }
@@ -63,10 +60,6 @@ namespace OmniMonitor.Server.Context
         public DbSet<DashboardDto> Dashboards { get; set; }
 
         public DbSet<GrupoVisualizacion> GrupoVisualizaciones { get; set; }
-
-        public DbSet<DatasetsOfReports> DatasetsOfReports { get; set; }
-
-        public DbSet<DatasetReports> DatasetReports { get; set; }
 
         public DbSet<DatasetAM> DatasetAM { get; set; }
 
@@ -87,6 +80,8 @@ namespace OmniMonitor.Server.Context
         public DbSet<SharedLink> SharedLinks { get; set; }
 
         public DbSet<Kpi> Kpi { get; set; }
+
+        public DbSet<ScheduledReport> ScheduledReports { get; set; }
 
         /// <summary>
         /// Model creation step.
@@ -153,6 +148,7 @@ namespace OmniMonitor.Server.Context
                 new Permission { Id = 20, Module = "Reports", Action = "Edit", Name = "Reports.Edit", Description = "Editar reportes" },
                 new Permission { Id = 21, Module = "Reports", Action = "Delete", Name = "Reports.Delete", Description = "Eliminar reportes" },
                 new Permission { Id = 22, Module = "Reports", Action = "Export", Name = "Reports.Export", Description = "Exportar reportes" },
+                new Permission { Id = 52, Module = "Reports", Action = "Execute", Name = "Reports.Execute", Description = "Ejecutar reportes" },
 
                 // Módulo Sensors (IM)
                 new Permission { Id = 23, Module = "Sensors", Action = "View", Name = "Sensors.View", Description = "Ver datos de sensores" },
@@ -233,23 +229,6 @@ namespace OmniMonitor.Server.Context
                       .WithMany()
                       .HasForeignKey(rj => rj.CrossModuleJoinId);
             });
-
-            builder.Entity<DatasetReports>(entity =>
-            {
-                entity.HasKey(dr => new { dr.ReportId, dr.DatasetsOfReportsId });
-
-                entity.HasOne(dr => dr.Report)
-                      .WithMany(r => r.DatasetsReports)
-                      .HasForeignKey(dr => dr.ReportId);
-
-                entity.HasOne(dr => dr.DatasetsOfReports)
-                      .WithMany()
-                      .HasForeignKey(dr => dr.DatasetsOfReportsId);
-            });
-
-            builder.Entity<DatasetsOfReports>()
-                .Property(dor => dor.ModuleType)
-                .HasConversion<string>();
         }
 
         private static void ConfigureCrossModuleJoins(ModelBuilder builder)
@@ -418,6 +397,13 @@ namespace OmniMonitor.Server.Context
 
             builder.Entity<GrupoVisualizacion>()
                 .HasIndex(gv => gv.KpiId);
+
+            // Configurar relación Kpi -> Datasets
+            builder.Entity<Kpi>()
+                .HasOne(k => k.Dataset)
+                .WithMany()
+                .HasForeignKey(k => k.DatasetId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
