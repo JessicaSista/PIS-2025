@@ -21,6 +21,7 @@ namespace OmniMonitor.Shared.Dtos.EM
         public string DisplayName { get; set; } = string.Empty;
         public double Latitude { get; set; }
         public double Longitude { get; set; }
+        public override string ToString() => DisplayName;
     }
 
     public class EventCategoryDto
