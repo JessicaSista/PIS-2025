@@ -14,15 +14,25 @@
     <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet" />
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
+
+    <style>
+        .dark-theme {
+            background: linear-gradient(180deg, #0F1522 0%, #20262F 50%);
+            background-repeat: no-repeat;
+            background-size: cover; 
+            background-attachment: fixed;
+        }
+    </style>
+
 </head>
 
 <body>
-    <div id="app">
-        <!--<svg class="loading-progress">
+    <div id="app" style="background-color: transparent">
+        <svg class="loading-progress">
             <circle r="40%" cx="50%" cy="50%" />
             <circle r="40%" cx="50%" cy="50%" />
         </svg>
-        <div class="loading-progress-text"></div>-->
+        <div class="loading-progress-text"></div>
     </div>
 
     <div id="blazor-error-ui">
@@ -34,9 +44,64 @@
     <script>navigator.serviceWorker.register('service-worker.js');</script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="js/dnd-helpers.js"></script>
+    <!--<script src="js/theme-interop.js"></script>-->
 </body>
 
 <script>
+    const themeKey = "currentThemeMode";
+
+    // Leer el valor del localStorage
+    let themePreferenceValue = localStorage.getItem(themeKey);
+
+    // Modo por defecto = oscuro
+    if (!themePreferenceValue) {
+        themePreferenceValue = "1";
+    }
+
+    // Convertir el valor numérico a la string de tema
+    let themeName;
+    if (themePreferenceValue === "0") {
+        themeName = "light"; // 0 = Light
+    } else {
+        themeName = "dark";  // 1 = Dark
+    }
+
+    // Crear y aplicar la clase
+    const themeClass = themeName + '-theme';
+    document.body.classList.add(themeClass);
+
+
+    window.downloadFileFromByteArray = (options) => {
+        if (!options || !options.base64Data) {
+            return;
+        }
+
+        try {
+            const byteCharacters = atob(options.base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: options.contentType || "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+
+            const anchor = document.createElement("a");
+            anchor.href = url;
+            anchor.download = options.fileName || "download";
+            anchor.style.display = "none";
+
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("downloadFileFromByteArray failed", error);
+        }
+    };
+
     window.equalizeCardHeights = () => {
         const cards = document.querySelectorAll('.dataset-card, .kpi-card');
         let max = 0;
