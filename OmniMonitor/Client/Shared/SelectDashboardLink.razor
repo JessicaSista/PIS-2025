@@ -29,14 +29,19 @@
             {
                 @foreach (DashboardSummaryResponse dashboard in _dashboards)
                 {
+                    bool isSelected = SelectedDashboard != null && SelectedDashboard.IdDashboard == dashboard.IdDashboard;
                     <MudButton FullWidth="true"
-                               Variant="MudBlazor.Variant.Outlined"
+                               Variant="@(isSelected ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
                                OnClick="@(() => SelectDashboard(dashboard))"
-                               Style="background-color: var(--fondo-dialog); text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)"
+                               Style="@($"background-color: {(isSelected ? "var(--card)" : "var(--fondo-dialog)")}; text-transform: none; justify-content: start; border: 1px solid var(--borde-drawer)")"
                                Class="pa-0">
                         <MudStack Row="true" AlignItems="MudBlazor.AlignItems.Center" Spacing="3" Class="pa-4">
                             <MudIcon Icon="@Icons.Material.Filled.Menu" Size="MudBlazor.Size.Large" Style="color: var(--text-primary)" />
                             <MudText Typo="MudBlazor.Typo.body1" Style="color: var(--text-primary)">@dashboard.Nombre</MudText>
+                            @if (isSelected)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="MudBlazor.Size.Medium" Style="color: var(--mud-palette-primary); margin-left: auto;" />
+                            }
                         </MudStack>
                     </MudButton>
                 }
@@ -55,6 +60,9 @@
 
     [Parameter]
     public EventCallback<DashboardSummaryResponse> OnDashboardSelected { get; set; }
+
+    [Parameter]
+    public DashboardSummaryResponse? SelectedDashboard { get; set; }
 
     private List<DashboardSummaryResponse> _dashboards = new List<DashboardSummaryResponse>();
     private bool _isLoading = true;

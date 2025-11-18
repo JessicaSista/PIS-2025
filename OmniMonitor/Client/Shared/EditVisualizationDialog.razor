@@ -321,7 +321,8 @@
     {
         var parameters = new DialogParameters
         {
-            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) },
+            { "SelectedDashboard", _selectedDashboard }
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
