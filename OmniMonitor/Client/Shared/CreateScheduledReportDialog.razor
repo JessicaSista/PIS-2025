@@ -73,8 +73,6 @@
                 @if (string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
                 {
                     <MudSelect T="string" Label="@Localizer["MonthlyDayLabel"]" @bind-Value="_monthlyDay" Disabled="_submitting" Required="true">
-
-                        @* Iteramos sobre la lista de strings para evitar problemas de binding con int *@
                         @foreach (var d in _monthlyDaysList)
                         {
                             <MudSelectItem T="string" Value="@d">@d</MudSelectItem>
@@ -204,7 +202,6 @@
         await LoadReports();
         _scheduleType = "Daily";
         
-        // Aseguramos que _reportId y _monthlyDay tengan un valor inicial
         _reportId = _reports?.FirstOrDefault()?.Id ?? 0;
         _monthlyDay = _monthlyDaysList.FirstOrDefault() ?? "1"; 
         
@@ -291,7 +288,7 @@
             ? _time.Value.Hours.ToString("D2") + ":" + _time.Value.Minutes.ToString("D2") 
             : null;
 
-        // 2. Generar la regla avanzada (AdvancedRule) si aplica
+        // Generar la regla avanzada (AdvancedRule) si aplica
         string? advancedRule = null;
         if (string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
         {
@@ -334,24 +331,6 @@
             Message = _message ?? string.Empty
         };
         
-        // =======================================================
-        // 🛑 DEBUG: VERIFICACIÓN DEL PAYLOAD ANTES DE ENVIAR
-        // =======================================================
-        Console.WriteLine("--- DEBUG: PAYLOAD DE ENVÍO (ScheduledReportRequest) ---");
-        Console.WriteLine($"ReportId: {payload.ReportId}");
-        Console.WriteLine($"ScheduleType: {payload.ScheduleType}");
-        Console.WriteLine($"AdvancedRule: {payload.AdvancedRule ?? "(null)"}");
-        Console.WriteLine($"SendAtLocalTime: {payload.SendAtLocalTime}");
-        Console.WriteLine($"TimeZone: {payload.TimeZone}");
-        
-        var recipientsList = payload.Recipients != null && payload.Recipients.Any()
-            ? string.Join(", ", payload.Recipients)
-            : "(Lista nula o vacía)";
-        
-        Console.WriteLine($"DESTINATARIOS: [{payload.Recipients?.Count ?? 0} total] -> {recipientsList}");
-        Console.WriteLine("---------------------------------------------------------");
-        // =======================================================
-
         try
         {
             var resp = await Http.PostAsJsonAsync("/api/reports/scheduled-reports", payload);
