@@ -322,20 +322,72 @@
     {
         try
         {
-            HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
-            Visualizacion visualizacion = await response.Content.ReadFromJsonAsync<Visualizacion>();
-            int toDashboard = int.Parse(visualizacion.Link.Split(",")[0]);
-            if(toDashboard != dashboardId)
+            string? link = null;
+
+            if (_esKPI)
             {
-                var url = $"/dashboards/edit/{toDashboard}";
-                var absolute = Nav.ToAbsoluteUri(url).ToString();
-                await JS.InvokeVoidAsync("open", absolute, "_blank");
-                return;
+                // Para KPIs, obtener el KPI desde la API
+                HttpResponseMessage? response = await Http.GetAsync($"api/KPI/{VisualizationId}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    SnackbarService.Add($"No se pudo obtener el KPI: {errorMessage}", Severity.Warning);
+                    return;
+                }
+
+                KpiResponse? kpi = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                
+                if (kpi == null || string.IsNullOrWhiteSpace(kpi.Link))
+                {
+                    SnackbarService.Add("El KPI no tiene un dashboard vinculado", Severity.Info);
+                    return;
+                }
+
+                link = kpi.Link;
             }
+            else
+            {
+                // Para visualizaciones, obtener la visualización desde la API
+                HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = await response.Content.ReadAsStringAsync();
+                    SnackbarService.Add($"No se pudo obtener la visualización: {errorMessage}", Severity.Warning);
+                    return;
+                }
+
+                Visualizacion? visualizacion = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                
+                if (visualizacion == null || string.IsNullOrWhiteSpace(visualizacion.Link))
+                {
+                    SnackbarService.Add("La visualización no tiene un dashboard vinculado", Severity.Info);
+                    return;
+                }
+
+                link = visualizacion.Link;
+            }
+
+            if (!string.IsNullOrWhiteSpace(link))
+            {
+                int toDashboard = int.Parse(link.Trim().Split(",")[0]);
+                if(toDashboard != dashboardId)
+                {
+                    var url = $"/dashboards/edit/{toDashboard}";
+                    var absolute = Nav.ToAbsoluteUri(url).ToString();
+                    await JS.InvokeVoidAsync("open", absolute, "_blank");
+                    return;
+                }
+            }
+        }
+        catch(FormatException)
+        {
+            SnackbarService.Add("Error al leer el link del dashboard", Severity.Warning);
         }
         catch(Exception ex)
         {
-            SnackbarService.Add("Error", Severity.Warning);
+            SnackbarService.Add($"Error: {ex.Message}", Severity.Warning);
         }
     }
 }

@@ -58,6 +58,24 @@
                 }
             </MudStack>
 
+            <!-- Dashboard Link -->
+            <MudButton OnClick="OpenSelectDashboardLinkModal"
+                       FullWidth="true"
+                       Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
+                       StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Link : Icons.Material.Filled.AddLink)"
+                       Color="MudBlazor.Color.Inherit"
+                       Size="MudBlazor.Size.Large"
+                       Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                       Disabled="false">
+                @if (_selectedDashboard != null)
+                {
+                    <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}")</MudText>
+                }
+                else
+                {
+                    @Localizer["AddDashboard"]
+                }
+            </MudButton>
 
         </MudStack>
     </DialogContent>
@@ -87,6 +105,7 @@
     private string? _serverError;
     private bool _liveEnabled = false;
     private bool _liveAllowed = false;
+    private DashboardSummaryResponse? _selectedDashboard = null;
 
 
 
@@ -131,6 +150,28 @@
         _initialColor = _actualColor;
         _liveEnabled = ExistingKpi.LiveEnabled;
         RecomputeLiveAllowed();
+
+        // Load existing dashboard link if present
+        _initialLink = ExistingKpi.Link;
+        if (ExistingKpi.Link != null)
+        {
+            try
+            {
+                string[] dataDashboard = ExistingKpi.Link.Trim().Split(',');
+                if (dataDashboard.Length >= 2 && int.TryParse(dataDashboard[0].Trim(), out int dashboardId))
+                {
+                    _selectedDashboard = new DashboardSummaryResponse 
+                    { 
+                        IdDashboard = dashboardId, 
+                        Nombre = dataDashboard[1].Trim() 
+                    };
+                }
+            }
+            catch
+            {
+                // If parsing fails, leave _selectedDashboard as null
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(ExistingKpi.SourceModule))
         {
@@ -190,10 +231,19 @@
         }
     }
 
+    private string? _initialLink = null;
+
     private bool HasChanges =>
         !string.Equals(_name, _initialName, StringComparison.Ordinal) ||
         !string.Equals(_description ?? string.Empty, _initialDescription ?? string.Empty, StringComparison.Ordinal) ||
-        !string.Equals(_actualColor, _initialColor, StringComparison.Ordinal);
+        !string.Equals(_actualColor, _initialColor, StringComparison.Ordinal) ||
+        HasLinkChanged();
+
+    private bool HasLinkChanged()
+    {
+        string? currentLink = _selectedDashboard == null ? null : $" {_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}";
+        return currentLink != _initialLink;
+    }
 
     private bool IsFormValid => !string.IsNullOrWhiteSpace(_name) && HasChanges;
 
@@ -201,6 +251,25 @@
     {
         if (!_liveAllowed) { return; }
         _liveEnabled = value;
+    }
+
+    private async Task OpenSelectDashboardLinkModal()
+    {
+        var parameters = new DialogParameters
+        {
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<SelectDashboardLink>(Localizer["AddDashboard"], parameters, options);
+    }
+
+    private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
+    {
+        _selectedDashboard = dashboard;
+        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        StateHasChanged();
+        return;
     }
 
     private async Task Submit()
@@ -218,7 +287,8 @@
             Name = _name.Trim(),
             Description = _description?.Trim(),
             DefaultColor = _actualColor,
-            LiveEnabled = _liveEnabled && _liveAllowed
+            LiveEnabled = _liveEnabled && _liveAllowed,
+            Link = _selectedDashboard == null ? string.Empty : $" {_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}"
         };
 
         try

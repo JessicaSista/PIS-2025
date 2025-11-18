@@ -43,5 +43,8 @@ namespace OmniMonitor.Shared.Dtos
         [JsonPropertyName("liveEnabled")]
         public bool? LiveEnabled { get; set; }
 
+        [JsonPropertyName("link")]
+        public string? Link { get; set; }
+
     }
 }

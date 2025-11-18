@@ -124,7 +124,8 @@ namespace OmniMonitor.Server.Controllers
                             Description = kpiDef.Description,
                             ActualColor = kpiDef.DefaultColor,
                             Unit = kpiDef.Unit,
-                            Value = null
+                            Value = null,
+                            Link = kpiDef.Link
                         };
                         return Ok(noDataResponse);
                     }
