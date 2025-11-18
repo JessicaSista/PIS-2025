@@ -104,6 +104,25 @@
                     <MudSwitch T="bool" Value="@_liveEnabled" ValueChanged="OnLiveSwitchChanged" Color="MudBlazor.Color.Primary" Dense="true" Disabled="@(!_liveAllowedKpi)" />
                 </MudStack>
 
+                <!-- Dashboard Link -->
+                <MudButton OnClick="OpenSelectDashboardLinkModal"
+                           FullWidth="true"
+                           Variant="@(_selectedDashboard != null ? Variant.Filled : Variant.Outlined)"
+                           StartIcon="@(_selectedDashboard != null ? Icons.Material.Filled.Link : Icons.Material.Filled.AddLink)"
+                           Color="MudBlazor.Color.Inherit"
+                           Size="MudBlazor.Size.Large"
+                           Style="padding: 20px 10px; color: var(--text-primary); background: var(--card); border: 3px solid var(--borde-drawer)"
+                           Disabled="false">
+                    @if (_selectedDashboard != null)
+                    {
+                        <MudText Typo="Typo.body1">@($"{Localizer["DashboardLinked"]} {_selectedDashboard.Nombre}")</MudText>
+                    }
+                    else
+                    {
+                        @Localizer["AddDashboard"]
+                    }
+                </MudButton>
+
                 <!-- Module-specific UI -->
                 <!-- Si el módulo soporta métricas mostramos la select de métricas -->
                 @if (ModuleHasMetric)
@@ -334,6 +353,8 @@
     private bool _liveAllowedKpi = false;
 
     private List<ColorRange> _colorRanges = new();
+
+    private DashboardSummaryResponse? _selectedDashboard = null;
 
     private string? _serverError;
     private bool _dateRangeInvalid => (_metric is "average" or "min" or "max") && _dateFrom.HasValue && _dateTo.HasValue && (_dateFrom > _dateTo);
@@ -806,6 +827,25 @@
         _liveEnabled = value;
     }
 
+    private async Task OpenSelectDashboardLinkModal()
+    {
+        var parameters = new DialogParameters
+        {
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+        };
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<SelectDashboardLink>(Localizer["AddDashboard"], parameters, options);
+    }
+
+    private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
+    {
+        _selectedDashboard = dashboard;
+        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        StateHasChanged();
+        return;
+    }
+
     // 4) IsFormValid actualizado: exigir metrica para esos modulos
     private bool IsFormValid
     {
@@ -935,7 +975,8 @@
             // Non-IM fields
             Atributo = !string.IsNullOrWhiteSpace(_selectedAtributo) ? _selectedAtributo : null,
             Type = _selectedType,
-            LiveEnabled = _liveEnabled && _liveAllowedKpi
+            LiveEnabled = _liveEnabled && _liveAllowedKpi,
+            Link = _selectedDashboard == null ? null : $" {_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}"
         };
 
         _isSubmitting = true;
