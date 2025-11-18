@@ -54,12 +54,37 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // News
                 {
                     var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    
+                    // ENHANCEMENT: Poblar información completa de zona para cada noticia
+                    var newsWithFullDetails = new List<News>();
+                    foreach (var news in allNews)
+                    {
+                        try
+                        {
+                            var fullNewsDetail = await _sondaUMService.GetNewsById(news.Id, username);
+                            if (fullNewsDetail != null)
+                            {
+                                newsWithFullDetails.Add(fullNewsDetail);
+                            }
+                            else
+                            {
+                                // Si falla GetById, usar la noticia original
+                                newsWithFullDetails.Add(news);
+                            }
+                        }
+                        catch
+                        {
+                            // Si hay error, usar la noticia original
+                            newsWithFullDetails.Add(news);
+                        }
+                    }
+                    
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
                     if (request.Filters != null && request.Filters.Any())
                     {
-                        filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        filtrados = ApiDataService.StaticFilterObjects(newsWithFullDetails, request.Filters);
                         if (!filtrados.Any())
                         {
                             return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede crearse sin resultados.");
@@ -68,7 +93,7 @@ namespace OmniMonitor.Server.Controllers
                     else
                     {
                         // Sin filtros: incluir todo
-                        filtrados = allNews.Cast<object>();
+                        filtrados = newsWithFullDetails.Cast<object>();
                     }
                     
                     req.NewsIds = filtrados.OfType<News>().Select(n => (int)n.Id).ToList();
@@ -211,12 +236,35 @@ namespace OmniMonitor.Server.Controllers
                 if (req.ContentType == "2") // News
                 {
                     var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    
+                    // ENHANCEMENT: Poblar información completa de zona para cada noticia
+                    var newsWithFullDetails = new List<News>();
+                    foreach (var news in allNews)
+                    {
+                        try
+                        {
+                            var fullNewsDetail = await _sondaUMService.GetNewsById(news.Id, username);
+                            if (fullNewsDetail != null)
+                            {
+                                newsWithFullDetails.Add(fullNewsDetail);
+                            }
+                            else
+                            {
+                                newsWithFullDetails.Add(news);
+                            }
+                        }
+                        catch
+                        {
+                            newsWithFullDetails.Add(news);
+                        }
+                    }
+                    
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
                     if (request.Filters != null && request.Filters.Any())
                     {
-                        filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        filtrados = ApiDataService.StaticFilterObjects(newsWithFullDetails, request.Filters);
                         if (!filtrados.Any())
                         {
                             return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede actualizarse sin resultados.");
@@ -225,7 +273,7 @@ namespace OmniMonitor.Server.Controllers
                     else
                     {
                         // Sin filtros: incluir todo
-                        filtrados = allNews.Cast<object>();
+                        filtrados = newsWithFullDetails.Cast<object>();
                     }
                     
                     req.NewsIds = filtrados.OfType<News>().Select(n => (int)n.Id).ToList();
@@ -310,7 +358,30 @@ namespace OmniMonitor.Server.Controllers
                     if (req.ContentType == "2") // News
                     {
                         var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
-                        var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        
+                        // ENHANCEMENT: Poblar información completa de zona para cada noticia
+                        var newsWithFullDetails = new List<News>();
+                        foreach (var news in allNews)
+                        {
+                            try
+                            {
+                                var fullNewsDetail = await _sondaUMService.GetNewsById(news.Id, username);
+                                if (fullNewsDetail != null)
+                                {
+                                    newsWithFullDetails.Add(fullNewsDetail);
+                                }
+                                else
+                                {
+                                    newsWithFullDetails.Add(news);
+                                }
+                            }
+                            catch
+                            {
+                                newsWithFullDetails.Add(news);
+                            }
+                        }
+                        
+                        var filtrados = ApiDataService.StaticFilterObjects(newsWithFullDetails, request.Filters);
                         filteredIds = filtrados.Select(n => (int)n.Id).ToList();
                         req.NewsIds = filteredIds;
                     }
