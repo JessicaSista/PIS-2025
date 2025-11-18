@@ -1,12 +1,14 @@
 using Blazored.LocalStorage;
+
 using MudBlazor;
+
 using System;
 using System.Threading.Tasks;
 
 namespace OmniMonitor.Client.Services
 {
     public enum ThemeMode { Light, Dark }
-    
+
     public class ThemeService
     {
         private const string ThemeKey = "currentThemeMode";
@@ -110,12 +112,12 @@ namespace OmniMonitor.Client.Services
             --fondo-drawer: #1A1818;
         ";
 
-        public string CurrentThemeVariables => (CurrentMode==ThemeMode.Dark) ? _darkModeVars : _lightModeVars;
+        public string CurrentThemeVariables => (CurrentMode == ThemeMode.Dark) ? _darkModeVars : _lightModeVars;
 
-        // Evento específico para el cambio de Tema
+        // Evento especÃ­fico para el cambio de Tema
         public event Action? OnThemeChange;
 
-        
+
 
         // Propiedades de estado
         public bool IsDarkMode => CurrentMode == ThemeMode.Dark;
@@ -127,7 +129,7 @@ namespace OmniMonitor.Client.Services
         public ThemeService(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
-            
+
             // 1. Inicializamos CurrentTheme UNA SOLA VEZ, definiendo AMBAS paletas.
             CurrentTheme = new MudTheme()
             {
@@ -144,7 +146,7 @@ namespace OmniMonitor.Client.Services
                     Secondary = "#424242",
                     Error = "#8F1515",
 
-                    
+
                     //Surface = "#FFFFFF",
                     //ActionDefault = "#6200EE"
                     //Background = "#E3F2FD",

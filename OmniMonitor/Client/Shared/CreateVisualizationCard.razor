@@ -399,10 +399,21 @@
 
                 foreach (var datasetConfig in _request.Datasets)
                 {
+                    var selection = _selectedDatasets.FirstOrDefault(item => item.Dataset.Id == datasetConfig.DatasetId);
+                    var datasetName = string.Empty;
+                    if (selection != null)
+                    {
+                        datasetName = selection.Dataset.Nombre;
+                    }
                     var nuevoGrupo = new GrupoDataset
                     {
                         DatasetId = datasetConfig.DatasetId,
                         JsonDesign = datasetConfig.JsonDiseño,
+                        Dataset = new Datasets
+                        {
+                            NameDataset = datasetName
+                        }
+
                     };
                     tempVisualization.GrupoDatasets.Add(nuevoGrupo);
                     

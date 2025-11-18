@@ -162,7 +162,8 @@ namespace OmniMonitor.Server.Services
                 Atributo = string.IsNullOrWhiteSpace(request.Atributo) ? string.Empty : request.Atributo,
                 Username = username ?? string.Empty,
                 Type = request.Type,
-                LiveEnabled = allowLive
+                LiveEnabled = allowLive,
+                Link = request.Link
             };
 
             _context.Kpi.Add(newKpi);
@@ -339,6 +340,11 @@ namespace OmniMonitor.Server.Services
             if (request.DefaultColor != null) existingKpi.DefaultColor = request.DefaultColor.Trim();
             if (request.ColorRanges != null) existingKpi.ColorRanges = request.ColorRanges;
             if (request.ExtraInfo != null) existingKpi.ExtraInfo = request.ExtraInfo;
+            // Link: update if provided (null means don't update, empty string means remove link)
+            if (request.Link != null)
+            {
+                existingKpi.Link = string.IsNullOrWhiteSpace(request.Link) ? null : request.Link;
+            }
             if (request.LiveEnabled.HasValue)
             {
                 bool requestedLive = request.LiveEnabled.Value;
@@ -438,6 +444,7 @@ namespace OmniMonitor.Server.Services
             response.DatasetName = await GetDatasetNameFromModuleAsync(kpi.DatasetId, kpi.SourceModule, username);
             response.LiveEnabled = kpi.LiveEnabled;
             response.SourceModule = kpi.SourceModule;
+            response.Link = kpi.Link;
             return response;
         }
 
@@ -475,6 +482,7 @@ namespace OmniMonitor.Server.Services
             response.DatasetName = await GetDatasetNameFromModuleAsync(kpi.DatasetId, kpi.SourceModule, kpi.Username ?? string.Empty);
             response.LiveEnabled = kpi.LiveEnabled;
             response.SourceModule = kpi.SourceModule;
+            response.Link = kpi.Link;
             return response;
         }
 

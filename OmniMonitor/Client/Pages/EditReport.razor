@@ -1,5 +1,9 @@
 @page "/editarReporte/{ReportId:int}"
 @attribute [Authorize]
+@using System.IO
+@using System.Linq
+@using System.Net
+@using System.Net.Http
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @using OmniMonitor.Shared.Dtos
@@ -33,8 +37,15 @@
             @(!string.IsNullOrWhiteSpace(reportDescription) ? reportDescription : Localizer["NoDescription"])
         </MudText>
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Justify="Justify.FlexEnd" Class="mt-2">
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Share" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Share"]</MudButton>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Size="MudBlazor.Size.Small" Style="border-color: var(--mud-palette-lines-default);">@Localizer["Pdf"]</MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                       Size="MudBlazor.Size.Small"
+                       Style="border-color: var(--mud-palette-lines-default);"
+                       Disabled="@isDownloadingPdf"
+                       Loading="@isDownloadingPdf"
+                       OnClick="DownloadReportPdfAsync">
+                @(isDownloadingPdf ? Localizer["DownloadingPdf"] : Localizer["Pdf"])
+            </MudButton>
             <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" Size="MudBlazor.Size.Small" Disabled="@isSaving" OnClick="GenerarJsonConfig">
                 @(isSaving ? Localizer["Saving"] : Localizer["SaveReport"])
             </MudButton>
@@ -191,6 +202,7 @@
     private string reportName = string.Empty;
     private string reportDescription = string.Empty;
     private bool isSaving = false;
+    private bool isDownloadingPdf = false;
     private bool isExecuting = false;
     private bool previewExecuted = false;
     private List<Dictionary<string, string?>> executeRows = new();
@@ -1017,6 +1029,98 @@
         FilterValueType.Enum => FilterType.Equals,
         _ => FilterType.Equals
     };
+
+    private async Task DownloadReportPdfAsync()
+    {
+        if (isDownloadingPdf)
+        {
+            return;
+        }
+
+        isDownloadingPdf = true;
+
+        try
+        {
+            using var response = await Http.GetAsync($"api/reports/{ReportId}/download-pdf", HttpCompletionOption.ResponseHeadersRead);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                Snackbar.Add(Localizer["PdfDownloadUnauthorized"], Severity.Warning);
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                Snackbar.Add(Localizer["PdfDownloadForbidden"], Severity.Error);
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                Logger?.LogWarning("Error downloading PDF for report {ReportId}. Status: {StatusCode}. Body: {Body}", ReportId, response.StatusCode, errorBody);
+                Snackbar.Add(Localizer["PdfDownloadFailed", (int)response.StatusCode], Severity.Error);
+                return;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            if (bytes == null || bytes.Length == 0)
+            {
+                Snackbar.Add(Localizer["PdfDownloadEmpty"], Severity.Warning);
+                return;
+            }
+
+            var fileName = ResolvePdfFileName(
+                response.Content.Headers.ContentDisposition?.FileNameStar,
+                response.Content.Headers.ContentDisposition?.FileName);
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/pdf";
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                fileName,
+                contentType,
+                base64Data = Convert.ToBase64String(bytes)
+            });
+
+            Snackbar.Add(Localizer["PdfDownloadSuccess"], Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError(ex, "Unexpected error downloading PDF for report {ReportId}", ReportId);
+            Snackbar.Add(Localizer["PdfDownloadUnexpectedError"], Severity.Error);
+        }
+        finally
+        {
+            isDownloadingPdf = false;
+        }
+    }
+
+    private string ResolvePdfFileName(string? headerFileNameStar, string? headerFileName)
+    {
+        var rawName = headerFileNameStar ?? headerFileName;
+        if (!string.IsNullOrWhiteSpace(rawName))
+        {
+            return rawName.Trim('"');
+        }
+
+        var baseName = string.IsNullOrWhiteSpace(reportName) ? $"reporte_{ReportId}" : reportName;
+        var sanitized = SanitizeFileName(baseName);
+        return $"{sanitized}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+    }
+
+    private static string SanitizeFileName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "reporte";
+        }
+
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = new string(value.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray()).Trim();
+        return string.IsNullOrWhiteSpace(sanitized) ? "reporte" : sanitized;
+    }
 
 
     // --- Métodos de UI / Tabs ---

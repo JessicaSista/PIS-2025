@@ -13,7 +13,7 @@
 @inject ILocalStorageService LocalStorage
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject OmniMonitor.Client.Services.SignalR.TelemetryHubClient TelemetryHubClient
-@implements IAsyncDisposable
+
 
 
 
@@ -192,7 +192,6 @@
     {
         Xaxis = new XAxis
         {
-            Type = XAxisType.Datetime,
             TickAmount = 4,
             Labels = new XAxisLabels
             {

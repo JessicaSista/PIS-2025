@@ -34,4 +34,7 @@ public class KpiResponse
     [JsonPropertyName("liveEnabled")]
     public bool LiveEnabled { get; set; } = false;
 
+    [JsonPropertyName("link")]
+    public string? Link { get; set; }
+
 }
