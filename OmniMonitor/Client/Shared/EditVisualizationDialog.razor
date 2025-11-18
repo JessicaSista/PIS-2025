@@ -296,6 +296,8 @@
             {
                 Snackbar.Add($"Error fetching properties of datasets: {ex.Message}", Severity.Error);
             }
+            _liveEnabled = currVisualization.LiveEnabled;
+            RecomputeLiveAllowed();
         }
         catch (Exception ex)
         {
