@@ -1,4 +1,4 @@
-@using ApexCharts
+    @using ApexCharts
 @using MudBlazor.Extensions
 @using OmniMonitor.Shared.Dtos
 @using System.Text.Json
@@ -614,16 +614,6 @@
                         })
                         .ToList()
                     });
-                }
-            }
-
-            //inicio de la prueba de que funciona:
-            foreach (var sd in _seriesData)
-            {
-                Console.WriteLine("Nombre de la serie:" + sd.DatasetName);
-                foreach (var pt in sd.Points)
-                {
-                    Console.WriteLine($"Punto: X={pt.X}, Y={pt.Y}");
                 }
             }
 

@@ -14,7 +14,12 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-
+// Asegúrate de que el nivel mínimo global esté configurado en Warning
+builder.Logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Warning);
+// Silenciar warnings relacionadas con solicitudes HTTP
+builder.Logging.AddFilter(
+    "Microsoft.AspNetCore.Components.WebAssembly.Http",
+    Microsoft.Extensions.Logging.LogLevel.Warning);
 
 // 1. Register the AuthHeaderHandler from the Canvas
 builder.Services.AddScoped<AuthHeaderHandler>();
