@@ -8,5 +8,6 @@ namespace OmniMonitor.Shared.Dtos.EM
         public List<int> groupIds { get; set; } = new();
         public int typeCategoryEvent { get; set; }
         public bool selected { get; set; }
+        public override string ToString() => Name;
     }
 }

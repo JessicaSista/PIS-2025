@@ -193,7 +193,7 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "NoDataInterval", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "OutputId", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Devices.Name", Tipo = FilterValueType.String });
-                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Sensors.Name", Tipo = FilterValueType.String });
                             break;
                         case 3: // Sensor
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Name", Tipo = FilterValueType.String });

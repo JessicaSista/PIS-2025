@@ -182,7 +182,7 @@
     private CreateVisualizacionRequest _request;
 
     private List<string> _chartTypes = new List<string>() { "line", "bar", "area", "pie", "donut", "heatMap", "radialBar" };
-    private string _selectedChartType = "line";
+    private string _selectedChartType = "bar";
 
     private DateTime? _beginDate { get; set; }
     private TimeSpan? _beginHour { get; set; }
@@ -196,22 +196,23 @@
     private List<DatasetSelection> _selectedDatasets = new List<DatasetSelection>();
     private Dictionary<string, List<string>> _entityAttributes = new Dictionary<string, List<string>>
     {
-        { "Device", new List<string> { "LayerId", "IsActive", "SectorId", "TenantId"} },
-        { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
+        { "Device", new List<string> { "Name", "Source",  "LayerId", "IsActive", "SectorId", "ConnectionString", "TenantId", "LastDataReceived",} },
+        { "Source", new List<string> { "Name", "Type", "TimeTolerance", "TimeRange", "Icon", "IsActive", "TenantId", "NoDataAlert", "NoDataSleepByDevice", "NoDataInterval", "OutputId"} },
+        { "Sensor", new List<string> { "Name", "DisplayName", "Type", "Integration", "LastUpdate", "LastValue", "LastPersisted"} },
+        { "SensorData", new List<string> { "SensorData",} },
         { "Group", new List<string> { "IsActive", "State", "TenantId" } },
-        { "Sensor", new List<string> { "DisplayName", "Type", "Integration", "LastUpdate", "LastPersisted"} },
 
         { "Zone", new List<string> { "Name", "Reference" } },
-        { "EventUM", new List<string> { "Date", "Type", "ApprovalState", "ReviewedAt" } },
-        { "New", new List<string> { "DatePublished", "Important", "StartDate", "EndDate" } },
+        { "EventUM", new List<string> { "Name", "Date", "Type", "Location", "ApprovalState", "ReviewedAt" } },
+        { "New", new List<string> { "Title", "DatePublished", "Important", "StartDate", "EndDate", "Zone" } },
 
         { "EventAM", new List<string> { "EventTaskDto", "StartDate", "State", "Subject", "FinalizedDate", "TakenOn", "TakenBy", "AlertTime", "EndingReason", "Critical" } },
         { "Stock", new List<string> { "Name", "Quantity", "Provider", "Location", "Sku", "Minimum", "Bundle", "Supervisor", "UpdatedQuantity" } },
         { "Asset", new List<string> { "Name", "CreatedAt", "ExternalId", "Code", "Address", "Reference", "LifeTimeToDate", "TypeDto", "BundleDto", "BrandDto", "StateDto", "ModelDto", "ResponsibleDto", "ProviderDto", "Device", "DeliveredTo" } },
 
-        { "Alert", new List<string> { "AlertState", "CreatedAt" } },
-        { "EventEM", new List<string> { "Origin", "CreationDate", "State" } },
-        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "CreatedAt", "Dangerous"} },
+        { "Alert", new List<string> { "AlertName", "SourceId", "Location", "SourceAddress", "AlertState", "AlertCategory", "AlertData", "CreatedAt", "ModifiedAt", "DeviceType", "StreamUrl", "FileExtension", } },
+        { "EventEM", new List<string> { "Name", "Origin", "CreationDate", "LastModification", "SourceType", "State", "Address", "Location", } },
+        { "Extension", new List<string> { "ExtensionState", "TakenByUsername", "TakenByName", "TakenByLastName", "EventDateTime",  "CreatedAt", "LastModification", "WorkZoneId", "WorkZoneName", "EventId", "EventName", "ExtensionSource", "Address", "Location", "Location", "Dangerous"} },
         { "Categoria", new List<string> { "Name", "Priority", "Protocol", "CategoryState", "Selected" } }
     };
 
@@ -274,7 +275,7 @@
     private async Task HandleNewDataset()
     {
         DialogOptions? options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        IDialogReference? dialog = DialogService.Show<CreateDatasetDialog>("Crear nuevo dataset", options);
+        IDialogReference? dialog = DialogService.Show<CreateDatasetDialog>(String.Empty, options);
         DialogResult? result = await dialog.Result;
 
         if (!result.Canceled && result.Data != null)
@@ -533,16 +534,6 @@
     {
         try
         {
-            AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            string? username = authState.User.Identity?.Name;
-            string? token = await LocalStorage.GetItemAsync<string>("authToken");
-
-            if (string.IsNullOrEmpty(username))
-            {
-                Snackbar.Add(Localizer["UserNotFound"], Severity.Warning);
-                throw new InvalidOperationException("No se encontró el usuario autenticado.");
-            }
-
             if (module.Equals("Insight Monitor"))
             {
                 HttpResponseMessage? response = await Http.GetAsync($"/api/Dataset/GetDataset?datasetId={datasetId}");
@@ -550,7 +541,13 @@
 
                 if (datasetFromApi == null)
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
-                return datasetFromApi.ContentType == "0" ? "Sensor" : "Device";
+                return datasetFromApi.ContentType switch
+                {
+                    "1" => "Device",
+                    "2" => "Source",
+                    "3" => "Sensor",
+                    "0" => "SensorData",
+                };
             }
             else if (module.Equals("Asset Manager"))
             {
@@ -559,7 +556,7 @@
 
                 if (datasetFromApi == null)
                 {
-                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                    throw new NullReferenceException("Error.");
                 }
                 return datasetFromApi.Type_Dataset switch
                 {
@@ -578,6 +575,11 @@
                     throw new NullReferenceException("La respuesta del servidor fue vacía.");
 
                 return datasetFromApi.DatasetNews.Count > 0 ? "New" : "EventUM";
+                return datasetFromApi.ContentType switch
+                {
+                    "1" => "EventUM",
+                    "2" => "New",
+                };
             }
             else
             {
@@ -585,21 +587,14 @@
                 DatasetEM? datasetFromApi = await response.Content.ReadFromJsonAsync<DatasetEM>();
 
                 if (datasetFromApi == null)
-                    throw new NullReferenceException("La respuesta del servidor fue vacía.");
+                    throw new NullReferenceException("Error.");
 
-                List<System.String> Types = datasetFromApi.ContentType.Split(',').Select(s => s.Trim()).ToList();
-                if (Types.Contains("Extensions"))
+                return datasetFromApi.ContentType switch
                 {
-                    return "Extension";
-                }
-                else if (Types.Contains("Alerts"))
-                {
-                    return "Alert";
-                }
-                else
-                {
-                    return "EventEM";
-                }
+                    "Alert" => "Alert",
+                    "Extension" => "Extension",
+                    "Event" => "EventEM",
+                };
             }
         }
         catch (Exception ex)
@@ -608,5 +603,4 @@
             return string.Empty;
         }
     }
-
 }

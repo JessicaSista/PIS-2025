@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 
 namespace OmniMonitor.Shared.Dtos
 {
@@ -33,5 +33,7 @@ namespace OmniMonitor.Shared.Dtos
 
         [JsonPropertyName("showInList")]
         public bool ShowInList { get; set; }
+
+        public override string ToString() => Name;
     }
 }
