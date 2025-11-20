@@ -41,6 +41,26 @@
             <MudText Typo="Typo.body2" Class="mr-2">Live</MudText>
             <MudSwitch T="bool" Value="@_liveOn" ValueChanged="OnLiveChanged" Color="MudBlazor.Color.Primary" Dense="true" />
         </MudStack>
+        <MudMenu Icon="@Icons.Material.Filled.FileDownload"
+                 Variant="Variant.Text"
+                 Color="MudBlazor.Color.Inherit"
+                 Size="MudBlazor.Size.Small"
+                 AnchorOrigin="Origin.BottomLeft"
+                 TransformOrigin="Origin.TopLeft"
+                 Dense="true">
+            <MudMenuItem OnClick="@(() => DownloadDashboard("pdf"))">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.PictureAsPdf" Size="MudBlazor.Size.Small" />
+                    <MudText Typo="Typo.body2">Descargar PDF</MudText>
+                </div>
+            </MudMenuItem>
+            <MudMenuItem OnClick="@(() => DownloadDashboard("jpg"))">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Image" Size="MudBlazor.Size.Small" />
+                    <MudText Typo="Typo.body2">Descargar JPG</MudText>
+                </div>
+            </MudMenuItem>
+        </MudMenu>
         <MudButton Variant="Variant.Outlined"
                    Color="MudBlazor.Color.Secondary"
                    StartIcon="@Icons.Material.Filled.Share"
@@ -212,6 +232,22 @@
         DialogOptions options = new DialogOptions { CloseOnEscapeKey = true, FullWidth = true, MaxWidth = MaxWidth.Medium };
         DialogParameters parameters = new DialogParameters { ["DashboardId"] = DashboardId };
         await DialogService.ShowAsync<ShareDashboardDialog>("Compartir Dashboard", parameters, options);
+    }
+
+    private async Task DownloadDashboard(string format)
+    {
+        try
+        {
+            Snackbar.Add($"Descargando dashboard en formato {format.ToUpper()}...", Severity.Info);
+            StateHasChanged();
+            await Task.Delay(1); // Permite que se renderice la notificación
+            string filename = $"Dashboard_{dashName}_{DateTime.Now:yyyyMMdd_HHmmss}";
+            await JS.InvokeVoidAsync("dashboardExport.downloadDashboard", format, filename);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error al descargar el dashboard: {ex.Message}", Severity.Error);
+        }
     }
 
 
