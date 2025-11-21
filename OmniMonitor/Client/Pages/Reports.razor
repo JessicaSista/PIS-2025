@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @using MudBlazor
 @using OmniMonitor.Client.Shared
+@using System.Net.Http.Json
 @using System.Text.Json
 @using Microsoft.Extensions.Localization
 @using OmniMonitor.Shared.Dtos
@@ -261,10 +262,14 @@
             if (hasNameChange || hasDescriptionChange)
             {
                 var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
-                var updateUrl =
-                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(normalizedDescription)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
+                var updateRequest = new UpdateReportRequestDto
+                {
+                    Name = trimmedName,
+                    Description = string.IsNullOrEmpty(normalizedDescription) ? null : normalizedDescription,
+                    JSON_config = jsonConfig
+                };
 
-                var updateResponse = await Http.PutAsync(updateUrl, null);
+                var updateResponse = await Http.PutAsJsonAsync($"api/reports/UpdateReport?id={editResult.ReportId}", updateRequest);
                 if (updateResponse.IsSuccessStatusCode)
                 {
                     Snackbar.Add("Reporte actualizado correctamente", Severity.Success);

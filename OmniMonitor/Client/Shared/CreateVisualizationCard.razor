@@ -227,8 +227,18 @@
 
     }
 
+    private bool IsSingleSeriesChart =>
+        _selectedChartType == "pie" ||
+        _selectedChartType == "donut" ||
+        _selectedChartType == "radialBar";
+
     private async Task OpenAddDatasetModal()
     {
+        if (IsSingleSeriesChart && _selectedDatasets.Count >= 1)
+        {
+            Snackbar.Add(Localizer["ChartTypeLimitReached"] + " " + _selectedChartType, Severity.Warning);
+            return;
+        }
         var parameters = new DialogParameters
         {
             { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDtoGenerico>(this, HandleDatasetSelected) },
@@ -327,6 +337,11 @@
         if (fullEndDateTime <= fullBeginDateTime)
         {
             Snackbar.Add(Localizer["EndDateAfterStartDate"], Severity.Warning);
+            return false;
+        }
+        if (IsSingleSeriesChart && _selectedDatasets.Count > 1)
+        {
+            Snackbar.Add(Localizer["ChartTypeLimitReached"] + " " + _selectedChartType, Severity.Warning);
             return false;
         }
 
