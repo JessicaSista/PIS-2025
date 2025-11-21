@@ -285,4 +285,7 @@
   <data name="ErrorLoadingPreview" xml:space="preserve">
     <value>Error loading preview: {0}</value>
   </data>
+  <data name="ChartTypeLimitReached" xml:space="preserve">
+    <value>You cannot select more than one dataset if the chart type is</value>
+  </data>
 </root>
