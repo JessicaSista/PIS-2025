@@ -86,11 +86,18 @@ namespace OmniMonitor.Server.Controllers
                             resultado.Add(new PropiedadEntidadDto { Nombre = "LifeTimeToDate", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "TypeDto.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "BundleDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "BundleId", Tipo = FilterValueType.Number });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "BrandDto.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "StateDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "ModelDto.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "ResponsibleDto.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Device.Name", Tipo = FilterValueType.Enum });
                             resultado.Add(new PropiedadEntidadDto { Nombre = "ProviderDto.Name", Tipo = FilterValueType.Enum });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "DeliveredTo.Name", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "Reference", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "BarCode", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "QrCode", Tipo = FilterValueType.String });
+                            resultado.Add(new PropiedadEntidadDto { Nombre = "PredictionFailure.Prediction", Tipo = FilterValueType.Number });
                             break;
                         case 1: // EventTaskInstance
                             resultado.Add(new PropiedadEntidadDto { Nombre = "Id", Tipo = FilterValueType.Number });
