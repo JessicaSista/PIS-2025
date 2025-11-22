@@ -19,13 +19,15 @@ namespace OmniMonitor.Server.Controllers
         private readonly ISondaAuthService _sondaAuthService;
         private readonly ApplicationDbContext _context;
         private readonly ISondaUMService _sondaUMService;
+        private readonly IKpiService _kpiService;
 
-        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService)
+        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService, IKpiService kpiService)
         {
             _context = context;
             _datasetUMService = datasetUMService;
             _sondaAuthService = sondaAuthService;
             _sondaUMService = sondaUMService;
+            _kpiService = kpiService;
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -395,6 +397,24 @@ namespace OmniMonitor.Server.Controllers
 
                 DatasetUM? id = await _context.DatasetsUM
                     .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                
+                // Eliminar KPIs asociados a este dataset
+                var kpisToDelete = await _context.Kpi
+                    .Where(k => k.DatasetId == datasetId && k.SourceModule.ToUpper() == "UM")
+                    .ToListAsync();
+                
+                foreach (var kpi in kpisToDelete)
+                {
+                    try
+                    {
+                        await _kpiService.DeleteKpiAsync(kpi.Id, username);
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de un KPI, continuar con los demás
+                    }
+                }
+                
                 await _datasetUMService.DeleteDatasetUMAsync(datasetId, username);
                 await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
                 return NoContent();

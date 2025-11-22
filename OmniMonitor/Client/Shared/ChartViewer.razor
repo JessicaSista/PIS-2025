@@ -132,7 +132,14 @@
     <MudCardActions Class="d-block">
         @if (ShowDatasetsInfo)
         {
-            <MudText Typo="Typo.body2">Datasets: @_datasetNames.</MudText>
+            <MudText Typo="Typo.body2"
+                     Style="color: var(--card-text-secondary);
+                            margin-top:4px;
+                            white-space: normal;
+                            word-wrap: break-word;
+                            overflow-wrap: break-word;">
+                Datasets: @_datasetNames
+            </MudText>
         }
         @if (ShowLastUpdatedInfo)
         {
