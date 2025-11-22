@@ -239,10 +239,15 @@
             Snackbar.Add(Localizer["ChartTypeLimitReached"] + " " + _selectedChartType, Severity.Warning);
             return;
         }
+
+        // Filtrar datasets ya agregados
+        var idsAgregados = _selectedDatasets.Select(ds => ds.Dataset.IdGenerico).ToHashSet();
+
         var parameters = new DialogParameters
         {
             { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDtoGenerico>(this, HandleDatasetSelected) },
-            { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) }
+            { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) },
+            { "ExcludedIds", idsAgregados } 
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };

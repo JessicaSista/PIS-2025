@@ -16,6 +16,7 @@ namespace OmniMonitor.Server.Services
     {
         Task<Kpi> CreateKpiAsync(KpiRequest request, string? username = null);
         Task<Kpi> GetKpiDefinitionAsync(int kpiId);
+        Task<KpiResponse> GetKpiIdAsync(int kpiId,string username);
         Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username);
         Task<KpiResponse> CalculateKpiValueAsyncSinToken(int kpiId);
         Task<KpiResponse> CalculateKpiDataAsync(KpiRequest kpiData, string username);
@@ -408,6 +409,32 @@ namespace OmniMonitor.Server.Services
                 throw new ArgumentException($"No se encontró el KPI con ID {kpiId}");
 
             return kpi;
+        }
+
+        public async Task<KpiResponse> GetKpiIdAsync(int kpiId, string username)
+        {
+            var kpi = await _context.Kpi.FindAsync(kpiId);
+            if (kpi == null)
+                throw new ArgumentException($"No se encontró el KPI con ID {kpiId}");
+
+            // Verificar que el usuario sea dueño del KPI
+            if (kpi.Username != username)
+                throw new UnauthorizedAccessException("No tiene permisos para acceder a este KPI.");
+
+            var response = new KpiResponse
+            {
+                Id = kpi.Id,
+                Name = kpi.Name,
+                Description = kpi.Description,
+                SourceModule = kpi.SourceModule,
+                Unit = kpi.Unit,
+                ActualColor = kpi.DefaultColor,
+                Type = kpi.Type?.ToString(),
+                Value = null,
+                Link = kpi.Link
+            };
+
+            return response;
         }
 
         public async Task<KpiResponse> CalculateKpiValueAsync(int kpiId, string username)

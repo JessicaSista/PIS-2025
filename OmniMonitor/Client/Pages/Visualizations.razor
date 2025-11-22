@@ -726,9 +726,8 @@
 
     private async Task LoadKpiDataAsync(KpiCardModel card)
     {
-        if (card == null || card.IsLoading) return;
+        if (card == null) return;
 
-        card.IsLoading = true;
         card.Error = null;
         try
         {
@@ -753,6 +752,23 @@
         }
     }
 
+    private async Task<KpiResponse?> FetchKpiDataAsync(KpiCardModel card)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/KPI/edit/{card.Info.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<KpiResponse>();
+            }
+        }
+        catch
+        {
+            Snackbar.Add(Localizer["ErrorLoadingKpi"], Severity.Error);
+        }
+        return null;
+    }
+
     private void ResetKpiListing()
     {
         _kpiCards = new();
@@ -772,29 +788,38 @@
     private async Task EditarKpi(KpiCardModel card)
     {
         if (card == null) return;
-
+        KpiResponse? kpiresp = null;
         if (card.Data == null)
         {
-            await LoadKpiDataAsync(card);
-            if (card.Data == null)
+            kpiresp= await FetchKpiDataAsync(card);
+            if (kpiresp == null)
             {
                 Snackbar.Add(Localizer["ErrorLoadingKpi"], Severity.Error);
                 return;
             }
         }
-
-        var parameters = new DialogParameters
+        DialogParameters parameters;
+        if (card.Data == null)
         {
-            ["ExistingKpi"] = new KpiResponse
+            parameters = new DialogParameters
             {
-                Id = card.Data.Id,
-                Name = card.Data.Name,
-                Description = card.Data.Description,
-                ActualColor = card.Data.ActualColor,
-                Value = card.Data.Value,
-            }
-        };
-
+                ["ExistingKpi"] = kpiresp
+            };
+        }
+        else
+        {
+            parameters = new DialogParameters
+            {
+                ["ExistingKpi"] = new KpiResponse
+                {
+                    Id = card.Data.Id,
+                    Name = card.Data.Name,
+                    Description = card.Data.Description,
+                    ActualColor = card.Data.ActualColor,
+                    Value = card.Data.Value,
+                }
+            };
+        }
         var options = new DialogOptions
         {
             CloseOnEscapeKey = true,
@@ -810,8 +835,10 @@
         if (!result.Canceled)
         {
             card.Data = null;
-            await LoadKpiDataAsync(card);
+            card.IsLoading = true;
             StateHasChanged();
+            await LoadKpiDataAsync(card);
+            
         }
     }
 

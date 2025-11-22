@@ -47,6 +47,31 @@
             <!-- Value -->
             @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "�")
             {
+                <MudContainer Class="d-flex justify-center align-center" Style="min-height: 60px">
+                    <MudButton Disabled="@_isLoading" OnClick="LoadKpiData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
+                        @if (_isLoading)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
+                            <MudText Class="ms-2">@Localizer["LoadingData"]</MudText>
+                        }
+                        else
+                        {
+                            <MudText>@Localizer["LoadData"]</MudText>
+                        }
+                    </MudButton>
+                </MudContainer>
+            }
+            else if (_isLoading)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Disabled="true"
+                           EndIcon="@Icons.Material.Filled.CloudDownload"
+                           Style="background-color:#d6ffd6; color:#111; font-weight:600; border-radius:6px; width:160px;">
+                    @Localizer["LoadingData"]
+                </MudButton>
+            }
+            else if (Kpi.Value is null || (Kpi.Value is string s && (string.IsNullOrWhiteSpace(s) || s == "—")))
+            {
                 <MudText Typo="Typo.body2"
                          Style="color: var(--card-text-secondary); font-weight: bold;">
                     @Localizer["NoData"]
@@ -83,42 +108,15 @@
     public int KpiId { get; set; } = 0;
     [Parameter]
     public KpiResponse Kpi { get; set; } = new();
+    [Parameter]
+    public bool IsPreview { get; set; } = false;
     [CascadingParameter] public bool LiveOn { get; set; }
     private DateTime _lastUpdatedAt = default;
 
     protected override async Task OnInitializedAsync()
     {
-        if (KpiId != 0)
-        {
-            string requestUri = $"api/KPI/{KpiId}";
-
-            try
-            {
-                var response = await Http.GetAsync(requestUri);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
-                    if (kpiData != null)
-                    {
-                        Kpi = kpiData;
-                        _lastUpdatedAt = DateTime.Now;
-                    }
-                }
-                else
-                {
-                    // Manejar errores (400, 404, etc.)
-                    string errorContent = await response.Content.ReadAsStringAsync();
-                    // Snackbar.Add($"Error: {errorContent}", Severity.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Snackbar.Add("Error de conexi�n al obtener KPI.", Severity.Error);
-            }
-
-            await SetupLiveAsync();
-        }
+        await LoadKpiData();
+        await SetupLiveAsync();
     }
 
     private bool _liveJoined = false;
@@ -211,6 +209,34 @@
         return colorInput;
     }
 
+    private bool _isLoading = false;
+    private bool _triedLoad = false;
+
+    private async Task LoadKpiData()
+    {
+        _isLoading = true;
+        try
+        {
+            if(!IsPreview)
+            {
+                var response = await Http.GetAsync($"api/KPI/{KpiId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    var kpi = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                    if (kpi != null)
+                    {
+                        Kpi = kpi;
+                    }
+                }
+            }        
+        }
+        finally
+        {
+            _isLoading = false;
+            _triedLoad = true;
+            StateHasChanged();
+        }
+    }
     public async ValueTask DisposeAsync()
     {
         try { await KpiHubClient.LeaveKpiAsync(KpiId); } catch { }

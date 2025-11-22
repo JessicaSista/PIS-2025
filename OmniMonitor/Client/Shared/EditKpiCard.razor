@@ -115,7 +115,7 @@
         {
             try
             {
-                var resp = await Http.GetAsync($"api/KPI/{KpiId}");
+                var resp = await Http.GetAsync($"api/KPI/edit/{KpiId}");
                 if (resp.IsSuccessStatusCode)
                 {
                     var kpi = await resp.Content.ReadFromJsonAsync<KpiResponse>();
@@ -151,25 +151,26 @@
         _liveEnabled = ExistingKpi.LiveEnabled;
         RecomputeLiveAllowed();
 
-        // Load existing dashboard link if present
+        // Cargar correctamente el dashboard link
         _initialLink = ExistingKpi.Link;
-        if (ExistingKpi.Link != null)
+        _selectedDashboard = null;
+        if (!string.IsNullOrWhiteSpace(ExistingKpi.Link))
         {
             try
             {
                 string[] dataDashboard = ExistingKpi.Link.Trim().Split(',');
                 if (dataDashboard.Length >= 2 && int.TryParse(dataDashboard[0].Trim(), out int dashboardId))
                 {
-                    _selectedDashboard = new DashboardSummaryResponse 
-                    { 
-                        IdDashboard = dashboardId, 
-                        Nombre = dataDashboard[1].Trim() 
+                    _selectedDashboard = new DashboardSummaryResponse
+                    {
+                        IdDashboard = dashboardId,
+                        Nombre = dataDashboard[1].Trim()
                     };
                 }
             }
             catch
             {
-                // If parsing fails, leave _selectedDashboard as null
+                _selectedDashboard = null;
             }
         }
 
@@ -177,7 +178,7 @@
         {
             try
             {
-                var fresh = await Http.GetFromJsonAsync<KpiResponse>($"api/KPI/{ExistingKpi.Id}");
+                var fresh = await Http.GetFromJsonAsync<KpiResponse>($"api/KPI/edit/{ExistingKpi.Id}");
                 if (fresh != null)
                 {
                     var code = GetModuleCode(fresh.SourceModule);
@@ -199,7 +200,7 @@
         RecomputeLiveAllowed();
     }
 
-    
+
 
     private string? GetModuleCode(string? moduleLong)
     {
@@ -241,7 +242,7 @@
 
     private bool HasLinkChanged()
     {
-        string? currentLink = _selectedDashboard == null ? null : $" {_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}";
+        string? currentLink = _selectedDashboard == null ? null : $"{_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}";
         return currentLink != _initialLink;
     }
 
@@ -283,96 +284,97 @@
         }
         _isSubmitting = true;
 
-        var request = new
-        {
-            Name = _name.Trim(),
-            Description = _description?.Trim(),
-            DefaultColor = _actualColor,
-            LiveEnabled = _liveEnabled && _liveAllowed,
-            Link = _selectedDashboard == null ? string.Empty : $" {_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}"
-        };
-
-        try
-        {
-            // Preview flow before saving
-            Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
-            var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
-                receiver: this,
-                callback: emptyHandler
-            );
-
-            var previewKpi = new KpiResponse
-            {
-                Id = ExistingKpi.Id,
-                Name = request.Name,
-                Description = request.Description,
-                ActualColor = request.DefaultColor,
-                Unit = ExistingKpi.Unit,
-                Value = ExistingKpi.Value,
-            };
-
-            var parameters = new DialogParameters
-            {
-                ["VisualizationType"] = 2,
-                ["OnVisualizationCreated"] = emptyEventCallback,
-                ["KpiData"] = previewKpi
-            };
-
-            var options = new DialogOptions
-            {
-                CloseOnEscapeKey = true,
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true
-            };
-
-            IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
-                "Preview",
-                parameters,
-                options
-            );
-            DialogResult? dialogResult = await dialog.Result;
-
-            if (dialogResult.Canceled)
-            {
-                _isSubmitting = false;
-                return;
-            }
-
-            
-            var url = $"api/KPI/{ExistingKpi.Id}";
-            var response = await Http.PatchAsJsonAsync(url, request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add(Localizer["KpiUpdatedSuccess"], Severity.Success);
-                _mudDialog.Close(DialogResult.Ok(ExistingKpi.Id));
-            }
-            else
-            {
-                var err = await response.Content.ReadAsStringAsync();
-                if (response.StatusCode == HttpStatusCode.BadRequest &&
-                    err.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
-                    err.Contains("nombre", StringComparison.OrdinalIgnoreCase))
+                var request = new
                 {
-                    _serverError = Localizer["KpiNameDuplicate"];
-                }
-                else
+                    Name = _name.Trim(),
+                    Description = _description?.Trim(),
+                    DefaultColor = _actualColor,
+                    LiveEnabled = _liveEnabled && _liveAllowed,
+                    Link = _selectedDashboard == null ? string.Empty : $"{_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}"
+                };
+
+                try
                 {
-                    _serverError = err;
+                    // Preview flow before saving
+                    /*Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+                    var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                    receiver: this,
+                    callback: emptyHandler
+                );*/
+
+                    var previewKpi = new KpiResponse
+                        {
+                            Id = ExistingKpi.Id,
+                            Name = request.Name,
+                            Description = request.Description,
+                            ActualColor = request.DefaultColor,
+                            Unit = ExistingKpi.Unit,
+                            Value = null 
+                        };
+
+                    var parameters = new DialogParameters
+                        {
+                            ["VisualizationType"] = 2,
+                           // ["OnVisualizationCreated"] = emptyEventCallback,
+                            ["KpiData"] = previewKpi
+                        };
+
+                    var options = new DialogOptions
+                        {
+                            CloseOnEscapeKey = true,
+                            MaxWidth = MaxWidth.Medium,
+                            FullWidth = true
+                        };
+
+                    IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                    "Preview",
+                    parameters,
+                    options
+                );
+                    DialogResult? dialogResult = await dialog.Result;
+
+                    if (dialogResult.Canceled)
+                    {
+                        _isSubmitting = false;
+                        return;
+                    }
+
+
+                    var url = $"api/KPI/{ExistingKpi.Id}";
+                    var response = await Http.PatchAsJsonAsync(url, request);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Snackbar.Add(Localizer["KpiUpdatedSuccess"], Severity.Success);
+                        _mudDialog.Close(DialogResult.Ok(ExistingKpi.Id));
+                    }
+                    else
+                    {
+                        var err = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.BadRequest &&
+                        err.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
+                        err.Contains("nombre", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _serverError = Localizer["KpiNameDuplicate"];
+                        }
+                        else
+                        {
+                            _serverError = err;
+                        }
+                        Snackbar.Add(_serverError, Severity.Error);
+                    }
                 }
-                Snackbar.Add(_serverError, Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            _serverError = ex.Message;
-            Snackbar.Add(_serverError, Severity.Error);
-        }
-        finally
-        {
-            _isSubmitting = false;
-        }
+                catch (Exception ex)
+                {
+                    _serverError = ex.Message;
+                    Snackbar.Add(_serverError, Severity.Error);
+                }
+                finally
+                {
+                    _isSubmitting = false;
+                }
     }
 
     private void Cancel() => _mudDialog.Cancel();
 }
+

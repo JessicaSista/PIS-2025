@@ -255,9 +255,13 @@
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // Remover solo el dataset que coincide tanto en ID como en Módulo
-                    datasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
-                    filteredDatasets.RemoveAll(d => d.Id == dataset.Id && d.Module == dataset.Module);
+                    // Ajustar la página si es necesario antes de recargar
+                    if (filteredDatasets.Count == 1 && totalCount > 1 && currentPage > 1)
+                    {
+                        currentPage--;
+                    }
+                    await LoadDatasetsAsync();
+
                     Snackbar.Add($"'{dataset.Nombre}' { Localizer["Eliminado"]}", Severity.Success, config =>
                     {
                         config.SnackbarVariant = Variant.Filled;

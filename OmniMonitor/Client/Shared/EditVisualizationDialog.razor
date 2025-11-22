@@ -320,7 +320,8 @@
         var parameters = new DialogParameters
         {
             { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDtoGenerico>(this, HandleDatasetSelected) },
-            { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) }
+            { "OnNewDataset", EventCallback.Factory.Create(this, HandleNewDataset) },
+            { "ExcludedIds", _selectedDatasets.Select(ds => ds.Dataset.IdGenerico).ToHashSet() } 
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };

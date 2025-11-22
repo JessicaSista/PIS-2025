@@ -35,13 +35,13 @@
             {
                 <MudText Typo="Typo.body2">@Localizer["Loading"]</MudText>
             }
-            else if (_datasets.Count == 0)
+            else if (DatasetsDisponibles.Count == 0)
             {
                 <MudText Typo="Typo.body2">@Localizer["NoDatasetsFound"]</MudText>
             }
             else
             {
-                @foreach (DatasetDtoGenerico ds in _datasets)
+                @foreach (DatasetDtoGenerico ds in DatasetsDisponibles)
                 {
                     <MudButton FullWidth="true"
                                Variant="MudBlazor.Variant.Outlined"
@@ -71,6 +71,11 @@
 
     [Parameter]
     public EventCallback OnNewDataset { get; set; }
+
+    [Parameter] public HashSet<int> ExcludedIds { get; set; } = new();
+
+    private List<DatasetDtoGenerico> DatasetsDisponibles =>
+        _datasets.Where(d => !ExcludedIds.Contains(d.IdGenerico)).ToList();
 
     private List<DatasetDtoGenerico> _datasets = new();
     private bool _isLoading = true;
