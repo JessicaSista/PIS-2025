@@ -70,41 +70,51 @@
                     }
                     else if (GetCurrentValueType() == FilterValueType.Enum)
                     {
-                        <MudSelect T="string"
-                                   SelectedValues="selectedEnumValues"
-                                   SelectedValuesChanged="OnEnumValuesChanged"
-                                   Label="@Localizer["Valores"]"
-                                   Variant="Variant.Outlined"
-                                   Required="true"
-                                   MultiSelection="true"
-                                   Class="mb-3 dark-field"
-                                   Disabled="@(enumOptions.Count == 0)">
-                            @if (enumOptions.Count == 0)
-                            {
-                                <MudSelectItem Value="@((string?)null)" Disabled="true">No hay valores disponibles</MudSelectItem>
-                            }
-                            else
-                            {
-                                <MudSelectItem Value="@SELECT_ALL_MARKER">
-                                    <strong>@(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])</strong>
-                                </MudSelectItem>
-                                @foreach (var option in enumOptions)
-                                {
-                                    <MudSelectItem Value="@option">@option</MudSelectItem>
-                                }
-                            }
-                        </MudSelect>
-                        @if (enumOptions.Count > 0)
+                        @if (isLoadingEnumOptions)
                         {
-                            <MudButton Variant="Variant.Text" Size="MudBlazor.Size.Small" OnClick="ToggleSelectAll" Class="mt-2">
-                                @(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])
-                            </MudButton>
+                            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                                <MudText Typo="Typo.body2">Cargando valores...</MudText>
+                            </MudStack>
                         }
-                        @if (enumOptions.Count == 0 && !string.IsNullOrEmpty(selectedAttribute))
+                        else
                         {
-                            <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true">
-                                No se encontraron valores para el atributo "@selectedAttribute". Verifica que los datos tengan valores para este atributo.
-                            </MudAlert>
+                            <MudSelect T="string"
+                                       SelectedValues="selectedEnumValues"
+                                       SelectedValuesChanged="OnEnumValuesChanged"
+                                       Label="@Localizer["Valores"]"
+                                       Variant="Variant.Outlined"
+                                       Required="true"
+                                       MultiSelection="true"
+                                       Class="mb-3 dark-field"
+                                       Disabled="@(enumOptions.Count == 0)">
+                                @if (enumOptions.Count == 0)
+                                {
+                                    <MudSelectItem Value="@((string?)null)" Disabled="true">No hay valores disponibles</MudSelectItem>
+                                }
+                                else
+                                {
+                                    <MudSelectItem Value="@SELECT_ALL_MARKER">
+                                        <strong>@(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])</strong>
+                                    </MudSelectItem>
+                                    @foreach (var option in enumOptions)
+                                    {
+                                        <MudSelectItem Value="@option">@option</MudSelectItem>
+                                    }
+                                }
+                            </MudSelect>
+                            @if (enumOptions.Count > 0)
+                            {
+                                <MudButton Variant="Variant.Text" Size="MudBlazor.Size.Small" OnClick="ToggleSelectAll" Class="mt-2">
+                                    @(AreAllSelected() ? Localizer["DeseleccionarTodos"] : Localizer["SeleccionarTodos"])
+                                </MudButton>
+                            }
+                            @if (enumOptions.Count == 0 && !string.IsNullOrEmpty(selectedAttribute))
+                            {
+                                <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true">
+                                    No se encontraron valores para el atributo "@selectedAttribute". Verifica que los datos tengan valores para este atributo.
+                                </MudAlert>
+                            }
                         }
                     }
                     else if (GetCurrentValueType() == FilterValueType.Boolean)
@@ -208,6 +218,7 @@
     private DateTime? dateValueTo;
     private string inValuesString = string.Empty;
     private List<string> enumOptions = new();
+    private bool isLoadingEnumOptions = false;
 
     protected override void OnParametersSet()
     {
@@ -231,9 +242,12 @@
         if (string.IsNullOrEmpty(selectedAttribute))
             return;
 
+        isLoadingEnumOptions = true;
+        enumOptions = new List<string>(); // Limpiar primero
+        StateHasChanged(); // Actualizar UI para mostrar indicador de carga
+
         try
         {
-            enumOptions = new List<string>(); // Limpiar primero
             var url = $"api/DatasetFilter/GetAtributoValores?modulo={Uri.EscapeDataString(Modulo)}&entidadId={EntidadId}&atributo={Uri.EscapeDataString(selectedAttribute)}";
             var response = await Http.GetAsync(url);
             if (response.IsSuccessStatusCode)
@@ -255,6 +269,7 @@
         }
         finally
         {
+            isLoadingEnumOptions = false;
             StateHasChanged(); // Forzar actualización de la UI
         }
     }
@@ -294,6 +309,8 @@
         dateValueFrom = null;
         dateValueTo = null;
         inValuesString = string.Empty;
+        enumOptions = new List<string>();
+        isLoadingEnumOptions = false;
     }
 
     private void ToggleSelectAll()

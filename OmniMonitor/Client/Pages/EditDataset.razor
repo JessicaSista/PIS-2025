@@ -128,14 +128,21 @@ else if (selectedTipo == "Insight Monitor")
             </MudStack>
         }
 
-        <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+        <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+            @if (isSavingIM)
+            {
+                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                    <MudText Typo="Typo.body2">Guardando...</MudText>
+                </MudStack>
+            }
             <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
                 @Localizer["Cancelar"]
             </MudButton>
             <MudButton OnClick="GuardarCambiosIM"
                        Variant="Variant.Filled"
                        Color="MudBlazor.Color.Primary"
-                       Disabled="@(!CanSaveIM)">
+                       Disabled="@(isSavingIM || !CanSaveIM)">
                 @Localizer["GuardarCambios"]
             </MudButton>
         </div>
@@ -219,14 +226,21 @@ else if (selectedTipo == "Insight Monitor")
         </div>
     </MudStack>
 
-    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+        @if (isSaving)
+        {
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            </MudStack>
+        }
         <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
             @Localizer["Cancelar"]
         </MudButton>
         <MudButton OnClick="GuardarCambios"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(!selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
+                   Disabled="@(isSaving || !selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -308,14 +322,21 @@ else if (selectedTipo == "Insight Monitor")
         </MudStack>
     }
 
-    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+        @if (isSavingAM)
+        {
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            </MudStack>
+        }
         <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
             @Localizer["Cancelar"]
         </MudButton>
         <MudButton OnClick="GuardarCambiosAM"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(!CanSaveAM)">
+                   Disabled="@(isSavingAM || !CanSaveAM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -392,14 +413,21 @@ else if (selectedTipo == "Insight Monitor")
         </MudStack>
     }
 
-    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+        @if (isSavingUM)
+        {
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            </MudStack>
+        }
         <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
             @Localizer["Cancelar"]
         </MudButton>
         <MudButton OnClick="GuardarCambiosUM"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(!CanSaveUM)">
+                   Disabled="@(isSavingUM || !CanSaveUM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -480,14 +508,21 @@ else if (selectedTipo == "Insight Monitor")
         </MudStack>
     }
 
-    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px;">
+    <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end; gap: 12px; align-items: center;">
+        @if (isSavingEM)
+        {
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            </MudStack>
+        }
         <MudButton OnClick="Cancelar" Variant="Variant.Outlined" Color="MudBlazor.Color.Secondary">
             @Localizer["Cancelar"]
         </MudButton>
         <MudButton OnClick="GuardarCambiosEM"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(!CanSaveEM)">
+                   Disabled="@(isSavingEM || !CanSaveEM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -575,6 +610,13 @@ else if (selectedTipo == "Insight Monitor")
     // Filtros para IM
     private List<FilterCondition> imFilters = new();
     private List<PropiedadEntidadDto> imAvailableAttributes = new();
+
+    // Estado de carga para guardar datasets
+    private bool isSaving = false;
+    private bool isSavingIM = false;
+    private bool isSavingAM = false;
+    private bool isSavingUM = false;
+    private bool isSavingEM = false;
 
     private bool EnableStocksSelect => selectedEventTaskInstanceIds.Count == 1;
 
@@ -1208,6 +1250,9 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task GuardarCambios()
     {
+        isSaving = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1276,6 +1321,11 @@ else if (selectedTipo == "Insight Monitor")
         catch (Exception ex)
         {
             Snackbar.Add($"{Localizer["NoSePudoActualizar"]} {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
         }
     }
 
@@ -1636,6 +1686,9 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task GuardarCambiosAM()
     {
+        isSavingAM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1696,6 +1749,11 @@ else if (selectedTipo == "Insight Monitor")
         catch (Exception ex)
         {
             ShowError($"No se pudo actualizar el dataset AM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingAM = false;
+            StateHasChanged();
         }
     }
 
@@ -1811,6 +1869,9 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task GuardarCambiosUM()
     {
+        isSavingUM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1869,6 +1930,11 @@ else if (selectedTipo == "Insight Monitor")
         catch (Exception ex)
         {
             ShowError($"No se pudo actualizar el dataset UM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingUM = false;
+            StateHasChanged();
         }
     }
 
@@ -2026,6 +2092,9 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task GuardarCambiosEM()
     {
+        isSavingEM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -2085,6 +2154,11 @@ else if (selectedTipo == "Insight Monitor")
         catch (Exception ex)
         {
             ShowError($"No se pudo actualizar el dataset EM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingEM = false;
+            StateHasChanged();
         }
     }
 
@@ -2172,6 +2246,9 @@ else if (selectedTipo == "Insight Monitor")
 
     private async Task GuardarCambiosIM()
     {
+        isSavingIM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -2226,6 +2303,11 @@ else if (selectedTipo == "Insight Monitor")
         catch (Exception ex)
         {
             ShowError($"No se pudo actualizar el dataset IM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingIM = false;
+            StateHasChanged();
         }
     }
 }

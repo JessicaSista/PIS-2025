@@ -163,12 +163,19 @@
     </MudStack>
 
         <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-            <MudButton OnClick="GuardarDataset"
-                       Variant="Variant.Filled"
-                       Color="MudBlazor.Color.Primary"
-                       Disabled="@(! selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) )">
-                @Localizer["GuardarDataset"]
-            </MudButton>
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                @if (isSaving)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                    <MudText Typo="Typo.body2">Guardando...</MudText>
+                }
+                <MudButton OnClick="GuardarDataset"
+                           Variant="Variant.Filled"
+                           Color="MudBlazor.Color.Primary"
+                           Disabled="@(isSaving || !selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
+                    @Localizer["GuardarDataset"]
+                </MudButton>
+            </MudStack>
         </div>
     }
     else
@@ -220,12 +227,19 @@
         }
 
         <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-            <MudButton OnClick="GuardarDatasetIMFiltered"
-                       Variant="Variant.Filled"
-                       Color="MudBlazor.Color.Primary"
-                       Disabled="@(!CanSaveIM)">
-                @Localizer["GuardarDataset"]
-            </MudButton>
+            <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                @if (isSavingIM)
+                {
+                    <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                    <MudText Typo="Typo.body2">Guardando...</MudText>
+                }
+                <MudButton OnClick="GuardarDatasetIMFiltered"
+                           Variant="Variant.Filled"
+                           Color="MudBlazor.Color.Primary"
+                           Disabled="@(isSavingIM || !CanSaveIM)">
+                    @Localizer["GuardarDataset"]
+                </MudButton>
+            </MudStack>
         </div>
     }
 }
@@ -296,12 +310,19 @@
     }
 
     <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton OnClick="GuardarDatasetAM"
-                   Variant="Variant.Filled"
-                   Color="MudBlazor.Color.Primary"
-                   Disabled="@(!CanSaveAM)">
-            @Localizer["GuardarDataset"]
-        </MudButton>
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+            @if (isSavingAM)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            }
+            <MudButton OnClick="GuardarDatasetAM"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       Disabled="@(isSavingAM || !CanSaveAM)">
+                @Localizer["GuardarDataset"]
+            </MudButton>
+        </MudStack>
     </div>
 }
 
@@ -371,12 +392,19 @@
     }
 
     <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton OnClick="GuardarDatasetUM"
-                   Variant="Variant.Filled"
-                   Color="MudBlazor.Color.Primary"
-                   Disabled="@(!CanSaveUM)">
-            @Localizer["GuardarDataset"]
-        </MudButton>
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+            @if (isSavingUM)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            }
+            <MudButton OnClick="GuardarDatasetUM"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       Disabled="@(isSavingUM || !CanSaveUM)">
+                @Localizer["GuardarDataset"]
+            </MudButton>
+        </MudStack>
     </div>
 }
 
@@ -447,12 +475,19 @@
     }
 
     <div class="mb-4 mx-4" style="display: flex; justify-content: flex-end;">
-        <MudButton OnClick="GuardarDatasetEM"
-                   Variant="Variant.Filled"
-                   Color="MudBlazor.Color.Primary"
-                   Disabled="@(!CanSaveEM)">
-            @Localizer["GuardarDataset"]
-        </MudButton>
+        <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+            @if (isSavingEM)
+            {
+                <MudProgressCircular Size="MudBlazor.Size.Small" Indeterminate="true" Class="mr-2" />
+                <MudText Typo="Typo.body2">Guardando...</MudText>
+            }
+            <MudButton OnClick="GuardarDatasetEM"
+                       Variant="Variant.Filled"
+                       Color="MudBlazor.Color.Primary"
+                       Disabled="@(isSavingEM || !CanSaveEM)">
+                @Localizer["GuardarDataset"]
+            </MudButton>
+        </MudStack>
     </div>
 }
 
@@ -526,6 +561,13 @@
     // Filtros para IM
     private List<FilterCondition> imFilters = new();
     private List<PropiedadEntidadDto> imAvailableAttributes = new();
+
+    // Estado de carga para guardar datasets
+    private bool isSaving = false;
+    private bool isSavingIM = false;
+    private bool isSavingAM = false;
+    private bool isSavingUM = false;
+    private bool isSavingEM = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1041,6 +1083,9 @@
 
     private async Task GuardarDatasetAM()
     {
+        isSavingAM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1101,6 +1146,11 @@
         catch (Exception ex)
         {
             ShowError($"No se pudo crear el dataset AM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingAM = false;
+            StateHasChanged();
         }
     }
 
@@ -1246,6 +1296,9 @@
 
     private async Task GuardarDataset()
     {
+        isSaving = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1308,6 +1361,11 @@
         catch (Exception ex)
         {
             ShowError($"{Localizer["NoSePudoCrear"]} {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
         }
     }
 
@@ -1420,6 +1478,9 @@
 
     private async Task GuardarDatasetUM()
     {
+        isSavingUM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1478,6 +1539,11 @@
         catch (Exception ex)
         {
             ShowError($"No se pudo crear el dataset UM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingUM = false;
+            StateHasChanged();
         }
     }
 
@@ -1567,6 +1633,9 @@
 
     private async Task GuardarDatasetEM()
     {
+        isSavingEM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1626,6 +1695,11 @@
         catch (Exception ex)
         {
             ShowError($"No se pudo crear el dataset EM: {ex.Message}");
+        }
+        finally
+        {
+            isSavingEM = false;
+            StateHasChanged();
         }
     }
 
@@ -1727,6 +1801,9 @@
 
     private async Task GuardarDatasetIMFiltered()
     {
+        isSavingIM = true;
+        StateHasChanged();
+
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -1781,6 +1858,11 @@
         catch (Exception ex)
         {
             ShowError($"{Localizer["NoSePudoCrear"]} {ex.Message}");
+        }
+        finally
+        {
+            isSavingIM = false;
+            StateHasChanged();
         }
     }
 

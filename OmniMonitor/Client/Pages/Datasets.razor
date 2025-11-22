@@ -49,7 +49,7 @@
 </MudStack>
 
 <!-- Dataset grid -->
-<MudContainer Class="pl-4 pr-6 mx-0">
+<MudContainer Class="pl-4 pr-6 mx-0" MaxWidth="MaxWidth.False">
     <MudGrid Spacing="3">
         @if (_isLoading == true)
         {
@@ -82,7 +82,7 @@
             @foreach (var dataset in filteredDatasets)
             {
                 <MudItem xs="12" sm="6" md="4">
-                    <div style="position: relative;">
+                    <div style="position: relative; width: 100%;">
                         <DatasetCardComponent Dataset="dataset"
                                               Description="@dataset.Descripcion"
                                               OnClick="@(() => EditarDataset(dataset))" />
