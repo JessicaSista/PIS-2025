@@ -257,6 +257,25 @@
             {
                 try
                 {
+                    HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _visualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                        if (!string.IsNullOrWhiteSpace(_visualization.Link))
+                        {
+                            _linkId = int.Parse(_visualization.Link.Trim().Split(",")[0]);
+                        }
+                    }
+                    _chartViewerKey++;
+                    StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    SnackbarService.Add($"Error actualizando visualizacion: {ex.Message}", Severity.Warning);
+                }
+                try
+                {
                     _chartViewerKey++;
 
                     StateHasChanged();
