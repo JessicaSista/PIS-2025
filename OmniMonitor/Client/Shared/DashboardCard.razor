@@ -46,7 +46,7 @@
                 @VisualizationId
             </span> -->
             <MudStack Row="true" Spacing="0">
-                    @if (_linkId != -1 && _linkId != dashboardId)
+                    @if (_linkId != -1 && _linkId != dashboardId && !string.IsNullOrWhiteSpace(_linkValue))
                     {
                         <MudButton OnClick="(() => GoToDashboard())" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Link" class="pa-0"></MudButton>
                     }
@@ -122,6 +122,7 @@
 
     private int _kpiViewerKey = 0; //cuando se modifica esta variable, el KpiViewer vuelve a pedir los datos
     private int _linkId { get; set; } = -1;
+    private string? _linkValue { get; set; } = null;
     private Visualizacion _visualization { get; set; } = null;
     private bool _visualizationRetrieved { get; set; } = false;
 
@@ -166,7 +167,12 @@
 
             if (!string.IsNullOrWhiteSpace(link))
             {
+                _linkValue = link;
                 _linkId = int.Parse(link.Trim().Split(",")[0]);
+            }
+            else
+            {
+                _linkValue = null;
             }
         }
         catch (FormatException)
