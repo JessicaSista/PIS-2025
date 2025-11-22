@@ -253,7 +253,8 @@
     {
         var parameters = new DialogParameters
         {
-            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) },
+            {"selectedDashboard", _selectedDashboard },
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
@@ -300,7 +301,8 @@
     private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
     {
         _selectedDashboard = dashboard;
-        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        string msg = dashboard != null ? Localizer["DashboardLinkAdded"] : Localizer["DashboardLinkRemoved"];
+        Snackbar.Add(msg, Severity.Info);
         StateHasChanged();
         return;
     }

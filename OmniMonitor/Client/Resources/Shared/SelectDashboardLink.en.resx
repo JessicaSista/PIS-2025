@@ -132,4 +132,7 @@
   <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="RemoveDashoardSelected" xml:space="preserve">
+    <value>Remove selection</value>
+  </data>
 </root>
