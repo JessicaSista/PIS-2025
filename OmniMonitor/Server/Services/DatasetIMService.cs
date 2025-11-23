@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Linq;
+using OmniMonitor.Server.Resources;
 
 namespace OmniMonitor.Server.Services
 {
@@ -25,14 +26,24 @@ namespace OmniMonitor.Server.Services
 
     public class DatasetIMService : IDatasetService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
         private readonly ISondaIMService _sondaIMService;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetIMService(ApplicationDbContext context, ISondaIMService sondaIMService)
         {
             _context = context;
             _sondaIMService = sondaIMService;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Crea un nuevo dataset, ya sea uno formal ('S') o uno interno para un solo elemento ('N').
@@ -41,16 +52,16 @@ namespace OmniMonitor.Server.Services
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(request.Name))
             {
-                throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
+                throw new ArgumentException(Language.DatasetNameRequired);
             }
 
             // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
             var existingDataset = await _context.DatasetsIM
                 .FirstOrDefaultAsync(d => d.Username == username && d.Name == request.Name);
-            
+
             if (existingDataset != null)
             {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{username}'.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNameExists, request.Name, username));
             }
 
             var newDataset = new DatasetIM
@@ -62,12 +73,12 @@ namespace OmniMonitor.Server.Services
                 Id_Source = request.SourceId,
                 Id_Group = request.GroupId,
                 SensorName = request.SensorName,
-                DatasetId= dataset
+                DatasetId = dataset
             };
 
             if (request.IsDataset == "S")
             {
-               newDataset.ContentType = "0"; // 0 para indicar un dataset formal
+                newDataset.ContentType = "0"; // 0 para indicar un dataset formal
             }
             else // Si IsDataset es 'N'
             {
@@ -107,12 +118,12 @@ namespace OmniMonitor.Server.Services
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(request.Name))
             {
-                throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
+                throw new ArgumentException(Language.DatasetNameRequired);
             }
 
             if (request.IsDataset == "S")
             {
-                throw new ArgumentException("Este método es solo para datasets no formales (IsDataset = 'N').");
+                throw new ArgumentException(Language.DatasetFormalOnly);
             }
 
             // Permitir datasets sin filtros (se crearán vacíos)
@@ -124,10 +135,10 @@ namespace OmniMonitor.Server.Services
             // Validar que no exista otro dataset con el mismo nombre para el mismo usuario
             var existingDataset = await _context.DatasetsIM
                 .FirstOrDefaultAsync(d => d.Username == username && d.Name == request.Name);
-            
+
             if (existingDataset != null)
             {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Name}' para el usuario '{username}'.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNameExists, request.Name, username));
             }
 
             var newDataset = new DatasetIM
@@ -157,7 +168,7 @@ namespace OmniMonitor.Server.Services
                     await ProcessAndPersistSensors(newDataset, filters, username);
                     break;
                 default:
-                    throw new ArgumentException("ContentType no válido para datasets filtrados.");
+                    throw new ArgumentException(Language.ContentTypeInvalidFiltered);
             }
 
             _context.DatasetsIM.Add(newDataset);
@@ -167,7 +178,7 @@ namespace OmniMonitor.Server.Services
             }
             catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
             {
-                throw new InvalidOperationException($"Error al guardar el dataset en la base de datos: {dbEx.Message}. Inner Exception: {dbEx.InnerException?.Message}", dbEx);
+                throw new InvalidOperationException(string.Format(Language.DatasetSaveError, dbEx.Message, dbEx.InnerException?.Message), dbEx);
             }
 
             return newDataset;
@@ -177,7 +188,7 @@ namespace OmniMonitor.Server.Services
         {
             // 1. Traer todos los devices
             var allDevices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
-            
+
             // 2. Aplicar filtros (si hay filtros) o incluir todo (si no hay filtros)
             IEnumerable<object> filteredDevices;
             if (filters != null && filters.Any())
@@ -185,7 +196,7 @@ namespace OmniMonitor.Server.Services
                 filteredDevices = ApiDataService.StaticFilterObjects(allDevices, filters);
                 if (!filteredDevices.Any())
                 {
-                    throw new InvalidOperationException("El filtro no encontró ningún dispositivo. El dataset no puede crearse sin resultados.");
+                    throw new InvalidOperationException(string.Format(Language.FilterNoResults, "dispositivo"));
                 }
             }
             else
@@ -193,7 +204,7 @@ namespace OmniMonitor.Server.Services
                 // Sin filtros: incluir todo
                 filteredDevices = allDevices;
             }
-            
+
             // 3. Persistir devices filtrados
             foreach (var deviceObj in filteredDevices)
             {
@@ -208,11 +219,11 @@ namespace OmniMonitor.Server.Services
         {
             // 1. Traer todas las sources
             var allSources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
-            
+
             // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
             bool needsDevices = filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
             bool needsSensors = filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
-            
+
             if (needsDevices || needsSensors)
             {
                 // Poblar Devices para cada Source
@@ -222,7 +233,7 @@ namespace OmniMonitor.Server.Services
                     {
                         var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
                         source.Devices = devices;
-                        
+
                         // Si también se necesitan Sensors, extraerlos de los devices
                         if (needsSensors && devices.Any())
                         {
@@ -236,7 +247,7 @@ namespace OmniMonitor.Server.Services
                     }
                 }
             }
-            
+
             // 2. Aplicar filtros (si hay filtros) o incluir todo (si no hay filtros)
             IEnumerable<object> filteredSources;
             if (filters != null && filters.Any())
@@ -244,7 +255,7 @@ namespace OmniMonitor.Server.Services
                 filteredSources = ApiDataService.StaticFilterObjects(allSources, filters);
                 if (!filteredSources.Any())
                 {
-                    throw new InvalidOperationException("El filtro no encontró ninguna fuente. El dataset no puede crearse sin resultados.");
+                    throw new InvalidOperationException(string.Format(Language.FilterNoResults, "fuente"));
                 }
             }
             else
@@ -252,7 +263,7 @@ namespace OmniMonitor.Server.Services
                 // Sin filtros: incluir todo
                 filteredSources = allSources;
             }
-            
+
             // 3. Persistir sources filtradas
             foreach (var sourceObj in filteredSources)
             {
@@ -273,7 +284,7 @@ namespace OmniMonitor.Server.Services
                 .GroupBy(s => s.Name)
                 .Select(g => g.First())
                 .ToList();
-            
+
             // 2. Aplicar filtros (si hay filtros) o incluir todo (si no hay filtros)
             IEnumerable<object> filteredSensors;
             if (filters != null && filters.Any())
@@ -281,7 +292,7 @@ namespace OmniMonitor.Server.Services
                 filteredSensors = ApiDataService.StaticFilterObjects(allSensors, filters);
                 if (!filteredSensors.Any())
                 {
-                    throw new InvalidOperationException("El filtro no encontró ningún sensor. El dataset no puede crearse sin resultados.");
+                    throw new InvalidOperationException(string.Format(Language.FilterNoResults, "sensor"));
                 }
             }
             else
@@ -289,14 +300,14 @@ namespace OmniMonitor.Server.Services
                 // Sin filtros: incluir todo
                 filteredSensors = allSensors;
             }
-            
+
             // 3. Persistir sensors filtrados
             foreach (var sensorObj in filteredSensors)
             {
                 if (sensorObj is Sensor sensor && !string.IsNullOrEmpty(sensor.Name))
                 {
-                    dataset.DatasetSensors.Add(new DatasetSensor 
-                    { 
+                    dataset.DatasetSensors.Add(new DatasetSensor
+                    {
                         SensorName = sensor.Name,
                     });
                 }
@@ -429,11 +440,7 @@ namespace OmniMonitor.Server.Services
         {
             if (dataset == null)
             {
-                throw new ArgumentNullException(nameof(dataset), "El dataset no puede ser nulo.");
-            }
-            if (dataset == null)
-            {
-                throw new InvalidOperationException($"No se encontró el dataset con ID {dataset.Id}.");
+                throw new ArgumentNullException(nameof(dataset), Language.DatasetCannotBeNull);
             }
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncIM)
@@ -467,8 +474,8 @@ namespace OmniMonitor.Server.Services
                 {
                     foreach (var deviceId in request.DeviceIds)
                     {
-                        dataset.DatasetDevices.Add(new DatasetDevice 
-                        { 
+                        dataset.DatasetDevices.Add(new DatasetDevice
+                        {
                             DatasetId = dataset.Id,
                             Id_device = deviceId,
                         });
@@ -488,8 +495,8 @@ namespace OmniMonitor.Server.Services
                     // Agregar devices específicos para dataset no formal sin filtros
                     foreach (var deviceId in request.DeviceIds)
                     {
-                        dataset.DatasetDevices.Add(new DatasetDevice 
-                        { 
+                        dataset.DatasetDevices.Add(new DatasetDevice
+                        {
                             DatasetId = dataset.Id,
                             Id_device = deviceId,
                         });
@@ -549,7 +556,7 @@ namespace OmniMonitor.Server.Services
                     {
                         filters = JsonSerializer.Deserialize<List<FilterCondition>>(request.JsonFilters);
                     }
-                    
+
                     if (filters == null || !filters.Any())
                     {
                         return;
@@ -588,7 +595,7 @@ namespace OmniMonitor.Server.Services
 
             if (dataset == null)
             {
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, username));
             }
 
             // Eliminar las relaciones DatasetDevice que ya están en la BD (con ID > 0)
@@ -658,5 +665,6 @@ namespace OmniMonitor.Server.Services
 
             return null;
         }
+        #endregion
     }
 }

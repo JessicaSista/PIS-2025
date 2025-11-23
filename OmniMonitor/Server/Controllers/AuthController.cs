@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Server.Services;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Shared.Dtos;
 
 namespace OmniMonitor.Server.Controllers
@@ -30,7 +31,7 @@ namespace OmniMonitor.Server.Controllers
                     return BadRequest(new LoginResponse
                     {
                         Success = false,
-                        Message = "Datos de entrada inválidos",
+                        Message = Language.InvalidData,
                     });
                 }
 
@@ -56,7 +57,7 @@ namespace OmniMonitor.Server.Controllers
                 return StatusCode(500, new LoginResponse
                 {
                     Success = false,
-                    Message = "Error interno del servidor",
+                    Message = Language.InternalServerError,
                 });
             }
         }

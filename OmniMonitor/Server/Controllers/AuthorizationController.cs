@@ -15,14 +15,24 @@ namespace OmniMonitor.Server.Controllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class AuthorizationController : ControllerBase
     {
+        #region Fields
+
         private readonly IPermissionService _permissionService;
         private readonly ApplicationDbContext _context;
+
+        #endregion
+
+        #region Constructors
 
         public AuthorizationController(IPermissionService permissionService, ApplicationDbContext context)
         {
             _permissionService = permissionService;
             _context = context;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Obtiene todos los roles disponibles.
@@ -114,5 +124,7 @@ namespace OmniMonitor.Server.Controllers
             List<Permission> permissions = await _permissionService.GetRolePermissionsAsync(roleName);
             return Ok(permissions);
         }
+
+        #endregion
     }
 }

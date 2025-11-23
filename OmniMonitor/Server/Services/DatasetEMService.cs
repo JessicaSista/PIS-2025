@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.EM;
+using OmniMonitor.Server.Resources;
 
 namespace OmniMonitor.Server.Services
 {
@@ -18,14 +19,24 @@ namespace OmniMonitor.Server.Services
 
     public class DatasetEMService : IDatasetEMService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
         private readonly ISondaEMService _sondaEMService;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetEMService(ApplicationDbContext context, ISondaEMService sondaEMService)
         {
             _context = context;
             _sondaEMService = sondaEMService;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Obtiene todos los datasets EM de un usuario.
@@ -63,49 +74,49 @@ namespace OmniMonitor.Server.Services
                 if (user == null)
                     return null;
 
-               /* // 1. Alerts dinámicos
-                if (dataset.Id_Alert.HasValue || !string.IsNullOrEmpty(dataset.AlertState))
-                {
-                    var alerts = await _sondaEMService.GetAlerts(1, 1000, null, dataset.AlertState, null, null, null, null, null, user.Username, user.Password);
-                    if (dataset.Id_Alert.HasValue)
-                        alerts = alerts.Where(a => a.AlertId == dataset.Id_Alert.Value).ToList();
+                /* // 1. Alerts dinámicos
+                 if (dataset.Id_Alert.HasValue || !string.IsNullOrEmpty(dataset.AlertState))
+                 {
+                     var alerts = await _sondaEMService.GetAlerts(1, 1000, null, dataset.AlertState, null, null, null, null, null, user.Username, user.Password);
+                     if (dataset.Id_Alert.HasValue)
+                         alerts = alerts.Where(a => a.AlertId == dataset.Id_Alert.Value).ToList();
 
-                    foreach (var alert in alerts)
-                        dataset.DatasetAlerts.Add(new DatasetAlert { Id_alert = alert.AlertId });
-                }
+                     foreach (var alert in alerts)
+                         dataset.DatasetAlerts.Add(new DatasetAlert { Id_alert = alert.AlertId });
+                 }
 
-                // 2. Events dinámicos
-                if (dataset.Id_Event.HasValue || !string.IsNullOrEmpty(dataset.EventState))
-                {
-                    var events = await _sondaEMService.GetEvents(1, 1000, null, null, user.Username, user.Password);
-                    if (dataset.Id_Event.HasValue)
-                        events = events.Where(e => e.Id == dataset.Id_Event.Value).ToList();
-                    if (!string.IsNullOrEmpty(dataset.EventState))
-                        events = events.Where(e => e.State == dataset.EventState).ToList();
+                 // 2. Events dinámicos
+                 if (dataset.Id_Event.HasValue || !string.IsNullOrEmpty(dataset.EventState))
+                 {
+                     var events = await _sondaEMService.GetEvents(1, 1000, null, null, user.Username, user.Password);
+                     if (dataset.Id_Event.HasValue)
+                         events = events.Where(e => e.Id == dataset.Id_Event.Value).ToList();
+                     if (!string.IsNullOrEmpty(dataset.EventState))
+                         events = events.Where(e => e.State == dataset.EventState).ToList();
 
-                    foreach (var eventItem in events)
-                        dataset.DatasetEvents.Add(new DatasetEventEM { Id_event = eventItem.Id });
-                }
+                     foreach (var eventItem in events)
+                         dataset.DatasetEvents.Add(new DatasetEventEM { Id_event = eventItem.Id });
+                 }
 
-                // 3. Extensions dinámicas
-                if (dataset.Id_Extension.HasValue || !string.IsNullOrEmpty(dataset.ExtensionState))
-                {
-                    var extensions = await _sondaEMService.GetExtensions(1, 1000, null, null, dataset.ExtensionState, null, null, null, null, user.Username, user.Password);
-                    if (dataset.Id_Extension.HasValue)
-                        extensions = extensions.Where(e => e.ExtensionId == dataset.Id_Extension.Value).ToList();
+                 // 3. Extensions dinámicas
+                 if (dataset.Id_Extension.HasValue || !string.IsNullOrEmpty(dataset.ExtensionState))
+                 {
+                     var extensions = await _sondaEMService.GetExtensions(1, 1000, null, null, dataset.ExtensionState, null, null, null, null, user.Username, user.Password);
+                     if (dataset.Id_Extension.HasValue)
+                         extensions = extensions.Where(e => e.ExtensionId == dataset.Id_Extension.Value).ToList();
 
-                    foreach (var extension in extensions)
-                        dataset.DatasetExtensions.Add(new DatasetExtension { Id_extension = extension.ExtensionId });
-                }
-                // 4. Category dinámicas
-                if (dataset.Id_Category.HasValue || !string.IsNullOrEmpty(dataset.CategoryState))
-                {
-                    var categories = await _sondaEMService.GetCategory(1, 1000, null,null, user.Username, user.Password);
-                    if (dataset.Id_Category.HasValue)
-                        categories = categories.Where(c => c.CategoryId == dataset.Id_Category.Value).ToList();
-                    foreach (var category in categories)
-                        dataset.DatasetCategory.Add(new DatasetCategory { Id_Category = category.CategoryId });
-                }*/
+                     foreach (var extension in extensions)
+                         dataset.DatasetExtensions.Add(new DatasetExtension { Id_extension = extension.ExtensionId });
+                 }
+                 // 4. Category dinámicas
+                 if (dataset.Id_Category.HasValue || !string.IsNullOrEmpty(dataset.CategoryState))
+                 {
+                     var categories = await _sondaEMService.GetCategory(1, 1000, null,null, user.Username, user.Password);
+                     if (dataset.Id_Category.HasValue)
+                         categories = categories.Where(c => c.CategoryId == dataset.Id_Category.Value).ToList();
+                     foreach (var category in categories)
+                         dataset.DatasetCategory.Add(new DatasetCategory { Id_Category = category.CategoryId });
+                 }*/
             }
 
             return dataset;
@@ -141,7 +152,7 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, username));
 
             _context.DatasetsEM.Remove(dataset);
             await _context.SaveChangesAsync();
@@ -150,28 +161,28 @@ namespace OmniMonitor.Server.Services
         {
             if (request.AlertIds?.Any() == true)
             {
-                dataset.DatasetAlerts = request.AlertIds.Select(id => new DatasetAlert 
-                { 
-                    DatasetId = dataset.Id, 
-                    Id_alert = id 
+                dataset.DatasetAlerts = request.AlertIds.Select(id => new DatasetAlert
+                {
+                    DatasetId = dataset.Id,
+                    Id_alert = id
                 }).ToList();
             }
-            
+
             if (request.EventIds?.Any() == true)
             {
-                dataset.DatasetEvents = request.EventIds.Select(id => new DatasetEventEM 
-                { 
-                    DatasetId = dataset.Id, 
-                    Id_event = id 
+                dataset.DatasetEvents = request.EventIds.Select(id => new DatasetEventEM
+                {
+                    DatasetId = dataset.Id,
+                    Id_event = id
                 }).ToList();
             }
-            
+
             if (request.ExtensionIds?.Any() == true)
             {
-                dataset.DatasetExtensions = request.ExtensionIds.Select(id => new DatasetExtension 
-                { 
-                    DatasetId = dataset.Id, 
-                    Id_extension = id 
+                dataset.DatasetExtensions = request.ExtensionIds.Select(id => new DatasetExtension
+                {
+                    DatasetId = dataset.Id,
+                    Id_extension = id
                 }).ToList();
             }
         }
@@ -202,7 +213,7 @@ namespace OmniMonitor.Server.Services
                 // Si ya viene como string descriptivo, usarlo directamente
                 return r.ContentType;
             }
-            
+
             // Si no hay ContentType en el request, determinar el tipo principal según los datos que contiene
             // Prioridad: Alerts > Events > Extensions > Category
             if (r.AlertIds?.Any() == true)
@@ -221,7 +232,7 @@ namespace OmniMonitor.Server.Services
             {
                 return "Category";
             }
-            
+
             // Si no tiene ningún tipo específico, devolver "0" para datasets formales
             return r.IsDataset == "S" ? "0" : null;
         }
@@ -235,13 +246,13 @@ namespace OmniMonitor.Server.Services
                 query = query.Where(d => d.Id != excludeId.Value);
 
             if (await query.AnyAsync())
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNameExists, name, username));
         }
 
         public async Task<DatasetEM> CreateDatasetEMWithFiltersAsync(CreateDatasetEMRequest request, int dataset, List<FilterCondition> filters)
         {
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
-            
+
             var newDataset = new DatasetEM
             {
                 Username = request.Username,
@@ -267,11 +278,11 @@ namespace OmniMonitor.Server.Services
                 .Include(d => d.DatasetAlerts)
                 .Include(d => d.DatasetEvents)
                 .Include(d => d.DatasetExtensions)
-            
+
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
@@ -285,7 +296,7 @@ namespace OmniMonitor.Server.Services
             _context.DatasetAlerts.RemoveRange(existingDataset.DatasetAlerts);
             _context.DatasetEventsEM.RemoveRange(existingDataset.DatasetEvents);
             _context.DatasetExtensions.RemoveRange(existingDataset.DatasetExtensions);
-            
+
 
             existingDataset.DatasetAlerts.Clear();
             existingDataset.DatasetEvents.Clear();
@@ -297,6 +308,7 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
             return existingDataset;
         }
+        #endregion
     }
 
     [Flags]

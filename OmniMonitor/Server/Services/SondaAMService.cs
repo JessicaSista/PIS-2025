@@ -5,13 +5,14 @@ using System.Net.Http.Headers;
 using OmniMonitor.Shared.Dtos.AM;
 using System;
 using System.Net.Http;
+using OmniMonitor.Server.Resources;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 public interface ISondaAMService
 {
-
+    #region Fields
     //****************DEVICES***************
     // GET all devices
     Task<AssetDto?> GetAssetById(int id, string username);
@@ -25,31 +26,31 @@ public interface ISondaAMService
     // GET stock by id
     Task<StockDto?> GetStockById(int stockId, string username);
 
-        // GET assets paginados y filtrados
+    // GET assets paginados y filtrados
     Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username);
 
-     // GET assets basic data paginados y filtrados
+    // GET assets basic data paginados y filtrados
     Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username);
 
-      // GET linked assets paginados y filtrados
+    // GET linked assets paginados y filtrados
     Task<List<AssetDto>> GetLinkedAssets(int? page, string? queryString, string? sort, int? pageSize, string username);
 
-        // GET asset relations paginados y filtrados
+    // GET asset relations paginados y filtrados
     Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username);
 
-        // GET bundles paginados y filtrados
+    // GET bundles paginados y filtrados
     Task<List<BundleDto>> GetBundles(int? page, string? queryString, string? sort, int? pageSize, string username);
 
-        // GET asset history paginado y filtrado
+    // GET asset history paginado y filtrado
     Task<List<AssetDto>> GetAssetHistory(int? page, string? queryString, string? sort, int? pageSize, string? bundlesId, string username);
 
-        // GET event task instance by id
+    // GET event task instance by id
     Task<EventTaskInstanceDto?> GetEventTaskInstanceById(int eventTaskInstanceId, string username);
 
     // GET event tasks filtrados y paginados
     Task<List<EventTaskInstanceDto>> GetEventTaskInstances(string dates, int? page, string queryString, int? bundleId, string state, string sort, int? taskTypeId, int? groupId, int? pageSize, bool tasksAssignedToMe, bool tasksPendingApproval, string username);
 
-        // GET actions for event task instance
+    // GET actions for event task instance
     Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username);
 
     // GET stock for event task instance
@@ -60,22 +61,28 @@ public interface ISondaAMService
 
     // GET all asset types
     Task<List<AssetTypeDto>> GetAllAssetTypes(string username);
+    #endregion
 }
 
 
 public class SondaAMService : ISondaAMService
 {
+    #region Fields
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ApiConfig _apiConfig;
+    #endregion
 
+    #region Constructors
     public SondaAMService(IHttpClientFactory httpClientFactory, ISondaAuthService sondaAuthService, IOptions<ApiConfig> apiConfigOptions)
     {
         _httpClientFactory = httpClientFactory;
         _sondaAuthService = sondaAuthService;
         _apiConfig = apiConfigOptions.Value;
     }
+    #endregion
 
+    #region Methods
     public async Task<AssetDto?> GetAssetById(int id, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
@@ -99,11 +106,11 @@ public class SondaAMService : ISondaAMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
@@ -115,7 +122,7 @@ public class SondaAMService : ISondaAMService
     public async Task<BundleDto> GetStockParametersByBundleId(int bundleId, string username)
     {
         if (bundleId <= 0)
-            throw new ArgumentException("El parámetro 'bundleId' debe ser mayor que cero.", nameof(bundleId));
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "bundleId"), nameof(bundleId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Bundle"]["GetByBundleId"];
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
@@ -128,15 +135,15 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron stocksParameters  (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "stocksParameters"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
@@ -174,9 +181,9 @@ public class SondaAMService : ISondaAMService
             return new List<StockDto>();
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -210,7 +217,7 @@ public class SondaAMService : ISondaAMService
     public async Task<StockDto?> GetStockById(int stockId, string username)
     {
         if (stockId <= 0)
-            throw new ArgumentException("El parámetro 'stockId' debe ser mayor que cero.", nameof(stockId));
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "stockId"), nameof(stockId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Stock"]["GetById"].Replace("{stockId}", stockId.ToString());
         string token = await _sondaAuthService.GetUserTokenAMAsync(username);
@@ -227,9 +234,9 @@ public class SondaAMService : ISondaAMService
             return null;
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
 
         response.EnsureSuccessStatusCode();
 
@@ -247,7 +254,7 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-        public async Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username)
+    public async Task<List<AssetDto>> GetAssets(int? page, string? queryString, string? bundles, int? assetTypeId, string? sort, int? pageSize, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["Asset"]["GetAssets"];
@@ -270,22 +277,22 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron assets (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "assets"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(responseBody))
         {
-            throw new Exception("La respuesta de la API está vacía.");
+            throw new Exception(Language.ApiResponseEmpty);
         }
 
         // Detecta si la respuesta es un objeto (con 'results') o una lista directa
@@ -308,20 +315,20 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-     public async Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username)
+    public async Task<List<AssetDto>> GetAssetsBasicData(int? page, string? queryString, int? pageSize, int? bundleId, string username)
     {
         // Validaciones de parámetros requeridos
         if (!page.HasValue)
         {
-            throw new ArgumentException("El parámetro 'page' es requerido.", nameof(page));
+            throw new ArgumentException(string.Format(Language.ParameterRequired, "page"), nameof(page));
         }
         if (!pageSize.HasValue)
         {
-            throw new ArgumentException("El parámetro 'pageSize' es requerido.", nameof(pageSize));
+            throw new ArgumentException(string.Format(Language.ParameterRequired, "pageSize"), nameof(pageSize));
         }
         if (!bundleId.HasValue)
         {
-            throw new ArgumentException("El parámetro 'bundleId' es requerido.", nameof(bundleId));
+            throw new ArgumentException(string.Format(Language.ParameterRequired, "bundleId"), nameof(bundleId));
         }
 
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
@@ -343,15 +350,15 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontro informacion (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "información"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
@@ -364,7 +371,7 @@ public class SondaAMService : ISondaAMService
         return apiResponse?.Results ?? new List<AssetDto>();
     }
 
-    
+
     public async Task<List<AssetDto>> GetLinkedAssets(int? page, string? queryString, string? sort, int? pageSize, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
@@ -386,15 +393,15 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron linked assets (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "linked assets"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
@@ -407,7 +414,7 @@ public class SondaAMService : ISondaAMService
         return apiResponse?.Results ?? new List<AssetDto>();
     }
 
-    
+
     public async Task<List<RelatedAssetDto>> GetAssetRelations(int assetId, int? page, int? pageSize, string username)
     {
         if (assetId <= 0)
@@ -436,11 +443,11 @@ public class SondaAMService : ISondaAMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
@@ -487,7 +494,7 @@ public class SondaAMService : ISondaAMService
         }
     }
 
-    
+
     public async Task<List<BundleDto>> GetBundles(int? page, string? queryString, string? sort, int? pageSize, string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
@@ -509,22 +516,22 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron bundles (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "bundles"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(responseBody))
         {
-            throw new Exception("La respuesta de la API está vacía.");
+            throw new Exception(Language.ApiResponseEmpty);
         }
 
         // Detecta si la respuesta es un objeto (con 'results') o una lista directa
@@ -569,12 +576,12 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontro historia para el asset (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "historia del asset"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -602,9 +609,9 @@ public class SondaAMService : ISondaAMService
             return null;
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -641,16 +648,16 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            throw new Exception("No se encontraron event task instances (404 NotFound).");
+            throw new Exception(string.Format(Language.ApiNotFound, "event task instances"));
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
 
         var responseBody = await response.Content.ReadAsStringAsync();
         response.EnsureSuccessStatusCode();
         if (string.IsNullOrWhiteSpace(responseBody))
-            throw new Exception("La respuesta de la API está vacía.");
+            throw new Exception(Language.ApiResponseEmpty);
 
         // Detecta si la respuesta es un array o un objeto
         var trimmed = responseBody.TrimStart();
@@ -675,7 +682,7 @@ public class SondaAMService : ISondaAMService
     public async Task<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>> GetEventTaskInstanceActions(int taskInstanceId, string username)
     {
         if (taskInstanceId <= 0)
-            throw new ArgumentException("El parámetro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "taskInstanceId"), nameof(taskInstanceId));
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         // Asegúrate que la clave y endpoint existan en tu ApiConfig.json
         string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetActions"].Replace("{taskInstanceId}", taskInstanceId.ToString());
@@ -689,113 +696,113 @@ public class SondaAMService : ISondaAMService
 
         var response = await client.GetAsync(getDataUrl);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron EventTaskActions (404 NotFound).");
-            
+            throw new Exception(string.Format(Language.ApiNotFound, "EventTaskActions"));
+
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(responseBody))
-            throw new Exception("La respuesta de la API está vacía.");
+            throw new Exception(Language.ApiResponseEmpty);
 
         // Asume que la respuesta es una lista directa de acciones
         var actions = System.Text.Json.JsonSerializer.Deserialize<List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return actions ?? new List<OmniMonitor.Shared.Dtos.AM.EventTaskActionDto>();
     }
 
-        public async Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username)
+    public async Task<List<EventTaskInstanceStockDto>> GetEventTaskInstanceStock(int taskInstanceId, string username)
+    {
+        if (taskInstanceId <= 0)
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "taskInstanceId"), nameof(taskInstanceId));
+        string baseUrl = _apiConfig.BaseUrl.UrlAM;
+        string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetStock"].Replace("{taskInstanceId}", taskInstanceId.ToString());
+        string token = await _sondaAuthService.GetUserTokenAMAsync(username);
+
+        string getDataUrl = baseUrl + endpoint;
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Accept.Clear();
+        client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+        var response = await client.GetAsync(getDataUrl);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            throw new Exception(string.Format(Language.ApiNotFound, "stocks"));
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            throw new Exception(Language.ApiUnauthorized);
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            throw new Exception(Language.ApiForbidden);
+        response.EnsureSuccessStatusCode();
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(responseBody))
+            throw new Exception(Language.ApiResponseEmpty);
+
+        var stocks = System.Text.Json.JsonSerializer.Deserialize<List<EventTaskInstanceStockDto>>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return stocks ?? new List<EventTaskInstanceStockDto>();
+    }
+
+    public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances(string username)
+    {
+        var eventTaskInstances = await GetEventTaskInstances(
+            "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
+            null,                                      // page (int?)
+            "",                                        // queryString
+            null,                                      // bundleId
+            "",                                        // state
+            "",                                        // sort
+            null,                                      // taskTypeId
+            null,                                      // groupId
+            null,                                      // pageSize
+            false,                                     // tasksAssignedToMe
+            false,                                     // tasksPendingApproval
+            username
+        );
+
+        var ids = new List<int>();
+        if (eventTaskInstances == null)
+            return ids;
+        foreach (var instance in eventTaskInstances)
         {
-            if (taskInstanceId <= 0)
-                throw new ArgumentException("El parámetro 'taskInstanceId' debe ser mayor que cero.", nameof(taskInstanceId));
-            string baseUrl = _apiConfig.BaseUrl.UrlAM;
-            string endpoint = _apiConfig.EndpointsAM["EventTaskInstance"]["GetStock"].Replace("{taskInstanceId}", taskInstanceId.ToString());
-            string token = await _sondaAuthService.GetUserTokenAMAsync(username);
-
-            string getDataUrl = baseUrl + endpoint;
-            var client = _httpClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-
-            var response = await client.GetAsync(getDataUrl);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                throw new Exception("No se encontraron stocks para el taskInstanceId proporcionado (404 NotFound).");
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
-            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
-            response.EnsureSuccessStatusCode();
-
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrWhiteSpace(responseBody))
-                throw new Exception("La respuesta de la API está vacía.");
-
-            var stocks = System.Text.Json.JsonSerializer.Deserialize<List<EventTaskInstanceStockDto>>(responseBody, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            return stocks ?? new List<EventTaskInstanceStockDto>();
+            var typeDtoId = instance?.EventTaskDto?.TypeDto?.Id;
+            if (typeDtoId != null)
+                ids.Add(typeDtoId.Value);
         }
-
-public async Task<List<int>> GetTypeDtoIdsFromEventTaskInstances( string username)
-{
-    var eventTaskInstances = await GetEventTaskInstances(
-        "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
-        null,                                      // page (int?)
-        "",                                        // queryString
-        null,                                      // bundleId
-        "",                                        // state
-        "",                                        // sort
-        null,                                      // taskTypeId
-        null,                                      // groupId
-        null,                                      // pageSize
-        false,                                     // tasksAssignedToMe
-        false,                                     // tasksPendingApproval
-        username
-    );
-
-    var ids = new List<int>();
-    if (eventTaskInstances == null)
-        return ids;
-    foreach (var instance in eventTaskInstances)
-    {
-        var typeDtoId = instance?.EventTaskDto?.TypeDto?.Id;
-        if (typeDtoId != null)
-            ids.Add(typeDtoId.Value);
+        return ids.Distinct().ToList();
     }
-    return ids.Distinct().ToList();
-}
 
-public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username)
-{
-    var eventTaskInstances = await GetEventTaskInstances(
-        "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
-        null,                                      // page (int?)
-        "",                                        // queryString
-        null,                                      // bundleId
-        "",                                        // state
-        "",                                        // sort
-        null,                                      // taskTypeId
-        null,                                      // groupId
-        null,                                      // pageSize
-        false,                                     // tasksAssignedToMe
-        false,                                     // tasksPendingApproval
-        username
-    );
-
-    var typeDtos = new List<TaskTypeDto>();
-    if (eventTaskInstances == null)
-        return typeDtos;
-    foreach (var instance in eventTaskInstances)
+    public async Task<List<TaskTypeDto>> GetTaskTypeDtosFromEventTaskInstances(string username)
     {
-        var typeDto = instance?.EventTaskDto?.TypeDto;
-        if (typeDto != null)
-            typeDtos.Add(typeDto);
-    }
-    return typeDtos.GroupBy(t => t.Id).Select(g => g.First()).ToList();
-}
+        var eventTaskInstances = await GetEventTaskInstances(
+            "1980-01-01T03:00:00,2050-10-31T03:00:00", // dates
+            null,                                      // page (int?)
+            "",                                        // queryString
+            null,                                      // bundleId
+            "",                                        // state
+            "",                                        // sort
+            null,                                      // taskTypeId
+            null,                                      // groupId
+            null,                                      // pageSize
+            false,                                     // tasksAssignedToMe
+            false,                                     // tasksPendingApproval
+            username
+        );
 
-public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
+        var typeDtos = new List<TaskTypeDto>();
+        if (eventTaskInstances == null)
+            return typeDtos;
+        foreach (var instance in eventTaskInstances)
+        {
+            var typeDto = instance?.EventTaskDto?.TypeDto;
+            if (typeDto != null)
+                typeDtos.Add(typeDto);
+        }
+        return typeDtos.GroupBy(t => t.Id).Select(g => g.First()).ToList();
+    }
+
+    public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlAM;
         string endpoint = _apiConfig.EndpointsAM["AssetType"]["GetAll"];
@@ -811,9 +818,9 @@ public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return new List<AssetTypeDto>();
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         response.EnsureSuccessStatusCode();
 
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -836,4 +843,5 @@ public async Task<List<AssetTypeDto>> GetAllAssetTypes(string username)
             throw new Exception("La respuesta de la API no es JSON válido. Respuesta: " + responseBody);
         }
     }
+    #endregion
 }

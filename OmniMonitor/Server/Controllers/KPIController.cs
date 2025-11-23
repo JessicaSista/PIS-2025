@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Services;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
 
@@ -14,24 +15,34 @@ namespace OmniMonitor.Server.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class KPIController : ControllerBase
+    public class KpiController : ControllerBase
     {
+        #region Fields
+
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IKpiService _kpiService;
-        private readonly ISondaIMService _sondaIMService;
-        private readonly ILogger<KPIController> _logger;
+        private readonly ISondaIMService _sondaImService;
+        private readonly ILogger<KpiController> _logger;
 
-        public KPIController(
+        #endregion
+
+        #region Constructors
+
+        public KpiController(
             ISondaAuthService sondaAuthService,
             IKpiService kpiService,
-            ISondaIMService sondaIMService,
-            ILogger<KPIController> logger)
+            ISondaIMService sondaImService,
+            ILogger<KpiController> logger)
         {
             _sondaAuthService = sondaAuthService ?? throw new ArgumentNullException(nameof(sondaAuthService));
             _kpiService = kpiService ?? throw new ArgumentNullException(nameof(kpiService));
-            _sondaIMService = sondaIMService ?? throw new ArgumentNullException(nameof(sondaIMService));
+            _sondaImService = sondaImService ?? throw new ArgumentNullException(nameof(sondaImService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
+
+        #endregion
+
+        #region Methods
 
         [HttpPost("")]
         [RequirePermission("Kpis.Create")]
@@ -44,14 +55,14 @@ namespace OmniMonitor.Server.Controllers
             {
                 if (request == null)
                 {
-                    return BadRequest("El objeto KPI es nulo.");
+                    return BadRequest(Language.KpiObjectNull);
                 }
 
                 // Validar token y obtener usuario
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 // Crear KPI usando el servicio, pasándole el username
@@ -62,7 +73,7 @@ namespace OmniMonitor.Server.Controllers
             catch (DbUpdateException ex)
             {
                 _logger.LogError(ex, "CreateKpi: DB error");
-                return StatusCode(500, $"DB Error: {ex.InnerException?.Message ?? ex.Message}");
+                return StatusCode(500, $"{Language.DbError}{ex.InnerException?.Message ?? ex.Message}");
             }
             catch (ArgumentException ex)
             {
@@ -72,7 +83,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "CreateKpi: unexpected error");
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -80,7 +91,6 @@ namespace OmniMonitor.Server.Controllers
         /// Obtener KPI por id.
         /// </summary>
         /// <param name="id">id del KPI.</param>
-        /// <param name="token">Token del Usuario.</param>
         /// <returns>Devuelve el KPI.</returns>
         [HttpGet("{id}")]
         [RequirePermission("Kpis.View")]
@@ -96,7 +106,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 // Buscar KPI en la base de datos
@@ -105,7 +115,7 @@ namespace OmniMonitor.Server.Controllers
                     KpiResponse kpi = await _kpiService.CalculateKpiValueAsync(id, username);
                     if (kpi == null)
                     {
-                        return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                        return NotFound(string.Format(Language.KpiNotFoundUser, id, username));
                     }
 
                     return Ok(kpi);
@@ -131,14 +141,14 @@ namespace OmniMonitor.Server.Controllers
                     }
                     catch
                     {
-                        return NotFound($"No se encontró el KPI con ID {id} para el usuario {username}.");
+                        return NotFound(string.Format(Language.KpiNotFoundUser, id, username));
                     }
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetKpiById: unexpected error for id={Id}", id);
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -158,14 +168,14 @@ namespace OmniMonitor.Server.Controllers
             {
                 if (kpiData == null)
                 {
-                    return BadRequest("Los datos del KPI son requeridos.");
+                    return BadRequest(Language.KpiDataRequired);
                 }
 
                 // Validar token y obtener usuario
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 // Calcular el valor del KPI sin guardarlo
@@ -181,7 +191,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "CalculateKpiData: unexpected error");
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -191,21 +201,21 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<KpiResponse>> GetKpiByIdSinToken(int id)
+        public async Task<ActionResult<KpiResponse>> GetKpiByIdWithoutToken(int id)
         {
             try
             {
-                KpiResponse kpi = await _kpiService.CalculateKpiValueAsyncSinToken(id);
+                KpiResponse kpi = await _kpiService.CalculateKpiValueAsyncWithoutToken(id);
                 if (kpi == null)
                 {
-                    return NotFound($"No se encontró el KPI con ID {id}");
+                    return NotFound(string.Format(Language.KpiNotFound, id));
                 }
 
                 return Ok(kpi);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -220,15 +230,15 @@ namespace OmniMonitor.Server.Controllers
         {
             try
             {
-                var username = User.Identity?.Name;                  
+                var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 await _kpiService.DeleteKpiAsync(id, username);
 
-                return Ok(new { Message = $"KPI con ID {id} eliminado correctamente." });
+                return Ok(new { Message = string.Format(Language.KpiDeleted, id) });
             }
             catch (KeyNotFoundException ex)
             {
@@ -243,7 +253,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "DeleteKpi: unexpected error for id={Id}", id);
-                return StatusCode(500, new { Message = $"Error interno: {ex.Message}" });
+                return StatusCode(500, new { Message = $"{Language.InternalErrorPrefix}{ex.Message}" });
             }
         }
 
@@ -257,13 +267,13 @@ namespace OmniMonitor.Server.Controllers
         {
             if (request == null)
             {
-                return BadRequest("El objeto KPI es nulo.");
+                return BadRequest(Language.KpiObjectNull);
             }
 
             try
             {
 
-                 var user = User.Identity?.Name;
+                var user = User.Identity?.Name;
 
 
                 Kpi updatedKpi = await _kpiService.UpdateKpiAsync(id, request, user);
@@ -287,7 +297,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "UpdateKpiPartial: unexpected error for id={Id}", id);
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -304,7 +314,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 List<KpiResponse> kpis = await _kpiService.CalculateAllKpisForUserAsync(username);
@@ -313,7 +323,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllKpis: unexpected error");
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -323,14 +333,14 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<KpiResponse>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<Kpi>>> GetAllKpisnoCalculate()
+        public async Task<ActionResult<List<Kpi>>> GetAllKpisNoCalculate()
         {
             try
             {
                 var username = User.Identity?.Name;
                 if (string.IsNullOrEmpty(username))
                 {
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 List<Kpi> kpis = await _kpiService.GetAllKpisForUserAsync(username);
@@ -339,7 +349,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllKpis: unexpected error");
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -354,13 +364,13 @@ namespace OmniMonitor.Server.Controllers
             {
                 if (string.IsNullOrWhiteSpace(module))
                 {
-                    return BadRequest("Debe especificarse el módulo.");
+                    return BadRequest(Language.ModuleRequired);
                 }
 
                 List<MetricInfo> metrics = await _kpiService.GetMetricInfoListAsync(module.ToUpperInvariant());
                 if (metrics == null || metrics.Count == 0)
                 {
-                    return NotFound($"No se encontraron métricas para el módulo {module}.");
+                    return NotFound(string.Format(Language.MetricsNotFound, module));
                 }
 
                 return Ok(metrics);
@@ -368,7 +378,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetMetricInfoByModule: unexpected error for module={Module}", module);
-                return StatusCode(500, $"Error interno al obtener métricas: {ex.Message}");
+                return StatusCode(500, $"{Language.MetricsError}{ex.Message}");
             }
         }
 
@@ -381,23 +391,22 @@ namespace OmniMonitor.Server.Controllers
             try
             {
                 string username = "admin";
-                string password = "admin";
                 int deviceId = 52726;
 
                 DateTime dateFrom = DateTime.UtcNow.AddDays(-2); // hace 2 día
                 DateTime dateTo = DateTime.UtcNow;               // ahora
 
-                var data = await _sondaIMService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
+                var data = await _sondaImService.GetDeviceDataByDate(deviceId, dateFrom, dateTo, username);
 
                 if (data == null || data.Count == 0)
-                    return Ok("No se encontraron datos para el rango de fechas.");
+                    return Ok(Language.NoDataForDateRange);
 
                 return Ok(data);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "TestGetDeviceDataByDate: unexpected error");
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -445,7 +454,7 @@ namespace OmniMonitor.Server.Controllers
         public ActionResult<List<string>> GetKpiFieldTypes([FromQuery] string modulo, [FromQuery] int choice)
         {
             if (string.IsNullOrWhiteSpace(modulo))
-                return BadRequest("Debe especificar el módulo.");
+                return BadRequest(Language.ModuleRequired);
 
             List<string> fieldTypes = new List<string>();
             switch (modulo.ToLower())
@@ -455,7 +464,7 @@ namespace OmniMonitor.Server.Controllers
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMDTO).GetProperties().Select(p => p.Name).ToList();
                     else if (choice == 2)
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.AM.DatasetReducedAMEventsDTO).GetProperties().Select(p => p.Name).ToList();
-                    else  
+                    else
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.ReducedStockDatasetAM).GetProperties().Select(p => p.Name).ToList();
                     break;
                 case "em":
@@ -476,7 +485,7 @@ namespace OmniMonitor.Server.Controllers
                         fieldTypes = typeof(OmniMonitor.Shared.Dtos.UM.DatasetReducedEventUMDTO).GetProperties().Select(p => p.Name).ToList();
                     break;
                 default:
-                    fieldTypes.Add("Tipo de módulo no soportado");
+                    fieldTypes.Add(Language.ModuleNotSupported);
                     break;
             }
             return Ok(fieldTypes);
@@ -496,11 +505,11 @@ namespace OmniMonitor.Server.Controllers
             {
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Usuario no encontrado.");
-                
+                    return BadRequest(Language.UserNotFound);
+
                 if (page <= 0 || pageSize <= 0)
-                    return BadRequest("La página y el tamaño deben ser mayores a 0.");
-                
+                    return BadRequest(Language.PageAndSizeMustBeGreaterThanZero);
+
                 if (page < 1) page = 1;
 
                 var response = await _kpiService.GetAllKpisPaginatedAsync(username, page, pageSize, query);
@@ -509,7 +518,7 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener KPIs paginados para el usuario");
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
 
@@ -532,19 +541,19 @@ namespace OmniMonitor.Server.Controllers
                 if (datasetId <= 0)
                 {
                     _logger.LogWarning("GetFieldValues: invalid datasetId {DatasetId}", datasetId);
-                    return BadRequest("Debe especificar un ID de dataset válido.");
+                    return BadRequest(Language.DatasetIdInvalid);
                 }
 
                 if (string.IsNullOrWhiteSpace(modulo))
                 {
                     _logger.LogWarning("GetFieldValues: missing modulo");
-                    return BadRequest("Debe especificar el módulo.");
+                    return BadRequest(Language.ModuleRequired);
                 }
 
                 if (string.IsNullOrWhiteSpace(campo))
                 {
                     _logger.LogWarning("GetFieldValues: missing campo");
-                    return BadRequest("Debe especificar el campo.");
+                    return BadRequest(Language.FieldRequired);
                 }
 
                 // Validar token y obtener usuario
@@ -552,7 +561,7 @@ namespace OmniMonitor.Server.Controllers
                 if (string.IsNullOrEmpty(username))
                 {
                     _logger.LogWarning("GetFieldValues: invalid token");
-                    return BadRequest("Token inválido.");
+                    return BadRequest(Language.InvalidToken);
                 }
 
                 List<string> fieldValues = await _kpiService.GetFieldValuesAsync(datasetId, modulo, campo, choice, username);
@@ -585,8 +594,10 @@ namespace OmniMonitor.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetFieldValues: unexpected error for datasetId={DatasetId}, modulo={Modulo}, campo={Campo}, choice={Choice}", datasetId, modulo, campo, choice);
-                return StatusCode(500, $"Error interno: {ex.Message}");
+                return StatusCode(500, $"{Language.InternalErrorPrefix}{ex.Message}");
             }
         }
+
+        #endregion
     }
 }

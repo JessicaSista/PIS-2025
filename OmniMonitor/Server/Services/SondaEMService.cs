@@ -4,6 +4,7 @@ using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.EM;
 using System;
+using OmniMonitor.Server.Resources;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net.Http;
@@ -15,7 +16,7 @@ public interface ISondaEMService
 {
     Task<EventDto?> GetEventById(int id, string username);
     Task<AlertDto?> GetAlertById(int id, string username);
-    Task<List<AlertDto>> GetAlerts(int? page, int? pageSize,string? query,string? stateList,double? x,double? y,double? r,bool? forceGps,string? sort,string username);
+    Task<List<AlertDto>> GetAlerts(int? page, int? pageSize, string? query, string? stateList, double? x, double? y, double? r, bool? forceGps, string? sort, string username);
     Task<List<AlertDto>> GetStoredAlerts(
         int? page,
         int? pageSize,
@@ -34,17 +35,17 @@ public interface ISondaEMService
         string username);
     Task<List<EventTypeDto>> GetEventTypes(string username);
     Task<ExtensionDtoDup?> GetExtensionById(int extensionId, string username);
-        Task<List<ExtensionDto>> GetExtensions(
-        int? page,
-        int? pageSize,
-        string? sort,
-        string? query,
-        string? states,
-        string? dates,
-        string? priorities,
-        string? categories,
-        string? zones,
-        string username);
+    Task<List<ExtensionDto>> GetExtensions(
+    int? page,
+    int? pageSize,
+    string? sort,
+    string? query,
+    string? states,
+    string? dates,
+    string? priorities,
+    string? categories,
+    string? zones,
+    string username);
     Task<List<AttachmentDto>> GetAttachedItems(int extensionId, string username);
     Task<List<ExtensionDtoDup>> GetExtensionByEventId(int eventId, string username);
     Task<List<CategoryDto>> GetCategory(
@@ -78,9 +79,15 @@ public interface ISondaEMService
 
 public class SondaEMService : ISondaEMService
 {
+    #region Fields
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ApiConfig _apiConfig;
+
+    #endregion
+
+    #region Constructors
 
     public SondaEMService(IHttpClientFactory httpClientFactory, ISondaAuthService sondaAuthService, IOptions<ApiConfig> apiConfigOptions)
     {
@@ -88,6 +95,10 @@ public class SondaEMService : ISondaEMService
         _sondaAuthService = sondaAuthService;
         _apiConfig = apiConfigOptions.Value;
     }
+
+    #endregion
+
+    #region Methods
 
     public async Task<CategoryDto?> GetCategoryById(int categoryid, string username)
     {
@@ -108,11 +119,11 @@ public class SondaEMService : ISondaEMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -144,11 +155,11 @@ public class SondaEMService : ISondaEMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
 
         response.EnsureSuccessStatusCode();
@@ -183,11 +194,11 @@ public class SondaEMService : ISondaEMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
 
@@ -215,7 +226,7 @@ public class SondaEMService : ISondaEMService
         // Some Sonda API endpoints may not support pagination properly
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Alert"]["GetAll"];
-        
+
         var queryParams = new List<string>();
         // Only add pagination if provided
         if (page.HasValue && page.Value > 0) queryParams.Add($"page={page.Value.ToString(CultureInfo.InvariantCulture)}");
@@ -227,7 +238,7 @@ public class SondaEMService : ISondaEMService
         if (r.HasValue) queryParams.Add($"r={r.Value.ToString(CultureInfo.InvariantCulture)}");
         if (forceGps.HasValue) queryParams.Add($"forceGps={forceGps.Value.ToString().ToLowerInvariant()}");
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
-        
+
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
@@ -271,19 +282,19 @@ public class SondaEMService : ISondaEMService
     {
         if (!page.HasValue)
         {
-            throw new ArgumentException("El parámetro 'page' es requerido.", nameof(page));
+            throw new ArgumentException(string.Format(Language.ParameterRequired, "page"), nameof(page));
         }
         if (!pageSize.HasValue)
         {
-            throw new ArgumentException("El parámetro 'pageSize' es requerido.", nameof(pageSize));
+            throw new ArgumentException(string.Format(Language.ParameterRequired, "pageSize"), nameof(pageSize));
         }
         if (page.Value <= 0)
         {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor que cero.", nameof(page));
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "page"), nameof(page));
         }
         if (pageSize.Value <= 0)
         {
-            throw new ArgumentException("El parámetro 'pageSize' debe ser mayor que cero.", nameof(pageSize));
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "pageSize"), nameof(pageSize));
         }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Alert"]["GetStored"];
@@ -336,23 +347,23 @@ public class SondaEMService : ISondaEMService
         // NOTE: Similar to Categories, the Sonda API's events endpoint may not support pagination
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Event"]["GetEvents"];
-        
+
         // Only include sort and query parameters if provided
         // DO NOT include page/pageSize as the API may not support them
         var queryParams = new List<string>();
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
-        
+
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        
+
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        
+
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
-        
+
         var responseBody = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(responseBody))
         {
@@ -413,11 +424,11 @@ public class SondaEMService : ISondaEMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -442,7 +453,7 @@ public class SondaEMService : ISondaEMService
     {
         if (page.HasValue && page.Value < 0)
         {
-            throw new ArgumentException("El parámetro 'page' debe ser mayor o igual que cero.");
+            throw new ArgumentException(string.Format(Language.ParameterMustBePositive, "page"));
         }
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Extension"]["GetAll"];
@@ -489,7 +500,7 @@ public class SondaEMService : ISondaEMService
         }
         return JsonSerializer.Deserialize<List<AttachmentDto>>(responseBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<AttachmentDto>();
     }
-    
+
 
     public async Task<List<ExtensionDtoDup>> GetExtensionByEventId(int eventId, string username)
     {
@@ -510,15 +521,15 @@ public class SondaEMService : ISondaEMService
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
-            throw new Exception("No tienes permisos: token inválido o expirado (401 Unauthorized).");
+            throw new Exception(Language.ApiUnauthorized);
         }
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new Exception("No tienes permisos para acceder a este recurso (403 Forbidden).");
+            throw new Exception(Language.ApiForbidden);
         }
         response.EnsureSuccessStatusCode();
         var responseBody = await response.Content.ReadAsStringAsync();
-   
+
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -527,7 +538,7 @@ public class SondaEMService : ISondaEMService
         return extensions;
 
     }
-    
+
     public async Task<List<CategoryDto>> GetCategory(
         int? page,
         int? pageSize,
@@ -540,23 +551,23 @@ public class SondaEMService : ISondaEMService
         // This is an API design inconsistency that we need to work around
         string baseUrl = _apiConfig.BaseUrl.UrlEM;
         string endpoint = _apiConfig.EndpointsEM["Category"]["GetAll"];
-        
+
         // Only include sort and query parameters if provided
         // DO NOT include page/pageSize as the API doesn't support them
         var queryParams = new List<string>();
         if (!string.IsNullOrEmpty(sort)) queryParams.Add($"sort={Uri.EscapeDataString(sort)}");
         if (!string.IsNullOrEmpty(query)) queryParams.Add($"query={Uri.EscapeDataString(query)}");
-        
+
         string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
         string getDataUrl = baseUrl + endpoint + queryString;
-        
+
         string token = await _sondaAuthService.GetUserTokenEMAsync(username);
-        
+
         var client = _httpClientFactory.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var response = await client.GetAsync(getDataUrl);
         response.EnsureSuccessStatusCode();
-        
+
         var responseBody = await response.Content.ReadAsStringAsync();
         if (string.IsNullOrWhiteSpace(responseBody))
         {
@@ -634,5 +645,7 @@ public class SondaEMService : ISondaEMService
 
         return filteredEvents;
     }
+
+    #endregion
 }
 

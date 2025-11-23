@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Shared.Dtos;
 using System;
 using System.Collections.Generic;
@@ -27,12 +28,12 @@ namespace OmniMonitor.Server.Services
         private readonly SignInManager<User> _signInManager;
         private readonly IPermissionService _permissionService;
 
-        public AuthService(ApplicationDbContext context, IConfiguration configuration, UserManager<User> UserManager, SignInManager<User> SignInManager, IPermissionService permissionService)
+        public AuthService(ApplicationDbContext context, IConfiguration configuration, UserManager<User> userManager, SignInManager<User> signInManager, IPermissionService permissionService)
         {
             _context = context;
             _configuration = configuration;
-            _userManager = UserManager;
-            _signInManager = SignInManager;
+            _userManager = userManager;
+            _signInManager = signInManager;
             _permissionService = permissionService;
         }
 
@@ -44,17 +45,17 @@ namespace OmniMonitor.Server.Services
 
                 if (user == null)
                 {
-                    return new LoginResponse { Success = false, Message = "Usuario no encontrado" };
+                    return new() { Success = false, Message = Language.UserNotFound };
                 }
 
                 var result = await _signInManager.CheckPasswordSignInAsync(user, loginRequest.Password, lockoutOnFailure: false);
 
                 if (!result.Succeeded)
                 {
-                    return new LoginResponse { Success = false, Message = "Contraseña incorrecta" };
+                    return new() { Success = false, Message = Language.InvalidPassword };
                 }
 
-                var claims = new List<Claim>
+                List<Claim> claims = new()
                 {
                     new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Name, user.UserName)
@@ -74,7 +75,7 @@ namespace OmniMonitor.Server.Services
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-                
+
                 var tokenDescriptor = new SecurityTokenDescriptor
                 {
                     Subject = new ClaimsIdentity(claims),
@@ -88,10 +89,10 @@ namespace OmniMonitor.Server.Services
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
 
-                return new LoginResponse
+                return new()
                 {
                     Success = true,
-                    Message = "Login exitoso",
+                    Message = Language.LoginSuccess,
                     Token = tokenString,
                     UserId = user.Id,
                     Username = user.UserName
@@ -99,7 +100,7 @@ namespace OmniMonitor.Server.Services
             }
             catch (Exception ex)
             {
-                return new LoginResponse { Success = false, Message = $"Error interno: {ex.Message}" };
+                return new() { Success = false, Message = $"{Language.InternalErrorPrefix}{ex.Message}" };
             }
         }
     }

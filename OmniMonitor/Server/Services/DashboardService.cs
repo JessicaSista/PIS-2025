@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Models;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Shared.Dtos;
 
 using static MudBlazor.CategoryTypes;
@@ -22,17 +23,17 @@ namespace OmniMonitor.Server.Services
     {
         Task<DashboardResponse> CreateDashboardAsync(CreateDashboardRequest request, string username);
         Task<DashboardResponse?> GetDashboardByIdAsync(int idDashboard, string username);
-        Task<DashboardResponse?> GetDashboardByIdAsyncSinToken(int idDashboard);
+        Task<DashboardResponse?> GetDashboardByIdWithoutTokenAsync(int idDashboard);
         Task<List<DashboardSummaryResponse>> GetAllDashboardsAsync(string username, string? query);
         Task<bool> ValidateCardIdsAsync(List<int> cardIds);
         Task<bool> ValidateLayoutAsync(DashboardLayout layout);
         Task<bool> DeleteDashboardAsync(int idDashboard, string username);
         Task<bool> UpdateDashboardConfigAsync(int idDashboard, string username, string nuevoJsonDiseno);
-        Task<bool> AddDashboardCardAsync(int idDashboard, string username, string jsonConfig,DashboardCard nuevaCard);
+        Task<bool> AddDashboardCardAsync(int idDashboard, string username, string jsonConfig, DashboardCard nuevaCard);
         Task<bool> ReorderDashboardCardsAsync(int idDashboard, string username, string jsonConfig, List<DashboardCard> orderedCards);
         Task<bool> DeleteDashboardCardAsync(int idDashboard, string username, int idCard, int tipoCard);
         Task<DashboardResponse?> UpdateDashboardInfoAsync(int idDashboard, string username, string? nuevoNombre, string? nuevaDescripcion);
-        Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 IdVisualizacion, CreateVisualizacionRequest updatedCard);
+        Task<bool> EditDashboardCardAsync(int idDashboard, string username, string jsonConfig, System.Int32 IdVisualizacion, CreateVisualizacionRequest updatedCard);
         Task<List<DashboardSummaryResponse>> SearchDashboardsByTextAsync(string query);
         Task<ShareResponseDto> CreateShareLinkAsync(int dashboardId, ShareRequestDto request, string username);
         Task<List<ShareResponseDto>> GetAllByDashboardAsync(int dashboardId, string username);
@@ -40,23 +41,33 @@ namespace OmniMonitor.Server.Services
         Task<ValidateSharePasswordResponseDto> ValidatePasswordAsync(string slug, string password);
         Task<ShareResponseDto?> UpdateShareLinkAsync(string slug, ShareRequestDto request, string username);
         Task<bool> DeleteShareLinkAsync(string slug, string username);
-        Task<int> GetDashboardsCount(string username, string? query);
+        Task<int> GetDashboardsCountAsync(string username, string? query);
         Task<List<DashboardSummaryResponse>> GetAllDashboardsPaginatedAsync(string username, string? query, int page = 1, int pageSize = 9);
-    }   
+    }
 
     /// <summary>
     /// Implementación del servicio de Dashboards
     /// </summary>
     public class DashboardService : IDashboardService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
         private readonly IPasswordHasher<SharedLink> _passwordHasher;
+
+        #endregion
+
+        #region Constructors
 
         public DashboardService(ApplicationDbContext context, IPasswordHasher<SharedLink> passwordHasher)
         {
             _context = context;
             _passwordHasher = passwordHasher;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Crea un nuevo dashboard con sus tarjetas configuradas
@@ -69,7 +80,7 @@ namespace OmniMonitor.Server.Services
 
             if (existingDashboard != null)
             {
-                throw new ArgumentException($"Ya existe un dashboard con el nombre '{request.Nombre}' para el usuario '{username}'.");
+                throw new ArgumentException(string.Format(Language.DashboardNameExists, request.Nombre, username));
             }
 
             // Validar cardIds por tipo si se proporcionan
@@ -80,7 +91,7 @@ namespace OmniMonitor.Server.Services
                 {
                     if (!await ValidateCardIdsAsync(visualIds))
                     {
-                        throw new ArgumentException("Uno o más IdVisualizacion no existen en el sistema.");
+                        throw new ArgumentException(Language.VisualIdNotFound);
                     }
                 }
 
@@ -93,7 +104,7 @@ namespace OmniMonitor.Server.Services
                         .ToListAsync();
                     if (existingKpiIds.Count != kpiIds.Count)
                     {
-                        throw new ArgumentException("Uno o más KPI no existen en el sistema.");
+                        throw new ArgumentException(Language.KpiIdNotFound);
                     }
                 }
             }
@@ -135,8 +146,8 @@ namespace OmniMonitor.Server.Services
             }
 
             // Retornar el dashboard completo
-            return await GetDashboardByIdAsync(nuevoDashboard.IdDashboard, username) 
-                ?? throw new InvalidOperationException("Error al recuperar el dashboard creado.");
+            return await GetDashboardByIdAsync(nuevoDashboard.IdDashboard, username)
+                ?? throw new InvalidOperationException(Language.DashboardCreateRetrieveError);
         }
 
         /// <summary>
@@ -165,8 +176,6 @@ namespace OmniMonitor.Server.Services
                 FechaCreacion = dashboard.FechaCreacion,
                 FechaModificacion = dashboard.FechaModificacion
             };
-
-            
 
             // Mapear las tarjetas
             response.Tarjetas = dashboard.GrupoVisualizaciones
@@ -198,7 +207,7 @@ namespace OmniMonitor.Server.Services
             return response;
         }
 
-        public async Task<DashboardResponse?> GetDashboardByIdAsyncSinToken(int idDashboard)
+        public async Task<DashboardResponse?> GetDashboardByIdWithoutTokenAsync(int idDashboard)
         {
             var dashboard = await _context.Dashboards
                 .Include(d => d.GrupoVisualizaciones)
@@ -313,7 +322,7 @@ namespace OmniMonitor.Server.Services
                 .ToListAsync();
         }
 
-        public async Task<int> GetDashboardsCount(string username, string? query)
+        public async Task<int> GetDashboardsCountAsync(string username, string? query)
         {
             var dashboardsQuery = _context.Dashboards
                 .Where(d => d.Username == username);
@@ -425,6 +434,9 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Agrega una tarjeta (DashboardCard) a un dashboard existente
         /// </summary>
+        /// <summary>
+        /// Agrega una tarjeta (DashboardCard) a un dashboard existente
+        /// </summary>
         public async Task<bool> AddDashboardCardAsync(int idDashboard, string username, string JsonDiseno, DashboardCard nuevaCard)
         {
             var dashboard = await _context.Dashboards
@@ -439,18 +451,14 @@ namespace OmniMonitor.Server.Services
                 // Validar que el CardId exista en Visualizaciones
                 bool visualizacionExiste = await _context.Visualizaciones.AnyAsync(v => v.IdVisualizacion == nuevaCard.CardId);
                 if (!visualizacionExiste)
-                    throw new ArgumentException($"No existe una visualización con Id {nuevaCard.CardId}");
+                    throw new ArgumentException(string.Format(Language.VisualIdNotFoundSingle, nuevaCard.CardId));
             }
             else if (nuevaCard.TipoCard == 2)
             {
                 bool kpiExiste = await _context.Kpi.AnyAsync(k => k.Id == nuevaCard.CardId);
                 if (!kpiExiste)
-                    throw new ArgumentException($"No existe un KPI con Id {nuevaCard.CardId}");
+                    throw new ArgumentException(string.Format(Language.KpiIdNotFoundSingle, nuevaCard.CardId));
             }
-
-            //if (JsonDiseno == null){
-            //    throw new ArgumentException("El JSON de configuración no puede estar vacío.");
-            //}
 
             // Chequear si la tarjeta ya existe en el dashboard (por TipoCard + CardId)
             bool cardExists = dashboard.GrupoVisualizaciones.Any(gv =>
@@ -458,14 +466,14 @@ namespace OmniMonitor.Server.Services
                 ((nuevaCard.TipoCard == 1 && gv.IdVisualizacion == nuevaCard.CardId) ||
                  (nuevaCard.TipoCard == 2 && gv.KpiId == nuevaCard.CardId)));
             if (cardExists)
-                throw new ArgumentException("Tarjeta duplicada: ya existe una tarjeta con ese IdVisualizacion y TipoCard en el dashboard.");
+                throw new ArgumentException(Language.CardDuplicate);
 
             // Calcular el orden para la nueva tarjeta
             int orden = _context.GrupoVisualizaciones
                 .Where(gv => gv.GrupoVisualizacionId == idDashboard)
                 .Select(gv => (int?)gv.Orden)
                 .Max() ?? 0;
-            orden++; 
+            orden++;
 
             var grupoVisualizacion = new GrupoVisualizacion
             {
@@ -497,8 +505,9 @@ namespace OmniMonitor.Server.Services
             if (dashboard == null)
                 return false;
 
-            if (JsonDiseno == null){
-                throw new ArgumentException("El JSON de configuración no puede estar vacío.");
+            if (JsonDiseno == null)
+            {
+                throw new ArgumentException(Language.JsonConfigEmpty);
             }
 
             for (int i = 0; i < orderedCards.Count; i++)
@@ -552,7 +561,10 @@ namespace OmniMonitor.Server.Services
         /// <summary>
         /// Actualiza el nombre y/o la descripción de un dashboard
         /// </summary>
-        public async Task<bool> EditDashboardCard(int idDashboard, string username, string jsonConfig, System.Int32 visualizacionId, CreateVisualizacionRequest updatedCard)
+        /// <summary>
+        /// Actualiza el nombre y/o la descripción de un dashboard
+        /// </summary>
+        public async Task<bool> EditDashboardCardAsync(int idDashboard, string username, string jsonConfig, System.Int32 visualizacionId, CreateVisualizacionRequest updatedCard)
         {
             // Implementación de otro método si es necesario
 
@@ -581,43 +593,43 @@ namespace OmniMonitor.Server.Services
             visualizacion.JsonDesign = updatedCard.JsonDiseñoGeneral;
 
             if (updatedCard.Datasets != null && updatedCard.Datasets.Any())
+            {
+                var newDatasetIds = updatedCard.Datasets.Select(d => d.DatasetId).ToList();
+
+                var existingGrupoDatasets = visualizacion.GrupoDatasets.ToList();
+                var existingDatasetIds = existingGrupoDatasets.Select(gd => gd.DatasetId).ToList();
+
+                var datasetsToRemove = existingGrupoDatasets
+                    .Where(gd => !newDatasetIds.Contains(gd.DatasetId))
+                    .ToList();
+
+                foreach (var grupoToRemove in datasetsToRemove)
                 {
-                    var newDatasetIds = updatedCard.Datasets.Select(d => d.DatasetId).ToList();
+                    visualizacion.GrupoDatasets.Remove(grupoToRemove);
+                    _context.GrupoDatasets.Remove(grupoToRemove);
+                }
 
-                    var existingGrupoDatasets = visualizacion.GrupoDatasets.ToList();
-                    var existingDatasetIds = existingGrupoDatasets.Select(gd => gd.DatasetId).ToList();
+                foreach (var datasetConfig in updatedCard.Datasets)
+                {
+                    var existingGrupo = existingGrupoDatasets
+                        .FirstOrDefault(gd => gd.DatasetId == datasetConfig.DatasetId);
 
-                    var datasetsToRemove = existingGrupoDatasets
-                        .Where(gd => !newDatasetIds.Contains(gd.DatasetId))
-                        .ToList();
-
-                    foreach (var grupoToRemove in datasetsToRemove)
+                    if (existingGrupo != null)
                     {
-                        visualizacion.GrupoDatasets.Remove(grupoToRemove);
-                        _context.GrupoDatasets.Remove(grupoToRemove);
+                        existingGrupo.JsonDesign = datasetConfig.JsonDiseño;
+                        _context.GrupoDatasets.Update(existingGrupo);
                     }
-
-                    foreach (var datasetConfig in updatedCard.Datasets)
+                    else
                     {
-                        var existingGrupo = existingGrupoDatasets
-                            .FirstOrDefault(gd => gd.DatasetId == datasetConfig.DatasetId);
-
-                        if (existingGrupo != null)
+                        var nuevoGrupo = new GrupoDataset
                         {
-                            existingGrupo.JsonDesign = datasetConfig.JsonDiseño;
-                            _context.GrupoDatasets.Update(existingGrupo);
-                        }
-                        else
-                        {
-                            var nuevoGrupo = new GrupoDataset
-                            {
-                                DatasetId = datasetConfig.DatasetId,
-                                JsonDesign = datasetConfig.JsonDiseño
-                            };
-                            visualizacion.GrupoDatasets.Add(nuevoGrupo);
-                        }
+                            DatasetId = datasetConfig.DatasetId,
+                            JsonDesign = datasetConfig.JsonDiseño
+                        };
+                        visualizacion.GrupoDatasets.Add(nuevoGrupo);
                     }
                 }
+            }
 
 
             if (jsonConfig != null)
@@ -651,7 +663,7 @@ namespace OmniMonitor.Server.Services
                     .AnyAsync(d => d.Username == username && d.Nombre == nuevoNombre && d.IdDashboard != idDashboard);
                 if (exists)
                 {
-                    throw new ArgumentException($"Ya existe un dashboard con el nombre '{nuevoNombre}' para el usuario '{username}'.");
+                    throw new ArgumentException(string.Format(Language.DashboardNameExists, nuevoNombre, username));
                 }
 
 
@@ -715,7 +727,7 @@ namespace OmniMonitor.Server.Services
 
             if (dashboard == null)
             {
-                throw new KeyNotFoundException("Dashboard no encontrado o no pertenece al usuario.");
+                throw new KeyNotFoundException(Language.DashboardNotFoundOrUnauthorized);
             }
 
             var sharedLink = new SharedLink
@@ -858,5 +870,7 @@ namespace OmniMonitor.Server.Services
 
             return true;
         }
+
+        #endregion
     }
 }

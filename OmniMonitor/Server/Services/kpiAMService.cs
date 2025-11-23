@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,18 +20,27 @@ namespace OmniMonitor.Server.Services
 
     public class KpiAMService : IKpiAMService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
-        private readonly ISondaAMService _sondaAMService;
+        private readonly ISondaAMService _sondaAmService;
         private readonly IDatasetAmService _datasetAmService;
 
+        #endregion
 
-        public KpiAMService(ApplicationDbContext context, ISondaAMService sondaAMService, IDatasetAmService datasetAmService)
+        #region Constructors
+
+        public KpiAMService(ApplicationDbContext context, ISondaAMService sondaAmService, IDatasetAmService datasetAmService)
         {
             _context = context;
-            _sondaAMService = sondaAMService;
+            _sondaAmService = sondaAmService;
             _datasetAmService = datasetAmService;
-
         }
+
+        #endregion
+
+        #region Methods
+
         private string? GetAssetFieldValue(object asset, string fieldName)
         {
             var prop = asset.GetType().GetProperty(fieldName);
@@ -37,7 +49,7 @@ namespace OmniMonitor.Server.Services
 
         public async Task<List<string>> GetFieldValuesAsync<T>(List<T> items, string fieldName)
         {
-            List<string> values = new List<string>();
+            List<string> values = new();
             if (items == null || items.Count == 0)
                 return values;
             foreach (var item in items)
@@ -53,7 +65,7 @@ namespace OmniMonitor.Server.Services
 
         public async Task<KpiResponse> CalculateAmKpiAsync<T>(Kpi kpi, string username, List<T> items)
         {
-            KpiResponse response = null;
+            KpiResponse? response = null;
             if (items == null || items.Count == 0)
                 return BuildEmptyResponse(kpi);
 
@@ -69,12 +81,12 @@ namespace OmniMonitor.Server.Services
                     response = await CalculateMinKpiGeneric(kpi, items, username);
                     break;
                 default:
-                    throw new ArgumentException($"MÃ©trica no soportada para AM: {kpi.Metric}");
+                    throw new ArgumentException(string.Format(Language.MetricNotSupportedAM, kpi.Metric));
             }
             return response;
         }
 
-        // Métodos genéricos para operar sobre List<object>
+        // MÃ©todos genÃ©ricos para operar sobre List<object>
         private async Task<KpiResponse> CountStateGeneric<T>(Kpi kpi, List<T> items, string username)
         {
             var estadoNecesario = kpi.ExtraInfo ?? string.Empty;
@@ -200,14 +212,14 @@ namespace OmniMonitor.Server.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return defaultColor;
             }
             return defaultColor;
         }
 
-                // Custom converter para ColorRange que acepta min/max/color o Min/Max/Color
+        // Custom converter para ColorRange que acepta min/max/color o Min/Max/Color
         public class FlexibleColorRangeConverter : System.Text.Json.Serialization.JsonConverter<ColorRange>
         {
             public override ColorRange Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
@@ -265,5 +277,6 @@ namespace OmniMonitor.Server.Services
             };
         }
 
+        #endregion
     }
 }

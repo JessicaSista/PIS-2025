@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using System.Data;
+using OmniMonitor.Server.Resources;
 
 namespace OmniMonitor.Server.Services
 {
@@ -10,7 +11,7 @@ namespace OmniMonitor.Server.Services
         Task<DatasetUM> CreateDatasetUMWithFiltersAsync(CreateDatasetUMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetUM>> GetAllDatasetsUMAsync(string username);
         Task<DatasetUM?> GetDatasetUMByIdAsync(int datasetId, string username);
-    Task<DatasetUM?> GetDatasetUMByIdAsyncSinToken(int datasetId);
+        Task<DatasetUM?> GetDatasetUMByIdAsyncSinToken(int datasetId);
         Task<DatasetUM?> GetDatasetUMByIdForEditAsync(int datasetId, string username);
         Task<DatasetUM> UpdateDatasetUMAsync(int datasetId, CreateDatasetUMRequest request);
         Task<DatasetUM> UpdateDatasetUMWithFiltersAsync(int datasetId, CreateDatasetUMRequest request, List<FilterCondition> filters);
@@ -30,14 +31,24 @@ namespace OmniMonitor.Server.Services
 
     public class DatasetUMService : IDatasetUMService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
         private readonly ISondaUMService _sondaUMService;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetUMService(ApplicationDbContext context, ISondaUMService sondaUMService)
         {
             _context = context;
             _sondaUMService = sondaUMService;
         }
+
+        #endregion
+
+        #region Methods
 
         public async Task<DatasetUM> CreateDatasetUMAsync(CreateDatasetUMRequest request, int dataset)
         {
@@ -63,7 +74,7 @@ namespace OmniMonitor.Server.Services
         public async Task<DatasetUM> CreateDatasetUMWithFiltersAsync(CreateDatasetUMRequest request, int dataset, List<FilterCondition> filters)
         {
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
-            
+
             var newDataset = new DatasetUM
             {
                 Username = request.Username,
@@ -235,7 +246,7 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             // La validación de nombres duplicados se hace en la tabla general (UpdateDatasetAsyncUM)
 
@@ -267,7 +278,7 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
@@ -298,25 +309,25 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, username));
 
             _context.DatasetsUM.Remove(dataset);
             await _context.SaveChangesAsync();
         }
         private static void UpdateRelationsFromRequest(DatasetUM dataset, CreateDatasetUMRequest request)
         {
-            
+
             if (request.EventIds?.Any() == true)
             {
             }
-            
+
             if (request.NewsIds?.Any() == true)
             {
             }
-            
+
             dataset.DatasetEvents = request.EventIds?.Select(id => new DatasetEvent { Id_event = id }).ToList() ?? new();
             dataset.DatasetNews = request.NewsIds?.Select(id => new DatasetNews { Id_news = id }).ToList() ?? new();
-            
+
         }
 
         private static string GetContentType(CreateDatasetUMRequest r)
@@ -326,7 +337,7 @@ namespace OmniMonitor.Server.Services
             {
                 return r.ContentType;
             }
-            
+
             // Para datasets formales, determinar el tipo según los datos que contiene
             if (r.IsDataset == "S")
             {
@@ -348,7 +359,7 @@ namespace OmniMonitor.Server.Services
                 // Fallback
                 return "0";
             }
-            
+
             // Para datasets no formales
             if (r.EventIds?.Any() == true) return "Evento";
             if (r.NewsIds?.Any() == true) return "Noticia";
@@ -358,7 +369,7 @@ namespace OmniMonitor.Server.Services
 
 
 
-        
+
 
         public async Task<Datasets> CreateDatasetAsync(CreateDatasetRequest request)
         {
@@ -421,7 +432,7 @@ namespace OmniMonitor.Server.Services
             .Include(d => d.DatasetUM)
             .FirstOrDefaultAsync(d => d.Id == datasetId);
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             // La validación ya se hizo en el controlador antes de llamar a este método
 
@@ -443,7 +454,7 @@ namespace OmniMonitor.Server.Services
             .Include(d => d.DatasetIM)
             .FirstOrDefaultAsync(d => d.Id == datasetId);
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             // La validación ya se hizo en el controlador antes de llamar a este método
 
@@ -465,7 +476,7 @@ namespace OmniMonitor.Server.Services
             .Include(d => d.DatasetAM)
             .FirstOrDefaultAsync(d => d.Id == datasetId);
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             // La validación ya se hizo en el controlador antes de llamar a este método
 
@@ -487,7 +498,7 @@ namespace OmniMonitor.Server.Services
             .Include(d => d.DatasetEM)
             .FirstOrDefaultAsync(d => d.Id == datasetId);
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             // La validación ya se hizo en el controlador antes de llamar a este método
 
@@ -509,7 +520,7 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
             if (dataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, username));
 
             _context.Datasets.Remove(dataset);
             await _context.SaveChangesAsync();
@@ -525,7 +536,7 @@ namespace OmniMonitor.Server.Services
                 query = query.Where(d => d.Id != excludeId.Value);
 
             if (await query.AnyAsync())
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNameExists, name, username));
         }
         private async Task ValidateDuplicateNameDataset(string name, string username, ModuleType tipoDataset, int? excludeId = null)
         {
@@ -537,7 +548,8 @@ namespace OmniMonitor.Server.Services
                 query = query.Where(d => d.Id != excludeId.Value);
 
             if (await query.AnyAsync())
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{name}' para el usuario '{username}'.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNameExists, name, username));
         }
+        #endregion
     }
 }

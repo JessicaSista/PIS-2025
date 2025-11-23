@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Server.Attributes;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,15 +17,17 @@ namespace OmniMonitor.Server.Controllers
     [Route("api/[controller]")]
     public class DatasetFilterController : ControllerBase
     {
-    private readonly ApplicationDbContext _context;
-    private readonly ISondaUMService _sondaUMService;
-    private readonly ISondaAMService _sondaAMService;
-    private readonly ISondaEMService _sondaEMService;
-    private readonly ISondaIMService _sondaIMService;
-    private readonly ISondaAuthService _sondaAuthService;
-    private readonly ILogger<DatasetFilterController> _logger;
+        #region Fields
+        private readonly ApplicationDbContext _context;
+        private readonly ISondaUMService _sondaUMService;
+        private readonly ISondaAMService _sondaAMService;
+        private readonly ISondaEMService _sondaEMService;
+        private readonly ISondaIMService _sondaIMService;
+        private readonly ISondaAuthService _sondaAuthService;
+        private readonly ILogger<DatasetFilterController> _logger;
+        #endregion
 
-
+        #region Constructors
         public DatasetFilterController(ApplicationDbContext context, ISondaUMService sondaUMService, ISondaAMService sondaAMService, ISondaEMService sondaEMService, ISondaIMService sondaIMService, ISondaAuthService sondaAuthService, ILogger<DatasetFilterController> logger)
         {
             _context = context;
@@ -35,7 +38,9 @@ namespace OmniMonitor.Server.Controllers
             _sondaAuthService = sondaAuthService;
             _logger = logger;
         }
+        #endregion
 
+        #region Methods
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Datasets.View")]
         [HttpGet("FiltrarPorModuloYEntidad")]
@@ -218,17 +223,17 @@ namespace OmniMonitor.Server.Controllers
             return Ok(resultado);
         }
 
-    
+
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission("Datasets.View")]
         [HttpGet("GetAtributoValores")]
         public async Task<ActionResult<List<string>>> GetAtributoValores(string modulo, int entidadId, string atributo)
         {
-            
+
             // Get username from JWT
             var username = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(username))
-                return BadRequest("Usuario no encontrado.");
+                return BadRequest(Language.UserNotFound);
 
             List<object> valores = new();
             IEnumerable<object> entidades = Enumerable.Empty<object>();
@@ -318,7 +323,7 @@ namespace OmniMonitor.Server.Controllers
                     .Distinct()
                     .OrderBy(n => n)
                     .ToList();
-                
+
                 return Ok(zoneNames);
             }
 
@@ -333,7 +338,7 @@ namespace OmniMonitor.Server.Controllers
                     .Distinct()
                     .OrderBy(n => n)
                     .ToList();
-                
+
                 return Ok(deviceNames);
             }
 
@@ -347,7 +352,7 @@ namespace OmniMonitor.Server.Controllers
                     .Distinct()
                     .OrderBy(n => n)
                     .ToList();
-                
+
                 return Ok(bundleNames);
             }
 
@@ -361,7 +366,7 @@ namespace OmniMonitor.Server.Controllers
                     .Distinct()
                     .OrderBy(n => n)
                     .ToList();
-                
+
                 return Ok(deviceNames);
             }
 
@@ -377,7 +382,7 @@ namespace OmniMonitor.Server.Controllers
                     .Distinct()
                     .OrderBy(n => n)
                     .ToList();
-                
+
                 return Ok(sensorNames);
             }
 
@@ -407,28 +412,28 @@ namespace OmniMonitor.Server.Controllers
                 void ExtraerValores(object? actual, int parteIdx)
                 {
                     if (actual == null || parteIdx >= partes.Length) return;
-                    
+
                     System.Reflection.PropertyInfo? prop = null;
                     var tipoActual = actual.GetType();
                     var nombrePropiedad = partes[parteIdx];
-                    
+
                     // Primero buscar por JsonPropertyName (esto es importante porque Zone tiene [JsonPropertyName("zone")])
                     var allProps = tipoActual.GetProperties(
-                        System.Reflection.BindingFlags.Public | 
+                        System.Reflection.BindingFlags.Public |
                         System.Reflection.BindingFlags.Instance);
-                    
+
                     foreach (var p in allProps)
                     {
                         // Buscar por JsonPropertyName primero (case-insensitive)
                         var jsonAttr = p.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonPropertyNameAttribute), false)
                             .FirstOrDefault() as System.Text.Json.Serialization.JsonPropertyNameAttribute;
-                        
+
                         if (jsonAttr != null && jsonAttr.Name.Equals(nombrePropiedad, StringComparison.OrdinalIgnoreCase))
                         {
                             prop = p;
                             break;
                         }
-                        
+
                         // También buscar por nombre de propiedad (case-insensitive)
                         if (p.Name.Equals(nombrePropiedad, StringComparison.OrdinalIgnoreCase))
                         {
@@ -436,21 +441,21 @@ namespace OmniMonitor.Server.Controllers
                             break;
                         }
                     }
-                    
+
                     // Si aún no se encuentra, intentar búsqueda exacta
                     if (prop == null)
                     {
-                        prop = tipoActual.GetProperty(nombrePropiedad, 
-                            System.Reflection.BindingFlags.Public | 
+                        prop = tipoActual.GetProperty(nombrePropiedad,
+                            System.Reflection.BindingFlags.Public |
                             System.Reflection.BindingFlags.Instance);
                     }
-                    
+
                     if (prop == null) return;
-                    
+
                     var valor = prop.GetValue(actual);
-                    
+
                     // Si el valor es null, no podemos continuar navegando
-                    if (valor == null) 
+                    if (valor == null)
                     {
                         // Si es la última parte, no hay nada que hacer
                         if (parteIdx == partes.Length - 1) return;
@@ -462,7 +467,7 @@ namespace OmniMonitor.Server.Controllers
                     if (valor is System.Collections.IEnumerable enumerable && !(valor is string))
                     {
                         var coleccion = enumerable.Cast<object>();
-                        
+
                         // Si es la última parte, agrego cada elemento
                         if (parteIdx == partes.Length - 1)
                         {
@@ -509,130 +514,132 @@ namespace OmniMonitor.Server.Controllers
         }
 
 
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission("Datasets.View")]
-    [HttpPost("FiltrarDatos")]
-    public async Task<ActionResult<List<object>>> FiltrarDatos([FromBody] OmniMonitor.Shared.Dtos.FiltrarDatosRequest request)
-    {
-        var username = User.Identity?.Name;
-        if (string.IsNullOrWhiteSpace(username))
-            return BadRequest("Usuario no encontrado.");
-
-        IEnumerable<object> entidades = Enumerable.Empty<object>();
-        bool moduloValido = true, entidadValida = true;
-
-        switch (request.Modulo)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Datasets.View")]
+        [HttpPost("FiltrarDatos")]
+        public async Task<ActionResult<List<object>>> FiltrarDatos([FromBody] OmniMonitor.Shared.Dtos.FiltrarDatosRequest request)
         {
-            case "UM":
-                if (request.EntidadId == 2)
-                    entidades = await _sondaUMService.GetAllNews(username);
-                else if (request.EntidadId == 1)
-                    entidades = await _sondaUMService.GetAllEvents(username);
-                else
-                    entidadValida = false;
-                break;
-            case "AM":
-                if (request.EntidadId == 2)
-                    entidades = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
-                else if (request.EntidadId == 1)
-                    entidades = await _sondaAMService.GetEventTaskInstances(
-                        "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
-                else if (request.EntidadId == 3)
-                    entidades = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
-                else
-                    entidadValida = false;
-                break;
-            case "EM":
-                if (request.EntidadId == 1)
-                    entidades = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
-                else if (request.EntidadId == 2)
-                    entidades = await _sondaEMService.GetEvents(null, null, null, null, username);
-                else if (request.EntidadId == 3)
-                    entidades = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
-                else
-                    entidadValida = false;
-                break;
-            case "IM":
-                if (request.EntidadId == 1) // Device
-                    entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
-                else if (request.EntidadId == 2) // Source
-                {
-                    var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
-                    
-                    // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
-                    bool needsDevices = request.Filtros.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
-                    bool needsSensors = request.Filtros.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
-                    
-                    if (needsDevices || needsSensors)
+            var username = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(username))
+                return BadRequest(Language.UserNotFound);
+
+            IEnumerable<object> entidades = Enumerable.Empty<object>();
+            bool moduloValido = true, entidadValida = true;
+
+            switch (request.Modulo)
+            {
+                case "UM":
+                    if (request.EntidadId == 2)
+                        entidades = await _sondaUMService.GetAllNews(username);
+                    else if (request.EntidadId == 1)
+                        entidades = await _sondaUMService.GetAllEvents(username);
+                    else
+                        entidadValida = false;
+                    break;
+                case "AM":
+                    if (request.EntidadId == 2)
+                        entidades = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
+                    else if (request.EntidadId == 1)
+                        entidades = await _sondaAMService.GetEventTaskInstances(
+                            "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
+                    else if (request.EntidadId == 3)
+                        entidades = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
+                    else
+                        entidadValida = false;
+                    break;
+                case "EM":
+                    if (request.EntidadId == 1)
+                        entidades = await _sondaEMService.GetAlerts(null, null, null, null, null, null, null, null, null, username);
+                    else if (request.EntidadId == 2)
+                        entidades = await _sondaEMService.GetEvents(null, null, null, null, username);
+                    else if (request.EntidadId == 3)
+                        entidades = await _sondaEMService.GetExtensions(null, null, null, null, null, null, null, null, null, username);
+                    else
+                        entidadValida = false;
+                    break;
+                case "IM":
+                    if (request.EntidadId == 1) // Device
+                        entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                    else if (request.EntidadId == 2) // Source
                     {
-                        // Poblar Devices para cada Source
-                        foreach (var source in sources)
+                        var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
+
+                        // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
+                        bool needsDevices = request.Filtros.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
+                        bool needsSensors = request.Filtros.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
+
+                        if (needsDevices || needsSensors)
                         {
-                            if (source != null)
+                            // Poblar Devices para cada Source
+                            foreach (var source in sources)
                             {
-                                var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
-                                source.Devices = devices;
-                                
-                                // Si también se necesitan Sensors, extraerlos de los devices
-                                if (needsSensors && devices.Any())
+                                if (source != null)
                                 {
-                                    var sensors = devices
-                                        .Where(d => d.Sensors != null)
-                                        .SelectMany(d => d.Sensors!)
-                                        .DistinctBy(s => s.Name)
-                                        .ToList();
-                                    source.Sensors = sensors;
+                                    var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
+                                    source.Devices = devices;
+
+                                    // Si también se necesitan Sensors, extraerlos de los devices
+                                    if (needsSensors && devices.Any())
+                                    {
+                                        var sensors = devices
+                                            .Where(d => d.Sensors != null)
+                                            .SelectMany(d => d.Sensors!)
+                                            .DistinctBy(s => s.Name)
+                                            .ToList();
+                                        source.Sensors = sensors;
+                                    }
                                 }
                             }
                         }
+
+                        entidades = sources;
                     }
-                    
-                    entidades = sources;
-                }
-                else if (request.EntidadId == 3) // Sensor (extraído de los devices)
-                {
-                    var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
-                    var sensors = devices
-                        .Where(d => d.Sensors != null)
-                        .SelectMany(d => d.Sensors!)
-                        .GroupBy(s => s.Name)
-                        .Select(g => g.First())
-                        .ToList();
-                    entidades = sensors;
-                }
-                else
-                    entidadValida = false;
-                break;
-            default:
-                moduloValido = false;
-                break;
-        }
-
-        if (!moduloValido)
-            return BadRequest("Módulo no definido");
-        if (!entidadValida)
-            return BadRequest("Entidad no definida para el módulo seleccionado");
-
-        foreach (var filtro in request.Filtros)
-        {
-        }
-
-        int idx = 0;
-        foreach (var entidad in entidades)
-        {
-            foreach (var prop in entidad.GetType().GetProperties())
-            {
-                var val = prop.GetValue(entidad);
+                    else if (request.EntidadId == 3) // Sensor (extraído de los devices)
+                    {
+                        var devices = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
+                        var sensors = devices
+                            .Where(d => d.Sensors != null)
+                            .SelectMany(d => d.Sensors!)
+                            .GroupBy(s => s.Name)
+                            .Select(g => g.First())
+                            .ToList();
+                        entidades = sensors;
+                    }
+                    else
+                        entidadValida = false;
+                    break;
+                default:
+                    moduloValido = false;
+                    break;
             }
-            idx++;
+
+            if (!moduloValido)
+                return BadRequest(Language.ModuleNotDefined);
+            if (!entidadValida)
+                return BadRequest(Language.EntityNotDefined);
+
+            foreach (var filtro in request.Filtros)
+            {
+            }
+
+            int idx = 0;
+            foreach (var entidad in entidades)
+            {
+                foreach (var prop in entidad.GetType().GetProperties())
+                {
+                    var val = prop.GetValue(entidad);
+                }
+                idx++;
+            }
+
+            // Filtrar usando ApiDataService.FilterObjects
+            var filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filtros);
+            foreach (var obj in filtrados)
+            {
+            }
+            return Ok(filtrados);
         }
 
-        // Filtrar usando ApiDataService.FilterObjects
-        var filtrados = ApiDataService.StaticFilterObjects(entidades, request.Filtros);
-        foreach (var obj in filtrados)
-        {
-        }
-        return Ok(filtrados);
     }
-
-}}
+    #endregion
+}

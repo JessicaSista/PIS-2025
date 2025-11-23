@@ -2,6 +2,7 @@ using Microsoft.Extensions.Options;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
 using System;
+using OmniMonitor.Server.Resources;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -27,7 +28,7 @@ public interface ISondaIMService
     //***************DEVICE GROUPS*************
     // GET all device groups
     Task<List<DeviceGroup>> GetAllDeviceGroups(string username);
-    
+
     // GET device group by ID
     Task<DeviceGroup?> GetDeviceGroupById(int id, string username);
     //****************SOURCES*****************
@@ -48,9 +49,15 @@ public interface ISondaIMService
 
 public class SondaIMService : ISondaIMService
 {
+    #region Fields
+
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ApiConfig _apiConfig;
+
+    #endregion
+
+    #region Constructors
 
     public SondaIMService(IHttpClientFactory httpClientFactory, ISondaAuthService sondaAuthService, IOptions<ApiConfig> apiConfigOptions)
     {
@@ -59,13 +66,17 @@ public class SondaIMService : ISondaIMService
         _apiConfig = apiConfigOptions.Value;
     }
 
+    #endregion
+
+    #region Methods
+
     public async Task<List<Device>?> GetAllDevices(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Device"]["GetAll"];
         string token = await _sondaAuthService.GetUserTokenIMAsync(username);
 
-        // Se actualizó la URL para usar page=-1 y obtener todos los dispositivos
+        // Se actualizï¿½ la URL para usar page=-1 y obtener todos los dispositivos
         string getDataUrl = $"{baseUrl}{endpoint}?page=-1";
 
         var client = _httpClientFactory.CreateClient();
@@ -131,7 +142,7 @@ public class SondaIMService : ISondaIMService
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            return new List<DeviceGroup>(); // devolver lista vacía si no hay grupos
+            return new List<DeviceGroup>(); // devolver lista vacï¿½a si no hay grupos
         }
 
         response.EnsureSuccessStatusCode();
@@ -233,7 +244,7 @@ public class SondaIMService : ISondaIMService
         string baseUrl = _apiConfig.BaseUrl.UrlIM;
         string endpoint = _apiConfig.EndpointsIM["Analytic"]["DeviceData"];
 
-        // 1. Formatear las fechas al formato específico que requiere la API externa
+        // 1. Formatear las fechas al formato especï¿½fico que requiere la API externa
         string formattedDateFrom = dateFrom.ToString("yyyy-MM-ddTHH:mm:ss");
         string formattedDateTo = dateTo.ToString("yyyy-MM-ddTHH:mm:ss");
 
@@ -421,7 +432,5 @@ public class SondaIMService : ISondaIMService
         return parsed;
     }
 
-
-
-
+    #endregion
 }

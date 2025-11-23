@@ -8,6 +8,7 @@ using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.EM;
+using OmniMonitor.Server.Resources;
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -16,12 +17,18 @@ namespace OmniMonitor.Server.Controllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetEMController : ControllerBase
     {
+        #region Fields
+
         private readonly IDatasetEMService _datasetEMService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IDatasetUMService _datasetUMService;
         private readonly ISondaEMService _sondaEMService;
         private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetEMController(IDatasetEMService datasetEMService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ISondaEMService sondaEMService, IKpiService kpiService, ApplicationDbContext context)
         {
@@ -32,6 +39,10 @@ namespace OmniMonitor.Server.Controllers
             _kpiService = kpiService;
             _context = context;
         }
+
+        #endregion
+
+        #region Methods
 
         [HttpPost("filtered")]
         [RequirePermission("Datasets.Create")]
@@ -44,8 +55,8 @@ namespace OmniMonitor.Server.Controllers
             {
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Usuario no encontrado.");
-                
+                    return BadRequest(Language.UserNotFound);
+
                 var req = request.DatasetRequest;
                 // Usar el username desde JWT
                 req.Username = username;
@@ -65,7 +76,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede crearse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResults, "alerta"));
                         }
                     }
                     else
@@ -73,7 +84,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allAlerts.Cast<object>();
                     }
-                    
+
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
                     req.AlertIds.AddRange(filtrados
@@ -93,7 +104,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún evento. El dataset no puede crearse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResults, "evento"));
                         }
                     }
                     else
@@ -101,7 +112,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allEvents.Cast<object>();
                     }
-                    
+
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
                     req.EventIds.AddRange(filtrados
@@ -121,7 +132,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede crearse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResults, "extensión"));
                         }
                     }
                     else
@@ -129,7 +140,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allExtensions.Cast<object>();
                     }
-                    
+
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
                     req.ExtensionIds.AddRange(filtrados
@@ -161,7 +172,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al crear el DatasetEM filtrado: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetCreateFilteredError, ex.Message));
             }
         }
 
@@ -178,14 +189,14 @@ namespace OmniMonitor.Server.Controllers
                 var req = request.DatasetRequest;
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Usuario no encontrado.");
-                
+                    return BadRequest(Language.UserNotFound);
+
                 // Usar el username desde JWT
                 req.Username = username;
                 DatasetEM? existingDataset = await _datasetEMService.GetDatasetEMByIdForEditAsync(datasetId, req.Username);
                 if (existingDataset == null)
                 {
-                    return NotFound($"No se encontró el DatasetEM con ID {datasetId} para el usuario {req.Username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, datasetId, req.Username));
                 }
 
                 await _datasetUMService.ValidateDatasetNameAsync(req.Name, req.Username, ModuleType.EventManager, existingDataset.DatasetId);
@@ -203,7 +214,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allAlerts, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ninguna alerta. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, "alerta"));
                         }
                     }
                     else
@@ -211,7 +222,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allAlerts.Cast<object>();
                     }
-                    
+
                     if (req.AlertIds == null) req.AlertIds = new List<int>();
                     req.AlertIds.Clear();
                     req.AlertIds.AddRange(filtrados
@@ -231,7 +242,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allEvents, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún evento. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, "evento"));
                         }
                     }
                     else
@@ -239,7 +250,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allEvents.Cast<object>();
                     }
-                    
+
                     if (req.EventIds == null) req.EventIds = new List<int>();
                     req.EventIds.Clear();
                     req.EventIds.AddRange(filtrados
@@ -259,7 +270,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allExtensions, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ninguna extensión. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, "extensión"));
                         }
                     }
                     else
@@ -267,7 +278,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allExtensions.Cast<object>();
                     }
-                    
+
                     if (req.ExtensionIds == null) req.ExtensionIds = new List<int>();
                     req.ExtensionIds.Clear();
                     req.ExtensionIds.AddRange(filtrados
@@ -295,7 +306,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al actualizar el DatasetEM filtrado: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetUpdateError, ex.Message));
             }
         }
 
@@ -317,7 +328,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetError, ex.Message));
             }
         }
 
@@ -337,14 +348,14 @@ namespace OmniMonitor.Server.Controllers
                 DatasetEM? dataset = await _datasetEMService.GetDatasetEMByIdAsync(datasetId, username);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, datasetId, username));
                 }
 
                 return Ok(dataset);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetByIdError, ex.Message));
             }
         }
 
@@ -363,12 +374,12 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 DatasetEM? id = await _context.DatasetsEM
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-                
+
                 // Eliminar KPIs asociados a este dataset
                 var kpisToDelete = await _context.Kpi
                     .Where(k => k.DatasetId == datasetId && k.SourceModule.ToUpper() == "EM")
                     .ToListAsync();
-                
+
                 foreach (var kpi in kpisToDelete)
                 {
                     try
@@ -380,7 +391,7 @@ namespace OmniMonitor.Server.Controllers
                         // Si falla la eliminación de un KPI, continuar con los demás
                     }
                 }
-                
+
                 await _datasetEMService.DeleteDatasetEMAsync(datasetId, username);
                 await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
                 return NoContent();
@@ -391,8 +402,9 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al eliminar el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetDeleteError, ex.Message));
             }
         }
+        #endregion
     }
 }

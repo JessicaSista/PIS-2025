@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 using OmniMonitor.Server.Attributes;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -15,14 +16,24 @@ namespace OmniMonitor.Server.Controllers
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase
     {
+        #region Fields
+
         private readonly IDashboardService _dashboardService;
         private readonly ISondaAuthService _sondaAuthService;
+
+        #endregion
+
+        #region Constructors
 
         public DashboardController(IDashboardService dashboardService, ISondaAuthService sondaAuthService)
         {
             _dashboardService = dashboardService;
             _sondaAuthService = sondaAuthService;
         }
+
+        #endregion
+
+        #region Methods
 
         /// <summary>
         /// Crea un nuevo dashboard personalizable.
@@ -40,7 +51,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DashboardResponse>> CreateDashboard([FromBody] CreateDashboardRequest request)
+        public async Task<ActionResult<DashboardResponse>> CreateDashboardAsync([FromBody] CreateDashboardRequest request)
         {
             try
             {
@@ -52,7 +63,7 @@ namespace OmniMonitor.Server.Controllers
 
                 DashboardResponse nuevoDashboard = await _dashboardService.CreateDashboardAsync(request, username);
                 return CreatedAtAction(
-                    nameof(GetDashboard),
+                    nameof(GetDashboardAsync),
                     new { id = nuevoDashboard.IdDashboard, username = nuevoDashboard.Username },
                     nuevoDashboard);
             }
@@ -62,7 +73,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al crear el dashboard: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DashboardCreateError, ex.Message));
             }
         }
 
@@ -70,7 +81,6 @@ namespace OmniMonitor.Server.Controllers
         /// Obtiene un dashboard específico por su ID y nombre de usuario.
         /// </summary>
         /// <param name="id">ID del dashboard.</param>
-        /// <param name="token">Token de usuario.</param>
         /// <returns>Dashboard completo con su layout y tarjetas.</returns>
         /// <response code="200">Dashboard encontrado.</response>
         /// <response code="404">Dashboard no encontrado.</response>
@@ -85,7 +95,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DashboardResponse>> GetDashboard(int id)
+        public async Task<ActionResult<DashboardResponse>> GetDashboardAsync(int id)
         {
             try
             {
@@ -93,14 +103,14 @@ namespace OmniMonitor.Server.Controllers
                 DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdAsync(id, username);
                 if (dashboard == null)
                 {
-                    return NotFound($"No se encontró el dashboard con ID {id} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DashboardNotFoundUser, id, username));
                 }
 
                 return Ok(dashboard);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el dashboard: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DashboardGetError, ex.Message));
             }
         }
 
@@ -111,28 +121,28 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(401)]
         [ProducesResponseType(403)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DashboardResponse>> GetDashboardSinToken(int id)
+        public async Task<ActionResult<DashboardResponse>> GetDashboardWithoutTokenAsync(int id)
         {
             try
             {
-                DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdAsyncSinToken(id);
+                DashboardResponse? dashboard = await _dashboardService.GetDashboardByIdWithoutTokenAsync(id);
                 if (dashboard == null)
                 {
-                    return NotFound($"No se encontró el dashboard con ID {id}");
+                    return NotFound(string.Format(Language.DashboardNotFound, id));
                 }
 
                 return Ok(dashboard);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el dashboard: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DashboardGetError, ex.Message));
             }
         }
 
         /// <summary>
         /// Obtiene todos los dashboards de un usuario específico.
         /// </summary>
-        /// <param name="token">Nombre de usuario.</param>
+        /// <param name="query">Texto de búsqueda opcional.</param>
         /// <returns>Lista de dashboards del usuario.</returns>
         /// <response code="200">Lista de dashboards obtenida exitosamente.</response>
         /// <response code="401">Usuario no autenticado.</response>
@@ -143,7 +153,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboards(string? query)
+        public async Task<ActionResult<List<DashboardSummaryResponse>>> GetAllDashboardsAsync(string? query)
         {
             try
             {
@@ -153,14 +163,13 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener los dashboards: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DashboardsGetError, ex.Message));
             }
         }
 
         /// <summary>
         /// Obtiene todos los dashboards de un usuario específico con paginación.
         /// </summary>
-        /// <param name="token">Token de autenticación del usuario.</param>
         /// <param name="page">Número de página (default: 1).</param>
         /// <param name="pageSize">Tamaño de página (default: 9).</param>
         /// <param name="query">Texto de búsqueda opcional.</param>
@@ -174,8 +183,8 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(PaginatedDashboardDto), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<PaginatedDashboardDto>> GetAllDashboardsPaginated( 
-            [FromQuery] int page = 1, 
+        public async Task<ActionResult<PaginatedDashboardDto>> GetAllDashboardsPaginatedAsync(
+            [FromQuery] int page = 1,
             [FromQuery] int pageSize = 9,
             [FromQuery] string? query = null)
         {
@@ -186,13 +195,13 @@ namespace OmniMonitor.Server.Controllers
                 // Obtener todos los dashboards (con filtro de búsqueda si existe)
 
                 if (page <= 0 || pageSize <= 0)
-                    return BadRequest("La página y el tamaño deben ser mayores a 0.");
+                    return BadRequest(Language.PageSizeInvalid);
 
                 // Obtener solo los dashboards necesarios para la página
                 List<DashboardSummaryResponse> paginatedItems = await _dashboardService.GetAllDashboardsPaginatedAsync(username, query, page, pageSize);
 
                 // Calcular totales
-                int totalCount = await _dashboardService.GetDashboardsCount(username, query);
+                int totalCount = await _dashboardService.GetDashboardsCountAsync(username, query);
                 int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
                 // Validar página
@@ -215,7 +224,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener los dashboards: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DashboardsGetError, ex.Message));
             }
         }
 
@@ -233,13 +242,13 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult> ValidateCardIds([FromBody] List<int> cardIds)
+        public async Task<ActionResult> ValidateCardIdsAsync([FromBody] List<int> cardIds)
         {
             try
             {
                 if (cardIds == null || cardIds.Count == 0)
                 {
-                    return BadRequest("La lista de IdVisualizacion no puede estar vacía");
+                    return BadRequest(Language.CardIdsEmpty);
                 }
 
                 bool isValid = await _dashboardService.ValidateCardIdsAsync(cardIds);
@@ -247,12 +256,12 @@ namespace OmniMonitor.Server.Controllers
                 return Ok(new
                 {
                     isValid,
-                    message = isValid ? "Todos los IdVisualizacion son válidos" : "Algunos IdVisualizacion no existen en el sistema",
+                    message = isValid ? Language.CardIdsValid : Language.CardIdsInvalid,
                 });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al validar los IdVisualizacion: {ex.Message}");
+                return StatusCode(500, string.Format(Language.CardIdsValidationError, ex.Message));
             }
         }
 
@@ -264,16 +273,16 @@ namespace OmniMonitor.Server.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteDashboard(int id)
+        public async Task<IActionResult> DeleteDashboardAsync(int id)
         {
             var username = User.Identity?.Name;
             bool result = await _dashboardService.DeleteDashboardAsync(id, username);
             if (!result)
             {
-                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                return NotFound(new { message = string.Format(Language.DashboardNotFoundUser, id, username) });
             }
 
-            return Ok(new { message = $"Dashboard con id {id} eliminado correctamente para el usuario '{username}'" });
+            return Ok(new { message = string.Format(Language.DashboardDeleted, id, username) });
         }
 
         /// <summary>
@@ -285,16 +294,16 @@ namespace OmniMonitor.Server.Controllers
         [HttpPut("{id}/config")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> UpdateDashboardConfig(int id, [FromBody] string nuevoJsonDiseno)
+        public async Task<IActionResult> UpdateDashboardConfigAsync(int id, [FromBody] string nuevoJsonDiseno)
         {
             var username = User.Identity?.Name;
             bool result = await _dashboardService.UpdateDashboardConfigAsync(id, username, nuevoJsonDiseno);
             if (!result)
             {
-                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                return NotFound(new { message = string.Format(Language.DashboardNotFoundUser, id, username) });
             }
 
-            return Ok(new { message = $"Configuración actualizada correctamente para el dashboard {id}" });
+            return Ok(new { message = string.Format(Language.DashboardConfigUpdated, id) });
         }
 
         /// <summary>
@@ -305,7 +314,7 @@ namespace OmniMonitor.Server.Controllers
         [HttpPost("{id}/card")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> AddDashboardCard(int id, [FromQuery] string? jsonConfig, [FromBody] DashboardCard nuevaCard)
+        public async Task<IActionResult> AddDashboardCardAsync(int id, [FromQuery] string? jsonConfig, [FromBody] DashboardCard nuevaCard)
         {
             try
             {
@@ -313,10 +322,10 @@ namespace OmniMonitor.Server.Controllers
                 bool result = await _dashboardService.AddDashboardCardAsync(id, username, jsonConfig!, nuevaCard);
                 if (!result)
                 {
-                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                    return NotFound(new { message = string.Format(Language.DashboardNotFoundUser, id, username) });
                 }
 
-                return Ok(new { message = $"Tarjeta agregada correctamente al dashboard {id}" });
+                return Ok(new { message = string.Format(Language.DashboardCardAdded, id) });
             }
             catch (ArgumentException ex)
             {
@@ -324,7 +333,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = $"Error interno al agregar la tarjeta: {ex.Message}" });
+                return StatusCode(500, new { message = string.Format(Language.DashboardCardAddError, ex.Message) });
             }
         }
 
@@ -337,16 +346,16 @@ namespace OmniMonitor.Server.Controllers
         [HttpPut("{id}/cards/order")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> ReorderDashboardCards(int id, [FromQuery] string jsonConfig, [FromBody] List<DashboardCard> orderedCards)
+        public async Task<IActionResult> ReorderDashboardCardsAsync(int id, [FromQuery] string jsonConfig, [FromBody] List<DashboardCard> orderedCards)
         {
             var username = User.Identity?.Name;
             bool result = await _dashboardService.ReorderDashboardCardsAsync(id, username, jsonConfig, orderedCards);
             if (!result)
             {
-                return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                return NotFound(new { message = string.Format(Language.DashboardNotFoundUser, id, username) });
             }
 
-            return Ok(new { message = $"Orden de tarjetas actualizado correctamente para el dashboard {id}" });
+            return Ok(new { message = string.Format(Language.DashboardCardsReordered, id) });
         }
 
         /// <summary>
@@ -358,16 +367,16 @@ namespace OmniMonitor.Server.Controllers
         [HttpDelete("{id}/card/{idCard}/{tipoCard}")]
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteDashboardCard(int id, int idCard, int tipoCard)
+        public async Task<IActionResult> DeleteDashboardCardAsync(int id, int idCard, int tipoCard)
         {
             var username = User.Identity?.Name;
             bool result = await _dashboardService.DeleteDashboardCardAsync(id, username, idCard, tipoCard);
             if (!result)
             {
-                return NotFound(new { message = $"No se encontró la tarjeta con idCard {idCard} y tipoCard {tipoCard} en el dashboard {id} para el usuario '{username}'" });
+                return NotFound(new { message = string.Format(Language.DashboardCardNotFound, idCard, tipoCard, id, username) });
             }
 
-            return Ok(new { message = $"Tarjeta eliminada correctamente del dashboard {id}" });
+            return Ok(new { message = string.Format(Language.DashboardCardDeleted, id) });
         }
 
         /// <summary>
@@ -380,7 +389,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DashboardResponse), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> UpdateDashboardInfo(int id,[FromQuery] string? nombre, [FromQuery] string? descripcion)
+        public async Task<IActionResult> UpdateDashboardInfoAsync(int id, [FromQuery] string? nombre, [FromQuery] string? descripcion)
         {
             try
             {
@@ -388,7 +397,7 @@ namespace OmniMonitor.Server.Controllers
                 DashboardResponse? updated = await _dashboardService.UpdateDashboardInfoAsync(id, username, nombre, descripcion);
                 if (updated == null)
                 {
-                    return NotFound(new { message = $"No se encontró el dashboard con id {id} para el usuario '{username}'" });
+                    return NotFound(new { message = string.Format(Language.DashboardNotFoundUser, id, username) });
                 }
 
                 return Ok(updated);
@@ -399,7 +408,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al actualizar la información del dashboard: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DashboardInfoUpdateError, ex.Message));
             }
         }
 
@@ -412,21 +421,21 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(400)]
-        public async Task<IActionResult> EditDashboardCard(int id, [FromQuery] string? jsonConfig, [FromQuery] int idVisualizacion, [FromBody] CreateVisualizacionRequest request)
+        public async Task<IActionResult> EditDashboardCardAsync(int id, [FromQuery] string? jsonConfig, [FromQuery] int idVisualizacion, [FromBody] CreateVisualizacionRequest request)
         {
             var username = User.Identity?.Name;
             if (request == null || request.Nombre == null)
             {
-                return BadRequest(new { message = "Datos inválidos para la edición de la tarjeta." });
+                return BadRequest(new { message = Language.DashboardCardEditInvalid });
             }
 
-            bool result = await _dashboardService.EditDashboardCard(id, username, jsonConfig!, idVisualizacion, request);
+            bool result = await _dashboardService.EditDashboardCardAsync(id, username, jsonConfig!, idVisualizacion, request);
             if (!result)
             {
-                return NotFound(new { message = "No se encontró la tarjeta o la visualización asociada para editar." });
+                return NotFound(new { message = Language.DashboardCardEditNotFound });
             }
 
-            return Ok(new { message = "Tarjeta y visualización actualizadas correctamente." });
+            return Ok(new { message = Language.DashboardCardEditSuccess });
         }
 
         /// <summary>
@@ -436,7 +445,7 @@ namespace OmniMonitor.Server.Controllers
         [RequirePermission("Dashboards.View")]
         [HttpGet("search")]
         [ProducesResponseType(typeof(List<DashboardSummaryResponse>), 200)]
-        public async Task<IActionResult> SearchDashboards([FromQuery] string query)
+        public async Task<IActionResult> SearchDashboardsAsync([FromQuery] string query)
         {
             List<DashboardSummaryResponse> result = await _dashboardService.SearchDashboardsByTextAsync(query);
             return Ok(result);
@@ -449,7 +458,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<ShareResponseDto>> CreateShareLink(int dashboardId, [FromBody] ShareRequestDto request)
+        public async Task<ActionResult<ShareResponseDto>> CreateShareLinkAsync(int dashboardId, [FromBody] ShareRequestDto request)
         {
             if (!ModelState.IsValid)
             {
@@ -461,7 +470,7 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
                 {
-                    return Unauthorized(new { message = "Token inválido." });
+                    return Unauthorized(new { message = Language.TokenInvalid });
                 }
 
                 var response = await _dashboardService.CreateShareLinkAsync(dashboardId, request, username);
@@ -473,7 +482,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Ocurrió un error interno al crear el enlace.", details = ex.Message });
+                return StatusCode(500, new { message = Language.ShareLinkCreateError, details = ex.Message });
             }
         }
 
@@ -482,46 +491,46 @@ namespace OmniMonitor.Server.Controllers
         [HttpGet("getShares/{dashboardId}/share")]
         [ProducesResponseType(typeof(List<ShareResponseDto>), 200)]
         [ProducesResponseType(401)]
-        public async Task<ActionResult<List<ShareResponseDto>>> GetShareLinksForDashboard(int dashboardId)
+        public async Task<ActionResult<List<ShareResponseDto>>> GetShareLinksForDashboardAsync(int dashboardId)
         {
             try
             {
                 var username = User.Identity?.Name;
-                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
+                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = Language.TokenInvalid });
 
                 var response = await _dashboardService.GetAllByDashboardAsync(dashboardId, username);
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Ocurrió un error interno.", details = ex.Message });
+                return StatusCode(500, new { message = Language.InternalError, details = ex.Message });
             }
         }
 
         [HttpGet("getShare/{slug}")]
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<ShareResponseDto>> GetPublicShareLink(string slug)
+        public async Task<ActionResult<ShareResponseDto>> GetPublicShareLinkAsync(string slug)
         {
             try
             {
                 var response = await _dashboardService.GetBySlugAsync(slug);
                 if (response == null)
                 {
-                    return NotFound(new { message = "Enlace no encontrado, inválido o expirado." });
+                    return NotFound(new { message = Language.ShareLinkNotFound });
                 }
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+                return StatusCode(500, new { message = Language.InternalErrorDetails, details = ex.Message });
             }
         }
 
         [HttpPost("ValidateShare/{slug}/validate")]
         [ProducesResponseType(typeof(ValidateSharePasswordResponseDto), 200)]
         [ProducesResponseType(401)]
-        public async Task<ActionResult<ValidateSharePasswordResponseDto>> ValidateSharePassword(string slug, [FromBody] ValidateSharePasswordRequestDto request)
+        public async Task<ActionResult<ValidateSharePasswordResponseDto>> ValidateSharePasswordAsync(string slug, [FromBody] ValidateSharePasswordRequestDto request)
         {
             if (!ModelState.IsValid) return BadRequest();
             try
@@ -535,7 +544,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+                return StatusCode(500, new { message = Language.InternalErrorDetails, details = ex.Message });
             }
         }
 
@@ -545,24 +554,24 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(ShareResponseDto), 200)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<ActionResult<ShareResponseDto>> UpdateShareLink(string slug, [FromBody] ShareRequestDto request)
+        public async Task<ActionResult<ShareResponseDto>> UpdateShareLinkAsync(string slug, [FromBody] ShareRequestDto request)
         {
             if (!ModelState.IsValid) return BadRequest();
             try
             {
                 var username = User.Identity?.Name;
-                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
+                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = Language.TokenInvalid });
 
                 var response = await _dashboardService.UpdateShareLinkAsync(slug, request, username);
                 if (response == null)
                 {
-                    return NotFound(new { message = "Enlace no encontrado o no autorizado para este usuario." });
+                    return NotFound(new { message = Language.ShareLinkNotFoundOrUnauthorized });
                 }
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+                return StatusCode(500, new { message = Language.InternalErrorDetails, details = ex.Message });
             }
         }
 
@@ -572,24 +581,26 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(204)]
         [ProducesResponseType(401)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> DeleteShareLink(string slug)
+        public async Task<IActionResult> DeleteShareLinkAsync(string slug)
         {
             try
             {
                 var username = User.Identity?.Name;
-                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = "Token inválido." });
+                if (string.IsNullOrWhiteSpace(username)) return Unauthorized(new { message = Language.TokenInvalid });
 
                 var success = await _dashboardService.DeleteShareLinkAsync(slug, username);
                 if (!success)
                 {
-                    return NotFound(new { message = "Enlace no encontrado o no autorizado para este usuario." });
+                    return NotFound(new { message = Language.ShareLinkNotFoundOrUnauthorized });
                 }
                 return NoContent();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error interno.", details = ex.Message });
+                return StatusCode(500, new { message = Language.InternalErrorDetails, details = ex.Message });
             }
         }
+
+        #endregion
     }
 }

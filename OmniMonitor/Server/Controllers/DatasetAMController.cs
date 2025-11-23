@@ -8,6 +8,7 @@ using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 using OmniMonitor.Shared.Dtos.AM;
+using OmniMonitor.Server.Resources;
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -16,12 +17,18 @@ namespace OmniMonitor.Server.Controllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetAMController : ControllerBase
     {
+        #region Fields
+
         private readonly IDatasetAmService _datasetAmService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IDatasetUMService _datasetUMService;
         private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
         private readonly ISondaAMService _sondaAMService;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context, ISondaAMService sondaAMService)
         {
@@ -32,6 +39,10 @@ namespace OmniMonitor.Server.Controllers
             _context = context;
             _sondaAMService = sondaAMService;
         }
+
+        #endregion
+
+        #region Methods
 
         [HttpPost("filtered")]
         [RequirePermission("Datasets.Create")]
@@ -45,8 +56,8 @@ namespace OmniMonitor.Server.Controllers
                 var req = request.DatasetRequest;
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Usuario no encontrado.");
-                
+                    return BadRequest(Language.UserNotFound);
+
                 // Usar el username desde JWT
                 req.Username = username;
                 if (!ModelState.IsValid)
@@ -60,7 +71,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, req.Username);
-                    
+
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
@@ -69,7 +80,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún asset. El dataset no puede crearse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResults, "asset"));
                         }
                     }
                     else
@@ -77,7 +88,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allAssets.Cast<object>();
                     }
-                    
+
                     var assetIds = new List<string>();
                     foreach (var assetObj in filtrados)
                     {
@@ -91,7 +102,7 @@ namespace OmniMonitor.Server.Controllers
                         }
                     }
                     req.Grupo_Asset_Ids = assetIds;
-                    
+
                     // [CREATE AM DATASET] Grupo_Asset_Ids asignado (log de consola removido).
                 }
                 else if (req.ContentType == "1") // EventTask
@@ -99,7 +110,7 @@ namespace OmniMonitor.Server.Controllers
                     req.Type_Dataset = 1; // Establecer Type_Dataset para EventTask
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, req.Username);
-                    
+
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
@@ -108,7 +119,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede crearse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResults, "Event Task"));
                         }
                     }
                     else
@@ -116,7 +127,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allEventTasks.Cast<object>();
                     }
-                    
+
                     req.Grupo_Event_Task_Instance_Ids = filtrados
                         .OfType<EventTaskInstanceDto>()
                         .Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0)
@@ -127,7 +138,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, req.Username);
-                    
+
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
@@ -136,7 +147,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún Stock. El dataset no puede crearse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResults, "Stock"));
                         }
                     }
                     else
@@ -144,7 +155,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allStocks.Cast<object>();
                     }
-                    
+
                     req.StockIds = filtrados
                         .OfType<EventTaskInstanceStockDto>()
                         .Select(e => e.Id != null ? Convert.ToInt32(e.Id) : 0)
@@ -174,7 +185,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al crear el DatasetAM filtrado: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetCreateFilteredError, ex.Message));
             }
         }
 
@@ -191,14 +202,14 @@ namespace OmniMonitor.Server.Controllers
                 var req = request.DatasetRequest;
                 var username = User.Identity?.Name;
                 if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Usuario no encontrado.");
-                
+                    return BadRequest(Language.UserNotFound);
+
                 // Usar el username desde JWT
                 req.Username = username;
                 DatasetAM? existingDataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, req.Username);
                 if (existingDataset == null)
                 {
-                    return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {req.Username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, id, req.Username));
                 }
 
                 await _datasetUMService.ValidateDatasetNameAsync(req.Nombre, req.Username, ModuleType.AssetManager, existingDataset.DatasetId);
@@ -211,7 +222,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     req.Type_Dataset = 2; // Establecer Type_Dataset para Asset
                     var allAssets = await _sondaAMService.GetAssets(null, null, null, null, null, null, username);
-                    
+
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
@@ -220,7 +231,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allAssets, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún asset. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, "asset"));
                         }
                     }
                     else
@@ -228,10 +239,10 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allAssets.Cast<object>();
                     }
-                    
+
                     if (req.Grupo_Asset_Ids == null) req.Grupo_Asset_Ids = new List<string>();
                     req.Grupo_Asset_Ids.Clear();
-                    
+
                     var assetIds = new List<string>();
                     foreach (var assetObj in filtrados)
                     {
@@ -251,7 +262,7 @@ namespace OmniMonitor.Server.Controllers
                     req.Type_Dataset = 1; // Establecer Type_Dataset para EventTask
                     var allEventTasks = await _sondaAMService.GetEventTaskInstances(
                         "1900-11-01,3030-11-06", null, null, null, null, null, null, null, null, false, false, username);
-                    
+
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
@@ -260,7 +271,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allEventTasks, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún Event Task. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, "Event Task"));
                         }
                     }
                     else
@@ -268,7 +279,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allEventTasks.Cast<object>();
                     }
-                    
+
                     if (req.Grupo_Event_Task_Instance_Ids == null) req.Grupo_Event_Task_Instance_Ids = new List<int>();
                     req.Grupo_Event_Task_Instance_Ids.Clear();
                     req.Grupo_Event_Task_Instance_Ids.AddRange(filtrados
@@ -281,7 +292,7 @@ namespace OmniMonitor.Server.Controllers
                 {
                     req.Type_Dataset = 3; // Establecer Type_Dataset para Stock
                     var allStocks = await _sondaAMService.GetAllStock(null, null, null, null, null, username);
-                    
+
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
@@ -290,7 +301,7 @@ namespace OmniMonitor.Server.Controllers
                         filtrados = ApiDataService.StaticFilterObjects(allStocks, request.Filters);
                         if (!filtrados.Any())
                         {
-                            return BadRequest("El filtro no encontró ningún Stock. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, "Stock"));
                         }
                     }
                     else
@@ -298,7 +309,7 @@ namespace OmniMonitor.Server.Controllers
                         // Sin filtros: incluir todo
                         filtrados = allStocks.Cast<object>();
                     }
-                    
+
                     if (req.StockIds == null) req.StockIds = new List<int>();
                     req.StockIds.Clear();
                     req.StockIds.AddRange(filtrados
@@ -326,7 +337,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al actualizar el DatasetAM filtrado: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetUpdateError, ex.Message));
             }
         }
 
@@ -347,7 +358,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener los DatasetAM: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetError, ex.Message));
             }
         }
 
@@ -367,14 +378,14 @@ namespace OmniMonitor.Server.Controllers
                 DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdAsync(id, username);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, id, username));
                 }
 
                 return Ok(dataset);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el DatasetAM: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetByIdError, ex.Message));
             }
         }
 
@@ -394,14 +405,14 @@ namespace OmniMonitor.Server.Controllers
                 DatasetAM? dataset = await _datasetAmService.GetDatasetAMByIdForEditAsync(id, username);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el DatasetAM con ID {id} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, id, username));
                 }
 
                 return Ok(dataset);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el DatasetAM para edición: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetByIdError, ex.Message));
             }
         }
 
@@ -421,17 +432,17 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 DatasetAM? datasetid = await _context.DatasetAM
                 .FirstOrDefaultAsync(d => d.Id_Dataset == id && d.Username == username);
-                
+
                 if (datasetid == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {id} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, id, username));
                 }
-                
+
                 // Eliminar KPIs asociados a este dataset
                 var kpisToDelete = await _context.Kpi
                     .Where(k => k.DatasetId == id && k.SourceModule.ToUpper() == "AM")
                     .ToListAsync();
-                
+
                 foreach (var kpi in kpisToDelete)
                 {
                     try
@@ -443,7 +454,7 @@ namespace OmniMonitor.Server.Controllers
                         // Si falla la eliminación de un KPI, continuar con los demás
                     }
                 }
-                
+
                 await _datasetAmService.DeleteDatasetAMAsync(id, username);
                 await _datasetUMService.DeleteDatasetAsync(datasetid.DatasetId, username);
                 return NoContent();
@@ -453,5 +464,6 @@ namespace OmniMonitor.Server.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+        #endregion
     }
 }

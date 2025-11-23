@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using OmniMonitor.Server.Context;
 using OmniMonitor.Shared.Dtos;
 
@@ -16,12 +17,22 @@ namespace OmniMonitor.Server.Services
 
     public class PermissionService : IPermissionService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
+
+        #endregion
+
+        #region Constructors
 
         public PermissionService(ApplicationDbContext context)
         {
             _context = context;
         }
+
+        #endregion
+
+        #region Methods
 
         public async Task<bool> HasPermissionAsync(int userId, string permissionName)
         {
@@ -110,5 +121,7 @@ namespace OmniMonitor.Server.Services
 
             return permissions;
         }
+
+        #endregion
     }
 }

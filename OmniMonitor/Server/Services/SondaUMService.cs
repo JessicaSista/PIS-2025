@@ -2,13 +2,14 @@ using Microsoft.Extensions.Options;
 using OmniMonitor.Server.Configuration;
 using OmniMonitor.Shared.Dtos;
 using System.Net.Http.Headers;
+using OmniMonitor.Server.Resources;
 using System.Text.Json;
 
 
-public interface  ISondaUMService
+public interface ISondaUMService
 {
 
-
+    #region Fields
     public Task<List<Zone>> GetAllZones(string username);
     public Task<Zone?> GetZoneById(int id, string username);
 
@@ -19,20 +20,27 @@ public interface  ISondaUMService
     public Task<List<Event>> GetAllEvents(string username);
     public Task<Event?> GetEventById(int id, string username);
     public Task<List<Event>> GetEventsByZoneId(int zoneId, string username);
+    #endregion
 }
 
 public class SondaUMService : ISondaUMService
 {
+    #region Fields
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISondaAuthService _sondaAuthService;
     private readonly ApiConfig _apiConfig;
+    #endregion
+
+    #region Constructors
     public SondaUMService(IHttpClientFactory httpClientFactory, ISondaAuthService sondaAuthService, IOptions<ApiConfig> apiConfigOptions)
     {
         _httpClientFactory = httpClientFactory;
         _sondaAuthService = sondaAuthService;
         _apiConfig = apiConfigOptions.Value;
     }
+    #endregion
 
+    #region Methods
     public async Task<List<Zone>> GetAllZones(string username)
     {
         string baseUrl = _apiConfig.BaseUrl.UrlUM;
@@ -121,7 +129,7 @@ public class SondaUMService : ISondaUMService
         {
             PropertyNameCaseInsensitive = true
         });
-        
+
         return parsed?.results ?? new List<News>();
     }
 
@@ -151,7 +159,7 @@ public class SondaUMService : ISondaUMService
     public async Task<List<News>> GetNewsByZoneId(int zoneId, string username, int startIndex = 1, string? queryString = null, string? sort = null, int count = 10)
     {
         // 1. Traer todos los news (sin filtrar por zona)
-        // Validar parámetros de entrada
+        // Validar parï¿½metros de entrada
         if (startIndex <= 0)
             throw new ArgumentException("startIndex debe ser mayor a 0");
         if (count <= 0)
@@ -238,12 +246,12 @@ public class SondaUMService : ISondaUMService
             return new List<Event>();
         }
 
-        // Filtrar eventos que están dentro de las áreas de la zona
+        // Filtrar eventos que estï¿½n dentro de las ï¿½reas de la zona
         var eventsInZone = new List<Event>();
-        
+
         foreach (var eventItem in allEvents)
         {
-            if (eventItem.Location != null && 
+            if (eventItem.Location != null &&
                 GeometryHelper.IsPointInZone(eventItem.Location, zone.Areas))
             {
                 eventsInZone.Add(eventItem);
@@ -252,5 +260,6 @@ public class SondaUMService : ISondaUMService
 
         return eventsInZone;
     }
+    #endregion
 }
 

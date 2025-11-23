@@ -6,6 +6,7 @@ using System.Text.Json;
 
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
+using OmniMonitor.Server.Resources;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
 
@@ -16,12 +17,18 @@ namespace OmniMonitor.Server.Controllers
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class DatasetController : ControllerBase
     {
+        #region Fields
+
         private readonly IDatasetService _datasetService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly ISondaIMService _sondaIMService;
         private readonly IDatasetUMService _datasetUMService;
         private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService, ISondaIMService sondaIMService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context)
         {
@@ -33,6 +40,10 @@ namespace OmniMonitor.Server.Controllers
             _context = context;
         }
 
+        #endregion
+
+        #region Methods
+
         /// <summary>
         /// Crea un nuevo dataset.
         /// </summary>
@@ -41,7 +52,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
         [ProducesResponseType(400)] // Bad Request
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetIM>> CreateDataset([FromBody] CreateDatasetIMRequest request)
+        public async Task<ActionResult<DatasetIM>> CreateDatasetAsync([FromBody] CreateDatasetIMRequest request)
         {
             try
             {
@@ -57,7 +68,7 @@ namespace OmniMonitor.Server.Controllers
                 await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
 
                 // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
-                return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+                return CreatedAtAction(nameof(GetDatasetByIdAsync), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
             }
             catch (ArgumentException ex)
             {
@@ -69,7 +80,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al crear el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetCreateError, ex.Message));
             }
         }
 
@@ -81,7 +92,7 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetIM), 201)] // 201 Created
         [ProducesResponseType(400)] // Bad Request
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetIM>> CreateFilteredDataset([FromBody] CreateDatasetIMRequest request)
+        public async Task<ActionResult<DatasetIM>> CreateFilteredDatasetAsync([FromBody] CreateDatasetIMRequest request)
         {
             try
             {
@@ -93,7 +104,7 @@ namespace OmniMonitor.Server.Controllers
 
                 if (request.IsDataset == "S")
                 {
-                    return BadRequest("Este endpoint es solo para datasets no formales (IsDataset = 'N'). Use el endpoint regular para datasets formales.");
+                    return BadRequest(Language.DatasetFilteredOnly);
                 }
 
                 // Permitir datasets sin filtros (se crearán vacíos)
@@ -103,12 +114,12 @@ namespace OmniMonitor.Server.Controllers
                 }
 
                 if (string.IsNullOrWhiteSpace(username))
-                    return BadRequest("Usuario no encontrado.");
+                    return BadRequest(Language.UserNotFound);
 
                 // Validar filtros ANTES de crear el dataset general
                 IEnumerable<object> entidades = Enumerable.Empty<object>();
                 string entidadNombre = "";
-                
+
                 if (request.ContentType == "1") // Device
                 {
                     entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
@@ -117,11 +128,11 @@ namespace OmniMonitor.Server.Controllers
                 else if (request.ContentType == "2") // Source
                 {
                     var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
-                    
+
                     // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
                     bool needsDevices = request.Filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
                     bool needsSensors = request.Filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
-                    
+
                     if (needsDevices || needsSensors)
                     {
                         // Poblar Devices para cada Source
@@ -131,7 +142,7 @@ namespace OmniMonitor.Server.Controllers
                             {
                                 var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
                                 source.Devices = devices;
-                                
+
                                 // Si también se necesitan Sensors, extraerlos de los devices
                                 if (needsSensors && devices.Any())
                                 {
@@ -145,7 +156,7 @@ namespace OmniMonitor.Server.Controllers
                             }
                         }
                     }
-                    
+
                     entidades = sources;
                     entidadNombre = "fuente";
                 }
@@ -164,7 +175,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 else
                 {
-                    return BadRequest("ContentType inválido o no soportado");
+                    return BadRequest(Language.ContentTypeInvalid);
                 }
 
                 // Si hay filtros, aplicarlos y validar que haya resultados
@@ -176,7 +187,7 @@ namespace OmniMonitor.Server.Controllers
                     // Si hay filtros pero no hay resultados, no crear el dataset
                     if (!filtrados.Any())
                     {
-                        return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede crearse sin resultados.");
+                        return BadRequest(string.Format(Language.FilterNoResults, entidadNombre));
                     }
                     request.JsonFilters = JsonSerializer.Serialize(request.Filters);
                 }
@@ -193,13 +204,13 @@ namespace OmniMonitor.Server.Controllers
                 try
                 {
                     dataset = await _datasetUMService.CreateDatasetAsync(requestDataset);
-                    
+
                     // Esta llamada validará nuevamente los filtros y lanzará excepción si no hay resultados
                     DatasetIM newDataset = await _datasetService.CreateDatasetIMFilteredAsync(request, dataset.Id, username);
                     await _datasetUMService.UpdateDatasetAsyncIM(dataset.Id, requestDataset, newDataset);
-                    
+
                     // Devuelve una respuesta 201 Created con la ubicación del nuevo recurso
-                    return CreatedAtAction(nameof(GetDatasetById), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
+                    return CreatedAtAction(nameof(GetDatasetByIdAsync), new { datasetId = newDataset.Id, username = newDataset.Username }, newDataset);
                 }
                 catch (Exception)
                 {
@@ -234,7 +245,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                var errorMessage = $"Error interno al crear el dataset filtrado: {ex.Message}";
+                var errorMessage = string.Format(Language.DatasetCreateFilteredError, ex.Message);
                 if (ex.InnerException != null)
                 {
                     errorMessage += $" | Inner Exception: {ex.InnerException.Message}";
@@ -250,7 +261,7 @@ namespace OmniMonitor.Server.Controllers
         [RequirePermission("Datasets.View")]
         [ProducesResponseType(typeof(List<DatasetIM>), 200)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<List<DatasetIM>>> GetAllDatasets([FromQuery] string? search = null)
+        public async Task<ActionResult<List<DatasetIM>>> GetAllDatasetsAsync([FromQuery] string? search = null)
         {
             try
             {
@@ -264,14 +275,14 @@ namespace OmniMonitor.Server.Controllers
                 if (!string.IsNullOrWhiteSpace(search))
                 {
                     string normalizedSearch = NormalizeText(search);
-                    datasets = [.. datasets.Where(d => NormalizeText(d.Name).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase))];
+                    datasets = datasets.Where(d => NormalizeText(d.Name).Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase)).ToList();
                 }
 
                 return Ok(datasets);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener los datasets: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetError, ex.Message));
             }
         }
 
@@ -284,23 +295,23 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<string>> GetDatasetModule(int datasetId)
+        public async Task<ActionResult<string>> GetDatasetModuleAsync(int datasetId)
         {
             try
             {
-                var username = User.Identity?.Name;
+                var username = User.Identity?.Name ?? string.Empty;
                 string? module = await _datasetService.IdentifyDatasetModuleAsync(datasetId, username);
 
                 if (module == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId}.");
+                    return NotFound(string.Format(Language.DatasetNotFoundSimple, datasetId));
                 }
 
                 return Ok(module);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al identificar el módulo: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetModuleError, ex.Message));
             }
         }
 
@@ -312,22 +323,22 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetIM>> GetDatasetById(int datasetId)
+        public async Task<ActionResult<DatasetIM>> GetDatasetByIdAsync(int datasetId)
         {
             try
             {
-                var username = User.Identity?.Name;
+                var username = User.Identity?.Name ?? string.Empty;
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, datasetId, username));
                 }
 
                 return Ok(dataset);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetByIdError, ex.Message));
             }
         }
 
@@ -336,21 +347,21 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(DatasetIM), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetIM>> GetDatasetByIdSinToken(int datasetId)
+        public async Task<ActionResult<DatasetIM>> GetDatasetByIdWithoutTokenAsync(int datasetId)
         {
             try
             {
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsyncSinToken(datasetId);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId}");
+                    return NotFound(string.Format(Language.DatasetNotFoundSimple, datasetId));
                 }
 
                 return Ok(dataset);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetGetByIdError, ex.Message));
             }
         }
 
@@ -363,11 +374,11 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<DatasetIM>> UpdateDataset(int datasetId, [FromBody] CreateDatasetIMRequest request)
+        public async Task<ActionResult<DatasetIM>> UpdateDatasetAsync(int datasetId, [FromBody] CreateDatasetIMRequest request)
         {
             try
             {
-                var username = User.Identity?.Name;
+                var username = User.Identity?.Name ?? string.Empty;
                 if (!ModelState.IsValid)
                 {
                     return BadRequest(ModelState);
@@ -376,7 +387,7 @@ namespace OmniMonitor.Server.Controllers
                 DatasetIM? existingDataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (existingDataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, datasetId, username));
                 }
 
                 // Si es un dataset no formal y tiene filtros, validar que encuentren resultados
@@ -384,11 +395,11 @@ namespace OmniMonitor.Server.Controllers
                 {
                     // Validar filtros ANTES de actualizar
                     if (string.IsNullOrWhiteSpace(username))
-                        return BadRequest("Usuario no encontrado.");
+                        return BadRequest(Language.UserNotFound);
 
                     IEnumerable<object> entidades = Enumerable.Empty<object>();
                     string entidadNombre = "";
-                    
+
                     if (request.ContentType == "1") // Device
                     {
                         entidades = await _sondaIMService.GetAllDevices(username) ?? new List<Device>();
@@ -397,11 +408,11 @@ namespace OmniMonitor.Server.Controllers
                     else if (request.ContentType == "2") // Source
                     {
                         var sources = await _sondaIMService.GetAllSources(username) ?? new List<Source>();
-                        
+
                         // Si hay filtros que requieren Devices o Sensors, poblar esas propiedades
                         bool needsDevices = request.Filters.Any(f => f.AttributeName.StartsWith("Devices.", StringComparison.OrdinalIgnoreCase));
                         bool needsSensors = request.Filters.Any(f => f.AttributeName.StartsWith("Sensors.", StringComparison.OrdinalIgnoreCase));
-                        
+
                         if (needsDevices || needsSensors)
                         {
                             foreach (var source in sources)
@@ -410,7 +421,7 @@ namespace OmniMonitor.Server.Controllers
                                 {
                                     var devices = await _sondaIMService.GetDeviceOfSource(source.Id, username) ?? new List<Device>();
                                     source.Devices = devices;
-                                    
+
                                     if (needsSensors && devices.Any())
                                     {
                                         var sensors = devices
@@ -423,7 +434,7 @@ namespace OmniMonitor.Server.Controllers
                                 }
                             }
                         }
-                        
+
                         entidades = sources;
                         entidadNombre = "fuente";
                     }
@@ -450,7 +461,7 @@ namespace OmniMonitor.Server.Controllers
                         // Si hay filtros pero no hay resultados, no actualizar el dataset
                         if (!filtrados.Any())
                         {
-                            return BadRequest($"El filtro no encontró ningún {entidadNombre}. El dataset no puede actualizarse sin resultados.");
+                            return BadRequest(string.Format(Language.FilterNoResultsUpdate, entidadNombre));
                         }
                         request.JsonFilters = JsonSerializer.Serialize(request.Filters);
                     }
@@ -481,7 +492,7 @@ namespace OmniMonitor.Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al actualizar el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetUpdateError, ex.Message));
             }
         }
 
@@ -493,25 +504,25 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(204)] // No Content
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult> DeleteDataset(int datasetId)
+        public async Task<ActionResult> DeleteDatasetAsync(int datasetId)
         {
             try
             {
-                var username = User.Identity?.Name;
+                var username = User.Identity?.Name ?? string.Empty;
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdForEditAsync(datasetId, username);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
+                    return NotFound(string.Format(Language.DatasetNotFound, datasetId, username));
                 }
 
                 DatasetIM? id = await _context.DatasetsIM
                     .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-                
+
                 // Eliminar KPIs asociados a este dataset
                 var kpisToDelete = await _context.Kpi
                     .Where(k => k.DatasetId == datasetId && k.SourceModule.ToUpper() == "IM")
                     .ToListAsync();
-                
+
                 foreach (var kpi in kpisToDelete)
                 {
                     try
@@ -523,14 +534,14 @@ namespace OmniMonitor.Server.Controllers
                         // Si falla la eliminación de un KPI, continuar con los demás
                     }
                 }
-                
+
                 await _datasetService.DeleteDatasetIMAsync(datasetId, username);
                 await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
                 return NoContent();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al eliminar el dataset: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetDeleteError, ex.Message));
             }
         }
 
@@ -539,27 +550,27 @@ namespace OmniMonitor.Server.Controllers
         [ProducesResponseType(typeof(string), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(500)]
-        public async Task<ActionResult<string>> GetSensorType(int datasetId)
+        public async Task<ActionResult<string>> GetSensorTypeAsync(int datasetId)
         {
             try
             {
-                var username = User.Identity?.Name;
+                var username = User.Identity?.Name ?? string.Empty;
 
                 DatasetIM? dataset = await _datasetService.GetDatasetIMByIdAsync(datasetId, username);
                 if (dataset == null)
                 {
-                    return NotFound($"No se encontró el dataset con ID {datasetId}.");
+                    return NotFound(string.Format(Language.DatasetNotFoundSimple, datasetId));
                 }
 
                 if (dataset.Id_Source == null || string.IsNullOrEmpty(dataset.SensorName))
                 {
-                    return BadRequest("El dataset no contiene información suficiente (Source o SensorName).");
+                    return BadRequest(Language.DatasetInsufficientInfo);
                 }
 
                 Source? source = await _sondaIMService.GetSourceById((int)dataset.Id_Source, username);
                 if (source == null)
                 {
-                    return NotFound($"No se encontró el Source con ID {dataset.Id_Source}.");
+                    return NotFound(string.Format(Language.SourceNotFound, dataset.Id_Source));
                 }
 
                 if (source.Devices != null)
@@ -583,13 +594,15 @@ namespace OmniMonitor.Server.Controllers
                     }
                 }
 
-                return NotFound($"No se encontró el sensor '{dataset.SensorName}' en ningún device del Source.");
+                return NotFound(string.Format(Language.SensorNotFoundInDevice, dataset.SensorName));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error interno al obtener el tipo del sensor: {ex.Message}");
+                return StatusCode(500, string.Format(Language.DatasetSensorTypeError, ex.Message));
             }
         }
+
+        #endregion
 
         /// <summary>
         /// Normaliza el texto para búsquedas insensibles a acentos y mayúsculas.
@@ -603,7 +616,7 @@ namespace OmniMonitor.Server.Controllers
 
             // 1) Normalizar a FormD y remover diacríticos (acentos)
             string formD = text.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
-            string withoutDiacritics = new ([.. formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark)]);
+            string withoutDiacritics = new string(formD.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray());
 
             // 2) Reemplazos adicionales: espacios fuera, ñ->n, subíndices -> dígitos normales
             withoutDiacritics = withoutDiacritics

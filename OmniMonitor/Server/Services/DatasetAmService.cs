@@ -6,13 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OmniMonitor.Server.Resources;
 
 namespace OmniMonitor.Server.Services
 {
     public interface IDatasetAmService
     {
-    Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username);
-    Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username);
+        Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username);
+        Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username);
         Task<DatasetAM> CreateDatasetAMWithFiltersAsync(CreateDatasetAMRequest request, int dataset, List<FilterCondition> filters);
         Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username);
         Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username);
@@ -24,14 +25,24 @@ namespace OmniMonitor.Server.Services
 
     public class DatasetAmService : IDatasetAmService
     {
+        #region Fields
+
         private readonly ApplicationDbContext _context;
         private readonly ISondaAMService _sondaAMService;
+
+        #endregion
+
+        #region Constructors
 
         public DatasetAmService(ApplicationDbContext context, ISondaAMService sondaAMService)
         {
             _context = context;
             _sondaAMService = sondaAMService;
         }
+
+        #endregion
+
+        #region Methods
 
         public async Task<List<DatasetAM>> GetAllDatasetAMsAsync(string username)
         {
@@ -43,14 +54,14 @@ namespace OmniMonitor.Server.Services
                 .ToListAsync();
         }
 
-                /// <summary>
+        /// <summary>
         /// Obtiene un DatasetAM por su ID y nombre de usuario, incluyendo relaciones hijas.
         /// </summary>
-        
+
         public async Task<DatasetAM?> GetDatasetAMByIdAsync(int id, string username)
         {
             if (id < 0)
-                throw new ArgumentException("El id debe ser mayor o igual a 0.", nameof(id));
+                throw new ArgumentException(Language.DatasetIdPositive, nameof(id));
 
             var datasetAM = await _context.DatasetAM
                 .Include(d => d.Grupo_Event_Task_Instance)
@@ -113,7 +124,8 @@ namespace OmniMonitor.Server.Services
                             Id_Asset = a.Id
                         }).ToList();
                     }
-                } else if (datasetAM.Type_Dataset == 1 && datasetAM.Grupo_Event_Task_Instance != null && datasetAM.Grupo_Event_Task_Instance.Count == 1)
+                }
+                else if (datasetAM.Type_Dataset == 1 && datasetAM.Grupo_Event_Task_Instance != null && datasetAM.Grupo_Event_Task_Instance.Count == 1)
                 {
                     var eventTaskInstance = datasetAM.Grupo_Event_Task_Instance.First();
                     if (eventTaskInstance.Grupo_Stock == null || !eventTaskInstance.Grupo_Stock.Any())
@@ -148,7 +160,7 @@ namespace OmniMonitor.Server.Services
             return await GetDatasetAMByIdAsync(id, ownerUsername);
         }
 
-                /// <summary>
+        /// <summary>
         /// Obtiene un DatasetAM por su ID y nombre de usuario para edición, SIN lógica dinámica.
         /// Devuelve el dataset exactamente como está guardado en la base de datos.
         /// </summary>
@@ -172,7 +184,7 @@ namespace OmniMonitor.Server.Services
 
             if (datasetAM == null)
             {
-                throw new InvalidOperationException($"No se encontró el DatasetAM con ID {id} para el usuario {username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, id, username));
             }
 
 
@@ -212,7 +224,7 @@ namespace OmniMonitor.Server.Services
         public async Task<List<DatasetReducedAMDTO>> GetReducedAssetsByDatasetIdAsync(int datasetId, string username)
         {
             if (datasetId <= 0)
-                throw new ArgumentException("Debe especificar un id de dataset válido.");
+                throw new ArgumentException(Language.DatasetIdInvalid);
 
             var assets = await _context.Set<DatasetAsset>()
                 .Where(a => a.DatasetAMId == datasetId)
@@ -245,10 +257,10 @@ namespace OmniMonitor.Server.Services
             return reducedList;
         }
 
-    public async Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username)
+        public async Task<List<DatasetReducedAMEventsDTO>> GetReducedEventsByDatasetIdAsync(int datasetId, string username)
         {
             if (datasetId <= 0)
-                throw new ArgumentException("Debe especificar un id de dataset válido.");
+                throw new ArgumentException(Language.DatasetIdInvalid);
 
             var events = await _context.Set<DatasetEventTaskInstance>()
                 .Where(a => a.DatasetAMId == datasetId)
@@ -280,7 +292,7 @@ namespace OmniMonitor.Server.Services
 
             if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Nombre))
             {
-                throw new ArgumentException("El nombre de usuario y el nombre del dataset son obligatorios.");
+                throw new ArgumentException(Language.DatasetNameRequired);
             }
 
             var existingDataset = await _context.DatasetAM
@@ -288,7 +300,7 @@ namespace OmniMonitor.Server.Services
 
             if (existingDataset != null)
             {
-                throw new InvalidOperationException($"Ya existe un dataset con el nombre '{request.Nombre}' para el usuario '{request.Username}'.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNameExists, request.Nombre, request.Username));
             }
 
             var newDatasetAM = new DatasetAM
@@ -375,7 +387,7 @@ namespace OmniMonitor.Server.Services
                 .FirstOrDefaultAsync(d => d.Id_Dataset == datasetId && d.Username == request.Username);
 
             if (existingDataset == null)
-                throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {request.Username}.");
+                throw new InvalidOperationException(string.Format(Language.DatasetNotFound, datasetId, request.Username));
 
             string filtersJson = System.Text.Json.JsonSerializer.Serialize(filters);
 
@@ -451,7 +463,8 @@ namespace OmniMonitor.Server.Services
             await _context.SaveChangesAsync();
             return existingDataset;
         }
+        #endregion
     }
 }
 
-    
+
