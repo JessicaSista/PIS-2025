@@ -288,4 +288,7 @@
   <data name="ChartTypeLimitReached" xml:space="preserve">
     <value>You cannot select more than one dataset if the chart type is</value>
   </data>
+  <data name="DashboardLinkRemoved" xml:space="preserve">
+    <value>Link to dashboard removed</value>
+  </data>
 </root>
