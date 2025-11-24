@@ -296,9 +296,40 @@
 
         try
         {
-            await MockSave();
-            Snackbar.Add(Localizer["Saved"], Severity.Success);
-            MudDialog.Close(DialogResult.Ok(true));
+            var request = new ScheduledReportRequest
+            {
+                ReportId = _reportId,
+                ScheduleType = _scheduleType,
+                SendAtLocalTime = _time.HasValue ? _time.Value.ToString(@"hh\:mm") : null,
+                AdvancedRule = _scheduleType == "Weekly" ? _weeklyDay : (_scheduleType == "Monthly" ? _monthlyDay : null),
+                TimeZone = _timeZone,
+                Recipients = _recipients,
+                Subject = _subject,
+                Message = _message
+            };
+
+            var response = await Http.PutAsJsonAsync($"api/reports/scheduled-reports/{Initial.Id}", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(Localizer["Saved"], Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                try 
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(errorMsg);
+                    if (doc.RootElement.TryGetProperty("message", out var msgElement))
+                    {
+                        errorMsg = msgElement.GetString() ?? errorMsg;
+                    }
+                }
+                catch { /* ignore json parse error */ }
+
+                Snackbar.Add(string.Format(Localizer["SaveErrorFormat"], errorMsg), Severity.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -308,12 +339,6 @@
         {
             _submitting = false;
         }
-    }
-
-    private Task MockSave()
-    {
-        // Simula guardado sin llamar al servidor
-        return Task.CompletedTask;
     }
 
     private Task OnRecipientKeyDown(KeyboardEventArgs args)
