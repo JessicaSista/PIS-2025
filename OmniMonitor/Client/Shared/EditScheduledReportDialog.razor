@@ -1,0 +1,387 @@
+@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+@using OmniMonitor.Shared.Dtos
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@using Microsoft.Extensions.Localization
+@inject IStringLocalizer<EditScheduledReportDialog> Localizer
+@inject IStringLocalizer<SharedResource> SharedLocalizer
+
+<style>
+    .weekly-chip-selected {
+        border: 2px solid var(--mud-palette-primary) !important;
+    }
+</style>
+
+<MudForm @ref="_form" @bind-IsValid="_formValid" >
+    <MudDialog>
+        <DialogContent>
+            <MudStack Spacing="2">
+                <MudSelect T="int" Label="@Localizer["ReportLabel"]" @bind-Value="_reportId" Required="true" Disabled="_submitting">
+
+                    @if (_reports is null)
+                    {
+                        <MudSelectItem T="int" Value="0">@Localizer["LoadingOption"]</MudSelectItem>
+
+                    }
+                    else
+                    {
+                        @foreach (var r in _reports)
+                        {
+                            <MudSelectItem T="int" Value="r.Id">@r.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+                @if (_showErrors && !string.IsNullOrEmpty(_errReport))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errReport</MudText>
+                }
+
+                <MudSelect T="string" Label="@Localizer["FrequencyLabel"]" @bind-Value="_scheduleType" Required="true" Disabled="_submitting">
+                    <MudSelectItem T="string" Value=@("Daily")>@Localizer["FrequencyDaily"]</MudSelectItem>
+                    <MudSelectItem T="string" Value=@("Weekly")>@Localizer["FrequencyWeekly"]</MudSelectItem>
+                    <MudSelectItem T="string" Value=@("Monthly")>@Localizer["FrequencyMonthly"]</MudSelectItem>
+                </MudSelect>
+
+                @if (_showErrors && !string.IsNullOrEmpty(_errSchedule))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errSchedule</MudText>
+                }
+
+                @if (string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudText Typo="Typo.subtitle2">@Localizer["WeeklyDaySubtitle"]</MudText>
+
+                    <MudChipSet T="string" 
+                                SelectedValue="_weeklyDay"
+                                SelectedValueChanged="HandleWeeklyDayChange">
+                        <MudChip T="string" Value=@("MON") Class="@(_weeklyDay=="MON" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="MON" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="MON" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_MON"]</MudChip>
+                        <MudChip T="string" Value=@("TUE") Class="@(_weeklyDay=="TUE" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="TUE" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="TUE" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_TUE"]</MudChip>
+                        <MudChip T="string" Value=@("WED") Class="@(_weeklyDay=="WED" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="WED" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="WED" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_WED"]</MudChip>
+                        <MudChip T="string" Value=@("THU") Class="@(_weeklyDay=="THU" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="THU" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="THU" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_THU"]</MudChip>
+                        <MudChip T="string" Value=@("FRI") Class="@(_weeklyDay=="FRI" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="FRI" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="FRI" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_FRI"]</MudChip>
+                        <MudChip T="string" Value=@("SAT") Class="@(_weeklyDay=="SAT" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="SAT" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="SAT" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_SAT"]</MudChip>
+                        <MudChip T="string" Value=@("SUN") Class="@(_weeklyDay=="SUN" ? "weekly-chip-selected" : null)" Color="@(_weeklyDay=="SUN" ? MudBlazor.Color.Primary : MudBlazor.Color.Default)" Variant="@(_weeklyDay=="SUN" ? Variant.Filled : Variant.Outlined)">@SharedLocalizer["WeekdayShort_SUN"]</MudChip>
+                    </MudChipSet>
+                    @if (_showErrors && !string.IsNullOrEmpty(_errWeekly))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errWeekly</MudText>
+                    }
+                }
+
+                @if (string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudSelect T="string" Label="@Localizer["MonthlyDayLabel"]" @bind-Value="_monthlyDay" Disabled="_submitting" Required="true">
+                        @foreach (var d in _monthlyDaysList)
+                        {
+                            <MudSelectItem T="string" Value="@d">@d</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (_showErrors && !string.IsNullOrEmpty(_errMonthly))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errMonthly</MudText>
+                    }
+                }
+
+                <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                    <MudTimePicker @bind-Time="_time" Label="@Localizer["HourLabel"]" AmPm="false" Disabled="_submitting" Required="true" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Localizer["TimeZonePrefix"] @_timeZone</MudText>
+                </MudStack>
+
+                @if (_showErrors && !string.IsNullOrEmpty(_errTime))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errTime</MudText>
+                }
+
+                <MudText Typo="Typo.subtitle2">@Localizer["RecipientsSubtitle"]</MudText>
+                <MudStack Row Spacing="1" AlignItems="AlignItems.Center">
+                    <MudTextField @bind-Value="_recipientInput" Placeholder="@Localizer["EmailPlaceholder"]" Disabled="_submitting" Immediate="true" OnKeyDown="OnRecipientKeyDown" />
+                    <MudButton Variant="Variant.Outlined" OnClick="AddRecipient" Disabled="_submitting">@Localizer["AddButton"]</MudButton>
+                </MudStack>
+
+                <MudChipSet T="string" MultiSelection="true">
+                    @foreach (var mail in _recipients)
+                    {
+                        <MudChip T="string" Value="@mail" OnClose="() => RemoveRecipient(mail)" Closeable="true">@mail</MudChip>
+                    }
+                </MudChipSet>
+                @if (_showErrors && !string.IsNullOrEmpty(_errRecipients))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errRecipients</MudText>
+                }
+
+                <MudTextField T="string" Label="@Localizer["SubjectLabel"]" @bind-Value="_subject" Disabled="_submitting" Immediate="true" />
+                <MudTextField T="string" Label="@Localizer["MessageLabel"]" @bind-Value="_message" Lines="3" Disabled="_submitting" Immediate="true" />
+
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel" Disabled="_submitting">@Localizer["CancelButton"]</MudButton>
+            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_submitting">@Localizer["SaveButton"]</MudButton>
+        </DialogActions>
+
+    </MudDialog>
+</MudForm>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ScheduledReportResponse Initial { get; set; } = default!;
+
+    private MudForm? _form;
+    private bool _formValid; 
+    private bool _submitting;
+    private bool _showErrors;
+
+    private List<SimpleReport>? _reports;
+
+    private int _backingReportId;
+    private string _backingScheduleType = string.Empty;
+
+    private TimeSpan? _time;
+    private string _timeZone = TimeZoneInfo.Local.Id;
+
+    private string _recipientInput = string.Empty;
+    private List<string> _recipients = new(); 
+
+    private string _subject = string.Empty;
+    private string _message = string.Empty;
+
+    private string _errReport = string.Empty;
+    private string _errSchedule = string.Empty;
+    private string _errTime = string.Empty;
+    private string _errRecipients = string.Empty;
+    private string _errWeekly = string.Empty;
+    private string _errMonthly = string.Empty;
+
+    private string _weeklyDay = string.Empty;
+    private string _monthlyDay = "1";
+
+    private List<string> _monthlyDaysList = Enumerable.Range(1, 31).Select(d => d.ToString()).ToList();
+
+    private int _reportId 
+    {
+        get => _backingReportId;
+        set 
+        {
+            if (_backingReportId == value) return;
+            _backingReportId = value;
+            UpdateSubjectSuggestion();
+            ValidateFormState();
+        }
+    }
+
+    private string _scheduleType 
+    {
+        get => _backingScheduleType;
+        set 
+        {
+            if (_backingScheduleType == value) return;
+            _backingScheduleType = value;
+            UpdateSubjectSuggestion();
+            ValidateFormState();
+        }
+    }
+
+    private void HandleWeeklyDayChange(string selectedDay)
+    {
+        _weeklyDay = selectedDay;
+        ValidateFormState();
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReports();
+        PrefillFromInitial();
+        UpdateSubjectSuggestion();
+        ValidateFormState(); 
+    }
+
+    private async Task LoadReports()
+    {
+        try
+        {
+            var resp = await Http.GetAsync("/api/reports/GetAllReportsPaginated?page=1&pageSize=1000");
+            if (resp.IsSuccessStatusCode)
+            {
+                var page = await resp.Content.ReadFromJsonAsync<PaginatedReportDto>();
+                _reports = page?.Items?.Select(x => new SimpleReport { Id = x.Id, Name = x.Name ?? $"Reporte {x.Id}" }).ToList() ?? new();
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add(string.Format(SharedLocalizer["ErrorLoadingReportsFormat"], resp.StatusCode), Severity.Error);
+                _reports = new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(string.Format(SharedLocalizer["ErrorLoadingReportsExceptionFormat"], ex.Message), Severity.Error);
+            _reports = new();
+        }
+    }
+
+    private void PrefillFromInitial()
+    {
+        if (Initial is null) return;
+        _reportId = Initial.ReportId;
+
+        // Normalize schedule type casing to dialog options
+        var st = Initial.ScheduleType ?? string.Empty;
+        if (st.Equals("DAILY", StringComparison.OrdinalIgnoreCase) || st.Equals("Daily", StringComparison.OrdinalIgnoreCase)) _scheduleType = "Daily";
+        else if (st.Equals("WEEKLY", StringComparison.OrdinalIgnoreCase) || st.Equals("Weekly", StringComparison.OrdinalIgnoreCase)) _scheduleType = "Weekly";
+        else if (st.Equals("MONTHLY", StringComparison.OrdinalIgnoreCase) || st.Equals("Monthly", StringComparison.OrdinalIgnoreCase)) _scheduleType = "Monthly";
+        else _scheduleType = "Daily";
+
+        _weeklyDay = (Initial.AdvancedRule ?? string.Empty).Trim();
+        _monthlyDay = string.IsNullOrWhiteSpace(Initial.AdvancedRule) ? _monthlyDay : Initial.AdvancedRule!;
+
+        if (TimeSpan.TryParse(Initial.SendAtLocalTime ?? string.Empty, out var ts))
+            _time = ts;
+        else
+            _time = null;
+
+        _timeZone = Initial.TimeZone ?? TimeZoneInfo.Local.Id;
+
+        _recipients = (Initial.Recipients ?? new()).ToList();
+        _subject = Initial.Subject ?? string.Empty;
+        _message = Initial.Message ?? string.Empty;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ValidateFormState()
+    {
+        _errReport = _reportId > 0 ? string.Empty : Localizer["ErrSelectReport"];
+        _errSchedule = !string.IsNullOrWhiteSpace(_scheduleType) ? string.Empty : Localizer["ErrSelectFrequency"];
+        var needsTime = !string.Equals(_scheduleType, "EveryNMinutes", StringComparison.OrdinalIgnoreCase);
+        _errTime = needsTime && !_time.HasValue ? Localizer["ErrEnterHour"] : string.Empty;
+        _errRecipients = _recipients.Count > 0 && _recipients.All(IsValidEmail) ? string.Empty : Localizer["ErrAddValidRecipient"];
+        _errWeekly = string.Equals(_scheduleType, "Weekly", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(_weeklyDay) ? Localizer["ErrSelectWeekday"] : string.Empty;
+
+        var monthlyValid = false;
+        if (int.TryParse(_monthlyDay, out var day))
+        {
+            monthlyValid = day >= 1 && day <= 31;
+        }
+        _errMonthly = string.Equals(_scheduleType, "Monthly", StringComparison.OrdinalIgnoreCase) && !monthlyValid ? Localizer["ErrSelectMonthDay"] : string.Empty;
+
+        var baseValid = string.IsNullOrEmpty(_errReport) && string.IsNullOrEmpty(_errSchedule) && string.IsNullOrEmpty(_errTime) && string.IsNullOrEmpty(_errRecipients);
+        var scheduleValid = string.IsNullOrEmpty(_errWeekly) && string.IsNullOrEmpty(_errMonthly);
+        _formValid = baseValid && scheduleValid;
+        StateHasChanged(); 
+    }
+
+    private void UpdateSubjectSuggestion()
+    {
+        if (!string.IsNullOrWhiteSpace(_subject) && _subject != "Reporte - Daily" && _subject != "Reporte - Weekly" && _subject != "Reporte - Monthly") return;
+        var reportName = _reports?.FirstOrDefault(r => r.Id == _reportId)?.Name ?? "Reporte";
+        _subject = $"{reportName} - {_scheduleType}".Trim().Trim(' ', '-');
+    }
+
+    private async Task Submit()
+    {
+        if (_form is not null) await _form.Validate();
+
+        ValidateFormState(); 
+
+        if (!_formValid)
+        {
+            _showErrors = true;
+            StateHasChanged();
+            return;
+        } 
+
+        _submitting = true;
+
+        try
+        {
+            var request = new ScheduledReportRequest
+            {
+                ReportId = _reportId,
+                ScheduleType = _scheduleType,
+                SendAtLocalTime = _time.HasValue ? _time.Value.ToString(@"hh\:mm") : null,
+                AdvancedRule = _scheduleType == "Weekly" ? _weeklyDay : (_scheduleType == "Monthly" ? _monthlyDay : null),
+                TimeZone = _timeZone,
+                Recipients = _recipients,
+                Subject = _subject,
+                Message = _message
+            };
+
+            var response = await Http.PutAsJsonAsync($"api/reports/scheduled-reports/{Initial.Id}", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(Localizer["Saved"], Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                try 
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(errorMsg);
+                    if (doc.RootElement.TryGetProperty("message", out var msgElement))
+                    {
+                        errorMsg = msgElement.GetString() ?? errorMsg;
+                    }
+                }
+                catch { /* ignore json parse error */ }
+
+                Snackbar.Add(string.Format(Localizer["SaveErrorFormat"], errorMsg), Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(string.Format(Localizer["SaveErrorFormat"], ex.Message), Severity.Error);
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    private Task OnRecipientKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            AddRecipient();
+        }
+        return Task.CompletedTask;
+    }
+
+    private void AddRecipient()
+    {
+        var email = (_recipientInput ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(email)) return;
+        if (!IsValidEmail(email))
+        {
+            Snackbar.Add(Localizer["InvalidEmail"], Severity.Warning);
+            return;
+        }
+        if (_recipients.Contains(email, StringComparer.OrdinalIgnoreCase))
+        {
+            _recipientInput = string.Empty;
+            return;
+        }
+        _recipients.Add(email);
+        _recipientInput = string.Empty;
+        ValidateFormState(); 
+        StateHasChanged();
+    }
+
+    private void RemoveRecipient(string email)
+    {
+        _recipients.RemoveAll(e => string.Equals(e, email, StringComparison.OrdinalIgnoreCase));
+        ValidateFormState(); 
+        StateHasChanged();
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try { var addr = new System.Net.Mail.MailAddress(email); return addr.Address == email; }
+        catch { return false; }
+    }
+
+    private class SimpleReport { public int Id { get; set; } public string Name { get; set; } = string.Empty; }
+}
