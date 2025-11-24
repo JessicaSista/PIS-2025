@@ -19,13 +19,15 @@ namespace OmniMonitor.Server.Controllers
         private readonly ISondaAuthService _sondaAuthService;
         private readonly ApplicationDbContext _context;
         private readonly ISondaUMService _sondaUMService;
+        private readonly IKpiService _kpiService;
 
-        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService)
+        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService, IKpiService kpiService)
         {
             _context = context;
             _datasetUMService = datasetUMService;
             _sondaAuthService = sondaAuthService;
             _sondaUMService = sondaUMService;
+            _kpiService = kpiService;
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -53,13 +55,22 @@ namespace OmniMonitor.Server.Controllers
                 // Validar filtros ANTES de crear el dataset general
                 if (req.ContentType == "2") // News
                 {
-                    var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    var allNewsBasic = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    var detailedNews = new List<News>();
+                    
+                    // Ir id por id para obtener el detalle completo
+                    foreach (var news in allNewsBasic)
+                    {
+                        var detailed = await _sondaUMService.GetNewsById(news.Id, username);
+                        if (detailed != null) detailedNews.Add(detailed);
+                    }
+                    
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
                     if (request.Filters != null && request.Filters.Any())
                     {
-                        filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        filtrados = ApiDataService.StaticFilterObjects(detailedNews.Cast<object>(), request.Filters);
                         if (!filtrados.Any())
                         {
                             return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede crearse sin resultados.");
@@ -68,7 +79,7 @@ namespace OmniMonitor.Server.Controllers
                     else
                     {
                         // Sin filtros: incluir todo
-                        filtrados = allNews.Cast<object>();
+                        filtrados = detailedNews.Cast<object>();
                     }
                     
                     req.NewsIds = filtrados.OfType<News>().Select(n => (int)n.Id).ToList();
@@ -210,13 +221,22 @@ namespace OmniMonitor.Server.Controllers
                 // Validar filtros ANTES de actualizar el dataset
                 if (req.ContentType == "2") // News
                 {
-                    var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    var allNewsBasic = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                    var detailedNews = new List<News>();
+                    
+                    // Ir id por id para obtener el detalle completo
+                    foreach (var news in allNewsBasic)
+                    {
+                        var detailed = await _sondaUMService.GetNewsById(news.Id, username);
+                        if (detailed != null) detailedNews.Add(detailed);
+                    }
+                    
                     // Si hay filtros, aplicarlos y validar que haya resultados
                     // Si no hay filtros, incluir todo (no filtrar)
                     IEnumerable<object> filtrados;
                     if (request.Filters != null && request.Filters.Any())
                     {
-                        filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        filtrados = ApiDataService.StaticFilterObjects(detailedNews.Cast<object>(), request.Filters);
                         if (!filtrados.Any())
                         {
                             return BadRequest("El filtro no encontró ninguna noticia. El dataset no puede actualizarse sin resultados.");
@@ -225,7 +245,7 @@ namespace OmniMonitor.Server.Controllers
                     else
                     {
                         // Sin filtros: incluir todo
-                        filtrados = allNews.Cast<object>();
+                        filtrados = detailedNews.Cast<object>();
                     }
                     
                     req.NewsIds = filtrados.OfType<News>().Select(n => (int)n.Id).ToList();
@@ -309,8 +329,17 @@ namespace OmniMonitor.Server.Controllers
                     List<int> filteredIds = new List<int>();
                     if (req.ContentType == "2") // News
                     {
-                        var allNews = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
-                        var filtrados = ApiDataService.StaticFilterObjects(allNews, request.Filters);
+                        var allNewsBasic = await _sondaUMService.GetAllNews(username, 1, null, null, 1000);
+                        var detailedNews = new List<News>();
+                        
+                        // Ir id por id para obtener el detalle completo
+                        foreach (var news in allNewsBasic)
+                        {
+                            var detailed = await _sondaUMService.GetNewsById(news.Id, username);
+                            if (detailed != null) detailedNews.Add(detailed);
+                        }
+                        
+                        var filtrados = ApiDataService.StaticFilterObjects(detailedNews.Cast<object>(), request.Filters);
                         filteredIds = filtrados.Select(n => (int)n.Id).ToList();
                         req.NewsIds = filteredIds;
                     }
@@ -368,6 +397,24 @@ namespace OmniMonitor.Server.Controllers
 
                 DatasetUM? id = await _context.DatasetsUM
                     .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                
+                // Eliminar KPIs asociados a este dataset
+                var kpisToDelete = await _context.Kpi
+                    .Where(k => k.DatasetId == datasetId && k.SourceModule.ToUpper() == "UM")
+                    .ToListAsync();
+                
+                foreach (var kpi in kpisToDelete)
+                {
+                    try
+                    {
+                        await _kpiService.DeleteKpiAsync(kpi.Id, username);
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de un KPI, continuar con los demás
+                    }
+                }
+                
                 await _datasetUMService.DeleteDatasetUMAsync(datasetId, username);
                 await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
                 return NoContent();

@@ -29,7 +29,7 @@
             {
                 @foreach (DashboardSummaryResponse dashboard in _dashboards)
                 {
-                    bool isSelected = SelectedDashboard != null && SelectedDashboard.IdDashboard == dashboard.IdDashboard;
+                    bool isSelected = selectedDashboard != null && selectedDashboard.IdDashboard == dashboard.IdDashboard;
                     <MudButton FullWidth="true"
                                Variant="@(isSelected ? MudBlazor.Variant.Filled : MudBlazor.Variant.Outlined)"
                                OnClick="@(() => SelectDashboard(dashboard))"
@@ -50,6 +50,10 @@
         <MudButton Disabled="@(!_hasNextPage)" OnClick="LoadMoreDashboards">@Localizer["LoadMore"]</MudButton>
     </DialogContent>
     <DialogActions>
+        @if(selectedDashboard != null)
+        {
+            <MudButton Variant="Variant.Outlined" OnClick="RemoveSelection" Color="MudBlazor.Color.Error">@Localizer["RemoveDashoardSelected"]</MudButton>
+        }
         <MudButton Variant="Variant.Outlined" OnClick="Cancel">@Localizer["Cancel"]</MudButton>
     </DialogActions>
 </MudDialog>
@@ -62,7 +66,7 @@
     public EventCallback<DashboardSummaryResponse> OnDashboardSelected { get; set; }
 
     [Parameter]
-    public DashboardSummaryResponse? SelectedDashboard { get; set; }
+    public DashboardSummaryResponse? selectedDashboard { get; set; }
 
     private List<DashboardSummaryResponse> _dashboards = new List<DashboardSummaryResponse>();
     private bool _isLoading = true;
@@ -127,6 +131,15 @@
         if (OnDashboardSelected.HasDelegate)
         {
             await OnDashboardSelected.InvokeAsync(dashboard);
+        }
+        mudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void RemoveSelection()
+    {
+        if (OnDashboardSelected.HasDelegate)
+        {
+            OnDashboardSelected.InvokeAsync(null);
         }
         mudDialog.Close(DialogResult.Ok(true));
     }

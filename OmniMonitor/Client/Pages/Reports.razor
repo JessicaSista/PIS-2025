@@ -2,7 +2,9 @@
 @attribute [Authorize]
 @using MudBlazor
 @using OmniMonitor.Client.Shared
+@using System.Net.Http.Json
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @using Microsoft.Extensions.Localization
 @using OmniMonitor.Shared.Dtos
 @inject Blazored.LocalStorage.ILocalStorageService LocalStorage
@@ -221,7 +223,7 @@
                 return;
             }
 
-            var report = await response.Content.ReadFromJsonAsync<Report>();
+            var report = await response.Content.ReadFromJsonAsync<ReportForEdit>();
             if (report == null)
             {
                 Snackbar.Add("No se encontró la información del reporte", Severity.Error);
@@ -261,10 +263,14 @@
             if (hasNameChange || hasDescriptionChange)
             {
                 var jsonConfig = string.IsNullOrWhiteSpace(report.JSON_config) ? "{}" : report.JSON_config;
-                var updateUrl =
-                    $"api/reports/UpdateReport?id={editResult.ReportId}&name={Uri.EscapeDataString(trimmedName)}&description={Uri.EscapeDataString(normalizedDescription)}&jsonConfig={Uri.EscapeDataString(jsonConfig)}";
+                var updateRequest = new UpdateReportRequestDto
+                {
+                    Name = trimmedName,
+                    Description = string.IsNullOrEmpty(normalizedDescription) ? null : normalizedDescription,
+                    JSON_config = jsonConfig
+                };
 
-                var updateResponse = await Http.PutAsync(updateUrl, null);
+                var updateResponse = await Http.PutAsJsonAsync($"api/reports/UpdateReport?id={editResult.ReportId}", updateRequest);
                 if (updateResponse.IsSuccessStatusCode)
                 {
                     Snackbar.Add("Reporte actualizado correctamente", Severity.Success);
@@ -506,5 +512,16 @@
 
         var trimmed = value.Trim();
         return trimmed.Length <= DescriptionMaxLength ? trimmed : trimmed[..DescriptionMaxLength];
+    }
+
+    private sealed class ReportForEdit
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string Username { get; set; } = string.Empty;
+
+        [JsonPropertyName("JSON_config")]
+        public string JSON_config { get; set; } = "{}";
     }
 }

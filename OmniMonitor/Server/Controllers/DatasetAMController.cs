@@ -19,14 +19,16 @@ namespace OmniMonitor.Server.Controllers
         private readonly IDatasetAmService _datasetAmService;
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IDatasetUMService _datasetUMService;
+        private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
         private readonly ISondaAMService _sondaAMService;
 
-        public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ApplicationDbContext context, ISondaAMService sondaAMService)
+        public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context, ISondaAMService sondaAMService)
         {
             _datasetAmService = datasetAmService;
             _sondaAuthService = sondaAuthService;
             _datasetUMService = datasetUMService;
+            _kpiService = kpiService;
             _context = context;
             _sondaAMService = sondaAMService;
         }
@@ -423,6 +425,23 @@ namespace OmniMonitor.Server.Controllers
                 if (datasetid == null)
                 {
                     return NotFound($"No se encontró el dataset con ID {id} para el usuario {username}.");
+                }
+                
+                // Eliminar KPIs asociados a este dataset
+                var kpisToDelete = await _context.Kpi
+                    .Where(k => k.DatasetId == id && k.SourceModule.ToUpper() == "AM")
+                    .ToListAsync();
+                
+                foreach (var kpi in kpisToDelete)
+                {
+                    try
+                    {
+                        await _kpiService.DeleteKpiAsync(kpi.Id, username);
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de un KPI, continuar con los demás
+                    }
                 }
                 
                 await _datasetAmService.DeleteDatasetAMAsync(id, username);

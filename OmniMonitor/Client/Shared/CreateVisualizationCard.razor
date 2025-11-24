@@ -227,8 +227,18 @@
 
     }
 
+    private bool IsSingleSeriesChart =>
+        _selectedChartType == "pie" ||
+        _selectedChartType == "donut" ||
+        _selectedChartType == "radialBar";
+
     private async Task OpenAddDatasetModal()
     {
+        if (IsSingleSeriesChart && _selectedDatasets.Count >= 1)
+        {
+            Snackbar.Add(Localizer["ChartTypeLimitReached"] + " " + _selectedChartType, Severity.Warning);
+            return;
+        }
         var parameters = new DialogParameters
         {
             { "OnDatasetSelected", EventCallback.Factory.Create<DatasetDtoGenerico>(this, HandleDatasetSelected) },
@@ -243,7 +253,8 @@
     {
         var parameters = new DialogParameters
         {
-            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) }
+            { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) },
+            {"selectedDashboard", _selectedDashboard },
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
@@ -290,7 +301,8 @@
     private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
     {
         _selectedDashboard = dashboard;
-        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        string msg = dashboard != null ? Localizer["DashboardLinkAdded"] : Localizer["DashboardLinkRemoved"];
+        Snackbar.Add(msg, Severity.Info);
         StateHasChanged();
         return;
     }
@@ -327,6 +339,11 @@
         if (fullEndDateTime <= fullBeginDateTime)
         {
             Snackbar.Add(Localizer["EndDateAfterStartDate"], Severity.Warning);
+            return false;
+        }
+        if (IsSingleSeriesChart && _selectedDatasets.Count > 1)
+        {
+            Snackbar.Add(Localizer["ChartTypeLimitReached"] + " " + _selectedChartType, Severity.Warning);
             return false;
         }
 

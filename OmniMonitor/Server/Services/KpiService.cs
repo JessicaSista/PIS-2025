@@ -252,6 +252,16 @@ namespace OmniMonitor.Server.Services
             if (!string.IsNullOrEmpty(username) && kpi.Username != username)
                 throw new UnauthorizedAccessException("No tiene permisos para eliminar este KPI.");
 
+            // Eliminar todas las referencias del KPI en los dashboards (GrupoVisualizacion)
+            var dashboardReferences = await _context.GrupoVisualizaciones
+                .Where(gv => gv.KpiId == kpiId)
+                .ToListAsync();
+
+            if (dashboardReferences.Any())
+            {
+                _context.GrupoVisualizaciones.RemoveRange(dashboardReferences);
+            }
+
             _context.Kpi.Remove(kpi);
             await _context.SaveChangesAsync();
         }
@@ -933,38 +943,26 @@ namespace OmniMonitor.Server.Services
             if (source.Devices == null || source.Devices.Count == 0)
                 throw new Exception($"No se encontraron devices en el source {source.Id}.");
 
+            // Buscar device que tenga el sensor
+            int? deviceId = null;
+            Sensor? foundSensor = null;
             foreach (var deviceSummary in source.Devices)
             {
                 var device = await _sondaIMService.GetDeviceById(deviceSummary.Id, username);
                 if (device?.Sensors == null)
                     continue;
 
-                var sensor = device.Sensors.FirstOrDefault(s => s.Name == dataset.SensorName);
+                var sensor = device.Sensors.FirstOrDefault(s => s.Name.Equals(dataset.SensorName, StringComparison.OrdinalIgnoreCase));
                 if (sensor != null)
                 {
+                    deviceId = device.Id;
                     type = sensor.Type;
-
-                    if (hasHistoricalRange)
-                    {
-                        var historicalData = await _sondaIMService.GetSensorDataByDate(device.Id, dataset.SensorName, rangeFrom, rangeTo, username);
-                        if (historicalData != null && historicalData.Count > 0)
-                        {
-                            var lastRecord = historicalData
-                                .OrderBy(d => d.Time)
-                                .Last();
-                            rawValue = lastRecord.Data;
-                            break;
-                        }
-
-                        continue;
-                    }
-
-                    rawValue = sensor.LastValue;
+                    foundSensor = sensor;
                     break;
                 }
             }
 
-            if (hasHistoricalRange && string.IsNullOrEmpty(rawValue))
+            if (foundSensor == null || !deviceId.HasValue)
             {
                 return new KpiResponse
                 {
@@ -972,10 +970,43 @@ namespace OmniMonitor.Server.Services
                     Name = kpi.Name,
                     Description = kpi.Description,
                     Unit = kpi.Unit,
-                    Type = type,
+                    Type = null,
                     ActualColor = kpi.DefaultColor,
                     Value = null
                 };
+            }
+
+            // Si hay rango de fechas histórico, buscar datos históricos en el device encontrado
+            if (hasHistoricalRange)
+            {
+                var historicalData = await _sondaIMService.GetSensorDataByDate(deviceId.Value, dataset.SensorName, rangeFrom, rangeTo, username);
+                if (historicalData != null && historicalData.Count > 0)
+                {
+                    var lastRecord = historicalData
+                        .OrderBy(d => d.Time)
+                        .Last();
+                    rawValue = lastRecord.Data;
+                }
+
+                // Si no se encontraron datos históricos en el rango, devolver null
+                if (string.IsNullOrEmpty(rawValue))
+                {
+                    return new KpiResponse
+                    {
+                        Id = kpi.Id,
+                        Name = kpi.Name,
+                        Description = kpi.Description,
+                        Unit = kpi.Unit,
+                        Type = type,
+                        ActualColor = kpi.DefaultColor,
+                        Value = null
+                    };
+                }
+            }
+            else
+            {
+                // Sin rango de fechas, usar directamente el LastValue del sensor
+                rawValue = foundSensor.LastValue;
             }
 
             object? finalValue = null;
