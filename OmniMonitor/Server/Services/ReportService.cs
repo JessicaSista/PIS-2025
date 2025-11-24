@@ -49,6 +49,9 @@ public interface IReportService
     Task<ScheduledReportResponse?> GetScheduledReportByIdAsync(int id, string username);
 
     Task DeleteScheduledReportAsync(int id);
+
+    Task<ScheduledReportResponse?> UpdateScheduledReportAsync(int id, ScheduledReportRequest dto, string username);
+
     Task ProcessScheduledReportsAsync();
 
 }
@@ -1330,5 +1333,109 @@ public class ReportService : IReportService
 
     // Solo para simplificar ejemplo semanal
     private DayOfWeek DayOfWeekFromAdvancedRule(string rule) => ParseDayOfWeek(rule.Split(',')[0]);
+
+    public async Task<ScheduledReportResponse?> UpdateScheduledReportAsync(
+     int id,
+     ScheduledReportRequest dto,
+     string username)
+    {
+        var entity = await _context.ScheduledReports
+            .FirstOrDefaultAsync(r => r.Id == id && r.Username == username);
+
+        if (entity == null)
+            return null;
+
+        // Recipients
+        if (dto.Recipients != null)
+        {
+            if (dto.Recipients.Count == 0)
+                throw new ArgumentException("At least one recipient must be specified.");
+
+            if (dto.Recipients.Count > 50)
+                throw new ArgumentException("A maximum of 50 recipients is allowed.");
+
+            foreach (var email in dto.Recipients)
+            {
+                try { var addr = new System.Net.Mail.MailAddress(email); }
+                catch { throw new ArgumentException($"The email '{email}' is not valid."); }
+            }
+
+            entity.RecipientsJson = JsonSerializer.Serialize(dto.Recipients);
+        }
+
+        // ScheduleType
+        if (!string.IsNullOrWhiteSpace(dto.ScheduleType))
+        {
+            var validTypes = new[] { "DAILY", "WEEKLY", "MONTHLY", "ADVANCED" };
+            if (!validTypes.Contains(dto.ScheduleType.ToUpper()))
+                throw new ArgumentException("Invalid schedule type. Use DAILY, WEEKLY, MONTHLY, or ADVANCED.");
+
+            entity.ScheduleType = dto.ScheduleType;
+        }
+
+        // SendAtLocalTime
+        if (!string.IsNullOrWhiteSpace(dto.SendAtLocalTime))
+            entity.SendAtLocalTime = dto.SendAtLocalTime;
+
+        // AdvancedRule
+        if (!string.IsNullOrWhiteSpace(dto.AdvancedRule))
+            entity.AdvancedRule = dto.AdvancedRule;
+
+        // TimeZone
+        if (!string.IsNullOrWhiteSpace(dto.TimeZone))
+        {
+            try { TimeZoneInfo.FindSystemTimeZoneById(dto.TimeZone); }
+            catch { throw new ArgumentException($"The time zone '{dto.TimeZone}' is not valid."); }
+
+            entity.TimeZone = dto.TimeZone;
+        }
+
+        // IntervalMinutes (nullable int)
+        if (dto.IntervalMinutes.HasValue)
+            entity.IntervalMinutes = dto.IntervalMinutes;
+
+        // ReportId (solo si > 0)
+        if (dto.ReportId > 0)
+            entity.ReportId = dto.ReportId;
+
+        if (!string.IsNullOrWhiteSpace(dto.Subject))
+            entity.Subject = dto.Subject;
+
+        if (!string.IsNullOrWhiteSpace(dto.Message))
+            entity.Message = dto.Message;
+
+        // Check duplicate
+        var duplicate = await _context.ScheduledReports
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r =>
+                r.Id != id &&
+                r.ReportId == entity.ReportId &&
+                r.Username == username &&
+                r.ScheduleType == entity.ScheduleType &&
+                r.SendAtLocalTime == entity.SendAtLocalTime &&
+                r.AdvancedRule == entity.AdvancedRule &&
+                r.TimeZone == entity.TimeZone);
+
+        if (duplicate != null)
+            throw new ArgumentException("Another identical schedule already exists for this report.");
+
+        _context.ScheduledReports.Update(entity);
+        await _context.SaveChangesAsync();
+
+        return new ScheduledReportResponse
+        {
+            Id = entity.Id,
+            ReportId = entity.ReportId,
+            Username = entity.Username,
+            ScheduleType = entity.ScheduleType,
+            IntervalMinutes = entity.IntervalMinutes,
+            SendAtLocalTime = entity.SendAtLocalTime,
+            AdvancedRule = entity.AdvancedRule,
+            TimeZone = entity.TimeZone
+        };
+    }
+
+
+
 
 }
