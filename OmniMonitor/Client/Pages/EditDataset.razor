@@ -142,7 +142,7 @@ else if (selectedTipo == "Insight Monitor")
             <MudButton OnClick="GuardarCambiosIM"
                        Variant="Variant.Filled"
                        Color="MudBlazor.Color.Primary"
-                       Disabled="@(isSavingIM || !CanSaveIM)">
+                       Disabled="@(isSavingIM || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) || !HasChangesIMFiltered)">
                 @Localizer["GuardarCambios"]
             </MudButton>
         </div>
@@ -240,7 +240,7 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton OnClick="GuardarCambios"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(isSaving || !selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName))">
+                   Disabled="@(isSaving || !selectedSourceId.HasValue || string.IsNullOrWhiteSpace(selectedSensor) || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) || !HasChangesIM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -336,7 +336,7 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton OnClick="GuardarCambiosAM"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(isSavingAM || !CanSaveAM)">
+                   Disabled="@(isSavingAM || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) || !HasChangesAM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -427,7 +427,7 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton OnClick="GuardarCambiosUM"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(isSavingUM || !CanSaveUM)">
+                   Disabled="@(isSavingUM || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) || !HasChangesUM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -522,7 +522,7 @@ else if (selectedTipo == "Insight Monitor")
         <MudButton OnClick="GuardarCambiosEM"
                    Variant="Variant.Filled"
                    Color="MudBlazor.Color.Primary"
-                   Disabled="@(isSavingEM || !CanSaveEM)">
+                   Disabled="@(isSavingEM || string.IsNullOrWhiteSpace(addDesc) || string.IsNullOrWhiteSpace(addName) || !HasChangesEM)">
             @Localizer["GuardarCambios"]
         </MudButton>
     </div>
@@ -949,6 +949,9 @@ else if (selectedTipo == "Insight Monitor")
                         LoadSensors()
                     );
                     }
+
+                    // Copia el estado original al cargar el dataset
+                    SetOriginalState();
                     
                     return true;
                 }
@@ -973,9 +976,8 @@ else if (selectedTipo == "Insight Monitor")
                     selectedTipo = "Asset Manager";
                     addName = existenteAM.Nombre ?? string.Empty;
                     addDesc = existenteAM.Descripcion ?? string.Empty;
-                    
                     amMode = existenteAM.Type_Dataset;
-                    isEditingAM = true; // Bloquear cambio de modo al editar
+                    isEditingAM = true;
 
                     // Cargar filtros si existen
                     if (!string.IsNullOrEmpty(existenteAM.Filters))
@@ -996,10 +998,14 @@ else if (selectedTipo == "Insight Monitor")
 
                     // Cargar solo las listas necesarias para AM
                     await InitializeAMLists();
-                    
-                    // Cargar atributos disponibles para que los filtros se puedan mostrar correctamente
                     await LoadAvailableAttributes();
+
                     
+                    originalName = addName;
+                    originalDesc = addDesc;
+                    originalAmMode = amMode;
+                    originalAmFilters = amFilters.Select(f => CloneFilter(f)).ToList();
+
                     return true;
                 }
             }
@@ -1061,6 +1067,12 @@ else if (selectedTipo == "Insight Monitor")
                     await InitializeUMLists();
                     await LoadUmAvailableAttributes();
                     
+                    
+                    originalName = addName;
+                    originalDesc = addDesc;
+                    originalUmMode = umMode;
+                    originalUmFilters = umFilters.Select(f => CloneFilter(f)).ToList();
+
                     return true;
                 }
             }
@@ -1693,7 +1705,7 @@ else if (selectedTipo == "Insight Monitor")
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
-            if (string.IsNullOrEmpty(username))
+            if (string.IsNullOrWhiteSpace(username))
             {
                 ShowError("No se pudo obtener el usuario actual");
                 return;
@@ -1767,18 +1779,18 @@ else if (selectedTipo == "Insight Monitor")
             config.VisibleStateDuration = 2500;
             config.CloseAfterNavigation = false;
         });
-    }
+            }
 
     private void ShowError(string mensaje)
-    {
+            {
         Snackbar.Add(mensaje, Severity.Error, config =>
-        {
+                {
             config.SnackbarVariant = Variant.Filled;
             config.ShowCloseIcon = true;
             config.RequireInteraction = false;
             config.VisibleStateDuration = 4000;
             config.CloseAfterNavigation = false;
-        });
+                });
     }
 
     // ====== Urban Monitor Methods ======
@@ -1976,13 +1988,13 @@ else if (selectedTipo == "Insight Monitor")
                     
                     // Cargar filtros si existen
                     if (!string.IsNullOrEmpty(existenteEM.Filters))
-    {
-        try
-        {
+                    {
+                        try
+                        {
                             emFilters = System.Text.Json.JsonSerializer.Deserialize<List<FilterCondition>>(existenteEM.Filters) ?? new List<FilterCondition>();
-        }
-        catch (Exception ex)
-        {
+                        }
+                        catch (Exception ex)
+                        {
                             emFilters = new List<FilterCondition>();
                         }
                     }
@@ -1994,6 +2006,12 @@ else if (selectedTipo == "Insight Monitor")
                     // Cargar atributos disponibles
                     await InitializeEMLists();
                     await LoadEmAvailableAttributes();
+
+                    
+                    originalName = addName;
+                    originalDesc = addDesc;
+                    originalEmMode = emMode;
+                    originalEmFilters = emFilters.Select(f => CloneFilter(f)).ToList();
 
                     return true;
                 }
@@ -2310,4 +2328,99 @@ else if (selectedTipo == "Insight Monitor")
             StateHasChanged();
         }
     }
+
+    // Estado original para cada tipo
+    private string originalName = string.Empty;
+    private string originalDesc = string.Empty;
+    private int? originalSourceId = null;
+    private int? originalGroupId = null;
+    private HashSet<int> originalDeviceIds = new();
+    private string originalSensor = string.Empty;
+    private int originalAmMode;
+    private List<FilterCondition> originalAmFilters = new();
+    private int originalUmMode;
+    private List<FilterCondition> originalUmFilters = new();
+    private int originalEmMode;
+    private List<FilterCondition> originalEmFilters = new();
+    private int originalImMode;
+    private List<FilterCondition> originalImFilters = new();
+
+    // Llama esto después de cargar los datos del dataset
+    private void SetOriginalState()
+    {
+        originalName = addName;
+        originalDesc = addDesc;
+        originalSourceId = selectedSourceId;
+        originalGroupId = selectedGroupId;
+        originalDeviceIds = new HashSet<int>(selectedDeviceIds);
+        originalSensor = selectedSensor;
+        originalAmMode = amMode;
+        originalAmFilters = amFilters.Select(f => CloneFilter(f)).ToList();
+        originalUmMode = umMode;
+        originalUmFilters = umFilters.Select(f => CloneFilter(f)).ToList();
+        originalEmMode = emMode;
+        originalEmFilters = emFilters.Select(f => CloneFilter(f)).ToList();
+        originalImMode = imMode;
+        originalImFilters = imFilters.Select(f => CloneFilter(f)).ToList();
+    }
+
+    
+    private FilterCondition CloneFilter(FilterCondition f)
+    {
+        return new FilterCondition
+        {
+            AttributeName = f.AttributeName,
+            
+        };
+    }
+
+    // Compara listas de filtros
+    private bool AreFiltersEqual(List<FilterCondition> a, List<FilterCondition> b)
+    {
+        if (a.Count != b.Count) return false;
+        for (int i = 0; i < a.Count; i++)
+        {
+            if (!FilterEquals(a[i], b[i])) return false;
+        }
+        return true;
+    }
+
+    private bool FilterEquals(FilterCondition f1, FilterCondition f2)
+    {
+        return f1.AttributeName == f2.AttributeName;
+        
+    }
+
+    // Detecta cambios para cada tipo
+    private bool HasChangesIM =>
+        addName != originalName ||
+        addDesc != originalDesc ||
+        selectedSourceId != originalSourceId ||
+        selectedGroupId != originalGroupId ||
+        !selectedDeviceIds.SetEquals(originalDeviceIds) ||
+        selectedSensor != originalSensor;
+
+    private bool HasChangesIMFiltered =>
+        addName != originalName ||
+        addDesc != originalDesc ||
+        imMode != originalImMode ||
+        !AreFiltersEqual(imFilters, originalImFilters);
+
+    private bool HasChangesAM =>
+        addName != originalName ||
+        addDesc != originalDesc ||
+        amMode != originalAmMode ||
+        !AreFiltersEqual(amFilters, originalAmFilters);
+
+    private bool HasChangesUM =>
+        addName != originalName ||
+        addDesc != originalDesc ||
+        umMode != originalUmMode ||
+        !AreFiltersEqual(umFilters, originalUmFilters);
+
+    private bool HasChangesEM =>
+        addName != originalName ||
+        addDesc != originalDesc ||
+        emMode != originalEmMode ||
+        !AreFiltersEqual(emFilters, originalEmFilters);
 }

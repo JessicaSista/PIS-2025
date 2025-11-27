@@ -18,11 +18,9 @@
         <DialogContent>
             <MudStack Spacing="2">
                 <MudSelect T="int" Label="@Localizer["ReportLabel"]" @bind-Value="_reportId" Required="true" Disabled="_submitting">
-
                     @if (_reports is null)
                     {
                         <MudSelectItem T="int" Value="0">@Localizer["LoadingOption"]</MudSelectItem>
-
                     }
                     else
                     {
@@ -110,14 +108,14 @@
                     <MudText Typo="Typo.caption" Class="mud-secondary-text" Color="MudBlazor.Color.Error">@_errRecipients</MudText>
                 }
 
-                <MudTextField T="string" Label="@Localizer["SubjectLabel"]" @bind-Value="_subject" Disabled="_submitting" Immediate="true" />
-                <MudTextField T="string" Label="@Localizer["MessageLabel"]" @bind-Value="_message" Lines="3" Disabled="_submitting" Immediate="true" />
+                <MudTextField T="string" Label="@Localizer["SubjectLabel"]" @bind-Value="_subject" Disabled="_submitting" Immediate="true" OnBlur="OnSubjectChanged" />
+                <MudTextField T="string" Label="@Localizer["MessageLabel"]" @bind-Value="_message" Lines="3" Disabled="_submitting" Immediate="true" OnBlur="OnMessageChanged" />
 
             </MudStack>
         </DialogContent>
         <DialogActions>
             <MudButton OnClick="Cancel" Disabled="_submitting">@Localizer["CancelButton"]</MudButton>
-            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_submitting">@Localizer["SaveButton"]</MudButton>
+            <MudButton OnClick="Submit" Color="MudBlazor.Color.Primary" Disabled="_submitting || !_formValid || !_hasChanges">@Localizer["SaveButton"]</MudButton>
         </DialogActions>
 
     </MudDialog>
@@ -135,16 +133,113 @@
     private List<SimpleReport>? _reports;
 
     private int _backingReportId;
+    private int _reportId
+    {
+        get => _backingReportId;
+        set
+        {
+            if (_backingReportId != value)
+            {
+                _backingReportId = value;
+                UpdateSubjectSuggestion();
+                ValidateFormState();
+                CheckForChanges();
+            }
+        }
+    }
+
     private string _backingScheduleType = string.Empty;
+    private string _scheduleType
+    {
+        get => _backingScheduleType;
+        set
+        {
+            if (_backingScheduleType != value)
+            {
+                _backingScheduleType = value;
+                UpdateSubjectSuggestion();
+                ValidateFormState();
+                CheckForChanges();
+            }
+        }
+    }
 
-    private TimeSpan? _time;
+    private string _backingWeeklyDay = string.Empty;
+    private string _weeklyDay
+    {
+        get => _backingWeeklyDay;
+        set
+        {
+            if (_backingWeeklyDay != value)
+            {
+                _backingWeeklyDay = value;
+                ValidateFormState();
+                CheckForChanges();
+            }
+        }
+    }
+
+    private string _backingMonthlyDay = "1";
+    private string _monthlyDay
+    {
+        get => _backingMonthlyDay;
+        set
+        {
+            if (_backingMonthlyDay != value)
+            {
+                _backingMonthlyDay = value;
+                ValidateFormState();
+                CheckForChanges();
+            }
+        }
+    }
+
+    private TimeSpan? _backingTime;
+    private TimeSpan? _time
+    {
+        get => _backingTime;
+        set
+        {
+            if (_backingTime != value)
+            {
+                _backingTime = value;
+                ValidateFormState();
+                CheckForChanges();
+            }
+        }
+    }
+
+    private string _backingSubject = string.Empty;
+    private string _subject
+    {
+        get => _backingSubject;
+        set
+        {
+            if (_backingSubject != value)
+            {
+                _backingSubject = value;
+                CheckForChanges();
+            }
+        }
+    }
+
+    private string _backingMessage = string.Empty;
+    private string _message
+    {
+        get => _backingMessage;
+        set
+        {
+            if (_backingMessage != value)
+            {
+                _backingMessage = value;
+                CheckForChanges();
+            }
+        }
+    }
+
     private string _timeZone = TimeZoneInfo.Local.Id;
-
     private string _recipientInput = string.Empty;
-    private List<string> _recipients = new(); 
-
-    private string _subject = string.Empty;
-    private string _message = string.Empty;
+    private List<string> _recipients = new();
 
     private string _errReport = string.Empty;
     private string _errSchedule = string.Empty;
@@ -153,40 +248,35 @@
     private string _errWeekly = string.Empty;
     private string _errMonthly = string.Empty;
 
-    private string _weeklyDay = string.Empty;
-    private string _monthlyDay = "1";
-
     private List<string> _monthlyDaysList = Enumerable.Range(1, 31).Select(d => d.ToString()).ToList();
 
-    private int _reportId 
-    {
-        get => _backingReportId;
-        set 
-        {
-            if (_backingReportId == value) return;
-            _backingReportId = value;
-            UpdateSubjectSuggestion();
-            ValidateFormState();
-        }
-    }
-
-    private string _scheduleType 
-    {
-        get => _backingScheduleType;
-        set 
-        {
-            if (_backingScheduleType == value) return;
-            _backingScheduleType = value;
-            UpdateSubjectSuggestion();
-            ValidateFormState();
-        }
-    }
+  
+    private ScheduledReportRequest? _originalRequest;
+    private bool _hasChanges = false;
 
     private void HandleWeeklyDayChange(string selectedDay)
     {
         _weeklyDay = selectedDay;
         ValidateFormState();
+        CheckForChanges();
         StateHasChanged();
+    }
+
+    private void OnTimeChanged(TimeSpan? newTime)
+    {
+        _time = newTime;
+        ValidateFormState();
+        CheckForChanges();
+    }
+
+    private void OnSubjectChanged(FocusEventArgs e)
+    {
+        CheckForChanges();
+    }
+
+    private void OnMessageChanged(FocusEventArgs e)
+    {
+        CheckForChanges();
     }
 
     protected override async Task OnInitializedAsync()
@@ -195,6 +285,8 @@
         PrefillFromInitial();
         UpdateSubjectSuggestion();
         ValidateFormState(); 
+        _originalRequest = GetCurrentRequest();
+        CheckForChanges();
     }
 
     private async Task LoadReports()
@@ -269,6 +361,7 @@
         var baseValid = string.IsNullOrEmpty(_errReport) && string.IsNullOrEmpty(_errSchedule) && string.IsNullOrEmpty(_errTime) && string.IsNullOrEmpty(_errRecipients);
         var scheduleValid = string.IsNullOrEmpty(_errWeekly) && string.IsNullOrEmpty(_errMonthly);
         _formValid = baseValid && scheduleValid;
+        CheckForChanges();
         StateHasChanged(); 
     }
 
@@ -296,17 +389,7 @@
 
         try
         {
-            var request = new ScheduledReportRequest
-            {
-                ReportId = _reportId,
-                ScheduleType = _scheduleType,
-                SendAtLocalTime = _time.HasValue ? _time.Value.ToString(@"hh\:mm") : null,
-                AdvancedRule = _scheduleType == "Weekly" ? _weeklyDay : (_scheduleType == "Monthly" ? _monthlyDay : null),
-                TimeZone = _timeZone,
-                Recipients = _recipients,
-                Subject = _subject,
-                Message = _message
-            };
+            var request = GetCurrentRequest();
 
             var response = await Http.PutAsJsonAsync($"api/reports/scheduled-reports/{Initial.Id}", request);
 
@@ -367,6 +450,7 @@
         _recipients.Add(email);
         _recipientInput = string.Empty;
         ValidateFormState(); 
+        CheckForChanges();
         StateHasChanged();
     }
 
@@ -374,6 +458,7 @@
     {
         _recipients.RemoveAll(e => string.Equals(e, email, StringComparison.OrdinalIgnoreCase));
         ValidateFormState(); 
+        CheckForChanges();
         StateHasChanged();
     }
 
@@ -381,6 +466,41 @@
     {
         try { var addr = new System.Net.Mail.MailAddress(email); return addr.Address == email; }
         catch { return false; }
+    }
+
+   
+    private ScheduledReportRequest GetCurrentRequest()
+    {
+        return new ScheduledReportRequest
+        {
+            ReportId = _reportId,
+            ScheduleType = _scheduleType,
+            SendAtLocalTime = _time.HasValue ? _time.Value.ToString(@"hh\:mm") : null,
+            AdvancedRule = _scheduleType == "Weekly" ? _weeklyDay : (_scheduleType == "Monthly" ? _monthlyDay : null),
+            TimeZone = _timeZone,
+            Recipients = _recipients.ToList(),
+            Subject = _subject,
+            Message = _message
+        };
+    }
+
+    private void CheckForChanges()
+    {
+        if (_originalRequest == null)
+        {
+            _hasChanges = false;
+            return;
+        }
+        var current = GetCurrentRequest();
+        _hasChanges =
+            current.ReportId != _originalRequest.ReportId ||
+            current.ScheduleType != _originalRequest.ScheduleType ||
+            current.SendAtLocalTime != _originalRequest.SendAtLocalTime ||
+            current.AdvancedRule != _originalRequest.AdvancedRule ||
+            current.TimeZone != _originalRequest.TimeZone ||
+            !current.Recipients.SequenceEqual(_originalRequest.Recipients, StringComparer.OrdinalIgnoreCase) ||
+            current.Subject != _originalRequest.Subject ||
+            current.Message != _originalRequest.Message;
     }
 
     private class SimpleReport { public int Id { get; set; } public string Name { get; set; } = string.Empty; }
