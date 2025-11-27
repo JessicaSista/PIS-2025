@@ -20,14 +20,16 @@ namespace OmniMonitor.Server.Controllers
         private readonly ISondaAuthService _sondaAuthService;
         private readonly IDatasetUMService _datasetUMService;
         private readonly ISondaEMService _sondaEMService;
+        private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
 
-        public DatasetEMController(IDatasetEMService datasetEMService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ISondaEMService sondaEMService, ApplicationDbContext context)
+        public DatasetEMController(IDatasetEMService datasetEMService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, ISondaEMService sondaEMService, IKpiService kpiService, ApplicationDbContext context)
         {
             _datasetEMService = datasetEMService;
             _sondaAuthService = sondaAuthService;
             _datasetUMService = datasetUMService;
             _sondaEMService = sondaEMService;
+            _kpiService = kpiService;
             _context = context;
         }
 
@@ -361,6 +363,53 @@ namespace OmniMonitor.Server.Controllers
                 var username = User.Identity?.Name;
                 DatasetEM? id = await _context.DatasetsEM
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+
+                // 1. Buscar visualizaciones que solo tengan este dataset
+                var visualizacionesAEliminar = await _context.Set<Visualizacion>()
+                    .Include(v => v.GrupoDatasets)
+                    .Where(v => v.GrupoDatasets.Count == 1 && v.GrupoDatasets.Any(gd => gd.DatasetId == id.DatasetId))
+                    .ToListAsync();
+                foreach (var visualizacion in visualizacionesAEliminar)
+                {
+                    try
+                    {
+                        // Eliminar todos los GrupoVisualizacion asociados
+                        IQueryable<GrupoVisualizacion> gruposVisualizacion = _context.GrupoVisualizaciones.Where(gv => gv.IdVisualizacion == visualizacion.IdVisualizacion);
+                        _context.GrupoVisualizaciones.RemoveRange(gruposVisualizacion);
+
+                        // Eliminar todos los GrupoDataset asociados
+                        _context.GrupoDatasets.RemoveRange(visualizacion.GrupoDatasets);
+                        _context.Visualizaciones.Remove(visualizacion);
+                        await _context.SaveChangesAsync();
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de una Visualizacion, continuar con los demás
+                    }
+                }
+                var grupos = await _context.GrupoDatasets
+                    .Where(gd => gd.DatasetId == id.DatasetId)
+                    .ToListAsync();
+                _context.GrupoDatasets.RemoveRange(grupos);
+                await _context.SaveChangesAsync();
+
+                // Eliminar KPIs asociados a este dataset
+                var kpisToDelete = await _context.Kpi
+                    .Where(k => k.DatasetId == datasetId && k.SourceModule.ToUpper() == "EM")
+                    .ToListAsync();
+                
+                foreach (var kpi in kpisToDelete)
+                {
+                    try
+                    {
+                        await _kpiService.DeleteKpiAsync(kpi.Id, username);
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de un KPI, continuar con los demás
+                    }
+                }
+                
                 await _datasetEMService.DeleteDatasetEMAsync(datasetId, username);
                 await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
                 return NoContent();

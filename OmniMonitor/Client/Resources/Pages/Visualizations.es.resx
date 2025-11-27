@@ -177,4 +177,7 @@
   <data name="Page" xml:space="preserve">
     <value>Página</value>
   </data>
+  <data name="Gestiona" xml:space="preserve">
+    <value>Gestiona tus visualizaciones y KPIs</value>
+  </data>
 </root>

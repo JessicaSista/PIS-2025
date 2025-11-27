@@ -29,8 +29,8 @@
          @ondragenter="HandleDragEnter"
          @ondragleave="HandleDragLeave"
          @ondrop="HandleDrop">
-    <MudCard Style="@($"background-color: var(--card); color: var(--card-text-primary); height: {Height}px; border: 1px solid {_borderColor}; border-radius:7px;")"
-             Outlined="true">
+    <MudCard Style="@($"background-color: var(--card); color: var(--card-text-primary); height: {Height}px; width:100%; border: 1px solid {_borderColor}; border-radius:7px;")"
+         Outlined="true">
 
         <MudCardHeader Class="d-flex justify-space-between pt-5 pl-3 pr-2"
                        Style="height: 40px; color: var(--card-text-secondary); position:relative">
@@ -46,7 +46,7 @@
                 @VisualizationId
             </span> -->
             <MudStack Row="true" Spacing="0">
-                    @if (_linkId != -1 && _linkId != dashboardId)
+                    @if (_linkId != -1 && _linkId != dashboardId && !string.IsNullOrWhiteSpace(_linkValue))
                     {
                         <MudButton OnClick="(() => GoToDashboard())" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Link" class="pa-0"></MudButton>
                     }
@@ -78,10 +78,9 @@
         else
         {
 
-            <div class="d-flex flex-grow: 1; pa-5">
-                <KpiViewer @key="_kpiViewerKey" KpiId="@VisualizationId"/>
+            <div style="width:100%;height:100%;box-sizing:border-box;display:flex;align-items:stretch;">
+                <KpiViewer @key="_kpiViewerKey" KpiId="@VisualizationId" />
             </div>
-
         }
     </MudCard>
     </div>
@@ -122,6 +121,7 @@
 
     private int _kpiViewerKey = 0; //cuando se modifica esta variable, el KpiViewer vuelve a pedir los datos
     private int _linkId { get; set; } = -1;
+    private string? _linkValue { get; set; } = null;
     private Visualizacion _visualization { get; set; } = null;
     private bool _visualizationRetrieved { get; set; } = false;
 
@@ -166,7 +166,12 @@
 
             if (!string.IsNullOrWhiteSpace(link))
             {
+                _linkValue = link;
                 _linkId = int.Parse(link.Trim().Split(",")[0]);
+            }
+            else
+            {
+                _linkValue = null;
             }
         }
         catch (FormatException)
@@ -257,16 +262,30 @@
             {
                 try
                 {
+                    HttpResponseMessage? response = await Http.GetAsync($"api/Visualizacion/GetVisualizacionById?idVisualizacion={VisualizationId}");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        _visualization = await response.Content.ReadFromJsonAsync<Visualizacion>();
+                        if (!string.IsNullOrWhiteSpace(_visualization.Link))
+                        {
+                            _linkId = int.Parse(_visualization.Link.Trim().Split(",")[0]);
+                            _linkValue = _visualization.Link;
+                        }
+                        else
+                        {
+                            _linkId = -1;
+                            _linkValue = null;
+                        }
+                    }
                     _chartViewerKey++;
-
                     StateHasChanged();
-
-                    SnackbarService.Add("Visualización actualizada", Severity.Success);
                 }
                 catch (Exception ex)
                 {
                     SnackbarService.Add($"Error actualizando visualizacion: {ex.Message}", Severity.Warning);
                 }
+                SnackbarService.Add("Visualización actualizada", Severity.Success);
             }
         }
         else if (VisualizationType == 2) {
@@ -282,10 +301,24 @@
                 {
                     try
                     {
+                        // Refresca el KPI y el link
+                        HttpResponseMessage? response = await Http.GetAsync($"api/KPI/{VisualizationId}");
+                        if (response.IsSuccessStatusCode)
+                        {
+                            KpiResponse? kpi = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                            if (!string.IsNullOrWhiteSpace(kpi?.Link))
+                            {
+                                _linkId = int.Parse(kpi.Link.Trim().Split(",")[0]);
+                                _linkValue = kpi.Link;
+                            }
+                            else
+                            {
+                                _linkId = -1;
+                                _linkValue = null;
+                            }
+                        }
                         _kpiViewerKey++;
-
                         StateHasChanged();
-
                         SnackbarService.Add("KPI actualizado", Severity.Success);
                     }
                     catch (Exception ex)

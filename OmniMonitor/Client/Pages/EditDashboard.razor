@@ -1,12 +1,12 @@
 @page "/dashboards/edit/{DashboardId:int}"
 @attribute [Authorize]
+@using OmniMonitor.Client.Services
 @using OmniMonitor.Shared.Dtos
 @using MudBlazor
-@using OmniMonitor.Shared
 @using Microsoft.AspNetCore.Components
 @using Microsoft.Extensions.Localization
-@using System.Text.Json;
-@using System.Threading.Tasks;
+@using System.Text.Json
+@using System.Threading.Tasks
 @using Blazored.LocalStorage
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -19,6 +19,8 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject OmniMonitor.Client.Services.SignalR.TelemetryHubClient TelemetryHubClient
 @inject OmniMonitor.Client.Services.SignalR.KpiHubClient KpiHubClient
+@inject ThemeService ThemeService
+
 @implements IAsyncDisposable
 
 <PageTitle>Dashboards</PageTitle>
@@ -74,7 +76,6 @@
             @Localizer["GuardarCambios"]
         </MudButton>
     </MudStack>
-    
 </MudStack>
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-4">
@@ -84,12 +85,12 @@
 </MudStack>
 
 <CascadingValue Value="@_liveOn">
-    <Dashboard CardsData=@(cardsData) 
-            dashboardId="@DashboardId" 
-            OnVisualizationCreated="HandleNewVisualization"
-            UsedVisualizations="@_visualizationsIDs"
-            UpdateCardSize="UpdateCardSize" 
-            RemoveCard="HandleDeleteVisualization">
+    <Dashboard CardsData="@cardsData" 
+               dashboardId="@DashboardId" 
+               OnVisualizationCreated="HandleNewVisualization"
+               UsedVisualizations="@_visualizationsIDs"
+               UpdateCardSize="UpdateCardSize" 
+               RemoveCard="HandleDeleteVisualization">
     </Dashboard>
 </CascadingValue>
 
@@ -108,7 +109,6 @@
         }
     }
 </style>
-
 
 @code {
     [Parameter] public int DashboardId { get; set; }
@@ -152,7 +152,6 @@
     {
         try
         {
-            // Segun el id, obtenemos el nombre, descripción y el string JSON correspondiente
             string token = await LocalStorage.GetItemAsync<string>("authToken");
             HttpResponseMessage? response = await Http.GetAsync($"api/Dashboard/GetDashboard?id={DashboardId}");
 
@@ -165,13 +164,12 @@
                     dashName = dashboardData.Nombre;
                     dashDesc = dashboardData.Descripcion;
 
-
                     for (int i = 0; i < dashboardData.Tarjetas.Count; i++)
                     {
-                        _visualizationsIDs.Add((dashboardData.Tarjetas[i].CardId,dashboardData.Tarjetas[i].TipoCard));
+                        _visualizationsIDs.Add((dashboardData.Tarjetas[i].CardId, dashboardData.Tarjetas[i].TipoCard));
                     }
 
-                    // Ontengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
+                    // Obtengo el json y lo parseo para obtener las dimensiones de las tarjetas y armar el cardsData
                     string jsonDesign = dashboardData.JsonDiseno;
                     if (string.IsNullOrEmpty(jsonDesign))
                     {
@@ -183,20 +181,19 @@
                         if (root.TryGetProperty("cards", out JsonElement cardsElement) && cardsElement.ValueKind == JsonValueKind.Array)
                         {
                             var cardsElementArray = cardsElement.EnumerateArray().ToList();
-                            for (int i = 0; i<_visualizationsIDs.Count; i++)
+                            for (int i = 0; i < _visualizationsIDs.Count; i++)
                             {
                                 if (i >= cardsElementArray.Count)
                                 {
                                     break; // Evita errores si hay más IDs de cards que tamaños definidos
                                 }
-                                if (cardsElementArray[i].TryGetProperty("anchoSm", out JsonElement anchoSmElement) && 
+                                if (cardsElementArray[i].TryGetProperty("anchoSm", out JsonElement anchoSmElement) &&
                                     cardsElementArray[i].TryGetProperty("anchoMd", out JsonElement anchoMdElement) &&
                                     cardsElementArray[i].TryGetProperty("anchoLg", out JsonElement anchoLgElement) &&
                                     cardsElementArray[i].TryGetProperty("alto", out JsonElement altoElement))
                                 {
-                                    // Agregar el nuevo objeto CardData a la lista de resultados
                                     var (id, type) = _visualizationsIDs[i];
-                                    cardsData.Add((id,type, anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
+                                    cardsData.Add((id, type, anchoSmElement.GetInt32(), anchoMdElement.GetInt32(), anchoLgElement.GetInt32(), altoElement.GetInt32()));
                                 }
                             }
                         }
@@ -240,7 +237,8 @@
         {
             Snackbar.Add($"Descargando dashboard en formato {format.ToUpper()}...", Severity.Info);
             StateHasChanged();
-            await Task.Delay(1); // Permite que se renderice la notificación
+            await Task.Delay(1);
+
             string filename = $"Dashboard_{dashName}_{DateTime.Now:yyyyMMdd_HHmmss}";
             await JS.InvokeVoidAsync("dashboardExport.downloadDashboard", format, filename);
         }
@@ -250,7 +248,6 @@
         }
     }
 
-
     private void HandleNewVisualization((int Id, int Type) newVisualization)
     {
         const int DefaultAnchoSm = 6;
@@ -259,25 +256,19 @@
         const int DefaultAlto = 400;
 
         bool alreadyExists = _visualizationsIDs.Contains((newVisualization.Id, newVisualization.Type));
-
         if (alreadyExists)
         {
             return;
         }
         _visualizationsIDs.Add((newVisualization.Id, newVisualization.Type));
-
         RegisterAction("add", newVisualization.Id, newVisualization.Type);
-
         cardsData.Add((newVisualization.Id, newVisualization.Type, DefaultAnchoSm, DefaultAnchoMd, DefaultAnchoLg, DefaultAlto));
-
         StateHasChanged();
-
     }
 
     private void HandleDeleteVisualization((int Id, int Type) deletedVisualization)
     {
         bool alreadyExists = _visualizationsIDs.Contains((deletedVisualization.Id, deletedVisualization.Type));
-
         if (!alreadyExists)
         {
             return;
@@ -297,7 +288,7 @@
     {
         for (int i = 0; i < cardsData.Count; i++)
         {
-            if ((cardsData[i].Id == cardInfo.Id)&&(cardsData[i].CardType == cardInfo.Type))
+            if ((cardsData[i].Id == cardInfo.Id) && (cardsData[i].CardType == cardInfo.Type))
             {
                 cardsData[i] = cardInfo;
                 break;
@@ -305,11 +296,10 @@
         }
     }
 
-
     private async Task GuardarCambiosAsync()
     {
         AuthenticationState? authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        System.String? username = authState.User.Identity?.Name;
+        string? username = authState.User.Identity?.Name;
         bool allActionsOk = true;
 
         foreach (var action in _actionHistory)
@@ -329,7 +319,6 @@
                         };
 
                         HttpResponseMessage? response = await Http.PostAsJsonAsync($"api/Dashboard/{DashboardId}/card?username={username}", request);
-
                         if (!response.IsSuccessStatusCode)
                         {
                             allActionsOk = false;
@@ -349,9 +338,6 @@
                         string error = await response.Content.ReadAsStringAsync();
                         Snackbar.Add($"Error al eliminar la visualización ID: {id}, Type: {type}: {response.ReasonPhrase}. {error}", Severity.Error);
                         break;
-                    }
-                    else
-                    {
                     }
                 }
             }
@@ -385,9 +371,7 @@
             using (JsonDocument doc = JsonDocument.Parse(tempJsonString))
             {
                 JsonElement nuevoJsonDisenoElement = doc.RootElement.Clone();
-
                 string newJsonDesign = nuevoJsonDisenoElement.GetRawText();
-
 
                 string requestUri = $"api/Dashboard/{DashboardId}/config?username={username}";
 
@@ -429,13 +413,11 @@
                     Snackbar.Add(Localizer["DashboardSaveError"] + $" {response.ReasonPhrase}. {errorContent}", Severity.Error);
                 }
             }
-
         }
         catch (Exception ex)
         {
             Snackbar.Add(Localizer["DashboardSaveError"] + $" {ex.Message}", Severity.Error);
         }
-
     }
-
 }
+

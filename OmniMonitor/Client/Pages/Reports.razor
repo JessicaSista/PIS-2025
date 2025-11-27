@@ -50,8 +50,8 @@
 </MudStack>
 
 <!-- Reports grid -->
-<MudContainer Class="pl-4 pr-6 mx-0">
-    <MudGrid Spacing="3">
+<MudContainer MaxWidth="MaxWidth.False" Class="p-0 m-0" Style="width:100%;max-width:100vw;overflow-x:hidden;">
+    <MudGrid Spacing="3" Class="w-100 m-0" Style="width:100%;max-width:100vw;">
         @if (_isLoading == true)
         {
             @*
@@ -72,8 +72,11 @@
         else if (!_reportesFiltrados.Any())
         {
             <MudItem xs="12">
-                <MudText Typo="Typo.subtitle1" Align="MudBlazor.Align.Center" Style="color:#667d8a">
-                    @Localizer["NoReports"]
+                <MudText Typo="Typo.subtitle1"
+                         Align="MudBlazor.Align.Center"
+                         Class="mt-6 mb-6"
+                         Style="color:#a5a8b5;">
+                    @Localizer["NoResultados"]
                 </MudText>
             </MudItem>
         }

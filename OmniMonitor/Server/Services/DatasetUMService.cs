@@ -510,26 +510,7 @@ namespace OmniMonitor.Server.Services
 
             if (dataset == null)
                 throw new InvalidOperationException($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
-
-            
            
-            _context.JoinOperands.RemoveRange(_context.JoinOperands.Where(x => x.DatasetId == datasetId));
-            // 1. Buscar visualizaciones que solo tengan este dataset
-            var visualizacionesAEliminar = await _context.Set<Visualizacion>()
-                .Where(v => v.GrupoDatasets.Count == 1 && v.GrupoDatasets.Any(gd => gd.DatasetId == datasetId))
-                .ToListAsync();
-            var grupos = await _context.GrupoDatasets
-                .Where(gd => gd.DatasetId == datasetId)
-                .ToListAsync();
-            _context.GrupoDatasets.RemoveRange(grupos);
-
-            // 2. Eliminar esas visualizaciones
-            _context.Set<Visualizacion>().RemoveRange(visualizacionesAEliminar);
-
-            // 3. Eliminar todos los GrupoDataset relacionados a este dataset
-            var kpi = await _context.Kpi.Where(v => v.DatasetId == datasetId).ToListAsync();
-            _context.Kpi.RemoveRange(kpi);
-
             _context.Datasets.Remove(dataset);
             await _context.SaveChangesAsync();
         }

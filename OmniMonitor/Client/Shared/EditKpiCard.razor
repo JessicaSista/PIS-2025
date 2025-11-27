@@ -105,9 +105,8 @@
     private string? _serverError;
     private bool _liveEnabled = false;
     private bool _liveAllowed = false;
+    private bool _initialLiveEnabled = false;
     private DashboardSummaryResponse? _selectedDashboard = null;
-
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -149,6 +148,7 @@
         _initialDescription = _description;
         _initialColor = _actualColor;
         _liveEnabled = ExistingKpi.LiveEnabled;
+        _initialLiveEnabled = _liveEnabled;
         RecomputeLiveAllowed();
 
         // Cargar correctamente el dashboard link
@@ -184,6 +184,7 @@
                     var code = GetModuleCode(fresh.SourceModule);
                     _liveAllowed = (code == "im" || code == "em");
                     _liveEnabled = _liveAllowed && fresh.LiveEnabled;
+                    _initialLiveEnabled = _liveEnabled;
                     ExistingKpi.SourceModule = fresh.SourceModule;
                     ExistingKpi.LiveEnabled = fresh.LiveEnabled;
                     RecomputeLiveAllowed();
@@ -196,11 +197,8 @@
     protected override void OnParametersSet()
     {
         // Ensure gating reflects the latest parameter values (like EditVisualization does after loading currVisualization)
-        _liveEnabled = ExistingKpi.LiveEnabled;
         RecomputeLiveAllowed();
     }
-
-
 
     private string? GetModuleCode(string? moduleLong)
     {
@@ -238,7 +236,8 @@
         !string.Equals(_name, _initialName, StringComparison.Ordinal) ||
         !string.Equals(_description ?? string.Empty, _initialDescription ?? string.Empty, StringComparison.Ordinal) ||
         !string.Equals(_actualColor, _initialColor, StringComparison.Ordinal) ||
-        HasLinkChanged();
+        HasLinkChanged() ||
+        _liveEnabled != _initialLiveEnabled;
 
     private bool HasLinkChanged()
     {
@@ -252,6 +251,7 @@
     {
         if (!_liveAllowed) { return; }
         _liveEnabled = value;
+        StateHasChanged();
     }
 
     private async Task OpenSelectDashboardLinkModal()
@@ -284,95 +284,94 @@
         }
         _isSubmitting = true;
 
-                var request = new
+        var request = new
+        {
+            Name = _name.Trim(),
+            Description = _description?.Trim(),
+            DefaultColor = _actualColor,
+            LiveEnabled = _liveEnabled && _liveAllowed,
+            Link = _selectedDashboard == null ? string.Empty : $"{_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}"
+        };
+
+        try
+        {
+            // Preview flow before saving
+            Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
+            var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
+                receiver: this,
+                callback: emptyHandler
+            );
+
+            var previewKpi = new KpiResponse
+            {
+                Id = ExistingKpi.Id,
+                Name = request.Name,
+                Description = request.Description,
+                ActualColor = request.DefaultColor,
+                Unit = ExistingKpi.Unit,
+                Value = null
+            };
+
+            var parameters = new DialogParameters
+            {
+                ["VisualizationType"] = 2,
+                ["OnVisualizationCreated"] = emptyEventCallback,
+                ["KpiData"] = previewKpi
+            };
+
+            var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true
+            };
+
+            IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
+                "Preview",
+                parameters,
+                options
+            );
+            DialogResult? dialogResult = await dialog.Result;
+
+            if (dialogResult.Canceled)
+            {
+                _isSubmitting = false;
+                return;
+            }
+
+            var url = $"api/KPI/{ExistingKpi.Id}";
+            var response = await Http.PatchAsJsonAsync(url, request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(Localizer["KpiUpdatedSuccess"], Severity.Success);
+                _mudDialog.Close(DialogResult.Ok(ExistingKpi.Id));
+            }
+            else
+            {
+                var err = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode == HttpStatusCode.BadRequest &&
+                    err.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
+                    err.Contains("nombre", StringComparison.OrdinalIgnoreCase))
                 {
-                    Name = _name.Trim(),
-                    Description = _description?.Trim(),
-                    DefaultColor = _actualColor,
-                    LiveEnabled = _liveEnabled && _liveAllowed,
-                    Link = _selectedDashboard == null ? string.Empty : $"{_selectedDashboard.IdDashboard},{_selectedDashboard.Nombre}"
-                };
-
-                try
-                {
-                    // Preview flow before saving
-                    /*Func<ValueTuple<int, int>, Task> emptyHandler = _ => Task.CompletedTask;
-                    var emptyEventCallback = EventCallback.Factory.Create<ValueTuple<int, int>>(
-                    receiver: this,
-                    callback: emptyHandler
-                );*/
-
-                    var previewKpi = new KpiResponse
-                        {
-                            Id = ExistingKpi.Id,
-                            Name = request.Name,
-                            Description = request.Description,
-                            ActualColor = request.DefaultColor,
-                            Unit = ExistingKpi.Unit,
-                            Value = null 
-                        };
-
-                    var parameters = new DialogParameters
-                        {
-                            ["VisualizationType"] = 2,
-                           // ["OnVisualizationCreated"] = emptyEventCallback,
-                            ["KpiData"] = previewKpi
-                        };
-
-                    var options = new DialogOptions
-                        {
-                            CloseOnEscapeKey = true,
-                            MaxWidth = MaxWidth.Medium,
-                            FullWidth = true
-                        };
-
-                    IDialogReference? dialog = await DialogService.ShowAsync<PreviewVisualizationDialog>(
-                    "Preview",
-                    parameters,
-                    options
-                );
-                    DialogResult? dialogResult = await dialog.Result;
-
-                    if (dialogResult.Canceled)
-                    {
-                        _isSubmitting = false;
-                        return;
-                    }
-
-
-                    var url = $"api/KPI/{ExistingKpi.Id}";
-                    var response = await Http.PatchAsJsonAsync(url, request);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Snackbar.Add(Localizer["KpiUpdatedSuccess"], Severity.Success);
-                        _mudDialog.Close(DialogResult.Ok(ExistingKpi.Id));
-                    }
-                    else
-                    {
-                        var err = await response.Content.ReadAsStringAsync();
-                        if (response.StatusCode == HttpStatusCode.BadRequest &&
-                        err.Contains("kpi", StringComparison.OrdinalIgnoreCase) &&
-                        err.Contains("nombre", StringComparison.OrdinalIgnoreCase))
-                        {
-                            _serverError = Localizer["KpiNameDuplicate"];
-                        }
-                        else
-                        {
-                            _serverError = err;
-                        }
-                        Snackbar.Add(_serverError, Severity.Error);
-                    }
+                    _serverError = Localizer["KpiNameDuplicate"];
                 }
-                catch (Exception ex)
+                else
                 {
-                    _serverError = ex.Message;
-                    Snackbar.Add(_serverError, Severity.Error);
+                    _serverError = err;
                 }
-                finally
-                {
-                    _isSubmitting = false;
-                }
+                Snackbar.Add(_serverError, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            _serverError = ex.Message;
+            Snackbar.Add(_serverError, Severity.Error);
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
     }
 
     private void Cancel() => _mudDialog.Cancel();

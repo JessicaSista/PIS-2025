@@ -19,13 +19,18 @@ namespace OmniMonitor.Server.Controllers
         private readonly ISondaAuthService _sondaAuthService;
         private readonly ApplicationDbContext _context;
         private readonly ISondaUMService _sondaUMService;
-
-        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService)
+        private readonly IKpiService _kpiService;
+        private readonly IVisualizacionService _visualizacionService;
+        private readonly IReportService _reportService;
+        public DatasetUMController(IDatasetUMService datasetUMService, ISondaAuthService sondaAuthService, ApplicationDbContext context, ISondaUMService sondaUMService, IKpiService kpiService, IVisualizacionService visualizacionService, IReportService reportService)
         {
             _context = context;
             _datasetUMService = datasetUMService;
             _sondaAuthService = sondaAuthService;
             _sondaUMService = sondaUMService;
+            _kpiService = kpiService;
+            _visualizacionService = visualizacionService;
+            _reportService = reportService; 
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -395,6 +400,70 @@ namespace OmniMonitor.Server.Controllers
 
                 DatasetUM? id = await _context.DatasetsUM
                     .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+                // Buscar todos los JoinOperands que tengan el mismo CrossModuleJoinId que el dataset a eliminar
+                /*var joinOperands = _context.JoinOperands.Where(x => x.DatasetId == id.DatasetId).ToList();
+                foreach (var joinOperand in joinOperands)
+                {
+                    
+                    // Contar cuántos datasets (JoinOperands) tiene ese reporte
+                    var totalDatasets = _context.JoinOperands.Count(x => x.Id == joinOperand.Id);
+
+                    if (totalDatasets == 1)
+                    {
+                        await _reportService.DeleteReportAsync(joinOperand.R, username);
+                    }
+                    else
+                    {
+                        // Si hay más de un dataset, solo elimina el JoinOperand correspondiente
+                        _context.JoinOperands.Remove(joinOperand);
+                    }
+                }*/
+                // 1. Buscar visualizaciones que solo tengan este dataset
+                var visualizacionesAEliminar = await _context.Set<Visualizacion>()
+                    .Include(v => v.GrupoDatasets)
+                    .Where(v => v.GrupoDatasets.Count == 1 && v.GrupoDatasets.Any(gd => gd.DatasetId == id.DatasetId))
+                    .ToListAsync();
+                foreach (var visualizacion in visualizacionesAEliminar)
+                {
+                    try
+                    {
+                        // Eliminar todos los GrupoVisualizacion asociados
+                        IQueryable<GrupoVisualizacion> gruposVisualizacion = _context.GrupoVisualizaciones.Where(gv => gv.IdVisualizacion == visualizacion.IdVisualizacion);
+                        _context.GrupoVisualizaciones.RemoveRange(gruposVisualizacion);
+
+                        // Eliminar todos los GrupoDataset asociados
+                        _context.GrupoDatasets.RemoveRange(visualizacion.GrupoDatasets);
+                        _context.Visualizaciones.Remove(visualizacion);
+                        await _context.SaveChangesAsync();
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de una Visualizacion, continuar con los demás
+                    }
+                }
+                var grupos = await _context.GrupoDatasets
+                    .Where(gd => gd.DatasetId == id.DatasetId)
+                    .ToListAsync();
+                _context.GrupoDatasets.RemoveRange(grupos);
+                await _context.SaveChangesAsync();
+
+                // Eliminar KPIs asociados a este dataset
+                var kpisToDelete = await _context.Kpi
+                    .Where(k => k.DatasetId == datasetId && k.SourceModule.ToUpper() == "UM")
+                    .ToListAsync();
+                
+                foreach (var kpi in kpisToDelete)
+                {
+                    try
+                    {
+                        await _kpiService.DeleteKpiAsync(kpi.Id, username);
+                    }
+                    catch
+                    {
+                        // Si falla la eliminación de un KPI, continuar con los demás
+                    }
+                }
+                
                 await _datasetUMService.DeleteDatasetUMAsync(datasetId, username);
                 await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
                 return NoContent();

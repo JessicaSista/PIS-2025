@@ -32,12 +32,19 @@
 
                     <MudItem Lg="3" Sm="3" Xs="12" Class="pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">Nombre a mostrar</MudText>
-                        <MudTextField @bind-Value="dsItem.DisplayName" Variant="Variant.Outlined" Dense="true">@dsItem.DisplayName</MudTextField>
+                        <MudTextField Value="dsItem.DisplayName"
+                                      ValueChanged="@(EventCallback.Factory.Create<string>(this,v => OnDatasetFieldChanged(dsItem, nameof(dsItem.DisplayName), v)))"
+                                      Variant="Variant.Outlined"
+                                      Dense="true" />
                     </MudItem>
 
                     <MudItem Lg="2" Sm="2" Xs="12" Class="pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">Atributo</MudText>
-                        <MudSelect T="System.String" @bind-Value="dsItem.EntityAttribute" Variant="Variant.Outlined" Dense="true">
+                        <MudSelect T="System.String"
+                                   Value="dsItem.EntityAttribute"
+                                   ValueChanged="@(v => OnDatasetFieldChanged(dsItem, nameof(dsItem.EntityAttribute), v))"
+                                   Variant="Variant.Outlined"
+                                   Dense="true">
                             @foreach (System.String attr in _entityAttributes[dsItem.Entity])
                             {
                                 <MudSelectItem T="System.String" Value="attr">
@@ -52,7 +59,8 @@
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Multiplier"]</MudText>
                         <MudNumericField HideSpinButtons="true"
                                          Immediate="true"
-                                         @bind-Value="dsItem.Multiplier"
+                                         Value="dsItem.Multiplier"
+                                         ValueChanged="@(EventCallback.Factory.Create<decimal>(this, v => OnDatasetFieldChanged(dsItem, nameof(dsItem.Multiplier), v)))"
                                          Variant="Variant.Outlined"
                                          Culture="@(new CultureInfo("en-US"))"
                                          Step=".2M"
@@ -61,7 +69,11 @@
 
                     <MudItem Lg="2" Sm="2" Xs="5" Class="pt-0">
                         <MudText Typo="Typo.body2" Style="color: var(--text-primary)">@Localizer["Color"]</MudText>
-                        <MudColorPicker @bind-Text="dsItem.Color" Style="@($"color: {dsItem.Color};")" Placeholder="Seleccionar color" Variant="Variant.Outlined" />
+                        <MudColorPicker Text="dsItem.Color"
+                                        TextChanged="@(v => OnDatasetFieldChanged(dsItem, nameof(dsItem.Color), v))"
+                                        Style="@($"color: {dsItem.Color};")"
+                                        Placeholder="Seleccionar color"
+                                        Variant="Variant.Outlined" />
                     </MudItem>
                     <MudItem Lg="1" Sm="1" Xs="2" Class="d-flex align-items-center">
                         <MudButton OnClick="@(() => RemoveDataset(dsItem))">
@@ -161,7 +173,9 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@Localizer["Cancel"]</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">@Localizer["Save"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit" Disabled="!HasChanges()">
+            @Localizer["Save"]
+        </MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -303,11 +317,26 @@
             }
             _liveEnabled = currVisualization.LiveEnabled;
             RecomputeLiveAllowed();
+
+            // Backup valores originales para comparación
+            BackupOriginalValues();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error cargando visualización: {ex.Message}", Severity.Error);
         }
+    }
+
+    private void OnDatasetFieldChanged(DatasetSelection ds, string property, object value)
+    {
+        switch (property)
+        {
+            case nameof(ds.DisplayName): ds.DisplayName = value?.ToString(); break;
+            case nameof(ds.EntityAttribute): ds.EntityAttribute = value?.ToString(); break;
+            case nameof(ds.Multiplier): ds.Multiplier = value is decimal dec ? dec : Convert.ToDecimal(value); break;
+            case nameof(ds.Color): ds.Color = value?.ToString(); break;
+        }
+        StateHasChanged();
     }
 
     private async Task OpenAddDatasetModal()
@@ -333,7 +362,7 @@
         var parameters = new DialogParameters
         {
             { "OnDashboardSelected", EventCallback.Factory.Create<DashboardSummaryResponse>(this, HandleDashboardSelected) },
-            { "SelectedDashboard", _selectedDashboard }
+            {"selectedDashboard", _selectedDashboard },
         };
 
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
@@ -380,7 +409,8 @@
     private async Task HandleDashboardSelected(DashboardSummaryResponse dashboard)
     {
         _selectedDashboard = dashboard;
-        Snackbar.Add(Localizer["DashboardLinkAdded"], Severity.Info);
+        string msg = dashboard != null ? Localizer["DashboardLinkAdded"] : Localizer["DashboardLinkRemoved"];
+        Snackbar.Add(msg, Severity.Info);
         StateHasChanged();
         return;
     }
@@ -567,18 +597,29 @@
 
     private void Cancel() => _mudDialog.Cancel();
 
-    
+    private string _originalVisualizationName;
+    private string _originalChartType;
+    private DateTime? _originalBeginDate;
+    private TimeSpan? _originalBeginHour;
+    private DateTime? _originalEndDate;
+    private TimeSpan? _originalEndHour;
+    private bool _originalLiveEnabled;
+    private DashboardSummaryResponse _originalDashboard;
+    private List<DatasetSelection> _originalDatasets = new();
+
 
     private void RemoveDataset(DatasetSelection item)
     {
         _selectedDatasets.Remove(item);
         RecomputeLiveAllowed();
+        StateHasChanged();
     }
     
     private void OnLiveSwitchChanged(bool value)
     {
         if (!_liveAllowedVis) { return; }
         _liveEnabled = value;
+        StateHasChanged();
     }
     
     public class DatasetSelection
@@ -679,4 +720,59 @@
         }
     }
 
+    private void BackupOriginalValues()
+    {
+        _originalVisualizationName = _visualizationName;
+        _originalChartType = _selectedChartType;
+        _originalBeginDate = _beginDate;
+        _originalBeginHour = _beginHour;
+        _originalEndDate = _endDate;
+        _originalEndHour = _endHour;
+        _originalLiveEnabled = _liveEnabled;
+        _originalDashboard = _selectedDashboard == null ? null : new DashboardSummaryResponse
+        {
+            IdDashboard = _selectedDashboard.IdDashboard,
+            Nombre = _selectedDashboard.Nombre
+        };
+        _originalDatasets = _selectedDatasets.Select(ds => new DatasetSelection
+        {
+            Dataset = ds.Dataset,
+            DisplayName = ds.DisplayName,
+            Entity = ds.Entity,
+            EntityAttribute = ds.EntityAttribute,
+            Multiplier = ds.Multiplier,
+            Color = ds.Color
+        }).ToList();
+    }
+
+    private bool HasChanges()
+    {
+        if (_visualizationName != _originalVisualizationName) return true;
+        if (_selectedChartType != _originalChartType) return true;
+        if (_beginDate != _originalBeginDate) return true;
+        if (_beginHour != _originalBeginHour) return true;
+        if (_endDate != _originalEndDate) return true;
+        if (_endHour != _originalEndHour) return true;
+        if (_liveEnabled != _originalLiveEnabled) return true;
+
+        // Dashboard
+        if ((_selectedDashboard?.IdDashboard ?? -1) != (_originalDashboard?.IdDashboard ?? -1)) return true;
+
+        // Datasets
+        if (_selectedDatasets.Count != _originalDatasets.Count) return true;
+        for (int i = 0; i < _selectedDatasets.Count; i++)
+        {
+            var a = _selectedDatasets[i];
+            var b = _originalDatasets[i];
+            if (a.Dataset.IdGenerico != b.Dataset.IdGenerico ||
+                a.DisplayName != b.DisplayName ||
+                a.Entity != b.Entity ||
+                a.EntityAttribute != b.EntityAttribute ||
+                a.Multiplier != b.Multiplier ||
+                a.Color != b.Color)
+                return true;
+        }
+
+        return false;
+    }
 }

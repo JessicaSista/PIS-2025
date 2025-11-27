@@ -16,22 +16,22 @@
                 {
                     if (VisualizationId != 0)
                     {
-                        <ChartViewer VisualizationId="VisualizationId" retrieveOnInitialized="@true"/>
+                        <ChartViewer VisualizationId="VisualizationId" retrieveOnInitialized="@true" OnReady="OnChartReady" />
                     }
                     else
                     {
-                        <ChartViewer VisualizationId="0" Visualization="ChartData" retrieveOnInitialized="@true" />
+                        <ChartViewer VisualizationId="0" Visualization="ChartData" retrieveOnInitialized="@true" OnReady="OnChartReady" />
                     }
                 }
                 else if (VisualizationType == 2)
                 {
                     if (VisualizationId != 0)
                     {
-                        <KpiViewer KpiId="VisualizationId" />
+                        <KpiViewer KpiId="VisualizationId" IsPreview="@true" OnValueReady="OnKpiReady" />
                     }
                     else
-                    {    
-                        <KpiViewer Kpi="KpiData" IsPreview="@true"/>
+                    {
+                        <KpiViewer Kpi="KpiData" IsPreview="true" OnValueReady="OnKpiReady" />
                     }
                 }
         }
@@ -39,7 +39,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@Localizer["CancelButtonText"]</MudButton>
-        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit">@Localizer["ConfirmButtonText"]</MudButton>
+        <MudButton Color="MudBlazor.Color.Primary" OnClick="Submit" Disabled="@(!_canConfirm)">@Localizer["ConfirmButtonText"]</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -57,6 +57,21 @@
     [Parameter] public Visualizacion ChartData { get; set; }
 
     [Parameter] public EventCallback<(int,int)> OnVisualizationCreated { get; set; }
+
+    private bool _kpiReady = false;
+
+    private bool _chartReady = false;
+
+    private bool _canConfirm => VisualizationType == 1
+        ? ChartIsReady
+        : _kpiReady;
+
+    private bool KpiIsReady =>
+        VisualizationType == 2 &&
+        ((VisualizationId != 0 && KpiData?.Value != null && !string.IsNullOrEmpty(KpiData.Value.ToString()) && KpiData.Value.ToString() != "-")
+        || (KpiData != null && KpiData.Value != null && !string.IsNullOrEmpty(KpiData.Value.ToString()) && KpiData.Value.ToString() != "-"));
+
+    private bool ChartIsReady => _chartReady;
 
 
     private void Cancel()
@@ -78,5 +93,18 @@
         {
             MudDialog.Close(DialogResult.Ok(true));
         }
+    }
+
+    private void OnKpiReady(object? value)
+    {
+        // Considera el KPI listo si tiene un valor válido
+        _kpiReady = value != null && !string.IsNullOrEmpty(value.ToString()) && value.ToString() != "-";
+        StateHasChanged();
+    }
+
+    private void OnChartReady(bool ready)
+    {
+        _chartReady = ready;
+        StateHasChanged();
     }
 }

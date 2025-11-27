@@ -174,4 +174,7 @@
   <data name="Showing" xml:space="preserve">
     <value>Showing</value>
   </data>
+  <data name="NoResultados" xml:space="preserve">
+    <value>No results found for your search</value>
+  </data>
 </root>

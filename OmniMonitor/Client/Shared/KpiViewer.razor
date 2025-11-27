@@ -4,119 +4,249 @@
 @using Microsoft.Extensions.Localization
 @inject HttpClient Http
 @inject ILocalStorageService LocalStorage
-@inject IStringLocalizer<VisualizationCard> Localizer
+@inject IStringLocalizer<ChartViewer> Localizer
 @inject OmniMonitor.Client.Services.SignalR.KpiHubClient KpiHubClient
 @implements IAsyncDisposable
 
-<MudPaper Class="pa-4 kpi-card" Style="@CardStyle">
-    <MudCard Elevation="0"
-             Style="background-color: transparent; display:flex; flex-direction:column; height:100%;">
-        <MudCardContent Style="flex:1; display:flex; flex-direction:column;">
-
-            @if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Reconnecting)
-            {
-                <div style="align-self:flex-end; margin-bottom:4px;">
-                    <MudChip T="string" Color="MudBlazor.Color.Warning" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Reconnecting…</MudChip>
-                </div>
-            }
-            else if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Disconnected && _liveJoined)
-            {
-                <div style="align-self:flex-end; margin-bottom:4px;">
-                    <MudChip T="string" Color="MudBlazor.Color.Error" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Disconnected</MudChip>
-                </div>
-            }
-
-            <!-- Name -->
-            <MudTooltip Text="@Kpi.Name">
-                <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="mb-4">
-                    <MudText Typo="Typo.h6"
-                             Style="color: var(--card-text-primary);
-                                    font-weight:600;
-                                    white-space: nowrap;
-                                    overflow: hidden;
-                                    text-overflow: ellipsis;">
-                        @Kpi.Name
-                    </MudText>
-                    @if (LiveOn && (Kpi?.LiveEnabled ?? false))
+@if (IsPreview)
+{
+    @if (_isLoading)
+    {
+        <MudPaper Class="pa-4 kpi-card d-flex justify-center align-center" 
+            Style="background-color: var(--card); border: 1px solid #374151; border-radius: 2px; flex-grow: 1; min-height: 120px;">
+            <MudButton Disabled="true" Variant="Variant.Filled" Style="color: var(--card-text-secondary); min-width:180px;"> 
+                <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" /> 
+                <MudText Class="ms-2">@Localizer["Loading"]</MudText> 
+                <MudIcon Icon="@Icons.Material.Filled.CloudDownload" Class="ms-2" /> 
+            </MudButton> 
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="kpi-card" Style="@CardStyle">
+            <MudCard Elevation="0"
+                     Style="background-color: transparent; display:flex; flex-direction:column; height:100%;">
+                <MudCardContent Style="flex:1; display:flex; flex-direction:column;">
+                    @if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Reconnecting)
                     {
-                        <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                        <div style="align-self:flex-end; margin-bottom:4px;">
+                            <MudChip T="string" Color="MudBlazor.Color.Warning" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Reconnecting…</MudChip>
+                        </div>
                     }
-                </MudStack>
-            </MudTooltip>
+                    else if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Disconnected && _liveJoined)
+                    {
+                        <div style="align-self:flex-end; margin-bottom:4px;">
+                            <MudChip T="string" Color="MudBlazor.Color.Error" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Disconnected</MudChip>
+                        </div>
+                    }
 
-            <!-- Value -->
-            @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "�")
-            {
-                <MudContainer Class="d-flex justify-center align-center" Style="min-height: 60px">
-                    <MudButton Disabled="@_isLoading" OnClick="LoadKpiData" Variant="Variant.Filled" EndIcon="@Icons.Material.Filled.CloudDownload" Style="color: var(--card-text-secondary)">
-                        @if (_isLoading)
-                        {
-                            <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
-                            <MudText Class="ms-2">@Localizer["LoadingData"]</MudText>
-                        }
-                        else
-                        {
-                            <MudText>@Localizer["LoadData"]</MudText>
-                        }
-                    </MudButton>
-                </MudContainer>
-            }
-            else if (_isLoading)
-            {
-                <MudButton Variant="Variant.Filled"
-                           Disabled="true"
-                           EndIcon="@Icons.Material.Filled.CloudDownload"
-                           Style="background-color:#d6ffd6; color:#111; font-weight:600; border-radius:6px; width:160px;">
-                    @Localizer["LoadingData"]
+                    <!-- Name -->
+                    <MudTooltip Text="@Kpi.Name">
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="mb-4">
+                            <MudText Typo="Typo.h6"
+                                     Style="color: var(--card-text-primary);
+                                                                font-weight:600;
+                                                                white-space: nowrap;
+                                                                overflow: hidden;
+                                                                text-overflow: ellipsis;">
+                                @Kpi.Name
+                            </MudText>
+                            @if (LiveOn && (Kpi?.LiveEnabled ?? false))
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                            }
+                        </MudStack>
+                    </MudTooltip>
+
+                    <!-- Value -->
+                    @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "-")
+                    {
+                        <MudText Typo="Typo.body2"
+                                 Style="color: var(--card-text-secondary); font-weight: bold;">
+                            @Localizer["NoDataValue"]
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h4"
+                                 Style="color: var(--card-text-primary)">
+                            @Kpi.Value?.ToString()
+                        </MudText>
+                    }
+
+
+                    <!-- Description -->
+                    @if (!string.IsNullOrEmpty(Kpi.Description))
+                    {
+                        <MudText Typo="Typo.body2"
+                                 Style="color: var(--card-text-secondary);
+                                                                            margin-top:4px;
+                                                                            white-space: normal;
+                                                                            word-wrap: break-word;
+                                                                            overflow-wrap: break-word;">
+                            @Kpi.Description
+                        </MudText>
+                    }
+
+                    <!-- Footer (no 'Actualizado' porque no viene del backend) -->
+                </MudCardContent>
+            </MudCard>
+        </MudPaper>
+    }
+}
+else
+{
+    @if (_isLoading)
+    {
+        <MudPaper Class="kpi-card"
+                  Style="@CardStyleLoading">
+            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                <MudButton Disabled="true"
+                           Variant="Variant.Filled"
+                           Style="color: var(--card-text-secondary); min-width:180px;">
+                    <MudProgressCircular Class="ms-n1" Size="MudBlazor.Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">@Localizer["Loading"]</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.CloudDownload" Class="ms-2" />
                 </MudButton>
-            }
-            else if (Kpi.Value is null || (Kpi.Value is string s && (string.IsNullOrWhiteSpace(s) || s == "—")))
-            {
-                <MudText Typo="Typo.body2"
-                         Style="color: var(--card-text-secondary); font-weight: bold;">
-                    @Localizer["NoData"]
-                </MudText>
-            }
-            else
-            {
-                <MudText Typo="Typo.h4"
-                         Style="color: var(--card-text-primary)">
-                    @Kpi.Value?.ToString()
-                </MudText>
-            }
+            </div>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="kpi-card" Style="@CardStyle">
+            <MudCard Elevation="0"
+                     Style="background-color: transparent; display:flex; flex-direction:column; height:100%;">
+                <MudCardContent Style="flex:1; display:flex; flex-direction:column;">
+                    @if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Reconnecting)
+                    {
+                        <div style="align-self:flex-end; margin-bottom:4px;">
+                            <MudChip T="string" Color="MudBlazor.Color.Warning" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Reconnecting…</MudChip>
+                        </div>
+                    }
+                    else if (_connState == OmniMonitor.Client.Services.SignalR.ConnectionState.Disconnected && _liveJoined)
+                    {
+                        <div style="align-self:flex-end; margin-bottom:4px;">
+                            <MudChip T="string" Color="MudBlazor.Color.Error" Variant="Variant.Outlined" Size="MudBlazor.Size.Small">Disconnected</MudChip>
+                        </div>
+                    }
 
-            <!-- Description -->
-            @if (!string.IsNullOrEmpty(Kpi.Description))
-            {
-                <MudText Typo="Typo.body2"
-                         Style="color: var(--card-text-secondary);
-                                    margin-top:4px;
-                                    white-space: normal;
-                                    word-wrap: break-word;
-                                    overflow-wrap: break-word;">
-                    @Kpi.Description
-                </MudText>
-            }
+                    <!-- Name -->
+                    <MudTooltip Text="@Kpi.Name">
+                        <MudStack Row AlignItems="AlignItems.Center" Spacing="1" Class="mb-4">
+                            <MudText Typo="Typo.h6"
+                                     Style="color: var(--card-text-primary);
+                                                        font-weight:600;
+                                                        white-space: nowrap;
+                                                        overflow: hidden;
+                                                        text-overflow: ellipsis;">
+                                @Kpi.Name
+                            </MudText>
+                            @if (LiveOn && (Kpi?.LiveEnabled ?? false))
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="MudBlazor.Color.Error" Size="MudBlazor.Size.Small" />
+                            }
+                        </MudStack>
+                    </MudTooltip>
 
-            <!-- Footer (no 'Actualizado' porque no viene del backend) -->
-        </MudCardContent>
-    </MudCard>
-</MudPaper>
+                    <!-- Value -->
+                    @if (string.IsNullOrEmpty(Kpi.Value?.ToString()) || Kpi.Value?.ToString() == "-")
+                    {
+                        <MudText Typo="Typo.body2"
+                                 Style="color: var(--card-text-secondary); font-weight: bold;">
+                            @Localizer["NoDataValue"]
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h4"
+                                 Style="color: var(--card-text-primary)">
+                            @Kpi.Value?.ToString()
+                        </MudText>
+                    }
+
+
+                    <!-- Description -->
+                    @if (!string.IsNullOrEmpty(Kpi.Description))
+                    {
+                        <MudText Typo="Typo.body2"
+                                 Style="color: var(--card-text-secondary);
+                                                                margin-top:4px;
+                                                                white-space: normal;
+                                                                word-wrap: break-word;
+                                                                overflow-wrap: break-word;">
+                            @Kpi.Description
+                        </MudText>
+                    }
+
+                    <!-- Footer (no 'Actualizado' porque no viene del backend) -->
+                </MudCardContent>
+            </MudCard>
+        </MudPaper>
+    }
+}
 
 @code {
     [Parameter]
     public int KpiId { get; set; } = 0;
     [Parameter]
     public KpiResponse Kpi { get; set; } = new();
+    [CascadingParameter] public bool LiveOn { get; set; }
     [Parameter]
     public bool IsPreview { get; set; } = false;
-    [CascadingParameter] public bool LiveOn { get; set; }
+    [Parameter] public EventCallback<object?> OnValueReady { get; set; }
     private DateTime _lastUpdatedAt = default;
+    private bool _isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadKpiData();
-        await SetupLiveAsync();
+        if (IsPreview)
+        {
+            _isLoading = true;
+            StateHasChanged();
+            await LoadPreviewDataAsync();
+            return;
+        }
+
+        _isLoading = true;
+        StateHasChanged(); 
+        if (KpiId != 0)
+        {
+            string requestUri = $"api/KPI/{KpiId}";
+
+            try
+            {
+                var response = await Http.GetAsync(requestUri);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                    if (kpiData != null)
+                    {
+                        Kpi = kpiData;
+                        await OnValueReady.InvokeAsync(Kpi.Value);
+                        _lastUpdatedAt = DateTime.Now;
+                    }
+                }
+                else
+                {
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+
+            await SetupLiveAsync();
+        }
+        else
+        {
+            _isLoading = false;
+        }
     }
 
     private bool _liveJoined = false;
@@ -177,9 +307,22 @@
     }
 
     private string CardStyle =>
-        $"background-color:{GetTransparentColor(Kpi.ActualColor ?? "#00FFE7", 0.15)}; " +
-        $"border:2px solid {Kpi.ActualColor ?? "#00FFE7"}; " +
-        $"border-radius: 2px; flex-grow: 1;";
+        $"background-color:{GetTransparentColor(Kpi.ActualColor ?? "#00FFE7", 0.15)};" +
+        $"border:2px solid {Kpi.ActualColor ?? "#00FFE7"};" +
+        "border-radius:2px;" +
+        "width:100%;" +
+        "height:100%;" +
+        "box-sizing:border-box;" +
+        "padding:0;";
+
+    private string CardStyleLoading =>
+    "background-color: var(--card); " +
+    "border: 1px solid #374151; " +
+    "border-radius: 2px; " +
+    "width:100%; " +
+    "height:100%; " +
+    "box-sizing:border-box; " +
+    "padding:0;";
 
     private string GetTransparentColor(string colorInput, double opacity)
     {
@@ -209,34 +352,31 @@
         return colorInput;
     }
 
-    private bool _isLoading = false;
-    private bool _triedLoad = false;
-
-    private async Task LoadKpiData()
+    private async Task LoadPreviewDataAsync()
     {
-        _isLoading = true;
+        string requestUri = $"api/KPI/{Kpi.Id}";
         try
         {
-            if(!IsPreview)
+            var response = await Http.GetAsync(requestUri);
+            if (response.IsSuccessStatusCode)
             {
-                var response = await Http.GetAsync($"api/KPI/{KpiId}");
-                if (response.IsSuccessStatusCode)
+                KpiResponse? kpiData = await response.Content.ReadFromJsonAsync<KpiResponse>();
+                if (kpiData != null)
                 {
-                    var kpi = await response.Content.ReadFromJsonAsync<KpiResponse>();
-                    if (kpi != null)
-                    {
-                        Kpi = kpi;
-                    }
+                    Kpi.Value = kpiData.Value;
                 }
-            }        
+            }
+          
+            await OnValueReady.InvokeAsync(Kpi.Value);
         }
         finally
         {
             _isLoading = false;
-            _triedLoad = true;
             StateHasChanged();
         }
     }
+
+    
     public async ValueTask DisposeAsync()
     {
         try { await KpiHubClient.LeaveKpiAsync(KpiId); } catch { }

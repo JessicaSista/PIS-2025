@@ -285,16 +285,17 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return Unauthorized(new { message = "Token inválido." });
                 }
-
+                
                 bool success = await _reportService.DeleteReportAsync(id, username);
 
                 if (!success)
                 {
                     return NotFound($"El reporte con ID {id} no fue encontrado para este usuario.");
                 }
+                
 
-                // Retorna un 204 No Content, que es el estándar para un DELETE exitoso.
-                return NoContent();
+                    // Retorna un 204 No Content, que es el estándar para un DELETE exitoso.
+                    return NoContent();
             }
             catch (Exception)
             {
@@ -477,7 +478,41 @@ namespace OmniMonitor.Server.Controllers
             }
         }
 
-    
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission("Reports.Create")]
+        [HttpPut("scheduled-reports/{id}")]
+        [ProducesResponseType(typeof(ScheduledReportResponse), 200)]
+        [ProducesResponseType(404)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(401)]
+        public async Task<IActionResult> UpdateScheduledReport(int id, [FromBody] ScheduledReportRequest request)
+        {
+            try
+            {
+                if (request == null)
+                    return BadRequest(new { message = "Invalid request payload." });
+
+                var username = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(username))
+                    return Unauthorized(new { message = "Invalid token." });
+
+                var updated = await _reportService.UpdateScheduledReportAsync(id, request, username);
+
+                if (updated == null)
+                    return NotFound(new { message = "Scheduled report not found." });
+
+                return Ok(updated);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Internal error while updating scheduled report.",
+                    details = ex.Message
+                });
+            }
+        }
 
 
     }
