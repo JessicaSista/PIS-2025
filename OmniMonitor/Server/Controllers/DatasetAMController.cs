@@ -474,6 +474,53 @@ namespace OmniMonitor.Server.Controllers
                     }
                     
                 }
+
+                var jsonOptions = new System.Text.Json.JsonSerializerOptions 
+                { 
+                    PropertyNameCaseInsensitive = true,
+                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                };
+                
+                foreach (var report in allReports)
+                {
+                    try
+                    {
+                        var config = System.Text.Json.JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, jsonOptions);
+                        if (config?.Sources != null && config.Sources.Any())
+                        {
+                            var originalCount = config.Sources.Count;
+                            
+                            // Eliminar sources que referencien este dataset AM
+                            config.Sources.RemoveAll(s => 
+                                s.SourceType?.Equals("dataset", StringComparison.OrdinalIgnoreCase) == true && 
+                                s.SourceModule == ModuleType.AssetManager && 
+                                s.SourceId == id);
+                            
+                            // Si se eliminó algo
+                            if (config.Sources.Count < originalCount)
+                            {
+                                // Si el dataset eliminado era el único, eliminar todo el reporte
+                                if (config.Sources.Count == 0)
+                                {
+                                    await _reportService.DeleteReportAsync(report.Id, username);
+                                    reportIdsDeleted.Add(report.Id);
+                                }
+                                else
+                                {
+                                    // Si quedan otros datasets, solo actualizar el JSON
+                                    report.JSON_config = System.Text.Json.JsonSerializer.Serialize(config, jsonOptions);
+                                    await _context.SaveChangesAsync();
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log del error para debugging
+                        Console.WriteLine($"Error procesando reporte {report.Id}: {ex.Message}");
+                    }
+                }
+                
                     // 1. Buscar visualizaciones que solo tengan este dataset
                     var visualizacionesAEliminar = await _context.Set<Visualizacion>()
                     .Include(v => v.GrupoDatasets)
