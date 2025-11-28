@@ -261,6 +261,7 @@ namespace OmniMonitor.Server.Services
             if (dashboardReferences.Any())
             {
                 _context.GrupoVisualizaciones.RemoveRange(dashboardReferences);
+                await _context.SaveChangesAsync();
             }
 
             _context.Kpi.Remove(kpi);

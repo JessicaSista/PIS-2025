@@ -1,3 +1,5 @@
+using System.Data;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,8 +24,9 @@ namespace OmniMonitor.Server.Controllers
         private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
         private readonly ISondaAMService _sondaAMService;
+        private readonly IReportService _reportService;
 
-        public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context, ISondaAMService sondaAMService)
+        public DatasetAMController(IDatasetAmService datasetAmService, ISondaAuthService sondaAuthService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context, ISondaAMService sondaAMService, IReportService reportService)
         {
             _datasetAmService = datasetAmService;
             _sondaAuthService = sondaAuthService;
@@ -31,6 +34,7 @@ namespace OmniMonitor.Server.Controllers
             _kpiService = kpiService;
             _context = context;
             _sondaAMService = sondaAMService;
+            _reportService = reportService;
         }
 
         [HttpPost("filtered")]
@@ -426,8 +430,52 @@ namespace OmniMonitor.Server.Controllers
                 {
                     return NotFound($"No se encontró el dataset con ID {id} para el usuario {username}.");
                 }
-                // 1. Buscar visualizaciones que solo tengan este dataset
-                var visualizacionesAEliminar = await _context.Set<Visualizacion>()
+                // --- INICIO LÓGICA DE REPORTES Y JOINS ---
+                // Buscar todos los joins donde este dataset es operando
+                var joinOperands = await _context.JoinOperands
+                   .Where(j => j.DatasetId == datasetid.Id_Dataset && j.ModuleType == ModuleType.AssetManager)
+                    .ToListAsync();
+
+                foreach (var joinOperand in joinOperands)
+                {
+                    // Buscar el join completo
+                    var join = await _context.CrossModuleJoins
+                        .Include(j => j.LeftOperand)
+                        .Include(j => j.RightOperand)
+                        .FirstOrDefaultAsync(j =>
+                            (j.LeftOperand.DatasetId == joinOperand.DatasetId || j.RightOperand.DatasetId == joinOperand.DatasetId));
+
+                    if (join == null) continue;
+
+                    // Buscar todos los reportes que usan este join
+                    var reportJoins = await _context.ReportJoins
+                        .Where(rj => rj.CrossModuleJoinId == join.Id)
+                        .ToListAsync();
+                    //en este momento el join esta en un solo repo
+                    foreach (var reportJoin in reportJoins)
+                    {
+                        // ¿Cuántos joins tiene este reporte?
+                        var joinsDelReporte = await _context.ReportJoins
+                            .Where(rj => rj.ReportId == reportJoin.ReportId)
+                            .ToListAsync();
+
+                        if (joinsDelReporte.Count == 1)
+                        {
+                            // Es el único join del reporte, borrar el reporte completo
+                            await _reportService.DeleteReportAsync(reportJoin.ReportId, username);
+                            await _context.SaveChangesAsync();
+                        }
+                        else
+                        {
+                            // El reporte tiene más de un join, solo eliminar el join
+                            await _reportService.RemoveJoinFromReportAsync(reportJoin.ReportId, join.Id, username);
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                    
+                }
+                    // 1. Buscar visualizaciones que solo tengan este dataset
+                    var visualizacionesAEliminar = await _context.Set<Visualizacion>()
                     .Include(v => v.GrupoDatasets)
                     .Where(v => v.GrupoDatasets.Count == 1 && v.GrupoDatasets.Any(gd => gd.DatasetId == datasetid.DatasetId))
                     .ToListAsync();
@@ -443,6 +491,7 @@ namespace OmniMonitor.Server.Controllers
                         _context.GrupoDatasets.RemoveRange(visualizacion.GrupoDatasets);
                         _context.Visualizaciones.Remove(visualizacion);
                         await _context.SaveChangesAsync();
+
                     }
                     catch
                     {
@@ -465,6 +514,7 @@ namespace OmniMonitor.Server.Controllers
                     try
                     {
                         await _kpiService.DeleteKpiAsync(kpi.Id, username);
+                        await _context.SaveChangesAsync();
                     }
                     catch
                     {
@@ -473,7 +523,9 @@ namespace OmniMonitor.Server.Controllers
                 }
                 
                 await _datasetAmService.DeleteDatasetAMAsync(id, username);
-                await _datasetUMService.DeleteDatasetAsync(datasetid.DatasetId, username);
+                await _context.SaveChangesAsync();
+                await _datasetUMService.DeleteDatasetAsync(datasetid!.DatasetId, username);
+                await _context.SaveChangesAsync();
                 return NoContent();
             }
             catch (Exception ex)

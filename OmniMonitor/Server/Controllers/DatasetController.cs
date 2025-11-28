@@ -1,13 +1,17 @@
+using System.Text;
+using System.Text.Json;
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 using OmniMonitor.Server.Attributes;
 using OmniMonitor.Server.Context;
 using OmniMonitor.Server.Services;
 using OmniMonitor.Shared.Dtos;
+
+using static iText.StyledXmlParser.Jsoup.Select.Evaluator;
 
 namespace OmniMonitor.Server.Controllers
 {
@@ -22,8 +26,9 @@ namespace OmniMonitor.Server.Controllers
         private readonly IDatasetUMService _datasetUMService;
         private readonly IKpiService _kpiService;
         private readonly ApplicationDbContext _context;
+        private readonly IReportService _reportService;
 
-        public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService, ISondaIMService sondaIMService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context)
+        public DatasetController(IDatasetService datasetService, ISondaAuthService sondaAuthService, ISondaIMService sondaIMService, IDatasetUMService datasetUMService, IKpiService kpiService, ApplicationDbContext context, IReportService reportService)
         {
             _datasetService = datasetService;
             _sondaAuthService = sondaAuthService;
@@ -31,6 +36,7 @@ namespace OmniMonitor.Server.Controllers
             _datasetUMService = datasetUMService;
             _kpiService = kpiService;
             _context = context;
+            _reportService = reportService;
         }
 
         /// <summary>
@@ -504,13 +510,132 @@ namespace OmniMonitor.Server.Controllers
                     return NotFound($"No se encontró el dataset con ID {datasetId} para el usuario {username}.");
                 }
 
-                DatasetIM? id = await _context.DatasetsIM
-                    .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
+               
+
+                // --- INICIO LÓGICA DE REPORTES Y JOINS ---
+                // Buscar todos los joins donde este dataset es operando
+                var joinOperands = await _context.JoinOperands
+                   .Where(j => j.DatasetId == dataset.Id && j.ModuleType == ModuleType.InsightMonitor)
+                    .ToListAsync();
+
+                foreach (var joinOperand in joinOperands)
+                {
+                    // Buscar el join completo
+                    var join = await _context.CrossModuleJoins
+                        .Include(j => j.LeftOperand)
+                        .Include(j => j.RightOperand)
+                        .FirstOrDefaultAsync(j =>
+                            (j.LeftOperand.DatasetId == joinOperand.DatasetId || j.RightOperand.DatasetId == joinOperand.DatasetId));
+
+                    if (join == null) continue;
+
+                    // Buscar todos los reportes que usan este join
+                    var reportJoins = await _context.ReportJoins
+                        .Where(rj => rj.CrossModuleJoinId == join.Id)
+                        .ToListAsync();
+                    //en este momento el join esta en un solo repo
+                    foreach (var reportJoin in reportJoins)
+                    {
+                        // ¿Cuántos joins tiene este reporte?
+                        var joinsDelReporte = await _context.ReportJoins
+                            .Where(rj => rj.ReportId == reportJoin.ReportId)
+                            .ToListAsync();
+
+                        if (joinsDelReporte.Count == 1)
+                        {
+                            // Es el único join del reporte, borrar el reporte completo
+                            await _reportService.DeleteReportAsync(reportJoin.ReportId, username);
+                        }
+                        else
+                        {
+                            // El reporte tiene más de un join, solo eliminar el join
+                            await _reportService.RemoveJoinFromReportAsync(reportJoin.ReportId, join.Id, username);
+                        }
+                    }
+
+                }
+                /*
+                var reportsWithDatasetSource = await _context.Reports
+                    .Where(r =>
+                            (r.JSON_config.Contains($"\"sourceId\":{datasetId}") || r.JSON_config.Contains($"\"sourceId\":\"{datasetId}\""))
+                            && r.JSON_config.Contains("\"sourceModule\":\"InsightMonitor\""))
+                    .ToListAsync();
+                foreach (var report in reportsWithDatasetSource)
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(report.JSON_config);
+                        var root = doc.RootElement;
+
+                        if (root.TryGetProperty("sources", out var sourcesElement) && sourcesElement.ValueKind == JsonValueKind.Array)
+                        {
+                            var remainingSources = sourcesElement.EnumerateArray()
+                                .Where(src =>
+                                {
+                                    string? module = null;
+                                    int? sourceId = null;
+
+                                    if (src.TryGetProperty("sourceModule", out var moduleProp) && moduleProp.ValueKind == JsonValueKind.String)
+                                        module = moduleProp.GetString();
+
+                                    if (src.TryGetProperty("sourceId", out var idProp))
+                                    {
+                                        if (idProp.ValueKind == JsonValueKind.Number && idProp.TryGetInt32(out var idInt))
+                                            sourceId = idInt;
+                                        else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var idStr))
+                                            sourceId = idStr;
+                                    }
+
+                                    return !(module == "AssetManager" && sourceId == datasetId);
+                                })
+                                .ToList();
+
+                            if (remainingSources.Count == 0)
+                            {
+                                _context.Reports.Remove(report);
+                                await _context.SaveChangesAsync();
+                            }
+                            else
+                            {
+                                using var stream = new MemoryStream();
+                                using (var writer = new Utf8JsonWriter(stream))
+                                {
+                                    writer.WriteStartObject();
+                                    foreach (var prop in root.EnumerateObject())
+                                    {
+                                        if (prop.NameEquals("sources"))
+                                        {
+                                            writer.WritePropertyName("sources");
+                                            writer.WriteStartArray();
+                                            foreach (var src in remainingSources)
+                                                src.WriteTo(writer);
+                                            writer.WriteEndArray();
+                                        }
+                                        else
+                                        {
+                                            prop.Value.WriteTo(writer);
+                                        }
+                                    }
+                                    writer.WriteEndObject();
+                                }
+                                report.JSON_config = Encoding.UTF8.GetString(stream.ToArray());
+                                _context.Reports.Update(report);
+                                await _context.SaveChangesAsync();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Aquí puedes loguear el error para depuración
+                        // _logger.LogError(ex, $"Error procesando reporte {report.Id}");
+                    }
+                }
+                */
 
                 // 1. Buscar visualizaciones que solo tengan este dataset
                 var visualizacionesAEliminar = await _context.Set<Visualizacion>()
                     .Include(v => v.GrupoDatasets)
-                    .Where(v => v.GrupoDatasets.Count == 1 && v.GrupoDatasets.Any(gd => gd.DatasetId == id.DatasetId))
+                    .Where(v => v.GrupoDatasets.Count == 1 && v.GrupoDatasets.Any(gd => gd.DatasetId == dataset.DatasetId))
                     .ToListAsync();
                 foreach (var visualizacion in visualizacionesAEliminar)
                 {
@@ -531,7 +656,7 @@ namespace OmniMonitor.Server.Controllers
                     }
                 }
                 var grupos = await _context.GrupoDatasets
-                    .Where(gd => gd.DatasetId == id.DatasetId)
+                    .Where(gd => gd.DatasetId == dataset.DatasetId)
                     .ToListAsync();
                 _context.GrupoDatasets.RemoveRange(grupos);
                 await _context.SaveChangesAsync();
@@ -554,7 +679,7 @@ namespace OmniMonitor.Server.Controllers
                 }
                 
                 await _datasetService.DeleteDatasetIMAsync(datasetId, username);
-                await _datasetUMService.DeleteDatasetAsync(id!.DatasetId, username);
+                await _datasetUMService.DeleteDatasetAsync(dataset!.DatasetId, username);
 
                 return NoContent();
             }

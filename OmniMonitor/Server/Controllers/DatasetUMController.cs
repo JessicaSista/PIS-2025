@@ -400,24 +400,48 @@ namespace OmniMonitor.Server.Controllers
 
                 DatasetUM? id = await _context.DatasetsUM
                     .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
-                // Buscar todos los JoinOperands que tengan el mismo CrossModuleJoinId que el dataset a eliminar
-                /*var joinOperands = _context.JoinOperands.Where(x => x.DatasetId == id.DatasetId).ToList();
+                // --- INICIO LÓGICA DE REPORTES Y JOINS ---
+                // Buscar todos los joins donde este dataset es operando
+                var joinOperands = await _context.JoinOperands
+                   .Where(j => j.DatasetId == id.Id && j.ModuleType == ModuleType.UrbanMonitor)
+                    .ToListAsync();
+
                 foreach (var joinOperand in joinOperands)
                 {
-                    
-                    // Contar cuántos datasets (JoinOperands) tiene ese reporte
-                    var totalDatasets = _context.JoinOperands.Count(x => x.Id == joinOperand.Id);
+                    // Buscar el join completo
+                    var join = await _context.CrossModuleJoins
+                        .Include(j => j.LeftOperand)
+                        .Include(j => j.RightOperand)
+                        .FirstOrDefaultAsync(j =>
+                            (j.LeftOperand.DatasetId == joinOperand.DatasetId || j.RightOperand.DatasetId == joinOperand.DatasetId));
 
-                    if (totalDatasets == 1)
+                    if (join == null) continue;
+
+                    // Buscar todos los reportes que usan este join
+                    var reportJoins = await _context.ReportJoins
+                        .Where(rj => rj.CrossModuleJoinId == join.Id)
+                        .ToListAsync();
+                    //en este momento el join esta en un solo repo
+                    foreach (var reportJoin in reportJoins)
                     {
-                        await _reportService.DeleteReportAsync(joinOperand.R, username);
+                        // ¿Cuántos joins tiene este reporte?
+                        var joinsDelReporte = await _context.ReportJoins
+                            .Where(rj => rj.ReportId == reportJoin.ReportId)
+                            .ToListAsync();
+
+                        if (joinsDelReporte.Count == 1)
+                        {
+                            // Es el único join del reporte, borrar el reporte completo
+                            await _reportService.DeleteReportAsync(reportJoin.ReportId, username);
+                        }
+                        else
+                        {
+                            // El reporte tiene más de un join, solo eliminar el join
+                            await _reportService.RemoveJoinFromReportAsync(reportJoin.ReportId, join.Id, username);
+                        }
                     }
-                    else
-                    {
-                        // Si hay más de un dataset, solo elimina el JoinOperand correspondiente
-                        _context.JoinOperands.Remove(joinOperand);
-                    }
-                }*/
+
+                }
                 // 1. Buscar visualizaciones que solo tengan este dataset
                 var visualizacionesAEliminar = await _context.Set<Visualizacion>()
                     .Include(v => v.GrupoDatasets)

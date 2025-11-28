@@ -203,7 +203,11 @@ public class ReportService : IReportService
         {
             await DeleteScheduledReportAsync(reporte.Id);
         }
-
+        var join = await _context.ReportJoins.Where(j => j.ReportId == reportToDelete.Id).ToListAsync();
+        foreach(var joinid in join)
+        {
+            await RemoveJoinFromReportAsync(joinid.ReportId, joinid.CrossModuleJoinId, username);
+        }
         //    las entradas correspondientes en la tabla 'ReportJoins'.
         _context.Reports.Remove(reportToDelete);
         await _context.SaveChangesAsync();
@@ -275,6 +279,63 @@ public class ReportService : IReportService
 
         _context.ReportJoins.Remove(joinLinkToRemove);
         await _context.SaveChangesAsync();
+       
+        // Eliminar el join del JSON_config del reporte
+        var report = await _context.Reports.FirstOrDefaultAsync(r => r.Id == reportId && r.Username == username);
+        if (report != null && !string.IsNullOrWhiteSpace(report.JSON_config))
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            try
+            {
+                var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, options);
+                if (config?.Sources != null)
+                {
+                    var originalCount = config.Sources.Count;
+                    var filteredSources = config.Sources
+                        .Where(s => !(s.SourceType?.ToLower() == "join" && s.SourceId == joinId))
+                        .ToList();
+
+                    if (filteredSources.Count != originalCount && filteredSources.Count != 0)
+                    {
+                        config.Sources = filteredSources; 
+                        report.JSON_config = JsonSerializer.Serialize(config, options);
+                        _context.Reports.Update(report);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error actualizando JSON_config al eliminar join del reporte");
+                throw;
+            }
+        }
+
+
+        var join = await _context.CrossModuleJoins
+                .FirstOrDefaultAsync(j => j.Id == joinId);
+
+            if (join != null)
+            {
+                // Guardar los IDs antes de eliminar el join
+                var leftOperandId = join.LeftOperandId;
+                var rightOperandId = join.RightOperandId;
+
+                _context.CrossModuleJoins.Remove(join);
+                await _context.SaveChangesAsync();
+
+                var leftOperand = await _context.JoinOperands.FirstOrDefaultAsync(o => o.Id == leftOperandId);
+                if (leftOperand != null)
+                        _context.JoinOperands.Remove(leftOperand);
+                
+                var rightOperand = await _context.JoinOperands.FirstOrDefaultAsync(o => o.Id == rightOperandId);
+                if (rightOperand != null)
+                {
+                    _context.JoinOperands.Remove(rightOperand);
+                }
+                await _context.SaveChangesAsync();
+            }
+        
 
         return true;
     }
