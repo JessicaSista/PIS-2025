@@ -367,7 +367,7 @@ namespace OmniMonitor.Server.Controllers
                 .FirstOrDefaultAsync(d => d.Id == datasetId && d.Username == username);
 
                 // --- INICIO LÓGICA DE REPORTES Y JOINS ---
-                // Buscar todos los joins donde este dataset es operando
+                // Buscar todos los joins donde este dataset
                 var joinOperands = await _context.JoinOperands
                    .Where(j => j.DatasetId == id.Id && j.ModuleType == ModuleType.EventManager)
                     .ToListAsync();
@@ -387,7 +387,7 @@ namespace OmniMonitor.Server.Controllers
                     var reportJoins = await _context.ReportJoins
                         .Where(rj => rj.CrossModuleJoinId == join.Id)
                         .ToListAsync();
-                    //en este momento el join esta en un solo repo
+                    //en este momento el join esta en un solo reporte
                     foreach (var reportJoin in reportJoins)
                     {
                         // ¿Cuántos joins tiene este reporte?
@@ -427,9 +427,9 @@ namespace OmniMonitor.Server.Controllers
                         _context.Visualizaciones.Remove(visualizacion);
                         await _context.SaveChangesAsync();
                     }
-                    catch
+                    catch(Exception ex)
                     {
-                        // Si falla la eliminación de una Visualizacion, continuar con los demás
+                        return StatusCode(500, $"Error interno al eliminar la visualizacion: {ex.Message}");
                     }
                 }
                 var grupos = await _context.GrupoDatasets

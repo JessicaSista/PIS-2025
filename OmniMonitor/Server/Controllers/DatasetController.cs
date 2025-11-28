@@ -513,7 +513,7 @@ namespace OmniMonitor.Server.Controllers
                
 
                 // --- INICIO LÓGICA DE REPORTES Y JOINS ---
-                // Buscar todos los joins donde este dataset es operando
+                // Buscar todos los joins donde este dataset
                 var joinOperands = await _context.JoinOperands
                    .Where(j => j.DatasetId == dataset.Id && j.ModuleType == ModuleType.InsightMonitor)
                     .ToListAsync();
@@ -533,7 +533,7 @@ namespace OmniMonitor.Server.Controllers
                     var reportJoins = await _context.ReportJoins
                         .Where(rj => rj.CrossModuleJoinId == join.Id)
                         .ToListAsync();
-                    //en este momento el join esta en un solo repo
+                    //en este momento el join esta en un solo reporte
                     foreach (var reportJoin in reportJoins)
                     {
                         // ¿Cuántos joins tiene este reporte?
@@ -554,83 +554,7 @@ namespace OmniMonitor.Server.Controllers
                     }
 
                 }
-                /*
-                var reportsWithDatasetSource = await _context.Reports
-                    .Where(r =>
-                            (r.JSON_config.Contains($"\"sourceId\":{datasetId}") || r.JSON_config.Contains($"\"sourceId\":\"{datasetId}\""))
-                            && r.JSON_config.Contains("\"sourceModule\":\"InsightMonitor\""))
-                    .ToListAsync();
-                foreach (var report in reportsWithDatasetSource)
-                {
-                    try
-                    {
-                        using var doc = JsonDocument.Parse(report.JSON_config);
-                        var root = doc.RootElement;
-
-                        if (root.TryGetProperty("sources", out var sourcesElement) && sourcesElement.ValueKind == JsonValueKind.Array)
-                        {
-                            var remainingSources = sourcesElement.EnumerateArray()
-                                .Where(src =>
-                                {
-                                    string? module = null;
-                                    int? sourceId = null;
-
-                                    if (src.TryGetProperty("sourceModule", out var moduleProp) && moduleProp.ValueKind == JsonValueKind.String)
-                                        module = moduleProp.GetString();
-
-                                    if (src.TryGetProperty("sourceId", out var idProp))
-                                    {
-                                        if (idProp.ValueKind == JsonValueKind.Number && idProp.TryGetInt32(out var idInt))
-                                            sourceId = idInt;
-                                        else if (idProp.ValueKind == JsonValueKind.String && int.TryParse(idProp.GetString(), out var idStr))
-                                            sourceId = idStr;
-                                    }
-
-                                    return !(module == "AssetManager" && sourceId == datasetId);
-                                })
-                                .ToList();
-
-                            if (remainingSources.Count == 0)
-                            {
-                                _context.Reports.Remove(report);
-                                await _context.SaveChangesAsync();
-                            }
-                            else
-                            {
-                                using var stream = new MemoryStream();
-                                using (var writer = new Utf8JsonWriter(stream))
-                                {
-                                    writer.WriteStartObject();
-                                    foreach (var prop in root.EnumerateObject())
-                                    {
-                                        if (prop.NameEquals("sources"))
-                                        {
-                                            writer.WritePropertyName("sources");
-                                            writer.WriteStartArray();
-                                            foreach (var src in remainingSources)
-                                                src.WriteTo(writer);
-                                            writer.WriteEndArray();
-                                        }
-                                        else
-                                        {
-                                            prop.Value.WriteTo(writer);
-                                        }
-                                    }
-                                    writer.WriteEndObject();
-                                }
-                                report.JSON_config = Encoding.UTF8.GetString(stream.ToArray());
-                                _context.Reports.Update(report);
-                                await _context.SaveChangesAsync();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Aquí puedes loguear el error para depuración
-                        // _logger.LogError(ex, $"Error procesando reporte {report.Id}");
-                    }
-                }
-                */
+             
 
                 // 1. Buscar visualizaciones que solo tengan este dataset
                 var visualizacionesAEliminar = await _context.Set<Visualizacion>()
@@ -650,9 +574,9 @@ namespace OmniMonitor.Server.Controllers
                         _context.Visualizaciones.Remove(visualizacion);
                         await _context.SaveChangesAsync();
                     }
-                    catch
+                    catch(Exception ex)
                     {
-                        // Si falla la eliminación de una Visualizacion, continuar con los demás
+                        return StatusCode(500, $"Error interno al eliminar la visualizacion: {ex.Message}");
                     }
                 }
                 var grupos = await _context.GrupoDatasets
