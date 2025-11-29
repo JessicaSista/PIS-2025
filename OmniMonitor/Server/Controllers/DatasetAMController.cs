@@ -443,7 +443,7 @@ namespace OmniMonitor.Server.Controllers
                         .Include(j => j.LeftOperand)
                         .Include(j => j.RightOperand)
                         .FirstOrDefaultAsync(j =>
-                            (j.LeftOperand.DatasetId == joinOperand.DatasetId || j.RightOperand.DatasetId == joinOperand.DatasetId));
+                            ((j.LeftOperand.DatasetId == joinOperand.DatasetId && j.LeftOperand.ModuleType == ModuleType.AssetManager) || (j.RightOperand.DatasetId == joinOperand.DatasetId && j.RightOperand.ModuleType == ModuleType.AssetManager)));
 
                     if (join == null) continue;
 

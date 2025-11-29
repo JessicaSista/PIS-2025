@@ -525,7 +525,7 @@ namespace OmniMonitor.Server.Controllers
                         .Include(j => j.LeftOperand)
                         .Include(j => j.RightOperand)
                         .FirstOrDefaultAsync(j =>
-                            (j.LeftOperand.DatasetId == joinOperand.DatasetId || j.RightOperand.DatasetId == joinOperand.DatasetId));
+                            ((j.LeftOperand.DatasetId == joinOperand.DatasetId && j.LeftOperand.ModuleType == ModuleType.InsightMonitor) || (j.RightOperand.DatasetId == joinOperand.DatasetId && j.RightOperand.ModuleType == ModuleType.InsightMonitor)));
 
                     if (join == null) continue;
 
@@ -570,7 +570,6 @@ namespace OmniMonitor.Server.Controllers
                         {
                             var originalCount = config.Sources.Count;
 
-                            // Eliminar sources que referencien este dataset AM
                             config.Sources.RemoveAll(s =>
                                 s.SourceType?.Equals("dataset", StringComparison.OrdinalIgnoreCase) == true &&
                                 s.SourceModule == ModuleType.InsightMonitor &&

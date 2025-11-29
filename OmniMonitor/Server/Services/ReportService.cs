@@ -53,7 +53,6 @@ public interface IReportService
     Task<ScheduledReportResponse?> UpdateScheduledReportAsync(int id, ScheduledReportRequest dto, string username);
 
     Task ProcessScheduledReportsAsync();
-
 }
 
 public class ReportService : IReportService
@@ -326,16 +325,52 @@ public class ReportService : IReportService
 
             if (filtersConfig?.DatasetFilters != null && joinFull != null)
             {
-                int leftDatasetId = joinFull.LeftOperand.DatasetId;
-                int rightDatasetId = joinFull.RightOperand.DatasetId;
-                var leftModuleType = joinFull.LeftOperand.ModuleType;
-                var rightModuleType = joinFull.RightOperand.ModuleType;
+                // Obtener la configuración actual del reporte (ya sin el join eliminado)
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var config = JsonSerializer.Deserialize<ReportJsonConfig>(report.JSON_config, options);
+                var sources = config?.Sources ?? new List<ReportSourceConfig>();
+
+                // Un dataset sigue "usado" si existe algún otro join (distinto al que se elimina) que lo use como operando izquierdo o derecho
+                bool leftStillUsed = false;
+                bool rightStillUsed = false;
+
+                foreach (var s in sources)
+                {
+                    if (s.SourceType?.ToLower() == "join" && s.SourceId != joinId)
+                    {
+                        // Cargar el join correspondiente
+                        var otherJoin = await _context.CrossModuleJoins
+                            .Include(j => j.LeftOperand)
+                            .Include(j => j.RightOperand)
+                            .FirstOrDefaultAsync(j => j.Id == s.SourceId);
+
+                        if (otherJoin != null)
+                        {
+                            if (otherJoin.LeftOperand?.DatasetId == joinFull.LeftOperand.DatasetId &&
+                                otherJoin.LeftOperand.ModuleType == joinFull.LeftOperand.ModuleType)
+                                leftStillUsed = true;
+
+                            if (otherJoin.RightOperand?.DatasetId == joinFull.LeftOperand.DatasetId &&
+                                otherJoin.RightOperand.ModuleType == joinFull.LeftOperand.ModuleType)
+                                leftStillUsed = true;
+
+                            if (otherJoin.LeftOperand?.DatasetId == joinFull.RightOperand.DatasetId &&
+                                otherJoin.LeftOperand.ModuleType == joinFull.RightOperand.ModuleType)
+                                rightStillUsed = true;
+
+                            if (otherJoin.RightOperand?.DatasetId == joinFull.RightOperand.DatasetId &&
+                                otherJoin.RightOperand.ModuleType == joinFull.RightOperand.ModuleType)
+                                rightStillUsed = true;
+                        }
+                    }
+                }
 
                 int originalCount = filtersConfig.DatasetFilters.Count;
 
+                // Solo eliminar el filtro si el dataset ya no está presente en ningún otro source
                 filtersConfig.DatasetFilters.RemoveAll(df =>
-                    (df.DatasetId == leftDatasetId && df.ModuleType == leftModuleType) ||
-                    (df.DatasetId == rightDatasetId && df.ModuleType == rightModuleType)
+                    (!leftStillUsed && df.DatasetId == joinFull.LeftOperand.DatasetId && df.ModuleType == joinFull.LeftOperand.ModuleType) ||
+                    (!rightStillUsed && df.DatasetId == joinFull.RightOperand.DatasetId && df.ModuleType == joinFull.RightOperand.ModuleType)
                 );
 
                 if (filtersConfig.DatasetFilters.Count < originalCount)

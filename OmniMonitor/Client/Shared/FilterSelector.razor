@@ -131,10 +131,10 @@
                                     <MudItem Xs="12" Sm="6">
                                         <MudSelect T="bool?"
                                                    Label="@Localizer["FilterValueLabel"]"
-                                                   Value="@filter.BooleanValue"
-                                                   ValueChanged="@(value => OnBooleanValueChanged(filter, value))">
-                                            <MudSelectItem Value="@true">@Localizer["BooleanTrueLabel"]</MudSelectItem>
-                                            <MudSelectItem Value="@false">@Localizer["BooleanFalseLabel"]</MudSelectItem>
+                                                   Clearable="true"
+                                                   @bind-Value="filter.BooleanValue">
+                                            <MudSelectItem Value="@((bool?)true)">@Localizer["BooleanTrueLabel"]</MudSelectItem>
+                                            <MudSelectItem Value="@((bool?)false)">@Localizer["BooleanFalseLabel"]</MudSelectItem>
                                         </MudSelect>
                                     </MudItem>
                                     break;
@@ -314,12 +314,6 @@
     private void OnEnumValueChanged(EditReport.FilterViewModel filter, string? value)
     {
         filter.EnumValue = value;
-        StateHasChanged();
-    }
-
-    private void OnBooleanValueChanged(EditReport.FilterViewModel filter, bool? value)
-    {
-        filter.BooleanValue = value;
         StateHasChanged();
     }
 
