@@ -291,13 +291,10 @@ public class ReportService : IReportService
                 if (config?.Sources != null)
                 {
                     var originalCount = config.Sources.Count;
-                    var filteredSources = config.Sources
-                        .Where(s => !(s.SourceType?.ToLower() == "join" && s.SourceId == joinId))
-                        .ToList();
+                    config.Sources.RemoveAll(s => s.SourceType?.ToLower() == "join" && s.SourceId == joinId);
 
-                    if (filteredSources.Count != originalCount && filteredSources.Count != 0)
+                    if (config.Sources.Count != originalCount)
                     {
-                        config.Sources = filteredSources; 
                         report.JSON_config = JsonSerializer.Serialize(config, options);
                         _context.Reports.Update(report);
                         await _context.SaveChangesAsync();
@@ -311,31 +308,66 @@ public class ReportService : IReportService
             }
         }
 
+        // 4. Eliminar los filtros asociados a los operandos del join en JSON_filters
+        if (report != null && !string.IsNullOrWhiteSpace(report.JSON_filters))
+        {
+            var jsonOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+            var filtersConfig = JsonSerializer.Deserialize<ReportFiltersConfig>(report.JSON_filters, jsonOptions);
 
-        var join = await _context.CrossModuleJoins
+            // Cargar el join con los operandos
+            var joinFull = await _context.CrossModuleJoins
+                .Include(j => j.LeftOperand)
+                .Include(j => j.RightOperand)
                 .FirstOrDefaultAsync(j => j.Id == joinId);
 
-            if (join != null)
+            if (filtersConfig?.DatasetFilters != null && joinFull != null)
             {
-                // Guardar los IDs antes de eliminar el join
-                var leftOperandId = join.LeftOperandId;
-                var rightOperandId = join.RightOperandId;
+                int leftDatasetId = joinFull.LeftOperand.DatasetId;
+                int rightDatasetId = joinFull.RightOperand.DatasetId;
+                var leftModuleType = joinFull.LeftOperand.ModuleType;
+                var rightModuleType = joinFull.RightOperand.ModuleType;
 
-                _context.CrossModuleJoins.Remove(join);
-                await _context.SaveChangesAsync();
+                int originalCount = filtersConfig.DatasetFilters.Count;
 
-                var leftOperand = await _context.JoinOperands.FirstOrDefaultAsync(o => o.Id == leftOperandId);
-                if (leftOperand != null)
-                        _context.JoinOperands.Remove(leftOperand);
-                
-                var rightOperand = await _context.JoinOperands.FirstOrDefaultAsync(o => o.Id == rightOperandId);
-                if (rightOperand != null)
+                filtersConfig.DatasetFilters.RemoveAll(df =>
+                    (df.DatasetId == leftDatasetId && df.ModuleType == leftModuleType) ||
+                    (df.DatasetId == rightDatasetId && df.ModuleType == rightModuleType)
+                );
+
+                if (filtersConfig.DatasetFilters.Count < originalCount)
                 {
-                    _context.JoinOperands.Remove(rightOperand);
+                    report.JSON_filters = filtersConfig.DatasetFilters.Count == 0
+                        ? null
+                        : JsonSerializer.Serialize(filtersConfig, jsonOptions);
+                    _context.Reports.Update(report);
+                    await _context.SaveChangesAsync();
                 }
-                await _context.SaveChangesAsync();
             }
-        
+        }
+
+        // 5. Eliminar el join y sus operandos
+        var joinToDelete = await _context.CrossModuleJoins
+            .Include(j => j.LeftOperand)
+            .Include(j => j.RightOperand)
+            .FirstOrDefaultAsync(j => j.Id == joinId);
+
+        if (joinToDelete != null)
+        {
+            var leftOperand = joinToDelete.LeftOperand;
+            var rightOperand = joinToDelete.RightOperand;
+
+            _context.CrossModuleJoins.Remove(joinToDelete);
+            if (leftOperand != null)
+                _context.JoinOperands.Remove(leftOperand);
+            if (rightOperand != null)
+                _context.JoinOperands.Remove(rightOperand);
+
+            await _context.SaveChangesAsync();
+        }
 
         return true;
     }

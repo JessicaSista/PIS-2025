@@ -474,13 +474,13 @@ namespace OmniMonitor.Server.Controllers
                     }
                     
                 }
-
+                
                 var jsonOptions = new System.Text.Json.JsonSerializerOptions 
                 { 
                     PropertyNameCaseInsensitive = true,
                     Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
                 };
-                
+                var allReports = await _context.Reports.ToListAsync();
                 foreach (var report in allReports)
                 {
                     try
@@ -503,7 +503,6 @@ namespace OmniMonitor.Server.Controllers
                                 if (config.Sources.Count == 0)
                                 {
                                     await _reportService.DeleteReportAsync(report.Id, username);
-                                    reportIdsDeleted.Add(report.Id);
                                 }
                                 else
                                 {
