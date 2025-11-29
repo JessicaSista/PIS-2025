@@ -461,7 +461,7 @@ namespace OmniMonitor.Server.Controllers
                             // Eliminar sources que referencien este dataset AM
                             config.Sources.RemoveAll(s =>
                                 s.SourceType?.Equals("dataset", StringComparison.OrdinalIgnoreCase) == true &&
-                                s.SourceModule == ModuleType.AssetManager &&
+                                s.SourceModule == ModuleType.UrbanMonitor &&
                                 s.SourceId == datasetId);
 
                             // Si se eliminó algo
